@@ -28,9 +28,9 @@ Presenta una síntesis del proyecto, incluyendo el contexto en el que surge, la 
 
 | Nombre | GitHub |
 |---|---|
-| Nombre Apellido | [@usuario1](https://github.com/usuario1) |
-| Nombre Apellido | [@usuario2](https://github.com/usuario2) |
-| Nombre Apellido | [@usuario3](https://github.com/usuario3) |
+| Isabella Arrieta | [@isaAJ05](https://github.com/isaAJ05) |
+| Natalia Carpintero | [@carpinteron](https://github.com/carpinteron) |
+| Paula Núñez | [@pzarante](https://github.com/pzarante) |
 
 ## Tutores
 
