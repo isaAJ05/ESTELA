@@ -49,64 +49,44 @@ Explica por qué el problema debe ser atendido y cuál es la pertinencia académ
 
 Indica las principales limitaciones y condiciones asumidas para plantear la solución, tales como tiempo, recursos, acceso a información, disponibilidad de usuarios, infraestructura o restricciones técnicas.
 
-## 3. Alcance del proyecto
+# 3. Alcance del proyecto
 
-Define los límites del proyecto especificando qué incluye y qué no incluye.
+## Incluye
 
-### Incluye
+- Desarrollo de una aplicación de escritorio con ejecución e inferencia completamente locales, dirigida a personas sin experiencia previa en ejercicio estructurado, sin rutina definida, o que estén iniciando en la práctica de actividad física (aproximadamente entre 14 y 40 años).
+- Recursos técnicos: hardware disponible (Mac Studio M2 Ultra, 128 GB RAM) para la ejecución local de los modelos, videos de referencia entregados como archivo local para cada estiramiento de la rutina, y librerías/motores de inferencia de código abierto (RTMPose o MediaPipe, dtw-python o FastDTW, Kokoro TTS).
+- Definición, por parte del usuario, de metas básicas de la sesión (duración, repeticiones, sets) y selección del ejercicio o rutina a practicar.
+- Generación de una interfaz de retroalimentación visual y hablada, junto con un panel de estadísticas de sesión (duración, historial de retroalimentación, recomendaciones generales sobre fallas o aspectos por mejorar).
+- Instrumentación y medición del sistema como actividad propia del proyecto, con el fin de sustentar el desempeño del prototipo mediante evidencia cuantitativa.
+- Validación del prototipo mediante una rutina de calentamiento compuesta por varios estiramientos de bajo impacto, como caso de uso representativo.
+- Prototipo funcional, validado mediante un caso de uso representativo (rutina de calentamiento con múltiples estiramientos).
 
-- **Funcionalidades principales del sistema**.
-- **Tipo de usuarios involucrados**.
-- **Nivel de madurez de la solución** (prototipo, MVP, diseño detallado).
-- **Entornos cubiertos** (web, móvil, backend, integración).
+## No incluye
 
-### No incluye
+- Generación automática de rutinas nuevas a partir de instrucciones libres del usuario (prompt).
+- Modo de operación diferenciado según el entorno físico (casa, gimnasio, entre otros).
+- Soporte para múltiples usuarios de manera simultánea.
+- Funcionamiento mediante servicios en la nube.
+- Cobertura de disciplinas físicas distintas al calentamiento de bajo impacto.
+- Diagnóstico médico, fisioterapéutico o rehabilitación clínica; el sistema no reemplaza la orientación de un instructor o profesional certificado.
+- Verificación exhaustiva de la calidad técnica de los videos de referencia entregados al sistema.
+- Implementación a escala productiva, despliegue público o soporte operativo posterior al proyecto.
 
-- Funcionalidades futuras o deseables.
-- Implementaciones a escala productiva.
-- Integraciones externas no críticas.
-- Soporte operativo post-proyecto.
+---
 
-## 4. Objetivos
+# 4. Objetivos
 
-Establece el objetivo general del proyecto y los objetivos específicos que guiarán su desarrollo.
+## 4.1 Objetivo general
 
-Los objetivos refieren a la situación o logros que se pretenden alcanzar con el desarrollo del proyecto. Todos los demás elementos y su estructura se derivan de estos: metodología, marco teórico, resultados, etc. Por ello debe prestarse **mayor atención** en su proceso de formulación.
+Diseñar e implementar un prototipo de entrenador personal inteligente que permita a personas sin experiencia previa en ejercicio estructurado practicar una rutina de calentamiento de bajo impacto con retroalimentación hablada y en tiempo real, evaluando la viabilidad de una arquitectura de inferencia local mediante métricas de precisión y latencia durante el desarrollo del proyecto.
 
-Deben ser **claros, viables, susceptibles de alcanzarse y congruentes entre sí**. Son la base de la evaluación del proyecto.
+## 4.2 Objetivos específicos
 
-Se recomienda que sean **SMART**:
-
-- **S**pecific (específicos): definidos con precisión.
-- **M**easurable (medibles): verificables mediante indicadores.
-- **A**chievable (alcanzables): realistas según los recursos y el tiempo.
-- **R**elevant (relevantes): alineados con el problema y la solución.
-- **T**ime-bound (con plazo): acotados en el tiempo del proyecto.
-
-Los objetivos deben redactarse con **verbos en infinitivo** que indiquen acciones concretas y verificables. Verbos recomendados: *desarrollar, diseñar, implementar, evaluar, analizar, determinar, establecer, validar, modelar, construir, integrar, optimizar, documentar, automatizar, configurar, definir, identificar, clasificar, comparar, proponer*. Evitar verbos ambiguos como *conocer, entender, estudiar, saber*.
-
-### 4.1 Objetivo general
-
-Muestra los cambios o efectos que se desean lograr en la situación inicial definida como problemática. Responde a la relación entre el **problema planteado** y los **propósitos o metas del desarrollo**.
-
-Formula de manera clara el propósito principal del proyecto.
-
-**Ejemplo:**
-
-> Definir proceso y estructura metodológica en la empresa XYZ para identificar, evaluar y reducir los riesgos relacionados con TI (Cumplimiento, estratégicos, operacionales) que puedan tener un impacto potencial sobre las actividades de TI que soportan las operaciones de negocio en el 2022, dentro de los niveles de tolerancia establecidos por la organización.
-
-*Análisis SMART del ejemplo:*
-- **S** — Específico: define proceso y estructura metodológica para riesgos TI (cumplimiento, estratégicos, operacionales).
-- **M** — Medible: se puede verificar mediante la existencia del proceso y estructura definidos.
-- **A** — Alcanzable: acotado a una empresa y a riesgos TI específicos.
-- **R** — Relevante: impacta directamente las operaciones de negocio soportadas por TI.
-- **T** — Con plazo: acotado al año 2022.
-
-### 4.2 Objetivos específicos
-
-Hacen referencia a los productos o resultados que son necesarios para alcanzar el objetivo general. Son los fines inmediatos del desarrollo, se dimensionan en términos de los resultados esperados o metas, con verbos que indican acciones concretas y con un mayor nivel de detalle.
-
-Descompone el objetivo general en metas concretas, observables y alcanzables que orienten el desarrollo del trabajo.
+- Determinar la desviación del movimiento del usuario respecto a una referencia mediante detección de postura y alineación temporal dinámica (DTW).
+- Establecer una representación visual del movimiento de referencia que oriente al usuario para cada ejercicio.
+- Generar retroalimentación hablada, en tiempo real y en español, sobre la ejecución del movimiento del usuario.
+- Evaluar el desempeño de la arquitectura propuesta mediante métricas de precisión de la comparación de movimiento y de latencia por etapa del sistema.
+- Documentar los resultados de la validación del prototipo en una rutina de calentamiento compuesta por varios estiramientos de bajo impacto.
 
 ## 5. Solución propuesta
 
