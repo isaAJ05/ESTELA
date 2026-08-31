@@ -19,7 +19,6 @@ Esta situación plantea un desafío técnico específico: desarrollar un sistema
 Este informe presenta **Estela**, un prototipo de sistema inteligente para proporcionar retroalimentación sobre la ejecución de ejercicios físicos. El sistema captura el movimiento del usuario mediante una cámara, estima sus puntos articulares y compara la ejecución con una referencia previamente definida para identificar posibles desviaciones. A partir de esta información, el sistema determina la retroalimentación correspondiente y la presenta de forma visual y mediante síntesis de voz en español. La inferencia se ejecuta localmente (sin depender de servicios remotos) durante la sesión. Su evaluación se centra en dos aspectos principales: la precisión de la comparación entre el movimiento del usuario y la referencia, y la latencia asociada a las diferentes etapas del procesamiento. De esta manera, el proyecto busca demostrar la viabilidad técnica de integrar percepción del movimiento, comparación temporal e interpretación de la ejecución en un prototipo funcional capaz de proporcionar retroalimentación durante la práctica de un conjunto delimitado de ejercicios.
 
 ## 2. Planteamiento del problema
-
 ### 2.1 Descripción del problema
 
 En la práctica autónoma de actividad física, las personas sin experiencia previa en ejercicio estructurado pueden no disponer de mecanismos suficientes para evaluar su propia ejecución durante el movimiento. En este escenario, quien sigue un video de rutina en casa o repite de memoria una secuencia que observó previamente no dispone necesariamente de un mecanismo objetivo que le permita determinar si su postura, alineación o duración del movimiento corresponden a la referencia propuesta. Las desviaciones respecto a la ejecución de referencia pueden pasar inadvertidas durante la práctica, lo que dificulta que el usuario identifique oportunamente los aspectos de su movimiento que requieren mejora.
@@ -58,18 +57,18 @@ El proyecto dispone de infraestructura suficiente para desarrollar y evaluar alt
 | --- | --- |
 | Hardware de inferencia | Un único equipo (Mac Studio M2 Ultra, 128 GB) accesible por SSH. No hay hardware redundante ni de respaldo. |
 | Ejecución | La inferencia del sistema se realizará completamente de manera local. No se contempla el uso de servicios de nube para la ejecución de los modelos. |
-| Cámara | Un dispositivo de captura conectado directamente al equipo de inferencia. La evaluación de una segunda cámara queda planteada como línea de exploración, no como requisito. |
+| Cámara | Se utilizará un único dispositivo de captura conectado directamente al equipo de inferencia. |
 | Presupuesto de latencia | Se establece inicialmente un objetivo de latencia para el ciclo de percepción y generación de retroalimentación, cuyo valor será revisado a partir de las mediciones experimentales. |
 | Almacenamiento | El video capturado durante la sesión no se almacenará de forma permanente. Se conservarán únicamente las métricas o datos derivados definidos para la evaluación y seguimiento del ejercicio. |
 
 #### Restricciones del entorno de uso
 
-Derivadas del análisis de limitaciones del equipo:
+Las siguientes condiciones delimitan el entorno de uso del prototipo:
 
 - **Un solo usuario a la vez.** El prototipo estará diseñado para la interacción con una sola persona frente a la cámara. Esta restricción permite delimitar el problema de detección, seguimiento y generación de retroalimentación y evita introducir, en esta primera versión, la complejidad asociada al análisis simultáneo de varios usuarios.
 - **Espacio suficiente para cubrir el cuerpo completo en el encuadre.** La documentación *legacy* de MediaPipe Pose indica que los conjuntos de validación internos (Yoga, Dance, HIIT) utilizaron imágenes con una sola persona ubicada entre 2 y 4 metros de la cámara [25]. Es una condición de validación interna del modelo, **no** un requisito de uso publicado, y así se trata en este informe.
 - **No se exige iluminación de estudio ni fondo controlado.** No existe documentación oficial que especifique requisitos de iluminación o fondo para los modelos considerados; las condiciones reales de operación se determinarán empíricamente y se documentarán como parte de la validación.
-- **Nivel de ruido compatible con escuchar la retroalimentación hablada.** El canal de salida principal es la voz.
+- El entorno debe permitir que el usuario escuche la retroalimentación hablada.
 - Ejercicios seleccionados por su viabilidad de análisis mediante estimación de pose y comparación con una referencia definida.
 
 #### Supuestos
@@ -82,46 +81,50 @@ Derivadas del análisis de limitaciones del equipo:
 
 #### Restricciones explícitas de responsabilidad
 
-El sistema **no** realiza diagnóstico médico, fisioterapéutico ni rehabilitación clínica, y **no** reemplaza la orientación de un instructor o profesional certificado. El prototipo proporciona retroalimentación sobre la ejecución respecto a los criterios definidos para los ejercicios incluidos. Esta delimitación es una restricción de diseño, no un descargo de responsabilidad añadido al final: condiciona qué mensajes puede emitir el sistema y qué ejercicios entran en el alcance.
+El sistema **no** realiza diagnóstico médico, fisioterapéutico ni rehabilitación clínica, y **no** reemplaza la orientación de un instructor o profesional certificado. El prototipo proporciona retroalimentación sobre la ejecución respecto a los criterios definidos para los ejercicios incluidos. Esta delimitación constituye una restricción de diseño que condiciona los ejercicios incluidos y el tipo de retroalimentación que puede proporcionar el sistema.
 
-# 3. Alcance del proyecto
+## 3. Alcance del proyecto
 
-## Incluye
+### Incluye
 
-- Desarrollo de una aplicación de escritorio con ejecución e inferencia completamente locales, dirigida a personas sin experiencia previa en ejercicio estructurado, sin rutina definida, o que estén iniciando en la práctica de actividad física (aproximadamente entre 14 y 40 años).
-- Recursos técnicos: hardware disponible (Mac Studio M2 Ultra, 128 GB RAM) para la ejecución local de los modelos, videos de referencia entregados como archivo local para cada estiramiento de la rutina, y librerías/motores de inferencia de código abierto (RTMPose o MediaPipe, dtw-python o FastDTW, Kokoro TTS).
-- Definición, por parte del usuario, de metas básicas de la sesión (duración, repeticiones, sets) y selección del ejercicio o rutina a practicar.
-- Generación de una interfaz de retroalimentación visual y hablada, junto con un panel de estadísticas de sesión (duración, historial de retroalimentación, recomendaciones generales sobre fallas o aspectos por mejorar).
+- Desarrollo de una aplicación de escritorio con ejecución e inferencia completamente locales, dirigida a personas adultas sin experiencia previa en ejercicio estructurado que se encuentren iniciando una práctica de actividad física (aproximadamente entre 18 y 40 años).
+- Recursos técnicos:  hardware disponible para la ejecución local, videos de referencia entregados como archivos locales para los ejercicios incluidos y herramientas de software seleccionadas para la estimación de pose, comparación del movimiento, interpretación y síntesis de voz.
+- Generación de una interfaz de retroalimentación visual y hablada, junto con un panel de información de la sesión que presente métricas y resultados derivados de la ejecución.
 - Instrumentación y medición del sistema como actividad propia del proyecto, con el fin de sustentar el desempeño del prototipo mediante evidencia cuantitativa.
-- Validación del prototipo mediante una rutina de calentamiento compuesta por varios estiramientos de bajo impacto, como caso de uso representativo.
-- Prototipo funcional, validado mediante un caso de uso representativo (rutina de calentamiento con múltiples estiramientos).
+- Validación del prototipo sobre un conjunto delimitado de cinco ejercicios seleccionados de acuerdo con criterios de viabilidad técnica y de análisis del movimiento.
+- Configuración de parámetros básicos de la sesión, de acuerdo con las características de los ejercicios incluidos.
+- Prototipo funcional validado en un entorno controlado y para un único usuario.
 
-## No incluye
+### No incluye
 
-- Generación automática de rutinas nuevas a partir de instrucciones libres del usuario (prompt).
+- Generación automática de rutinas nuevas a partir de instrucciones libres del usuario (*prompt*).
+- No incluye el desarrollo de modelos fundacionales o de estimación de pose desde cero.
 - Modo de operación diferenciado según el entorno físico (casa, gimnasio, entre otros).
 - Soporte para múltiples usuarios de manera simultánea.
-- Funcionamiento mediante servicios en la nube.
-- Cobertura de disciplinas físicas distintas al calentamiento de bajo impacto.
-- Diagnóstico médico, fisioterapéutico o rehabilitación clínica; el sistema no reemplaza la orientación de un instructor o profesional certificado.
+- Dependencia de servicios en la nube para la inferencia o generación de retroalimentación durante la sesión.
+- Cobertura de ejercicios distintos del conjunto delimitado para el prototipo.
+- Diagnóstico médico, fisioterapéutico o rehabilitación clínica.
+- No se contempla una versión web o móvil dentro del alcance del proyecto.
 - Verificación exhaustiva de la calidad técnica de los videos de referencia entregados al sistema.
 - Implementación a escala productiva, despliegue público o soporte operativo posterior al proyecto.
 
 ---
 
-# 4. Objetivos
+## 4. Objetivos
 
-## 4.1 Objetivo general
+### 4.1 Objetivo general
 
-Diseñar e implementar un prototipo de entrenador personal inteligente que permita a personas sin experiencia previa en ejercicio estructurado practicar una rutina de calentamiento de bajo impacto con retroalimentación hablada y en tiempo real, evaluando la viabilidad de una arquitectura de inferencia local mediante métricas de precisión y latencia durante el desarrollo del proyecto.
+Diseñar e implementar un prototipo de sistema inteligente que permita analizar la ejecución de un conjunto delimitado de ejercicios físicos y proporcionar retroalimentación visual y hablada en español durante su práctica, mediante una arquitectura de inferencia local cuya viabilidad sea evaluada mediante métricas de desempeño relacionadas con la comparación del movimiento y la latencia del procesamiento.
 
-## 4.2 Objetivos específicos
+### 4.2 Objetivos específicos
 
-- Determinar la desviación del movimiento del usuario respecto a una referencia mediante detección de postura y alineación temporal dinámica (DTW).
-- Establecer una representación visual del movimiento de referencia que oriente al usuario para cada ejercicio.
-- Generar retroalimentación hablada, en tiempo real y en español, sobre la ejecución del movimiento del usuario.
-- Evaluar el desempeño de la arquitectura propuesta mediante métricas de precisión de la comparación de movimiento y de latencia por etapa del sistema.
-- Documentar los resultados de la validación del prototipo en una rutina de calentamiento compuesta por varios estiramientos de bajo impacto.
+1. Identificar desviaciones relevantes del movimiento del usuario respecto a una referencia mediante la extracción de características articulares y un mecanismo de comparación temporal.
+2. Establecer una representación visual del movimiento de referencia que permita al usuario observar el patrón de ejecución asociado a cada ejercicio.
+3. Generar retroalimentación visual y hablada, en español, a partir de las desviaciones identificadas durante la ejecución del ejercicio.
+4. Evaluar el desempeño de la arquitectura propuesta mediante métricas de precisión de la comparación de movimiento y de latencia por etapa del sistema.
+5. Validar el funcionamiento del prototipo sobre un conjunto delimitado de cinco ejercicios mediante pruebas realizadas en un entorno controlado.
+   
+--- 
 
 ## 5. Solución propuesta
 
