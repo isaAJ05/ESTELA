@@ -1,4 +1,4 @@
-# Guía para el primer informe del proyecto
+# ESTELA Informe N.º 1
 
 ## Resumen / Abstract
 
@@ -125,32 +125,178 @@ Diseñar e implementar un prototipo de entrenador personal inteligente que permi
 
 ## 5. Solución propuesta
 
-Describe a alto nivel la solución planteada para abordar el problema identificado. Explica qué se propone construir, quiénes serían sus usuarios, cómo funcionaría de manera general y por qué constituye una respuesta adecuada dentro del alcance definido.
+### 5.1 Qué se propone construir
 
+**Estela Trainer** es una aplicación de escritorio que actúa como asistente durante la práctica de una rutina de calentamiento. El usuario se ubica frente a la cámara y comienza a ejecutar el ejercicio seleccionado o identificado por el sistema; este muestra en pantalla una guía del movimiento esperado, observa la ejecución y analiza su correspondencia con la referencia para generar retroalimentación en español durante la práctica. Toda la inferencia se plantea para ejecutarse en el equipo local, evitando la transmisión de los fotogramas a servicios externos.
+
+La respuesta al problema planteado en la Sección 2 se articula en tres decisiones de diseño:
+
+| Decisión | Qué resuelve del problema |
+| --- | --- |
+| Observación continua por cámara con estimación de pose local | Suple la **ausencia del observador competente** (causa 1) sin depender de un tercero remoto. |
+| Retroalimentación hablada emitida durante la ejecución | Elimina la **unidireccionalidad del contenido** (causa 2) y el **retardo entre ejecución y corrección** (causa 3). |
+| Presupuesto de latencia como criterio de aceptación, con mensajes de plantilla como respaldo | Busca que la retroalimentación pueda generarse y entregarse mientras la ejecución aún ocurre |
+
+### 5.2 Usuarios y Roles 
+| Perfil | Descripción |
+| --- | --- |
+| **Usuario principal** | Persona entre ~18 y 40 años, sin experiencia previa en ejercicio estructurado ni rutina definida, que practica en un espacio propio, sin instructor presente. Interactúa seleccionando la rutina, definiendo metas básicas de la sesión (duración, repeticiones, sets) y ejecutando el movimiento frente a la cámara. |
+| Rol de configuración técnica  | Corresponde al equipo de desarrollo y permite incorporar nuevos ejercicios mediante la preparación de sus recursos de referencia. Este rol no forma parte de la interacción habitual del usuario final. |
+
+### 5.3 El concepto de skill 
+Una skill se construye a partir de un video de referencia local y contiene los recursos necesarios para representar y evaluar el ejercicio durante la sesión. Entre estos recursos pueden incluirse la representación del movimiento de referencia, una guía visual tipo stick figure y la configuración específica requerida por el método de evaluación seleccionado.
+
+La representación exacta utilizada para la comparación, por ejemplo, ángulos articulares, coordenadas normalizadas u otra representación derivada de la pose, será determinada durante la experimentación. 
+
+### 5.4 Arquitectura funcional propuesta
+
+La arquitectura presentada corresponde al flujo de referencia planteado al cierre de este informe. Algunas etapas y tecnologías permanecen abiertas y serán evaluadas experimentalmente durante el desarrollo, particularmente el método de identificación del ejercicio, la representación del movimiento y el método de comparación. ****
+
+**Fase de construcción (offline, una sola vez por ejercicio):**
+
+```text
+Video de referencia (archivo local)
+        │
+        ↓
+Estimación de pose ──→ Normalización ──→ Secuencia de ángulos de referencia
+        │                                      │
+        └──────────→ Generación de stick figure ─┤
+                                                 ↓
+                              Configuración de evaluación
+                              (articulaciones, umbrales)
+                                                 │
+                                                 ↓
+                                            SKILL almacenada
+```
+                                  
+**Fase de ejecución (en tiempo real, durante la sesión):**
+```text
+                      Cámara
+                        │
+                        ▼
+              ┌───────────────────┐
+              │  Memoria          │   Una sola escritura del fotograma;
+              │  compartida       │   los consumidores leen del mismo lugar
+              └───────────────────┘
+                 │      │      │
+     ┌───────────┘      │      └──────────────┐
+     ▼                  ▼                     ▼
+Estimación de pose   Modelo multimodal     Pantalla
+     │               (keyframes)               │
+     ▼                  ▲                      │
+Normalización           │                      │
+     │                  │                      │
+     ▼                  │                      │
+Comparación con la      │                 Stick figure de
+referencia (DTW) ───────┘                 la skill + estado
+     │
+     ▼
+Desviación resumida por articulación
+     │
+     ▼
+Decisión de retroalimentación
+(qué decir, cuándo decirlo, cuándo callar)
+     │
+     ▼
+Síntesis de voz local (español)
+     │
+     ▼
+Voz al usuario
+```
+### 5.5 Módulos y tecnologías candidatas
+
+| Módulo | Función | Tecnología candidata | Estado de la decisión |
+| --- | --- | --- | --- |
+| Percepción | Convertir cada fotograma en puntos articulares | RTMPose [14] o MediaPipe Pose Landmarker [12], [13] | **Pendiente.** Requiere prueba comparativa directa en el hardware del proyecto (ver 5.7). |
+| Normalización | Hacer la representación independiente del encuadre y de la morfología | Ángulos articulares derivados de coordenadas de mundo 3D | Enfoque definido; parámetros por determinar. |
+| Comparación temporal | Alinear la ejecución del usuario con la referencia a velocidades distintas | DTW [15], vía `dtw-python` o FastDTW / alternativas | Candidato principal. Cuenta con precedentes en [7] y [9]; su configuración y desempeño se validarán durante el desarrollo. |
+| Interpretación | Traducir la desviación numérica y el contexto visual en una valoración de desempeño | Modelo multimodal pequeño de ejecución local | **Pendiente**, incluida la verificación de su tasa de alucinación (ver 5.7). |
+| Decisión de retroalimentación | Determinar qué corregir, cuándo hablar y cuándo callar | Modelo de lenguaje local + mensajes de plantilla como respaldo | Enfoque definido; modelo por confirmar. |
+| Síntesis de voz | Emitir la corrección en español | Kokoro TTS (82 M parámetros, licencia Apache 2.0, ejecución local) [18] | Candidato principal; soporte de español por verificar empíricamente. |
+| Transporte de fotogramas | Evitar copias del fotograma entre módulos | Memoria compartida (*shared memory interface mapping*) | Enfoque definido. |
+
+### 5.6 Por qué es una respuesta adecuada dentro del alcance
+
+- **Es acotada.** El alcance se limita a una rutina de calentamiento de bajo impacto, un usuario y una selección explícita del ejercicio. Esas tres restricciones eliminan los problemas más difíciles del dominio (segmentación de actividad no supervisada, seguimiento multipersona, movimientos de alta velocidad) sin eliminar el problema central: observar y corregir.
+- **Es medible.** Los objetivos específicos 1 y 4 exigen cifras: desviación respecto a la referencia y latencia por etapa. La medición no es un anexo del proyecto, es un entregable.
+- **Es extensible.** La separación entre *pipeline* y *skills* permite pasar de dos ejercicios a diez sin rediseñar el sistema, que es exactamente la trayectoria de crecimiento recomendada por los asesores.
+- **Es realizable con los recursos disponibles.** El proyecto cuenta con infraestructura de cómputo y modelos de código abierto que permiten experimentar con diferentes alternativas sin que sea necesario adquirir hardware adicional.
+- **Reduce la exposición de la información capturada.** Al mantener la inferencia local y evitar la transmisión de los fotogramas a servicios externos, el diseño reduce los riesgos asociados al envío de información corporal a terceros.
+
+### 5.7 Decisiones abiertas al cierre de este informe
+
+Se declaran explícitamente para que el lector distinga lo definido de lo pendiente:
+
+1. **Estimador de pose: RTMPose o MediaPipe.** Ninguna documentación oficial publica cifras de latencia para el hardware y la configuración exactas del proyecto. La decisión requiere una prueba comparativa propia sobre los mismos videos, midiendo FPS y latencia reales, consumo de CPU/RAM en inferencia en vivo, y estabilidad de los puntos articulares en los estiramientos concretos de la rutina.
+2. **Modelo multimodal y modelo de lenguaje.** Requieren, antes de integrarse, un *benchmark* propio de imágenes anotadas que cuantifique su tasa de alucinación. No se delegará ninguna decisión de retroalimentación a un modelo cuyo comportamiento no se haya medido.
+3. **Número de cámaras.** Se explorará si una sola cámara captura adecuadamente los estiramientos seleccionados o si alguno requiere una segunda vista. El diseño no se cerrará sobre una sola cámara de forma irreversible.
+4. **Método de representación y comparación del movimiento.** Se evaluarán diferentes formas de representar la ejecución del usuario y compararla con la referencia. DTW constituye una de las alternativas consideradas, pero la selección final dependerá de su comportamiento en precisión, robustez ante diferentes velocidades de ejecución y costo computacional.
+5. **Identificación del ejercicio.** Se evaluará si resulta más conveniente que el usuario seleccione explícitamente el ejercicio o incorporar un mecanismo de clasificación automática. La segunda alternativa podrá requerir un modelo entrenado o ajustado con datos específicos, cuya viabilidad se determinará durante el desarrollo.
 ## 6. Estado del arte / soluciones relacionadas
 
-Presenta antecedentes o soluciones existentes relevantes, con el fin de contextualizar la propuesta y mostrar oportunidades de diferenciación, mejora o aporte.
+Esta revisión se organiza en productos comerciales, soluciones de código abierto y enfoques técnicos documentados en la literatura. Se distingue de forma explícita entre **dato verificado** en fuente primaria y **observación o indicio** pendiente de verificación, y las cifras de desempeño no se comparan entre sí cuando provienen de configuraciones o hardware distintos.
 
-Responde a las preguntas: ¿qué soluciones existen hoy?, ¿cómo abordan el problema?, ¿qué limitaciones presentan?
+### 6.1 Productos comerciales
 
-### Revisar
+**Peloton Guide.** *Las especificaciones de este párrafo provienen de una fuente secundaria [20] y no de documentación oficial del fabricante; se reportan como tales.* Dispositivo anunciado en noviembre de 2021 y lanzado el 5 de abril de 2022 a US$ 295, con una cámara gran angular de 12 megapíxeles capaz de transmitir video 4K a hasta 60 fotogramas por segundo. Se conecta a un televisor por HDMI y estudia los movimientos del usuario para hacer seguimiento del entrenamiento y ofrecer retroalimentación y recomendaciones de clases; al terminar, presenta un desglose de los músculos trabajados [20]. Es el ejemplo más cercano en concepto al presente proyecto: cámara fija, análisis de movimiento y recomendaciones. Sus limitaciones son estructurales: requiere hardware propietario, suscripción, un televisor, y su retroalimentación está ligada al catálogo de clases del proveedor. **Observación (24 de agosto de 2026):** al consultar la URL histórica del producto (`onepeloton.com/guide`), la página servida no describe el Guide sino el catálogo vigente de dispositivos del fabricante —Bike, Bike+, Tread, Tread+ y Row+—, en el que el Guide no figura [24]. No se localizó un anuncio oficial de descontinuación, por lo que se reporta como ausencia observada del catálogo y no como discontinuación confirmada.
 
-- Productos comerciales.
-- Soluciones open-source.
-- Arquitecturas o enfoques técnicos relevantes.
+**Tempo.** Plataforma de entrenamiento de fuerza que combina hardware doméstico con planes adaptativos, escaneo corporal 3D para seguimiento de composición corporal y entrenamiento personal virtual desde US$ 39 mensuales más el costo del equipo. El sitio oficial no publica detalles sobre la arquitectura del sensor, si el procesamiento ocurre en el dispositivo o en la nube, ni declaraciones de privacidad sobre el manejo del video [23]. Esa opacidad es, en sí misma, un hallazgo relevante: el usuario no puede determinar dónde se procesa la imagen de su cuerpo.
 
-### Comparar
+**Kaia Health.** Plataforma de manejo digital de dolor musculoesquelético, con programas desarrollados por fisioterapeutas. Según su propio sitio, cuenta con resultados clínicos en once ensayos y se distribuye a través de más de 2 500 empleadores y aseguradoras, no directamente al consumidor; ambas cifras son declaraciones del proveedor y no se verificaron en fuente independiente. La documentación pública consultada no especifica si el procesamiento de imagen es local o remoto [22]. Su dominio es clínico —rehabilitación y dolor—, explícitamente **fuera** del alcance de este proyecto, pero es relevante como referencia de que el análisis de ejercicio por cámara ya opera en contextos donde la exigencia de calidad es alta.
 
-- Funcionalidad.
-- Escalabilidad.
-- Costos.
-- Usabilidad.
-- Limitaciones técnicas.
+**Fragilidad de la oferta comercial (observación).** Durante esta revisión, el sitio de uno de los proveedores de análisis de movimiento por cámara consultados (`vay.ai`) devolvió una página de dominio expirado en lugar de contenido del producto (consultado el 24 de agosto de 2026). Se reporta como observación puntual, no como conclusión sobre el estado de la empresa; su valor es ilustrar que la dependencia funcional de un servicio remoto de terceros implica un riesgo de continuidad real para el usuario final.
 
-### Resultados esperados
+### 6.2 Soluciones de código abierto
 
-- Identificación de **vacíos, oportunidades o problemas no resueltos**.
-- **Justificación técnica** de por qué se requiere una nueva solución.
+**Estimadores de pose.** Son la base disponible, y su límite es nítido:
+
+- **MediaPipe Pose Landmarker** (basado en BlazePose GHUM [21]) entrega 33 puntos articulares por fotograma en coordenadas normalizadas de imagen y en coordenadas de mundo 3D en metros, con campos de `visibility` y `presence`, y está optimizado para ejecución local sin nube [13]. BlazePose fue diseñado explícitamente para seguimiento corporal en dispositivo [12]. Está diseñado y validado para **una sola persona**; el parámetro `num_poses` existe pero su fiabilidad no está garantizada por la documentación oficial [17].
+- **RTMPose** (familia MMPose) reporta 75,8 % AP en COCO y más de 90 FPS en una CPU Intel i7-11700 para la variante **RTMPose-m**, y más de 70 FPS en un Snapdragon 865 para la variante **RTMPose-s** (72,2 % AP) [14]. Son configuraciones y hardware distintos y no se comparan entre sí.
+
+Lo decisivo, para este proyecto, es lo que **ninguno** de los dos hace: no clasifican el ejercicio, no evalúan la calidad del movimiento, no calculan una puntuación, no detectan errores técnicos y no generan lenguaje natural [13], [14]. Entregan la materia prima. Todo el resto es trabajo por construir.
+
+**Conteo de repeticiones.** La solución `AIGym` de Ultralytics ejecuta estimación de pose y cuenta repeticiones midiendo el ángulo formado por tres puntos articulares conforme un miembro se mueve entre dos umbrales configurables (`up_angle`, `down_angle`), con ejemplos para flexiones, dominadas, sentadillas y extensiones de pierna [16]. Es un buen ejemplo del techo de esta familia de soluciones: registra **qué** se hace y cuántas veces, no **qué tan bien** [16]. El licenciamiento de la librería (AGPL-3.0 para uso de código abierto, según la documentación del proyecto) es además una restricción a considerar en cualquier derivación posterior, y conviene verificarlo directamente en el repositorio antes de asumir compatibilidad.
+
+### 6.3 Enfoques técnicos en la literatura
+
+| Trabajo | Enfoque | Resultados reportados | Limitaciones declaradas |
+| --- | --- | --- | --- |
+| **Pose Trainer** [7] — Chen y Yang, Stanford | Estimación de pose + geometría vectorial + DTW como métrica de distancia entre secuencias de puntos articulares, con clasificador de vecino más cercano; filtrado de mediana para reducir ruido del estimador | F1 por ejercicio: elevación frontal 1,00; curl de bíceps 0,85; encogimiento de hombros 0,85; press de hombros 0,73. Conjunto propio de más de 100 videos de forma correcta e incorrecta | Cuatro ejercicios; requiere PC con GPU; alcance restringido |
+| **AIFit** [6] — Fieraru *et al.*, CVPR 2021 | Reconstrucción de pose y movimiento 3D + "entrenador estadístico" con parámetro global ajustable según nivel del aprendiz; retroalimentación en lenguaje natural con anclaje espaciotemporal | Conjunto **Fit3D**: más de 3 millones de imágenes con verdad de referencia de forma y movimiento 3D, más de 37 ejercicios repetidos, con instructores y aprendices | La exactitud de la retroalimentación depende de la precisión del método de reconstrucción |
+| **Yoga pose recognition** [9] — Yeh y Yang, 2025 | OpenPose + algoritmos basados en reglas + DTW para trayectorias dinámicas; puntuación por ángulo articular con fórmula ponderada y cinco niveles de retroalimentación | 99,9 % en posturas estáticas y 99,0 % en acciones dinámicas, sobre cinco ejercicios; implementado en una NVIDIA Jetson Nano con webcam | Conjunto de prueba limitado en tamaño y diversidad; el desempeño en acciones dinámicas se ve afectado por variación de fondo y ángulo de cámara; la retroalimentación es basada en reglas, no adaptativa |
+| **Clasificación y conteo en tiempo real** [8] — Riccio, 2024 | BiLSTM sobre secuencias de 30 fotogramas, combinando ángulos invariantes con coordenadas crudas (x, y, z); integrado en una aplicación web | Más de 99 % de exactitud en el conjunto de prueba, sobre cuatro ejercicios (sentadilla, flexión, press de hombros, curl de bíceps), sin selección manual del ejercicio | Entrenado sobre mezcla de datos sintéticos (InfiniteRep) y videos reales; el trabajo se centra en clasificación y conteo, no en corrección de la técnica |
+| **Revisión de IA en fitness** [10] — Phalke *et al.*, 2025 | Revisión de PoseNet, OpenPose, HRNet, BlazePose y ConvNeXtPose; retroalimentación mediante función de costo sobre distancia euclidiana entre articulaciones del usuario y objetivo, entregada como superposición visual o avatar | No reporta cifras de exactitud; valoraciones cualitativas | Requiere grandes volúmenes de datos; puede fallar si el modelo no se ajusta a distintos tipos de cuerpo; disyuntiva exactitud/eficiencia en modelos livianos; conjuntos de datos limitados para ejercicios específicos |
+| **FLAG3D** [11] — Tang *et al.*, CVPR 2023 | Conjunto de datos de 180 000 secuencias y 60 categorías de actividad, con pose 3D de captura de movimiento e **instrucción profesional en lenguaje** que describe cómo ejecutar cada actividad | Habilita reconocimiento de acción entre dominios, recuperación de malla humana dinámica y generación de acción guiada por lenguaje | Es un recurso de datos, no un sistema de retroalimentación |
+
+**Dos observaciones sobre este cuerpo de trabajo.** Primera: **DTW cuenta con antecedentes en la comparación de ejecuciones de un mismo movimiento a velocidades distintas**, como muestran [7] y [9]. Esto proporciona un precedente técnico para considerar dicho método en el proyecto. 
+
+Segunda: la retroalimentación en la literatura es, o basada en reglas y umbrales fijos [9], o generada desde reconstrucción 3D con un modelo estadístico [6], o simplemente visual [10]. No se localizó, en las fuentes consultadas, un trabajo que interponga un modelo multimodal y un modelo de lenguaje ejecutados localmente entre la medición geométrica y el mensaje hablado, ni que reporte el presupuesto de latencia extremo a extremo como criterio de aceptación. Una fuente secundaria de la investigación interna del equipo reporta un sistema de evaluación postural en dispositivo con 50 ms de latencia por fotograma en un teléfono con NPU, en un dominio distinto (postura de chelista); se menciona como indicio de viabilidad y queda pendiente de verificación directa.
+
+### 6.4 Comparación
+
+| Criterio | Video pregrabado | Conteo open source (p. ej. [16]) | Comercial con cámara ([20], [23]) | Literatura académica ([6], [7], [9]) | Estela Trainer (propuesta) |
+| --- | --- | --- | --- | --- | --- |
+| Observa la ejecución | No | Sí | Sí | Sí | Sí |
+| Evalúa la calidad, no solo la cantidad | No | No | No verificable públicamente | Sí, en algunos trabajos | Sí, objetivo |
+| Retroalimentación hablada en tiempo real | No | No | No verificable de forma homogénea | Parcial | Sí, objetivo |
+| Ejecución local (sin nube) | Sí | Sí | No documentado de forma homogénea | Sí en [9] | Sí, restricción de diseño |
+| Costo de hardware | Nulo | Equipo propio | US$ 295 + suscripción [20]; desde US$ 39/mes + equipo [23] | Equipo propio + GPU en [7] | Equipo disponible |
+| Extensible a nuevos ejercicios sin modificar la lógica principal | N/A | Parcial | No es objetivo declarado | No es objetivo declarado | Sí, objetivo mediante skills |
+| En español | Variable | N/A | Variable | No identificado como requisito | Sí, requisito |
+| Presupuesto de latencia como criterio de aceptación | N/A | No reportado | No publicado | No reportado | Sí, objetivo |
+| Escalabilidad a múltiples usuarios simultáneos | Alta | No documentado | No comparable | No es objetivo declarado | Fuera de alcance |
+| Riesgo de continuidad del servicio | Bajo | Bajo | Dependiente del proveedor | N/A | Bajo, al ejecutarse localmente |
+
+### 6.5 Vacío identificado y oportunidad de desarrollo
+
+De la revisión realizada se identifican cuatro oportunidades principales:
+
+1. **La conjunción de capacidades no fue identificada en las fuentes consultadas.** Existen soluciones locales que proporcionan estimación de pose, soluciones que incorporan evaluación del movimiento y sistemas que generan retroalimentación, pero no se identificó en las fuentes revisadas una propuesta que combine ejecución local, evaluación de la ejecución, retroalimentación hablada en tiempo real, soporte en español y una arquitectura extensible mediante la definición externa de ejercicios.
+2. **La latencia extremo a extremo presenta una oportunidad de evaluación.** Los trabajos revisados reportan principalmente métricas de clasificación, reconocimiento o puntuación, mientras que no se identificó un criterio de aceptación basado en la latencia del proceso completo desde la captura del movimiento hasta la generación de la retroalimentación. Para un sistema de asistencia durante la ejecución, esta dimensión resulta relevante, dado que el momento de entrega de la retroalimentación puede influir en su utilidad [3].
+3. **La interpretación de las desviaciones constituye un componente abierto.** La medición geométrica de un movimiento y la generación de una instrucción comprensible son problemas diferentes. Los trabajos revisados emplean principalmente reglas, umbrales o mecanismos estadísticos para producir retroalimentación [6], [9]. Esto abre la posibilidad de estudiar alternativas de interpretación local, cuya precisión y comportamiento deberán ser evaluados antes de incorporarlas al sistema.
+4. **La extensibilidad constituye una oportunidad arquitectónica.** Los sistemas de retroalimentación revisados suelen estar construidos alrededor de un conjunto limitado de ejercicios y reglas específicas para cada uno [7], [8], [9]. Aunque existen conjuntos de datos con un número considerable de actividades [6], [11], estos no corresponden directamente a sistemas de retroalimentación en operación. La separación entre el *pipeline* de análisis y la definición de cada ejercicio constituye, por tanto, una característica que puede explorarse en el diseño propuesto.
+
+En consecuencia, la revisión sugiere una oportunidad de investigación y desarrollo: evaluar una arquitectura que integre capacidades de estimación de pose, comparación del movimiento e interpretación de la ejecución bajo las restricciones de procesamiento local, retroalimentación en tiempo real y privacidad definidas para el proyecto. El proyecto abordará esta oportunidad mediante un prototipo cuya arquitectura y componentes concretos serán validados experimentalmente.
 
 ## 7. Metodología de desarrollo y plan de trabajo
 
