@@ -1,9 +1,14 @@
-# Nombre del Proyecto
+# ESTELA Trainer
 
 ## Resumen ejecutivo
 
-Presenta una síntesis del proyecto, incluyendo el contexto en el que surge, la problemática u oportunidad identificada, la solución propuesta, su alcance general y el valor que aporta. Debe permitir al lector comprender rápidamente de qué trata el proyecto y por qué es relevante.
+ESTELA Trainer es un prototipo de entrenador personal inteligente orientado a personas que inician la práctica de actividad física sin acompañamiento profesional. El proyecto surge ante la dificultad de recibir retroalimentación oportuna sobre la técnica de los ejercicios cuando se utilizan rutinas o videos de manera autónoma. Las alternativas tradicionales permiten seguir los movimientos o contar repeticiones, pero no necesariamente identifican cómo está ejecutando el movimiento el usuario.
 
+Como solución, ESTELA Trainer propone una aplicación de escritorio capaz de observar al usuario mediante una cámara, analizar su movimiento y compararlo con una referencia previamente definida. A partir de la estimación de puntos articulares y la comparación temporal del movimiento mediante Dynamic Time Warping (DTW), el sistema identifica desviaciones relevantes y genera retroalimentación visual y hablada en español durante la ejecución. La inferencia se plantea completamente de forma local, evitando la transmisión del video a servicios externos y permitiendo evaluar el desempeño del sistema mediante métricas de precisión y latencia.
+
+El alcance del proyecto se delimita a un prototipo funcional para un solo usuario, validado mediante una rutina de calentamiento compuesta por cinco ejercicios de bajo impacto. Los ejercicios se definen mediante archivos externos para facilitar la incorporación de nuevas referencias sin modificar la lógica principal del sistema. El proyecto no busca cubrir de manera general todas las disciplinas deportivas ni sustituir la orientación de profesionales de la actividad física, sino demostrar la viabilidad técnica de integrar percepción del movimiento, comparación, interpretación y retroalimentación en tiempo real dentro de una arquitectura de ejecución local.
+
+El principal valor de ESTELA Trainer se encuentra en explorar una alternativa de acompañamiento accesible y orientada a la privacidad, mientras se estudia experimentalmente la precisión y latencia necesarias para proporcionar retroalimentación útil durante la práctica de actividad física.
 
 ## Documentación del repositorio
 
@@ -34,5 +39,5 @@ Presenta una síntesis del proyecto, incluyendo el contexto en el que surge, la 
 
 ## Tutores
 
-- Nombre del tutor 1
-- Nombre del tutor 2
+- Margarita Gamarra
+- Augusto Salazar
