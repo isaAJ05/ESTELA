@@ -20,21 +20,69 @@ Este informe presenta **Estela Trainer**, un prototipo de sistema inteligente pa
 
 ## 2. Planteamiento del problema
 
-Define y delimita el problema central, explicando qué se busca resolver y por qué es relevante.
-
-El problema se define como una **carencia o déficit** que se manifiesta como un **estado negativo** en una situación real (no teórica), localizado en una **población objetivo bien definida**. No debe confundirse con la falta de un servicio específico ni con la inexistencia de una solución tecnológica. El problema no es "hace falta un sistema que integre X", sino la evidencia de una situación deficiente: por ejemplo, "existen aplicaciones diferentes e incompatibles en los distintos departamentos de la empresa, lo que genera desconexión entre las unidades y pérdida de calidad en la información para la toma de decisiones". Tampoco se trata de un trabajo para una empresa en particular, sino de una **problemática transferible** a contextos similares.
-
 ### 2.1 Descripción del problema
 
-Expone con claridad la problemática, sus causas, a quién afecta y cuáles son sus principales consecuencias.
+En la práctica autónoma de actividad física, las personas sin experiencia previa en ejercicio estructurado pueden no disponer de mecanismos suficientes para evaluar su propia ejecución durante el movimiento. En este escenario, quien sigue un video de rutina en casa o repite de memoria una secuencia que observó previamente no dispone necesariamente de un mecanismo objetivo que le permita determinar si su postura, alineación o duración del movimiento corresponden a la referencia propuesta. Las desviaciones respecto a la ejecución de referencia pueden pasar inadvertidas durante la práctica, lo que dificulta que el usuario identifique oportunamente los aspectos de su movimiento que requieren mejora.
+
+Esta situación puede explicarse por varios factores. La práctica autónoma no cuenta de forma permanente con un observador que pueda analizar la ejecución mientras ocurre y contrastarla con un patrón de referencia. A esto se suma que gran parte del contenido digital utilizado para apoyar la práctica, como videos, imágenes o descripciones textuales, funciona de manera unidireccional: proporciona información al usuario, pero no recibe información sobre su ejecución, de modo que ofrece una referencia para realizar el movimiento sin permitir determinar cómo está siendo ejecutado. Finalmente, incluso cuando existe algún mecanismo de revisión, como la grabación de una sesión para analizarla posteriormente, la retroalimentación puede producirse después de que el movimiento ya ha sido realizado, y tanto la forma como el momento de entrega de la retroalimentación aumentada pueden influir en su efectividad [3].
+
+Esta situación afecta principalmente a las personas que se inician en la actividad física sin acompañamiento profesional, dentro del rango de edad definido para este proyecto (aproximadamente entre 18 y 40 años). Dado que la prevalencia de actividad física insuficiente en Colombia alcanzó el 34,5 % en 2022 [2], esta población constituye el grupo de interés del prototipo y delimita el contexto de validación del sistema.
+
+La ausencia de observación y retroalimentación durante la ejecución puede generar varias dificultades. El usuario dispone de menos oportunidades para identificar y ajustar su ejecución en el momento en que realiza el movimiento, pese a que la retroalimentación aumentada puede favorecer el aprendizaje y ajuste de habilidades motoras [3]. Además, las desviaciones respecto al movimiento de referencia pueden pasar inadvertidas, dificultando que la persona determine qué aspectos de su técnica debería mejorar. 
 
 ### 2.2 Justificación
 
-Explica por qué el problema debe ser atendido y cuál es la pertinencia académica, técnica, social o práctica del proyecto.
+El problema descrito resulta relevante porque la práctica autónoma de actividad física no siempre ofrece al usuario mecanismos para verificar y ajustar su ejecución durante el movimiento. Atender esta situación representa un reto que involucra aspectos técnicos, académicos, sociales y prácticos. Desde esta perspectiva, el desarrollo de ESTELA se justifica no únicamente por la posibilidad de construir una aplicación de entrenamiento, sino por la oportunidad de estudiar la integración de diferentes tecnologías de inteligencia artificial en una arquitectura local capaz de observar, analizar y comunicar información sobre el movimiento en tiempo real.
+
+Resolver esta problemática no consiste únicamente en seleccionar una herramienta existente. Los estimadores de pose disponibles, como MediaPipe Pose Landmarker y RTMPose, proporcionan información sobre la posición de los puntos articulares por fotograma, pero por sí mismos no resuelven tareas posteriores como la evaluación de la calidad de la ejecución, la comparación temporal de movimientos o la generación de retroalimentación al usuario [13], [14]. Por tanto, es necesario diseñar componentes capaces de transformar estas observaciones geométricas en una interpretación contextualizada y técnicamente sustentada, y posteriormente en una retroalimentación comprensible para el usuario.
+
+La literatura evidencia que distintos componentes del problema ya han sido abordados de forma independiente o parcial, incluyendo comparación temporal del movimiento, análisis de postura y generación de retroalimentación. Sin embargo, estos trabajos responden a configuraciones y objetivos específicos. En este contexto, el proyecto propone estudiar la integración de estos componentes en una arquitectura de ejecución local, evaluando de manera conjunta la precisión de la comparación, la latencia del procesamiento y la viabilidad de generar retroalimentación durante la ejecución.
+
+Las soluciones destinadas a proporcionar retroalimentación sobre el movimiento requieren procesar información visual del usuario y, potencialmente, datos derivados de su postura corporal. En Colombia, la Ley 1581 de 2012 clasifica los datos biométricos como datos sensibles, sujetos a un régimen especial de protección [5]. Por esta razón, el proyecto considera como condición de diseño que la inferencia se ejecutará localmente y las capturas de video serán procesadas durante la sesión sin requerir su transmisión a servicios externos ni su almacenamiento como parte del funcionamiento habitual del prototipo. Las métricas derivadas de la ejecución podrán conservarse para fines de evaluación y seguimiento de la sesión. Además de reducir la exposición de esta información, esta decisión permite estudiar el comportamiento de la arquitectura sin introducir dependencia de servicios remotos. La forma concreta en que se implementará el procesamiento local y su impacto sobre el desempeño serán determinados durante el desarrollo y la evaluación experimental.
+
+El proyecto dispone de infraestructura suficiente para desarrollar y evaluar alternativas de procesamiento local. El equipo principal disponible es un Mac Studio con M2 Ultra y 128 GB de memoria unificada, que constituye el equipo de inferencia previsto para el desarrollo y las pruebas [19]. Esta infraestructura permite concentrar el esfuerzo del proyecto en la integración, experimentación y medición de la arquitectura propuesta.
 
 ### 2.3 Restricciones y supuestos iniciales
 
-Indica las principales limitaciones y condiciones asumidas para plantear la solución, tales como tiempo, recursos, acceso a información, disponibilidad de usuarios, infraestructura o restricciones técnicas.
+#### Restricciones de tiempo y equipo humano
+
+| Restricción | Descripción |
+| --- | --- |
+| Duración | Un semestre académico (periodo 202630). El cronograma de la Sección 7.4 se ajusta a esa ventana. |
+| Equipo | Tres estudiantes, con dedicación parcial compartida con el resto de la carga académica. |
+| Consecuencia | Se prioriza **profundidad sobre cobertura**: pocos ejercicios funcionando bien y medidos, en lugar de muchos ejercicios sin evidencia de desempeño. |
+
+#### Restricciones de infraestructura
+
+| Restricción | Descripción |
+| --- | --- |
+| Hardware de inferencia | Un único equipo (Mac Studio M2 Ultra, 128 GB) accesible por SSH. No hay hardware redundante ni de respaldo. |
+| Ejecución | La inferencia del sistema se realizará completamente de manera local. No se contempla el uso de servicios de nube para la ejecución de los modelos. |
+| Cámara | Un dispositivo de captura conectado directamente al equipo de inferencia. La evaluación de una segunda cámara queda planteada como línea de exploración, no como requisito. |
+| Presupuesto de latencia | Se establece inicialmente un objetivo de latencia para el ciclo de percepción y generación de retroalimentación, cuyo valor será revisado a partir de las mediciones experimentales. |
+| Almacenamiento | El video capturado durante la sesión no se almacenará de forma permanente. Se conservarán únicamente las métricas o datos derivados definidos para la evaluación y seguimiento del ejercicio. |
+
+#### Restricciones del entorno de uso
+
+Derivadas del análisis de limitaciones del equipo:
+
+- **Un solo usuario a la vez.** El prototipo estará diseñado para la interacción con una sola persona frente a la cámara. Esta restricción permite delimitar el problema de detección, seguimiento y generación de retroalimentación y evita introducir, en esta primera versión, la complejidad asociada al análisis simultáneo de varios usuarios.
+- **Espacio suficiente para cubrir el cuerpo completo en el encuadre.** La documentación *legacy* de MediaPipe Pose indica que los conjuntos de validación internos (Yoga, Dance, HIIT) utilizaron imágenes con una sola persona ubicada entre 2 y 4 metros de la cámara [25]. Es una condición de validación interna del modelo, **no** un requisito de uso publicado, y así se trata en este informe.
+- **No se exige iluminación de estudio ni fondo controlado.** No existe documentación oficial que especifique requisitos de iluminación o fondo para los modelos considerados; las condiciones reales de operación se determinarán empíricamente y se documentarán como parte de la validación.
+- **Nivel de ruido compatible con escuchar la retroalimentación hablada.** El canal de salida principal es la voz.
+- Ejercicios seleccionados por su viabilidad de análisis mediante estimación de pose y comparación con una referencia definida.
+
+#### Supuestos
+
+1. Los videos de referencia se entregan como archivos locales y son técnicamente aptos para extraer los puntos articulares. **La verificación exhaustiva de su calidad técnica no forma parte del alcance.**
+2. Los componentes de estimación de pose, análisis e interpretación y síntesis de voz seleccionados estarán disponibles bajo condiciones de licencia compatibles con el uso académico previsto y podrán ejecutarse localmente.
+3. El equipo dispone de acceso continuo al Mac Studio durante el semestre.
+4. Es posible reclutar usuarios de prueba dentro de la población objetivo para las sesiones de validación.
+5. La comparación con una referencia constituye una aproximación inicial para identificar desviaciones respecto a criterios de ejecución definidos para los ejercicios incluidos en el prototipo.
+
+#### Restricciones explícitas de responsabilidad
+
+El sistema **no** realiza diagnóstico médico, fisioterapéutico ni rehabilitación clínica, y **no** reemplaza la orientación de un instructor o profesional certificado. El prototipo proporciona retroalimentación sobre la ejecución respecto a los criterios definidos para los ejercicios incluidos. Esta delimitación es una restricción de diseño, no un descargo de responsabilidad añadido al final: condiciona qué mensajes puede emitir el sistema y qué ejercicios entran en el alcance.
 
 # 3. Alcance del proyecto
 
