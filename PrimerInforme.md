@@ -313,23 +313,93 @@ En consecuencia, la revisión sugiere una oportunidad de investigación y desarr
 
 ## 7. Metodología de desarrollo y plan de trabajo
 
-Describe el enfoque metodológico que orientará el desarrollo del proyecto y la forma en que este se traducirá en actividades, iteraciones y entregables concretos. Debe explicar cómo se construirá, validará y refinará la solución a lo largo del proceso.
-
 ### 7.1 Enfoque metodológico
 
-Explica la metodología adoptada para el desarrollo del proyecto, justificando su elección. En particular, debe describirse el uso de un enfoque de prototipado iterativo, indicando cómo se plantea avanzar mediante ciclos sucesivos de diseño, construcción, prueba y ajuste de la solución.
+El desarrollo del proyecto seguirá un enfoque de **prototipado iterativo**, apoyado en una organización ágil del trabajo mediante **Kanban**. Esta metodología se considera adecuada para el proyecto debido a que el equipo está conformado por tres desarrolladoras y algunas decisiones sobre la solución todavía deben concretarse.
+
+En lugar de definir completamente la solución desde el inicio, el proyecto avanzará mediante ciclos de trabajo en los que se plantearán actividades, se desarrollarán avances, se probará su funcionamiento y se realizarán los ajustes necesarios. De esta manera, las decisiones podrán apoyarse en los resultados obtenidos durante el desarrollo y no únicamente en supuestos iniciales.
+
+La organización del trabajo se realizará mediante **ClickUp**, donde se gestionarán las tareas, prioridades y estados de avance. **GitHub** se utilizará para el control de versiones y el trabajo sobre el código, mientras que **Notion** permitirá centralizar la documentación, las decisiones tomadas y los resultados de las pruebas.
+
+Este enfoque también permite responder de manera flexible a posibles retrasos, dificultades técnicas o cambios en las prioridades, teniendo en cuenta que el proyecto se desarrolla dentro de un semestre académico y que las integrantes del equipo deben distribuir su tiempo entre este proyecto y sus demás responsabilidades académicas.
 
 ### 7.2 Iteraciones o fases de desarrollo
 
-Describe las principales fases o iteraciones previstas para el proyecto, indicando el propósito de cada una, las actividades principales a realizar y la manera en que cada ciclo contribuirá al refinamiento progresivo de la solución.
+El proyecto se organizará en varias etapas que se desarrollarán de manera progresiva y parcialmente solapada. Las actividades podrán ajustarse según los resultados obtenidos, el tiempo disponible y las observaciones realizadas durante las validaciones.
+
+**Fase 1. Concreción de la solución y arquitectura**
+
+Esta fase tendrá especial importancia debido a que el proyecto todavía cuenta con decisiones abiertas. Se revisará el funcionamiento esperado del sistema, se concretarán los principales componentes de la solución y se determinará cómo se relacionarán entre sí.
+
+También se realizarán pruebas iniciales con la **Mac disponible para el proyecto**, creando un pequeño espacio de laboratorio que permita experimentar con la cámara, los modelos y las condiciones básicas de ejecución. El objetivo no será obtener todavía el prototipo final, sino reducir la incertidumbre y tomar decisiones con base en pruebas reales.
+
+**Resultado esperado:** arquitectura preliminar definida, principales tecnologías seleccionadas y primeros experimentos documentados.
+
+**Fase 2. Construcción del primer prototipo**
+
+Una vez concretadas las decisiones principales, se desarrollará una primera versión funcional y sencilla del sistema. Se priorizará que el prototipo pueda ejecutar el flujo principal, aunque todavía tenga limitaciones en precisión, cantidad de ejercicios o calidad de la retroalimentación.
+
+La intención será comprobar que las diferentes partes de la solución pueden integrarse y detectar tempranamente dificultades que no hayan sido evidentes durante la planificación.
+
+**Resultado esperado:** primer prototipo funcional sobre el que sea posible realizar pruebas.
+
+**Fase 3. Integración y refinamiento**
+
+A partir de los resultados del primer prototipo se incorporarán mejoras y nuevos componentes. Se trabajará sobre la comparación del movimiento, la generación de la retroalimentación y la experiencia de uso, priorizando aquellos aspectos que sean más importantes para demostrar el funcionamiento del proyecto.
+
+En esta fase se buscará ampliar progresivamente el número de ejercicios únicamente cuando el funcionamiento de los anteriores sea suficientemente estable.
+
+**Resultado esperado:** prototipo integrado con las principales funcionalidades del proyecto.
+
+**Fase 4. Validación y ajustes**
+
+El prototipo será sometido a pruebas más estructuradas, tanto técnicas como de uso. Se realizarán experimentos en el laboratorio creado con la Mac y se harán pruebas con diferentes posiciones, movimientos y condiciones de ejecución.
+
+Además, los avances serán presentados periódicamente a los tutores para recibir retroalimentación sobre el funcionamiento de la solución, las decisiones tomadas y la pertinencia del resultado frente a los objetivos planteados.
+
+Los resultados de estas pruebas permitirán identificar errores, limitaciones y aspectos que deban ser modificados antes del cierre.
+
+**Resultado esperado:** versión refinada del prototipo y registro de resultados, problemas encontrados y ajustes realizados.
+
+**Fase 5. Consolidación y cierre**
+
+Finalmente se integrarán los ajustes prioritarios, se consolidará la versión del prototipo que será presentada y se organizará la documentación técnica y académica del proyecto.
+
+Esta etapa también incluirá la preparación de las evidencias de validación, el cierre del repositorio, la documentación de las decisiones tomadas y la preparación de los materiales necesarios para el informe final, el póster y la sustentación.
 
 ### 7.3 Estrategia de validación
 
-Explica cómo se evaluarán los avances en cada iteración, por ejemplo mediante retroalimentación de usuarios, pruebas funcionales, revisión de requerimientos o validaciones técnicas y de usabilidad.
+La validación se realizará de manera progresiva durante el desarrollo y no únicamente al finalizar el proyecto.
 
-### 7.4 Plan de trabajo, cronograma o hitos
+En primer lugar, se realizarán **pruebas técnicas** sobre la infraestructura disponible, especialmente durante las primeras etapas de experimentación. Estas permitirán comprobar el comportamiento de las alternativas consideradas y detectar dificultades antes de avanzar con la integración.
 
-Presenta la planificación general del proyecto en forma de cronograma, tabla o listado de hitos, indicando las actividades principales, los entregables esperados y, cuando aplique, la temporalidad estimada de cada fase.
+Posteriormente, cada avance relevante será sometido a **pruebas funcionales**, verificando que las funcionalidades desarrolladas respondan a lo esperado y puedan integrarse adecuadamente con el resto de la solución.
+
+Los **tutores** participarán en revisiones periódicas de los avances. Estas reuniones permitirán presentar los resultados obtenidos, recibir retroalimentación y ajustar las decisiones del proyecto cuando sea necesario.
+
+Finalmente, se realizarán **pruebas de uso y validaciones finales** sobre el prototipo para identificar problemas que puedan no ser evidentes durante las pruebas internas del equipo. Los resultados obtenidos se registrarán y servirán como base para los ajustes de las siguientes iteraciones.
+
+La estrategia de validación busca que las decisiones importantes del proyecto estén respaldadas por pruebas y observaciones, reduciendo el riesgo de dejar los problemas para las últimas semanas del semestre.
+
+### 7.4 Plan de trabajo, cronograma e hitos
+
+El cronograma presentado a continuación es **preliminar** y podrá ajustarse de acuerdo con los resultados de las pruebas, la disponibilidad de los recursos y las dificultades que puedan presentarse durante el desarrollo. Debido a que el equipo está conformado por tres estudiantes y mantiene simultáneamente otras responsabilidades académicas, se priorizará completar y validar una solución acotada antes que intentar desarrollar una cantidad excesiva de funcionalidades.
+
+Tomando como punto de partida la **semana 5**, se propone la siguiente planificación:
+
+| Periodo | Actividades principales | Entregable o hito |
+| --- | --- | --- |
+| **Semana 5–6** | Concretar la solución y la arquitectura preliminar, definir prioridades, organizar el trabajo en ClickUp y establecer el espacio de experimentación | **Hito 1:** arquitectura y plan de trabajo preliminares |
+| **Semana 7–8** | Realizar experimentos iniciales, probar alternativas y desarrollar el primer avance funcional | **Hito 2:** primer prototipo parcial |
+| **Semana 9–10** | Integrar los componentes principales, realizar pruebas y presentar avances a los tutores | **Hito 3:** versión inicial integrada y avances para el Informe 2 |
+| **Semana 11–12** | Corregir problemas encontrados, mejorar las funcionalidades prioritarias y continuar la integración | **Hito 4:** prototipo funcional refinado |
+| **Semana 13–14** | Realizar pruebas más completas, validar el funcionamiento y aplicar los ajustes finales derivados de la retroalimentación | **Hito 5:** resultados de validación |
+| **Semana 15** | Consolidar el prototipo, organizar resultados y completar la documentación del proyecto | **Hito 6:** versión de cierre e Informe 3 |
+| **Semana 16–17** | Preparar y presentar el póster y la sustentación | **Hito 7:** presentación final del proyecto |
+
+El trabajo se organizará de forma que las actividades más importantes tengan prioridad y se evite acumular tareas pendientes hacia el final del semestre. También se contempla la posibilidad de reorganizar actividades cuando una prueba requiera más tiempo de lo previsto.
+
+En caso de presentarse retrasos o limitaciones técnicas, se priorizará el funcionamiento y validación de las funcionalidades principales sobre la incorporación de funcionalidades secundarias. De esta manera, el plan busca mantener un alcance realista para el tiempo disponible y para las condiciones del equipo de desarrollo.
 
 ## 8. Referencias
 
