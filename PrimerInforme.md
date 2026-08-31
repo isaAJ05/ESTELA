@@ -130,7 +130,7 @@ Diseñar e implementar un prototipo de sistema inteligente que permita analizar 
 
 ### 5.1 Qué se propone construir
 
-**Estela** es un prototipo de aplicación de escritorio que actúa como asistente durante la práctica de una rutina de calentamiento. El usuario se ubica frente a la cámara y comienza a ejecutar el ejercicio seleccionado o identificado por el sistema; este muestra en pantalla una guía del movimiento esperado, observa la ejecución y analiza su correspondencia con la referencia para generar retroalimentación en español durante la práctica. Toda la inferencia se plantea para ejecutarse en el equipo local, evitando la transmisión de los fotogramas a servicios externos.
+**Estela** es una aplicación de escritorio que actúa como asistente durante la práctica de un conjunto delimitado de ejercicios físicos. El usuario se ubica frente a la cámara y comienza a ejecutar el ejercicio que será analizado; este muestra en pantalla una guía del movimiento esperado, observa la ejecución y analiza su correspondencia con la referencia para generar retroalimentación en español durante la práctica. Toda la inferencia se plantea para ejecutarse en el equipo local, evitando la transmisión de los fotogramas a servicios externos.
 
 La respuesta al problema planteado en la Sección 2 se articula en tres decisiones de diseño:
 
@@ -140,36 +140,46 @@ La respuesta al problema planteado en la Sección 2 se articula en tres decision
 | Retroalimentación hablada emitida durante la ejecución | Elimina la **unidireccionalidad del contenido** (causa 2) y el **retardo entre ejecución y corrección** (causa 3). |
 | Presupuesto de latencia como criterio de aceptación, con mensajes de plantilla como respaldo | Busca que la retroalimentación pueda generarse y entregarse mientras la ejecución aún ocurre |
 
-### 5.2 Usuarios y Roles 
+### 5.2 Usuarios y Roles
+
 | Perfil | Descripción |
 | --- | --- |
-| **Usuario principal** | Persona entre ~18 y 40 años, sin experiencia previa en ejercicio estructurado ni rutina definida, que practica en un espacio propio, sin instructor presente. Interactúa seleccionando la rutina, definiendo metas básicas de la sesión (duración, repeticiones, sets) y ejecutando el movimiento frente a la cámara. |
-| Rol de configuración técnica  | Corresponde al equipo de desarrollo y permite incorporar nuevos ejercicios mediante la preparación de sus recursos de referencia. Este rol no forma parte de la interacción habitual del usuario final. |
+| **Usuario principal** | Persona adulta entre aproximadamente 18 y 40 años, sin experiencia previa en ejercicio estructurado, que se encuentra iniciando una práctica de actividad física y realiza los ejercicios sin la presencia de un instructor. Interactúa con el sistema configurando los parámetros definidos para la sesión y ejecutando el ejercicio frente a la cámara. |
+| **Rol de configuración técnica** | Corresponde al equipo de desarrollo y permite incorporar nuevos ejercicios mediante la preparación de sus recursos de referencia y configuración. Este rol no forma parte de la interacción habitual del usuario final. |
 
 ### 5.3 El concepto de skill 
-Una skill se construye a partir de un video de referencia local y contiene los recursos necesarios para representar y evaluar el ejercicio durante la sesión. Entre estos recursos pueden incluirse la representación del movimiento de referencia, una guía visual tipo stick figure y la configuración específica requerida por el método de evaluación seleccionado.
+Se plantea el concepto de *skill* como una posible unidad de configuración asociada a cada ejercicio, que podría contener la referencia de movimiento y los parámetros necesarios para su análisis. Su estructura definitiva, así como su utilidad dentro de la arquitectura, serán determinadas durante la experimentación.
 
-La representación exacta utilizada para la comparación, por ejemplo, ángulos articulares, coordenadas normalizadas u otra representación derivada de la pose, será determinada durante la experimentación. 
+La representación utilizada para comparar el movimiento, por ejemplo, ángulos articulares, coordenadas normalizadas u otra representación derivada de la pose, también será determinada durante la experimentación. De igual manera, los criterios técnicos que se utilicen para interpretar las desviaciones observadas se definirán durante el desarrollo a partir de las fuentes y alternativas consideradas.
 
 ### 5.4 Arquitectura funcional propuesta
 
-La arquitectura presentada corresponde al flujo de referencia planteado al cierre de este informe. Algunas etapas y tecnologías permanecen abiertas y serán evaluadas experimentalmente durante el desarrollo, particularmente el método de identificación del ejercicio, la representación del movimiento y el método de comparación. ****
+La arquitectura presentada corresponde al flujo funcional propuesto al cierre de este informe. Algunas etapas y tecnologías permanecen abiertas y serán evaluadas experimentalmente durante el desarrollo, particularmente el método de identificación del ejercicio, la representación del movimiento, el mecanismo de comparación y los componentes utilizados para la interpretación y generación de retroalimentación.
 
 **Fase de construcción (offline, una sola vez por ejercicio):**
 
 ```text
+
 Video de referencia (archivo local)
         │
         ↓
-Estimación de pose ──→ Normalización ──→ Secuencia de ángulos de referencia
-        │                                      │
-        └──────────→ Generación de stick figure ─┤
-                                                 ↓
-                              Configuración de evaluación
-                              (articulaciones, umbrales)
-                                                 │
-                                                 ↓
-                                            SKILL almacenada
+Estimación de pose
+        │
+        ↓
+Representación / normalización
+        │
+        ├──────────→ Guía visual del movimiento
+        │
+        ↓
+Referencia del ejercicio
+(Secuencia de ángulos de referencia)
+        │
+        ↓
+Configuración de análisis
+        │
+        ↓
+Recursos de referencia del ejercicio
+Skill almacenada
 ```
                                   
 **Fase de ejecución (en tiempo real, durante la sesión):**
@@ -220,21 +230,23 @@ Voz al usuario
 
 ### 5.6 Por qué es una respuesta adecuada dentro del alcance
 
-- **Es acotada.** El alcance se limita a una rutina de calentamiento de bajo impacto, un usuario y una selección explícita del ejercicio. Esas tres restricciones eliminan los problemas más difíciles del dominio (segmentación de actividad no supervisada, seguimiento multipersona, movimientos de alta velocidad) sin eliminar el problema central: observar y corregir.
-- **Es medible.** Los objetivos específicos 1 y 4 exigen cifras: desviación respecto a la referencia y latencia por etapa. La medición no es un anexo del proyecto, es un entregable.
-- **Es extensible.** La separación entre *pipeline* y *skills* permite pasar de dos ejercicios a diez sin rediseñar el sistema, que es exactamente la trayectoria de crecimiento recomendada por los asesores.
-- **Es realizable con los recursos disponibles.** El proyecto cuenta con infraestructura de cómputo y modelos de código abierto que permiten experimentar con diferentes alternativas sin que sea necesario adquirir hardware adicional.
-- **Reduce la exposición de la información capturada.** Al mantener la inferencia local y evitar la transmisión de los fotogramas a servicios externos, el diseño reduce los riesgos asociados al envío de información corporal a terceros.
+- Es acotada. El prototipo se limita a un conjunto de cinco ejercicios, un único usuario, una cámara como configuración base y un entorno de validación controlado. Estas restricciones permiten concentrar el desarrollo en el problema central: observar la ejecución, identificar desviaciones y proporcionar retroalimentación durante la práctica.
+- Es medible. Los objetivos del proyecto contemplan la identificación de desviaciones y la evaluación de la precisión de la comparación del movimiento y la latencia del procesamiento. La medición constituye una parte central de la validación del prototipo.
+- Es extensible. La separación entre la lógica principal del sistema y los recursos asociados a cada ejercicio permite explorar la incorporación de nuevos ejercicios sin modificar necesariamente la lógica central de la aplicación.
+- Es realizable con los recursos disponibles. El proyecto dispone de infraestructura de cómputo adecuada para experimentar con alternativas de procesamiento local sin requerir adquisición de hardware adicional.
+- Reduce la exposición de la información capturada. La inferencia local evita la transmisión de los fotogramas a servicios externos y permite procesar el video durante la sesión sin almacenarlo de forma permanente como parte del funcionamiento habitual del prototipo.
 
 ### 5.7 Decisiones abiertas al cierre de este informe
 
 Se declaran explícitamente para que el lector distinga lo definido de lo pendiente:
 
-1. **Estimador de pose: RTMPose o MediaPipe.** Ninguna documentación oficial publica cifras de latencia para el hardware y la configuración exactas del proyecto. La decisión requiere una prueba comparativa propia sobre los mismos videos, midiendo FPS y latencia reales, consumo de CPU/RAM en inferencia en vivo, y estabilidad de los puntos articulares en los estiramientos concretos de la rutina.
-2. **Modelo multimodal y modelo de lenguaje.** Requieren, antes de integrarse, un *benchmark* propio de imágenes anotadas que cuantifique su tasa de alucinación. No se delegará ninguna decisión de retroalimentación a un modelo cuyo comportamiento no se haya medido.
-3. **Número de cámaras.** Se explorará si una sola cámara captura adecuadamente los estiramientos seleccionados o si alguno requiere una segunda vista. El diseño no se cerrará sobre una sola cámara de forma irreversible.
-4. **Método de representación y comparación del movimiento.** Se evaluarán diferentes formas de representar la ejecución del usuario y compararla con la referencia. DTW constituye una de las alternativas consideradas, pero la selección final dependerá de su comportamiento en precisión, robustez ante diferentes velocidades de ejecución y costo computacional.
-5. **Identificación del ejercicio.** Se evaluará si resulta más conveniente que el usuario seleccione explícitamente el ejercicio o incorporar un mecanismo de clasificación automática. La segunda alternativa podrá requerir un modelo entrenado o ajustado con datos específicos, cuya viabilidad se determinará durante el desarrollo.
+1. **Estimador de pose: RTMPose o MediaPipe.** La decisión requiere una prueba comparativa propia sobre el hardware y la configuración del proyecto, considerando métricas como FPS, latencia, consumo de recursos y estabilidad de los puntos articulares en los ejercicios seleccionados.
+2. **Representación y comparación del movimiento.** Se evaluarán diferentes formas de representar la ejecución del usuario y compararla con la referencia. DTW constituye una de las alternativas consideradas, pero la selección final dependerá de su comportamiento en precisión, robustez ante diferentes velocidades de ejecución y costo computacional.
+3. **Modelo de interpretación y generación de retroalimentación.** Se evaluarán alternativas de procesamiento local para determinar cuál permite interpretar las desviaciones y generar respuestas consistentes con los criterios definidos para cada ejercicio. La selección deberá considerar precisión, consistencia, latencia y comportamiento ante entradas ambiguas.
+4. **Número de cámaras.** La arquitectura parte de una única cámara. Se evaluará experimentalmente si esta configuración es suficiente para los cinco ejercicios seleccionados. Una segunda cámara no forma parte del alcance base y solo se considerará como alternativa experimental si resulta necesaria.
+5. **Identificación del ejercicio.** Se evaluará si resulta más conveniente que el usuario identifique explícitamente el ejercicio o incorporar un mecanismo de clasificación automática. La segunda alternativa podrá requerir un modelo entrenado o ajustado con datos específicos, cuya viabilidad se determinará durante el desarrollo.
+6. **Estructura de conocimiento técnico por ejercicio.** Se evaluará si una estructura tipo skill resulta útil para organizar referencias, criterios técnicos y parámetros de evaluación, así como la forma en que esta información puede incorporarse al proceso de interpretación y generación de retroalimentación.
+   
 ## 6. Estado del arte / soluciones relacionadas
 
 Esta revisión se organiza en productos comerciales, soluciones de código abierto y enfoques técnicos documentados en la literatura. Se distingue de forma explícita entre **dato verificado** en fuente primaria y **observación o indicio** pendiente de verificación, y las cifras de desempeño no se comparan entre sí cuando provienen de configuraciones o hardware distintos.
