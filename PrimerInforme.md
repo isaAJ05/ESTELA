@@ -329,9 +329,7 @@ El proyecto se organizará en varias etapas que se desarrollarán de manera prog
 
 **Fase 1. Concreción de la solución y arquitectura**
 
-Esta fase tendrá especial importancia debido a que el proyecto todavía cuenta con decisiones abiertas. Se revisará el funcionamiento esperado del sistema, se concretarán los principales componentes de la solución y se determinará cómo se relacionarán entre sí.
-
-También se realizarán pruebas iniciales con la **Mac disponible para el proyecto**, creando un pequeño espacio de laboratorio que permita experimentar con la cámara, los modelos y las condiciones básicas de ejecución. El objetivo no será obtener todavía el prototipo final, sino reducir la incertidumbre y tomar decisiones con base en pruebas reales.
+Se definirán los criterios técnicos y funcionales que orientarán el desarrollo y se analizarán las alternativas disponibles para los principales componentes del sistema. Se realizarán experimentos iniciales con la infraestructura disponible para comparar estimadores de pose, representaciones del movimiento, mecanismos de comparación temporal y alternativas de interpretación. También se evaluará la viabilidad de utilizar una o más cámaras y de identificar el ejercicio mediante selección del usuario o clasificación automática. Los resultados obtenidos servirán para seleccionar las alternativas que presenten el mejor equilibrio entre precisión, latencia, complejidad y viabilidad de ejecución local.
 
 **Resultado esperado:** arquitectura preliminar definida, principales tecnologías seleccionadas y primeros experimentos documentados.
 
@@ -341,11 +339,15 @@ Una vez concretadas las decisiones principales, se desarrollará una primera ver
 
 La intención será comprobar que las diferentes partes de la solución pueden integrarse y detectar tempranamente dificultades que no hayan sido evidentes durante la planificación.
 
+Se evaluará la utilidad de una estructura de configuración por ejercicio, potencialmente basada en el concepto de skill, para organizar referencias, parámetros y criterios técnicos.
+
 **Resultado esperado:** primer prototipo funcional sobre el que sea posible realizar pruebas.
 
 **Fase 3. Integración y refinamiento**
 
 A partir de los resultados del primer prototipo se incorporarán mejoras y nuevos componentes. Se trabajará sobre la comparación del movimiento, la generación de la retroalimentación y la experiencia de uso, priorizando aquellos aspectos que sean más importantes para demostrar el funcionamiento del proyecto.
+
+Cada iteración será acompañada por pruebas instrumentadas que permitan determinar si los cambios introducidos producen mejoras en precisión, latencia, estabilidad o calidad de la retroalimentación
 
 En esta fase se buscará ampliar progresivamente el número de ejercicios únicamente cuando el funcionamiento de los anteriores sea suficientemente estable.
 
@@ -377,7 +379,7 @@ Posteriormente, cada avance relevante será sometido a **pruebas funcionales**, 
 
 Los **tutores** participarán en revisiones periódicas de los avances. Estas reuniones permitirán presentar los resultados obtenidos, recibir retroalimentación y ajustar las decisiones del proyecto cuando sea necesario.
 
-Finalmente, se realizarán **pruebas de uso y validaciones finales** sobre el prototipo para identificar problemas que puedan no ser evidentes durante las pruebas internas del equipo. Los resultados obtenidos se registrarán y servirán como base para los ajustes de las siguientes iteraciones.
+Finalmente, se definirán condiciones de prueba representativas a partir de las características de los ejercicios y de las limitaciones observadas en las pruebas técnicas. Los resultados obtenidos se registrarán y servirán como base para los ajustes de las siguientes iteraciones.
 
 La estrategia de validación busca que las decisiones importantes del proyecto estén respaldadas por pruebas y observaciones, reduciendo el riesgo de dejar los problemas para las últimas semanas del semestre.
 
@@ -390,7 +392,7 @@ Tomando como punto de partida la **semana 5**, se propone la siguiente planifica
 | Periodo | Actividades principales | Entregable o hito |
 | --- | --- | --- |
 | **Semana 5–6** | Concretar la solución y la arquitectura preliminar, definir prioridades, organizar el trabajo en ClickUp y establecer el espacio de experimentación | **Hito 1:** arquitectura y plan de trabajo preliminares |
-| **Semana 7–8** | Realizar experimentos iniciales, probar alternativas y desarrollar el primer avance funcional | **Hito 2:** primer prototipo parcial |
+| **Semana 7–8** |experimentos comparativos de pose, representación y comparación; primer flujo funcional. | **Hito 2:** primer prototipo parcial |
 | **Semana 9–10** | Integrar los componentes principales, realizar pruebas y presentar avances a los tutores | **Hito 3:** versión inicial integrada y avances para el Informe 2 |
 | **Semana 11–12** | Corregir problemas encontrados, mejorar las funcionalidades prioritarias y continuar la integración | **Hito 4:** prototipo funcional refinado |
 | **Semana 13–14** | Realizar pruebas más completas, validar el funcionamiento y aplicar los ajustes finales derivados de la retroalimentación | **Hito 5:** resultados de validación |
