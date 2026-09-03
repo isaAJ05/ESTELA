@@ -1,0 +1,289 @@
+RESULTADOS RTMPOSE
+==================================================
+
+FRAME 1
+------------------------------
+PERSONA 1
+Keypoint 0: (108.70, 53.46) | Score: 0.8534
+Keypoint 1: (111.61, 50.13) | Score: 0.8880
+Keypoint 2: (105.79, 50.55) | Score: 0.8430
+Keypoint 3: (115.35, 52.21) | Score: 0.8643
+Keypoint 4: (101.64, 53.04) | Score: 0.8581
+Keypoint 5: (122.41, 70.90) | Score: 0.8178
+Keypoint 6: (95.41, 71.32) | Score: 0.8228
+Keypoint 7: (141.10, 80.04) | Score: 0.8534
+Keypoint 8: (76.71, 80.04) | Score: 0.8764
+Keypoint 9: (158.55, 78.80) | Score: 0.8417
+Keypoint 10: (56.36, 80.46) | Score: 0.9182
+Keypoint 11: (118.25, 114.52) | Score: 0.7613
+Keypoint 12: (100.81, 114.94) | Score: 0.7353
+Keypoint 13: (124.07, 147.34) | Score: 0.7883
+Keypoint 14: (96.24, 147.34) | Score: 0.7856
+Keypoint 15: (127.81, 181.40) | Score: 0.7546
+Keypoint 16: (94.57, 180.57) | Score: 0.7586
+
+
+FRAME 2
+------------------------------
+PERSONA 1
+Keypoint 0: (109.12, 53.39) | Score: 0.8347
+Keypoint 1: (112.03, 50.48) | Score: 0.8431
+Keypoint 2: (105.79, 50.90) | Score: 0.7562
+Keypoint 3: (115.77, 54.23) | Score: 0.6929
+Keypoint 4: (101.63, 54.23) | Score: 0.6772
+Keypoint 5: (123.25, 72.11) | Score: 0.6944
+Keypoint 6: (94.56, 72.52) | Score: 0.6987
+Keypoint 7: (146.12, 72.94) | Score: 0.7834
+Keypoint 8: (73.77, 73.77) | Score: 0.7859
+Keypoint 9: (158.18, 60.88) | Score: 0.8040
+Keypoint 10: (55.89, 60.88) | Score: 0.8052
+Keypoint 11: (119.10, 117.01) | Score: 0.6879
+Keypoint 12: (100.38, 117.01) | Score: 0.6927
+Keypoint 13: (126.58, 149.45) | Score: 0.7236
+Keypoint 14: (94.56, 149.86) | Score: 0.7463
+Keypoint 15: (133.65, 183.13) | Score: 0.7224
+Keypoint 16: (90.40, 183.96) | Score: 0.7781
+
+
+FRAME 3
+------------------------------
+PERSONA 1
+Keypoint 0: (109.12, 65.19) | Score: 0.7895
+Keypoint 1: (111.62, 62.70) | Score: 0.8292
+Keypoint 2: (106.20, 62.70) | Score: 0.7888
+Keypoint 3: (115.36, 66.44) | Score: 0.8000
+Keypoint 4: (101.21, 66.03) | Score: 0.7423
+Keypoint 5: (121.60, 81.01) | Score: 0.6938
+Keypoint 6: (94.13, 81.84) | Score: 0.7142
+Keypoint 7: (141.58, 69.36) | Score: 0.8311
+Keypoint 8: (75.82, 70.19) | Score: 0.8826
+Keypoint 9: (134.09, 48.13) | Score: 0.7856
+Keypoint 10: (82.90, 49.79) | Score: 0.8089
+Keypoint 11: (117.44, 125.96) | Score: 0.6842
+Keypoint 12: (100.79, 125.96) | Score: 0.6786
+Keypoint 13: (128.26, 156.76) | Score: 0.7067
+Keypoint 14: (93.30, 157.60) | Score: 0.7348
+Keypoint 15: (137.84, 185.07) | Score: 0.7209
+Keypoint 16: (87.06, 187.15) | Score: 0.7872
+
+
+FRAME 4
+------------------------------
+PERSONA 1
+Keypoint 0: (109.55, 65.46) | Score: 0.8417
+Keypoint 1: (112.10, 62.91) | Score: 0.8636
+Keypoint 2: (106.58, 62.91) | Score: 0.8327
+Keypoint 3: (115.91, 66.73) | Score: 0.8301
+Keypoint 4: (101.07, 65.88) | Score: 0.7799
+Keypoint 5: (121.85, 82.00) | Score: 0.7397
+Keypoint 6: (93.85, 82.43) | Score: 0.7531
+Keypoint 7: (140.95, 70.55) | Score: 0.8573
+Keypoint 8: (76.46, 70.97) | Score: 0.9096
+Keypoint 9: (134.58, 48.91) | Score: 0.8518
+Keypoint 10: (86.64, 51.46) | Score: 0.8343
+Keypoint 11: (117.61, 127.82) | Score: 0.7098
+Keypoint 12: (100.22, 127.82) | Score: 0.6961
+Keypoint 13: (126.94, 157.52) | Score: 0.7262
+Keypoint 14: (93.85, 158.37) | Score: 0.7421
+Keypoint 15: (137.55, 184.67) | Score: 0.7221
+Keypoint 16: (87.06, 187.22) | Score: 0.7984
+
+
+FRAME 5
+------------------------------
+PERSONA 1
+Keypoint 0: (109.55, 53.06) | Score: 0.8293
+Keypoint 1: (112.50, 50.11) | Score: 0.8624
+Keypoint 2: (106.59, 50.53) | Score: 0.7945
+Keypoint 3: (115.88, 53.06) | Score: 0.7575
+Keypoint 4: (101.95, 53.06) | Score: 0.7212
+Keypoint 5: (123.05, 70.37) | Score: 0.7398
+Keypoint 6: (95.62, 69.95) | Score: 0.7555
+Keypoint 7: (144.58, 73.74) | Score: 0.7910
+Keypoint 8: (75.36, 75.43) | Score: 0.8664
+Keypoint 9: (161.88, 61.93) | Score: 0.7649
+Keypoint 10: (58.47, 61.93) | Score: 0.8543
+Keypoint 11: (117.57, 118.06) | Score: 0.7120
+Keypoint 12: (99.42, 118.49) | Score: 0.7018
+Keypoint 13: (126.01, 152.25) | Score: 0.7793
+Keypoint 14: (93.08, 152.25) | Score: 0.7908
+Keypoint 15: (134.03, 186.44) | Score: 0.7503
+Keypoint 16: (88.44, 186.86) | Score: 0.7743
+
+
+FRAME 6
+------------------------------
+PERSONA 1
+Keypoint 0: (109.34, 52.00) | Score: 0.8342
+Keypoint 1: (111.86, 49.06) | Score: 0.8601
+Keypoint 2: (106.39, 49.06) | Score: 0.8203
+Keypoint 3: (115.23, 51.16) | Score: 0.8804
+Keypoint 4: (102.18, 51.58) | Score: 0.8699
+Keypoint 5: (121.96, 67.57) | Score: 0.8030
+Keypoint 6: (95.87, 68.41) | Score: 0.8369
+Keypoint 7: (140.90, 78.09) | Score: 0.8365
+Keypoint 8: (78.20, 79.35) | Score: 0.8849
+Keypoint 9: (161.09, 78.93) | Score: 0.8726
+Keypoint 10: (57.58, 78.09) | Score: 0.9002
+Keypoint 11: (116.91, 113.44) | Score: 0.7701
+Keypoint 12: (99.66, 113.02) | Score: 0.7368
+Keypoint 13: (121.54, 147.10) | Score: 0.7962
+Keypoint 14: (95.03, 146.68) | Score: 0.7868
+Keypoint 15: (126.59, 181.18) | Score: 0.7774
+Keypoint 16: (92.93, 181.18) | Score: 0.7705
+
+
+FRAME 7
+------------------------------
+PERSONA 1
+Keypoint 0: (109.76, 59.94) | Score: 0.8169
+Keypoint 1: (112.29, 56.57) | Score: 0.8462
+Keypoint 2: (106.81, 57.42) | Score: 0.8372
+Keypoint 3: (115.66, 58.68) | Score: 0.8966
+Keypoint 4: (102.18, 59.10) | Score: 0.8759
+Keypoint 5: (121.55, 76.37) | Score: 0.8567
+Keypoint 6: (96.28, 76.79) | Score: 0.8406
+Keypoint 7: (129.98, 96.59) | Score: 0.8865
+Keypoint 8: (86.59, 94.90) | Score: 0.8865
+Keypoint 9: (143.45, 112.59) | Score: 0.8480
+Keypoint 10: (73.12, 109.64) | Score: 0.8331
+Keypoint 11: (116.50, 117.65) | Score: 0.7675
+Keypoint 12: (100.07, 116.80) | Score: 0.7447
+Keypoint 13: (115.66, 149.66) | Score: 0.8331
+Keypoint 14: (97.97, 148.39) | Score: 0.8020
+Keypoint 15: (112.71, 182.09) | Score: 0.8216
+Keypoint 16: (99.23, 180.82) | Score: 0.7762
+
+
+FRAME 8
+------------------------------
+PERSONA 1
+Keypoint 0: (109.05, 66.85) | Score: 0.8470
+Keypoint 1: (112.11, 63.41) | Score: 0.8736
+Keypoint 2: (106.37, 63.79) | Score: 0.8671
+Keypoint 3: (115.56, 66.47) | Score: 0.8693
+Keypoint 4: (102.16, 66.85) | Score: 0.8605
+Keypoint 5: (121.31, 85.62) | Score: 0.8059
+Keypoint 6: (96.41, 85.24) | Score: 0.8055
+Keypoint 7: (125.52, 107.46) | Score: 0.7742
+Keypoint 8: (91.81, 106.31) | Score: 0.7734
+Keypoint 9: (130.50, 124.69) | Score: 0.7546
+Keypoint 10: (84.92, 123.16) | Score: 0.7437
+Keypoint 11: (115.56, 125.08) | Score: 0.6999
+Keypoint 12: (99.86, 124.31) | Score: 0.6922
+Keypoint 13: (114.03, 154.95) | Score: 0.7950
+Keypoint 14: (97.94, 154.19) | Score: 0.7826
+Keypoint 15: (111.73, 185.21) | Score: 0.8018
+Keypoint 16: (99.09, 184.45) | Score: 0.7724
+
+
+FRAME 9
+------------------------------
+PERSONA 1
+Keypoint 0: (109.57, 64.46) | Score: 0.8402
+Keypoint 1: (112.54, 61.12) | Score: 0.8703
+Keypoint 2: (106.97, 60.75) | Score: 0.8522
+Keypoint 3: (115.89, 63.72) | Score: 0.9130
+Keypoint 4: (102.51, 63.35) | Score: 0.8807
+Keypoint 5: (121.46, 83.42) | Score: 0.8340
+Keypoint 6: (96.93, 83.05) | Score: 0.8448
+Keypoint 7: (130.01, 100.89) | Score: 0.8677
+Keypoint 8: (88.38, 101.64) | Score: 0.8741
+Keypoint 9: (139.68, 113.53) | Score: 0.8069
+Keypoint 10: (75.74, 113.53) | Score: 0.8479
+Keypoint 11: (116.63, 123.57) | Score: 0.7284
+Keypoint 12: (99.90, 123.20) | Score: 0.7278
+Keypoint 13: (117.37, 154.79) | Score: 0.7749
+Keypoint 14: (98.79, 153.68) | Score: 0.7711
+Keypoint 15: (113.29, 185.64) | Score: 0.7982
+Keypoint 16: (99.90, 183.79) | Score: 0.7470
+
+
+FRAME 10
+------------------------------
+PERSONA 1
+Keypoint 0: (109.23, 58.40) | Score: 0.8420
+Keypoint 1: (112.28, 54.97) | Score: 0.8511
+Keypoint 2: (106.57, 54.59) | Score: 0.8614
+Keypoint 3: (116.10, 57.25) | Score: 0.9268
+Keypoint 4: (102.75, 57.25) | Score: 0.8591
+Keypoint 5: (122.58, 75.93) | Score: 0.8242
+Keypoint 6: (96.66, 75.93) | Score: 0.8320
+Keypoint 7: (135.92, 89.27) | Score: 0.8936
+Keypoint 8: (82.17, 89.27) | Score: 0.8861
+Keypoint 9: (149.64, 95.75) | Score: 0.8577
+Keypoint 10: (65.40, 94.99) | Score: 0.9189
+Keypoint 11: (118.38, 118.62) | Score: 0.7565
+Keypoint 12: (100.85, 118.24) | Score: 0.7679
+Keypoint 13: (120.67, 151.02) | Score: 0.7532
+Keypoint 14: (98.18, 150.64) | Score: 0.7363
+Keypoint 15: (117.62, 185.32) | Score: 0.7456
+Keypoint 16: (98.94, 184.56) | Score: 0.7223
+
+
+FRAME 11
+------------------------------
+PERSONA 1
+Keypoint 0: (110.99, 52.43) | Score: 0.8593
+Keypoint 1: (113.66, 50.13) | Score: 0.8933
+Keypoint 2: (107.93, 49.37) | Score: 0.8455
+Keypoint 3: (117.49, 53.19) | Score: 0.8458
+Keypoint 4: (103.34, 52.81) | Score: 0.7613
+Keypoint 5: (124.75, 70.39) | Score: 0.6760
+Keypoint 6: (96.46, 70.78) | Score: 0.7076
+Keypoint 7: (146.16, 72.31) | Score: 0.8046
+Keypoint 8: (75.43, 71.54) | Score: 0.8507
+Keypoint 9: (156.10, 60.45) | Score: 0.8313
+Keypoint 10: (59.37, 58.54) | Score: 0.8218
+Keypoint 11: (120.16, 115.51) | Score: 0.7200
+Keypoint 12: (102.19, 115.51) | Score: 0.7199
+Keypoint 13: (126.28, 148.39) | Score: 0.7520
+Keypoint 14: (96.46, 148.77) | Score: 0.7697
+Keypoint 15: (131.63, 183.56) | Score: 0.7459
+Keypoint 16: (93.40, 182.80) | Score: 0.8095
+
+
+FRAME 12
+------------------------------
+PERSONA 1
+Keypoint 0: (112.24, 54.22) | Score: 0.7874
+Keypoint 1: (114.70, 51.76) | Score: 0.8604
+Keypoint 2: (109.38, 51.76) | Score: 0.7780
+Keypoint 3: (117.98, 55.44) | Score: 0.7265
+Keypoint 4: (104.46, 55.85) | Score: 0.7055
+Keypoint 5: (124.94, 73.05) | Score: 0.6685
+Keypoint 6: (97.91, 73.05) | Score: 0.6814
+Keypoint 7: (145.82, 66.50) | Score: 0.7641
+Keypoint 8: (77.43, 67.32) | Score: 0.8190
+Keypoint 9: (152.38, 47.66) | Score: 0.7369
+Keypoint 10: (69.65, 48.07) | Score: 0.6888
+Keypoint 11: (121.25, 118.51) | Score: 0.6909
+Keypoint 12: (103.23, 118.51) | Score: 0.6911
+Keypoint 13: (129.85, 152.50) | Score: 0.7045
+Keypoint 14: (96.68, 152.09) | Score: 0.7368
+Keypoint 15: (135.59, 186.90) | Score: 0.6682
+Keypoint 16: (92.99, 186.09) | Score: 0.7416
+
+
+FRAME 13
+------------------------------
+PERSONA 1
+Keypoint 0: (112.29, 65.44) | Score: 0.8852
+Keypoint 1: (114.84, 62.47) | Score: 0.9150
+Keypoint 2: (109.31, 62.47) | Score: 0.8951
+Keypoint 3: (118.66, 66.72) | Score: 0.8902
+Keypoint 4: (104.64, 66.29) | Score: 0.8553
+Keypoint 5: (125.04, 82.01) | Score: 0.7770
+Keypoint 6: (98.27, 82.01) | Score: 0.7962
+Keypoint 7: (143.31, 69.27) | Score: 0.8891
+Keypoint 8: (81.69, 70.12) | Score: 0.9199
+Keypoint 9: (132.26, 51.42) | Score: 0.8641
+Keypoint 10: (96.14, 54.82) | Score: 0.7902
+Keypoint 11: (121.64, 124.93) | Score: 0.7352
+Keypoint 12: (104.64, 125.36) | Score: 0.7186
+Keypoint 13: (126.74, 157.65) | Score: 0.7836
+Keypoint 14: (100.82, 157.65) | Score: 0.7921
+Keypoint 15: (134.81, 186.55) | Score: 0.7873
+Keypoint 16: (95.72, 187.40) | Score: 0.8406
+
+
