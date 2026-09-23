@@ -1,0 +1,50 @@
+{
+  "skill_id": "rotacion_tronco",
+  "nombre": "Rotación de tronco",
+  "version": "0.1.0",
+  "estado": "candidato_en_duda",
+  "notas": "Este skill está incluido a propósito como caso adverso. Sus dos reglas viven en el plano TRANSVERSAL, que con una sola cámara depende por completo de la profundidad estimada. EXP-002 mide el error inducido; si resulta inaceptable, la conclusión no es mejorar el umbral sino sustituir este ejercicio por otro de los candidatos. Umbrales provisionales, sin calibrar.",
+  "fases": ["centro", "giro_izq", "giro_der"],
+  "orientacion_preferida": "frontal",
+  "angulos_requeridos": ["rotacion_tronco", "azimut_cadera"],
+  "politica_silencio": {
+    "refractario_ms": 5000,
+    "refractario_mismo_error_ms": 15000,
+    "repeticiones_evidencia": 3,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 3,
+    "fases_silenciadas": [],
+    "confianza_minima": 0.7,
+    "tolerancia_orientacion_grados": 25.0
+  },
+  "reglas": [
+    {
+      "error_id": "rotacion_insuficiente",
+      "descripcion": "El rango de rotación del tronco respecto a la cadera es menor que el objetivo.",
+      "medida": {"tipo": "agregado", "fn": "rango", "nombre": "rotacion_tronco", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 60},
+      "fases": ["centro"],
+      "plano": "transversal",
+      "segmento": "tronco",
+      "lado": "na",
+      "prioridad": 1,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "rotacion_insuficiente"
+    },
+    {
+      "error_id": "cadera_acompana",
+      "descripcion": "La cadera gira con el tronco en lugar de permanecer fija.",
+      "medida": {"tipo": "agregado", "fn": "rango", "nombre": "azimut_cadera", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 20},
+      "fases": ["centro"],
+      "plano": "transversal",
+      "segmento": "cadera",
+      "lado": "bilateral",
+      "prioridad": 2,
+      "severidad": {"moderada": 10, "alta": 25},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "cadera_acompana"
+    }
+  ]
+}

@@ -1,0 +1,92 @@
+{
+  "skill_id": "elevacion_brazos",
+  "nombre": "Elevación de brazos",
+  "version": "0.1.0",
+  "estado": "candidato",
+  "notas": "Umbrales provisionales, sin calibrar. Ver nota de sentadilla.json.",
+  "fases": ["abajo", "subida", "arriba", "bajada"],
+  "orientacion_preferida": "frontal",
+  "angulos_requeridos": ["hombro_izq", "hombro_der", "hombro_medio", "codo_medio"],
+  "politica_silencio": {
+    "refractario_ms": 4000,
+    "refractario_mismo_error_ms": 12000,
+    "repeticiones_evidencia": 2,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 4,
+    "fases_silenciadas": [],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "reglas": [
+    {
+      "error_id": "rango_brazos_insuficiente",
+      "descripcion": "Los brazos no alcanzan la altura objetivo en el punto alto.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "hombro_medio", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 150},
+      "fases": ["bajada"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "bilateral",
+      "prioridad": 1,
+      "severidad": {"moderada": 15, "alta": 35},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "rango_brazos_insuficiente"
+    },
+    {
+      "error_id": "codos_flexionados",
+      "descripcion": "Los codos permanecen flexionados durante la elevación.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "codo_medio", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 150},
+      "fases": ["bajada"],
+      "plano": "sagital",
+      "segmento": "codo",
+      "lado": "bilateral",
+      "prioridad": 2,
+      "severidad": {"moderada": 20, "alta": 40},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "codos_flexionados"
+    },
+    {
+      "error_id": "asimetria_brazos",
+      "descripcion": "Un brazo sube notablemente más que el otro.",
+      "medida": {"tipo": "asimetria", "nombres": ["hombro_izq", "hombro_der"]},
+      "condicion": {"op": ">", "umbral": 15},
+      "fases": ["subida", "arriba"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "bilateral",
+      "prioridad": 3,
+      "severidad": {"moderada": 10, "alta": 25},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "asimetria_brazos"
+    },
+    {
+      "error_id": "brazo_izq_bajo",
+      "descripcion": "El brazo izquierdo se queda por debajo de la referencia.",
+      "medida": {"tipo": "desviacion", "nombre": "hombro_izq"},
+      "condicion": {"op": "<", "umbral": -20},
+      "fases": ["arriba"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "izquierdo",
+      "prioridad": 4,
+      "severidad": {"moderada": 10, "alta": 25},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "brazo_bajo"
+    },
+    {
+      "error_id": "brazo_der_bajo",
+      "descripcion": "El brazo derecho se queda por debajo de la referencia.",
+      "medida": {"tipo": "desviacion", "nombre": "hombro_der"},
+      "condicion": {"op": "<", "umbral": -20},
+      "fases": ["arriba"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "derecho",
+      "prioridad": 5,
+      "severidad": {"moderada": 10, "alta": 25},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "brazo_bajo"
+    }
+  ]
+}

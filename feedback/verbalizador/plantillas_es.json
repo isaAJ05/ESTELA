@@ -1,0 +1,92 @@
+{
+  "_meta": {
+    "idioma": "es",
+    "version": "0.1.0",
+    "nota": "Condición A de EXP-001. Cada mensaje menciona un único segmento, el del contrato. Las variantes existen para reducir la repetitividad sin romper el determinismo: la variante se elige por el índice de repetición, no al azar.",
+    "revision_pendiente": "[?] Redacción no revisada por la licenciada en educación física ni por el entrenador. Antes de usar con usuarias reales debe validarse que la instrucción es correcta y accionable."
+  },
+
+  "profundidad_insuficiente": {
+    "leve": ["Baja un poco más las {segmento_pl}.", "Flexiona algo más las {segmento_pl}."],
+    "moderada": ["Baja más, flexiona bien las {segmento_pl}.", "Te falta recorrido, baja más las {segmento_pl}."],
+    "alta": ["Baja mucho más, flexiona las {segmento_pl} hasta el fondo."]
+  },
+
+  "tronco_muy_inclinado": {
+    "leve": ["Endereza un poco el {segmento}.", "Sube un poco el pecho."],
+    "moderada": ["Endereza el {segmento}, pecho arriba.", "Mantén el {segmento} más vertical."],
+    "alta": ["Endereza bien el {segmento}, te estás yendo hacia delante."]
+  },
+
+  "valgo_rodilla": {
+    "leve": ["Abre un poco la {segmento} {lado}.", "Lleva la {segmento} {lado} algo más hacia fuera."],
+    "moderada": ["Abre la {segmento} {lado} hacia fuera.", "La {segmento} {lado} se te va hacia dentro."],
+    "alta": ["Abre bien la {segmento} {lado}, se está metiendo hacia dentro."]
+  },
+
+  "asimetria_rodillas": {
+    "leve": ["Reparte el peso entre las dos {segmento_pl}."],
+    "moderada": ["Flexiona las dos {segmento_pl} por igual."],
+    "alta": ["Estás cargando un lado, iguala las dos {segmento_pl}."]
+  },
+
+  "pies_muy_juntos": {
+    "leve": ["Separa un poco los {segmento_pl}."],
+    "moderada": ["Abre más los {segmento_pl}."],
+    "alta": ["Abre bien los {segmento_pl}, los tienes muy juntos."]
+  },
+
+  "rango_brazos_insuficiente": {
+    "leve": ["Sube un poco más los {segmento_pl}."],
+    "moderada": ["Sube más los {segmento_pl}.", "Te falta recorrido, eleva más los {segmento_pl}."],
+    "alta": ["Sube mucho más los {segmento_pl}, te estás quedando corta."]
+  },
+
+  "brazo_bajo": {
+    "leve": ["Sube un poco más el {segmento} {lado}."],
+    "moderada": ["Sube más el {segmento} {lado}.", "El {segmento} {lado} se te queda abajo."],
+    "alta": ["Sube bien el {segmento} {lado}, está mucho más bajo."]
+  },
+
+  "asimetria_brazos": {
+    "leve": ["Iguala la altura de los dos {segmento_pl}."],
+    "moderada": ["Sube los dos {segmento_pl} a la misma altura."],
+    "alta": ["Los {segmento_pl} están muy desiguales, súbelos parejos."]
+  },
+
+  "codos_flexionados": {
+    "leve": ["Estira un poco más los {segmento_pl}."],
+    "moderada": ["Estira los {segmento_pl}.", "Mantén los {segmento_pl} extendidos."],
+    "alta": ["Estira bien los {segmento_pl}, los tienes muy doblados."]
+  },
+
+  "apertura_insuficiente": {
+    "leve": ["Abre un poco más los {segmento_pl} al saltar."],
+    "moderada": ["Abre más los {segmento_pl} en cada salto."],
+    "alta": ["Abre mucho más los {segmento_pl}, casi no te separas."]
+  },
+
+  "rodilla_baja": {
+    "leve": ["Sube un poco más la {segmento} {lado}."],
+    "moderada": ["Sube más la {segmento} {lado}.", "Eleva más la {segmento} {lado} en cada paso."],
+    "alta": ["Sube bien la {segmento} {lado}, apenas la estás levantando."]
+  },
+
+  "rotacion_insuficiente": {
+    "leve": ["Gira un poco más el {segmento}."],
+    "moderada": ["Gira más el {segmento} en cada lado."],
+    "alta": ["Gira mucho más el {segmento}, casi no rotas."]
+  },
+
+  "cadera_acompana": {
+    "leve": ["Mantén las {segmento_pl} un poco más quietas."],
+    "moderada": ["Mantén las {segmento_pl} fijas mientras giras."],
+    "alta": ["No muevas las {segmento_pl}, el giro es solo de arriba."]
+  },
+
+  "_generico": {
+    "leve": ["Corrige un poco la posición {de_art} {segmento}."],
+    "moderada": ["Corrige la posición {de_art} {segmento}."],
+    "alta": ["Revisa la posición {de_art} {segmento}."]
+  }
+}

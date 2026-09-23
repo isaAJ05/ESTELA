@@ -1,0 +1,64 @@
+{
+  "skill_id": "jumping_jacks",
+  "nombre": "Jumping jacks",
+  "version": "0.1.0",
+  "estado": "candidato",
+  "notas": "Umbrales provisionales, sin calibrar. Ver nota de sentadilla.json.",
+  "fases": ["cerrado", "apertura", "abierto", "cierre"],
+  "orientacion_preferida": "frontal",
+  "angulos_requeridos": ["hombro_medio", "codo_medio"],
+  "politica_silencio": {
+    "refractario_ms": 5000,
+    "refractario_mismo_error_ms": 15000,
+    "repeticiones_evidencia": 3,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 3,
+    "fases_silenciadas": ["apertura", "cierre"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "reglas": [
+    {
+      "error_id": "brazos_no_llegan_arriba",
+      "descripcion": "Los brazos no alcanzan la posición alta en la apertura.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "hombro_medio", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 150},
+      "fases": ["abierto"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "bilateral",
+      "prioridad": 1,
+      "severidad": {"moderada": 20, "alta": 45},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "rango_brazos_insuficiente"
+    },
+    {
+      "error_id": "apertura_pies_insuficiente",
+      "descripcion": "La separación de pies en la apertura es menor que la de referencia.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "separacion_pies", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 1.6},
+      "fases": ["abierto"],
+      "plano": "frontal",
+      "segmento": "pie",
+      "lado": "bilateral",
+      "prioridad": 2,
+      "severidad": {"moderada": 0.3, "alta": 0.6},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "apertura_insuficiente"
+    },
+    {
+      "error_id": "codos_flexionados",
+      "descripcion": "Los codos permanecen flexionados durante la apertura.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "codo_medio", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 145},
+      "fases": ["abierto"],
+      "plano": "sagital",
+      "segmento": "codo",
+      "lado": "bilateral",
+      "prioridad": 3,
+      "severidad": {"moderada": 20, "alta": 40},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "codos_flexionados"
+    }
+  ]
+}
