@@ -16,7 +16,10 @@ Ver detalle completo en el [Primer Informe](./PrimerInforme.md#1-introducción).
 
 ## 2. Marco conceptual
 
-Presenta los conceptos, métodos, técnicas y términos fundamentales necesarios para comprender adecuadamente el problema, la solución propuesta y las decisiones técnicas del proyecto.
+ESTELA no resuelve un único problema técnico, sino una cadena de cuatro problemas encadenados, cada uno con su propio vocabulario y sus propios modos de fallo. El sistema debe primero **percibir** el cuerpo del usuario a partir de una imagen —convertir píxeles en una descripción geométrica del esqueleto—; luego **comparar** esa descripción con una referencia del ejercicio, teniendo en cuenta que el usuario no ejecuta a la misma velocidad que el video de referencia; después **decidir** si alguna de las diferencias observadas constituye un error que merezca ser comunicado, y si este es el momento adecuado para comunicarlo; y finalmente **comunicar** esa decisión en español hablado. Comprender el proyecto exige distinguir estas cuatro etapas, porque la evidencia disponible en la literatura indica que no son igual de difíciles ni igual de maduras: la percepción es hoy un problema con soluciones de ingeniería disponibles, mientras que la decisión sobre *qué* corregir y *cuándo* callar sigue siendo un problema abierto tanto en visión por computador como en la literatura de aprendizaje motor.
+
+Esta separación no es solo expositiva: es la decisión arquitectónica central del proyecto. Cada frontera entre etapas se define como un contrato de datos explícito, de modo que un módulo pueda desarrollarse, probarse y sustituirse sin que los demás se enteren. El módulo de retroalimentación, por ejemplo, no accede a la cámara ni al estimador de pose: recibe una estructura de medidas ya calculadas y produce una frase o un silencio. Esto permite que ese módulo se pruebe de forma automatizada sin ninguna imagen real, y permite también cambiar de estimador de pose sin tocar la lógica de corrección. La contrapartida es que los contratos deben especificarse con precisión —qué unidades, qué nombres, qué garantías de fiabilidad—, y esa especificación es en sí misma un objeto de diseño del proyecto.
+
 
 ## 3. Planteamiento del problema
 
