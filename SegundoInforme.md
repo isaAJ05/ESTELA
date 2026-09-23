@@ -212,31 +212,29 @@ Define atributos de calidad y restricciones del sistema, como rendimiento, segur
 
 ## 9. Evaluación de alternativas
 
-Expone las alternativas tecnológicas o arquitectónicas consideradas, los criterios de comparación utilizados y la justificación de la opción seleccionada.
+ESTELA es una aplicación de escritorio de inferencia local para un único usuario por sesión, así que cada criterio se interpreta más abajo en esos términos, en lugar de los de un sistema cliente-servidor con usuarios concurrentes.
 
-### Pregunta: ¿Cuál alternativa ofrece mejor desempeño bajo carga esperada?
+### ¿Cuál alternativa ofrece mejor desempeño bajo la carga esperada?
 
-**Criterios de comparación:**
+Como ESTELA no tiene usuarios concurrentes, su carga real es el flujo continuo de imágenes de la cámara durante una sesión (30 a 60 por segundo) junto con varios modelos ejecutándose al mismo tiempo sobre el mismo equipo. Por eso el desempeño se evalúa en esos términos: tiempo por etapa en promedio y en el peor caso (percepción, comparación, decisión, redacción del mensaje y síntesis de voz; sección 2.9), fotogramas por segundo que el detector de pose sostiene sin acumular retraso, y cuánto se degrada esa latencia cuando los módulos compiten por el procesador o la tarjeta gráfica, en lugar de por número de usuarios.
 
-- **Latencia promedio y máxima**: tiempo de respuesta de operaciones críticas.
-- **Throughput (capacidad de procesamiento)**: número de solicitudes que el sistema puede manejar por unidad de tiempo.
-- **Comportamiento bajo carga concurrente**: degradación del sistema cuando aumenta el número de usuarios simultáneos.
+RTMPose reporta más de 90 cuadros por segundo en un procesador de consumo [14], una cifra favorable en aislamiento. Sin embargo, se adopta MediaPipe Pose Landmarker, diseñado para ejecutarse en el propio dispositivo compartiendo recursos con otros procesos [12], [13], y que entrega de fábrica las coordenadas tridimensionales del cuerpo y un valor de visibilidad por articulación que el resto del sistema exige como parte de su contrato de datos (secciones 2.1, 2.7). La latencia máxima y la tasa de fotogramas bajo ejecución simultánea con el resto del pipeline quedan pendientes de medición propia.
 
-### Pregunta: ¿Qué grado de acoplamiento introduce cada opción?
+En el motor de voz, el desempeño se mide por el tiempo de cómputo por segundo de audio generado; ni Kokoro ni Piper tienen esa cifra publicada para el hardware del proyecto (sección 2.9), por lo que la elección permanece abierta hasta medirla (sección 13).
 
-**Criterios de comparación:**
+Sobre la comparación temporal, DTW en su forma clásica no restringe el camino de alineamiento, lo que maximiza su flexibilidad a costa de un coste computacional cuadrático en la longitud de las secuencias. Variantes acotadas, como la banda de Sakoe-Chiba, reducen ese coste asumiendo un desfase limitado entre usuario y referencia; variantes aproximadas, como FastDTW, sacrifican la garantía de optimalidad a cambio de menor complejidad. Como ESTELA compara solo la repetición en curso y no sesiones completas (sección 2.4), el tamaño real de las secuencias es pequeño, lo que reduce la ventaja teórica de las variantes aproximadas. La elección entre la forma clásica y una variante acotada queda igualmente pendiente de medición (sección 13).
 
-- **Dependencia de servicios externos**: nivel en que el sistema depende de plataformas como APIs externas.
-- **Interdependencia entre módulos internos**: qué tanto un cambio en un módulo afecta a otros.
-- **Facilidad de sustitución de componentes**: capacidad de reemplazar una tecnología (ej: backend) sin rediseñar todo el sistema.
+### ¿Qué grado de acoplamiento introduce cada opción?
 
-### Pregunta: ¿Qué nivel de disponibilidad y tolerancia a fallos ofrece cada alternativa?
+Dado que el sistema no depende de ningún servicio en la nube por decisión de diseño, la dependencia de servicios externos que se evalúa aquí no corresponde a plataformas de terceros, sino a si una alternativa requiere un proceso de inferencia aparte, ejecutándose en paralelo al programa principal. Sobre esa misma base se compara qué tanto se afectan entre sí los distintos módulos y qué tan fácil resultaría sustituir uno por otro.
 
-**Criterios de comparación:**
+El generador de mensajes por plantillas no depende de ningún proceso externo: es una función determinista que vive dentro del mismo proceso, con un nivel de dependencia mínimo. El generador basado en un modelo de lenguaje sí introduce una dependencia real, un motor de inferencia que corre aparte y se expone mediante una conexión local, lo que representa un punto adicional de posible falla que la alternativa por plantillas no tiene. En cuanto a la interdependencia entre módulos, ambas opciones se comportan de forma equivalente, porque el generador de mensajes solo recibe una estructura ya resumida del error (segmento corporal, lado, severidad y fase del movimiento) sin acceso directo a los ángulos ni a las imágenes (sección 2.8). Esa misma forma de comunicación entre módulos es lo que permite sustituir una implementación por otra sin modificar el motor de decisión ni el módulo de percepción. Por esta razón, el generador por plantillas se adopta como opción base obligatoria, mientras que el basado en modelo de lenguaje se mantiene como alternativa intercambiable que respeta el mismo contrato, no como su reemplazo; comparar la calidad de redacción entre ambas es precisamente el objetivo del experimento EXP-001 (sección 13).
 
-- **Tiempo de disponibilidad (uptime esperado)**: porcentaje de tiempo en que el sistema está operativo.
-- **Mecanismos de recuperación ante fallos**: existencia de redundancia, backups o reintentos automáticos.
-- **Impacto de fallos parciales**: qué ocurre si un componente falla (¿cae todo el sistema o solo una parte?).
+### ¿Qué nivel de disponibilidad y tolerancia a fallos ofrece cada alternativa?
+
+Al no existir un servidor que deba mantenerse disponible de forma continua, lo relevante aquí es si ESTELA logra completar una sesión entregando retroalimentación válida incluso cuando algún componente falla o produce un resultado poco confiable, más que un porcentaje de tiempo en operación.
+
+El generador por plantillas no presenta ningún modo de fallo en su contenido: siempre produce un mensaje válido a partir de un error ya identificado, por lo que su tolerancia a fallos es total desde el diseño. El generador basado en modelo de lenguaje sí puede fallar (nombrar un segmento corporal o un lado incorrecto, exceder la longitud permitida, o emplear vocabulario no autorizado), pero en lugar de depender de reintentos o redundancia, su mecanismo de recuperación consiste en un validador determinista que revisa el mensaje y, si no cumple las condiciones establecidas, lo descarta y utiliza la plantilla correspondiente. De este modo, si ese componente falla, el efecto queda contenido y no interrumpe la sesión. De manera análoga, cuando el sistema no cuenta con suficiente confianza sobre una medida (sección 2.7), responde con silencio en lugar de emitir una corrección basada en datos poco confiables. Toda la arquitectura privilegia este tipo de manejo controlado de errores por encima de mecanismos clásicos de redundancia, porque el fallo que realmente compromete a ESTELA no es que el sistema se detenga, sino que comunique una corrección incorrecta con apariencia de certeza, lo que la sección 2.7 define como fallo silencioso, y es precisamente ese tipo de error el que estas decisiones de diseño buscan evitar.
 
 ## 10. Diseño y arquitectura
 
