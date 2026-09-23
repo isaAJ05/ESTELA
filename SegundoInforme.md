@@ -1,5 +1,4 @@
-# Guía para el segundo informe del proyecto
-
+# ESTELA Informe N.º 2 
 En el segundo informe se reflejará el trabajo desarrollado durante el semestre y se avanzará hacia una estructura más formal y cercana a la versión final del documento​
 ​
 Por esta razón, cada componente deberá desarrollarse con un mínimo de tres párrafos, con el fin de asegurar el nivel de profundidad y coherencia esperado en un informe final.
