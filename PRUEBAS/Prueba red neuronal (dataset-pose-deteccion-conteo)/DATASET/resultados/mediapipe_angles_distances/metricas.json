@@ -1,0 +1,112 @@
+{
+  "pose_model": "mediapipe",
+  "feature_mode": "angles_distances",
+  "clases": [
+    "elevacion_brazos",
+    "jumping_jack",
+    "marcha_rodillas",
+    "sentadilla"
+  ],
+  "n_train": 622,
+  "n_val": 89,
+  "n_test": 170,
+  "accuracy": 0.7411764705882353,
+  "reporte_por_clase": {
+    "elevacion_brazos": {
+      "precision": 0.44680851063829785,
+      "recall": 0.9545454545454546,
+      "f1-score": 0.6086956521739131,
+      "support": 22.0
+    },
+    "jumping_jack": {
+      "precision": 0.7777777777777778,
+      "recall": 1.0,
+      "f1-score": 0.875,
+      "support": 14.0
+    },
+    "marcha_rodillas": {
+      "precision": 1.0,
+      "recall": 0.6341463414634146,
+      "f1-score": 0.7761194029850746,
+      "support": 82.0
+    },
+    "sentadilla": {
+      "precision": 0.7358490566037735,
+      "recall": 0.75,
+      "f1-score": 0.7428571428571429,
+      "support": 52.0
+    },
+    "accuracy": 0.7411764705882353,
+    "macro avg": {
+      "precision": 0.7401088362549623,
+      "recall": 0.8346729490022173,
+      "f1-score": 0.7506680495040327,
+      "support": 170.0
+    },
+    "weighted avg": {
+      "precision": 0.8293107474489864,
+      "recall": 0.7411764705882353,
+      "f1-score": 0.7524215695363156,
+      "support": 170.0
+    }
+  },
+  "matriz_confusion": [
+    [
+      21,
+      1,
+      0,
+      0
+    ],
+    [
+      0,
+      14,
+      0,
+      0
+    ],
+    [
+      13,
+      3,
+      52,
+      14
+    ],
+    [
+      13,
+      0,
+      0,
+      39
+    ]
+  ],
+  "confusiones_mas_frecuentes": [
+    {
+      "real": "marcha_rodillas",
+      "predicho": "sentadilla",
+      "cantidad": 14
+    },
+    {
+      "real": "marcha_rodillas",
+      "predicho": "elevacion_brazos",
+      "cantidad": 13
+    },
+    {
+      "real": "sentadilla",
+      "predicho": "elevacion_brazos",
+      "cantidad": 13
+    },
+    {
+      "real": "marcha_rodillas",
+      "predicho": "jumping_jack",
+      "cantidad": 3
+    },
+    {
+      "real": "elevacion_brazos",
+      "predicho": "jumping_jack",
+      "cantidad": 1
+    }
+  ],
+  "tiempo_entrenamiento_seg": 67.52879881858826,
+  "epocas_entrenadas": 18,
+  "tiempo_inferencia_total_seg": 7.6792216300964355,
+  "tiempo_por_ventana_seg": 0.04517189194174374,
+  "fps_estimado": 22.137660324027546,
+  "tamano_modelo_mb": 1.0186767578125
+}

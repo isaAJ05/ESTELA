@@ -1,0 +1,268 @@
+[
+  {
+    "video": "5 hombre.npy",
+    "ejercicio": "elevacion_brazos",
+    "split": "train",
+    "frames": 6,
+    "ventanas": 79
+  },
+  {
+    "video": "3 hombre.npy",
+    "ejercicio": "elevacion_brazos",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 23
+  },
+  {
+    "video": "4 mujer.npy",
+    "ejercicio": "elevacion_brazos",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 32
+  },
+  {
+    "video": "2 hombre.npy",
+    "ejercicio": "elevacion_brazos",
+    "split": "val",
+    "frames": 0,
+    "ventanas": 34
+  },
+  {
+    "video": "1 mujer.npy",
+    "ejercicio": "elevacion_brazos",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 22
+  },
+  {
+    "video": "4 mujer.npy",
+    "ejercicio": "jumping_jack",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 6
+  },
+  {
+    "video": "1 hombre.npy",
+    "ejercicio": "jumping_jack",
+    "split": "train",
+    "frames": 5,
+    "ventanas": 15
+  },
+  {
+    "video": "8 hombre.npy",
+    "ejercicio": "jumping_jack",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 24
+  },
+  {
+    "video": "3 mujer.npy",
+    "ejercicio": "jumping_jack",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 34
+  },
+  {
+    "video": "5 hombre.npy",
+    "ejercicio": "jumping_jack",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 11
+  },
+  {
+    "video": "7 hombre.npy",
+    "ejercicio": "jumping_jack",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 144
+  },
+  {
+    "video": "2 mujer.npy",
+    "ejercicio": "jumping_jack",
+    "split": "val",
+    "frames": 0,
+    "ventanas": 8
+  },
+  {
+    "video": "6 mujer.npy",
+    "ejercicio": "jumping_jack",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 6
+  },
+  {
+    "video": "9 mujer.npy",
+    "ejercicio": "jumping_jack",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 8
+  },
+  {
+    "video": "4 hombre.npy",
+    "ejercicio": "marcha_rodillas",
+    "split": "train",
+    "frames": 6,
+    "ventanas": 12
+  },
+  {
+    "video": "3 mujer.npy",
+    "ejercicio": "marcha_rodillas",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 100
+  },
+  {
+    "video": "6 mujer.npy",
+    "ejercicio": "marcha_rodillas",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 25
+  },
+  {
+    "video": "5 hombre.npy",
+    "ejercicio": "marcha_rodillas",
+    "split": "val",
+    "frames": 0,
+    "ventanas": 21
+  },
+  {
+    "video": "2 mujer.npy",
+    "ejercicio": "marcha_rodillas",
+    "split": "test",
+    "frames": 34,
+    "ventanas": 55
+  },
+  {
+    "video": "1 mujer.npy",
+    "ejercicio": "marcha_rodillas",
+    "split": "test",
+    "frames": 38,
+    "ventanas": 27
+  },
+  {
+    "video": "v_BodyWeightSquats_g15_c04.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 7
+  },
+  {
+    "video": "v_BodyWeightSquats_g22_c03.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 8
+  },
+  {
+    "video": "v_BodyWeightSquats_g04_c04.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 1,
+    "ventanas": 3
+  },
+  {
+    "video": "897f5a21-f1a1-477e-aa8b-11b7ee9378d2.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 11
+  },
+  {
+    "video": "v_BodyWeightSquats_g02_c03.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 6
+  },
+  {
+    "video": "v_BodyWeightSquats_g02_c02.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 2
+  },
+  {
+    "video": "v_BodyWeightSquats_g01_c01.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 16
+  },
+  {
+    "video": "6dddd176-2460-48cf-bd01-3eaaa0dc754f.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 19
+  },
+  {
+    "video": "1e2c254b-0d5a-4fd6-a6d4-2681333d927b.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 19
+  },
+  {
+    "video": "v_BodyWeightSquats_g06_c02.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 7
+  },
+  {
+    "video": "7ddd38c8-0649-4092-8ddc-5ce2ba0bd4d1.npy",
+    "ejercicio": "sentadilla",
+    "split": "train",
+    "frames": 0,
+    "ventanas": 19
+  },
+  {
+    "video": "v_BodyWeightSquats_g04_c03.npy",
+    "ejercicio": "sentadilla",
+    "split": "val",
+    "frames": 0,
+    "ventanas": 4
+  },
+  {
+    "video": "385c01f2-e604-46d4-a84b-949b733395dd.npy",
+    "ejercicio": "sentadilla",
+    "split": "val",
+    "frames": 0,
+    "ventanas": 7
+  },
+  {
+    "video": "71ef5d06-bfea-449b-8ff3-b428ae7dbaa7.npy",
+    "ejercicio": "sentadilla",
+    "split": "val",
+    "frames": 0,
+    "ventanas": 15
+  },
+  {
+    "video": "v_BodyWeightSquats_g15_c03.npy",
+    "ejercicio": "sentadilla",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 8
+  },
+  {
+    "video": "2a516b63-bccf-490e-807a-e6102303381f.npy",
+    "ejercicio": "sentadilla",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 19
+  },
+  {
+    "video": "v_BodyWeightSquats_g06_c01.npy",
+    "ejercicio": "sentadilla",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 10
+  },
+  {
+    "video": "v_BodyWeightSquats_g01_c02.npy",
+    "ejercicio": "sentadilla",
+    "split": "test",
+    "frames": 0,
+    "ventanas": 15
+  }
+]
