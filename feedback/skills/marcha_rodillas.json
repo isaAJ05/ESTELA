@@ -17,6 +17,19 @@
     "confianza_minima": 0.6,
     "tolerancia_orientacion_grados": 30.0
   },
+  "segmentacion": {
+    "tipo": "alternante",
+    "senal_izq": "angulos.cadera_izq",
+    "senal_der": "angulos.cadera_der",
+    "reposo": 150,
+    "extremo": 115,
+    "margen_retorno": 10,
+    "fase_izq_arriba": "apoyo_der",
+    "fase_der_arriba": "apoyo_izq",
+    "fase_transicion": "transicion",
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional: señales 3D de PRUEBAS/DATASET/videos/marcha_rodillas/1 mujer.mp4 (cadera ~170 de pie, 50-100 con la rodilla arriba)"
+  },
   "reglas": [
     {
       "error_id": "tronco_muy_inclinado",

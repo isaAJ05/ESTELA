@@ -17,6 +17,16 @@
     "confianza_minima": 0.6,
     "tolerancia_orientacion_grados": 30.0
   },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": "angulos.hombro_medio",
+    "reposo": 40,
+    "extremo": 140,
+    "margen_retorno": 15,
+    "fases": ["abajo", "subida", "arriba", "bajada"],
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional: señales 3D de PRUEBAS/DATASET/videos/elevacion_brazos/1 mujer.mp4 (hombro ~16 abajo, ~158 arriba)"
+  },
   "reglas": [
     {
       "error_id": "rango_brazos_insuficiente",

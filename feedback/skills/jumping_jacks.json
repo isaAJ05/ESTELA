@@ -17,6 +17,16 @@
     "confianza_minima": 0.6,
     "tolerancia_orientacion_grados": 30.0
   },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": "distancias.separacion_pies",
+    "reposo": 0.9,
+    "extremo": 1.4,
+    "margen_retorno": 0.2,
+    "fases": ["cerrado", "apertura", "abierto", "cierre"],
+    "suavizado": 2,
+    "umbral_origen": "[?] provisional: señales 3D de PRUEBAS/DATASET/videos/jumping_jack/1 hombre.mp4 (separación ~0.5 cerrado, ~2.0 abierto)"
+  },
   "reglas": [
     {
       "error_id": "brazos_no_llegan_arriba",

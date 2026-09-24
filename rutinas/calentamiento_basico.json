@@ -1,0 +1,10 @@
+{
+  "nombre": "Calentamiento básico",
+  "notas": "Los 4 ejercicios observables con una cámara. rotacion_tronco queda fuera (EXP-002, IC-001). Repeticiones provisionales, sin revisar por la licenciada en educación física.",
+  "pasos": [
+    {"skill_id": "marcha_rodillas", "repeticiones": 16},
+    {"skill_id": "elevacion_brazos", "repeticiones": 8},
+    {"skill_id": "sentadilla", "repeticiones": 8},
+    {"skill_id": "jumping_jacks", "repeticiones": 10}
+  ]
+}

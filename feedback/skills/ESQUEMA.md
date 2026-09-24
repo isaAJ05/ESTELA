@@ -74,6 +74,40 @@ El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archiv
 
 El **exceso** (cuánto se rebasa el umbral) determina la severidad mediante el bloque `severidad`: `alta` si el exceso la alcanza, si no `moderada`, si no `leve`.
 
+## `segmentacion` (opcional; la usa `estela/`, no el motor)
+
+El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce. La usa la aplicación (`estela/conteo/segmentador.py`) para producir `Observacion.fase` y `Observacion.repeticion` y para contar repeticiones. Un skill sin `segmentacion` se carga, pero no se puede usar en sesión (hoy: `rotacion_tronco`).
+
+```jsonc
+// ciclo: una señal que va del reposo al extremo y vuelve
+"segmentacion": {
+  "tipo": "ciclo",
+  "senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"],
+  "reposo": 155,           // más allá de este valor empieza la repetición
+  "extremo": 110,          // alcanzarlo la hace «completa» (cuenta)
+  "margen_retorno": 10,    // retroceso desde el pico que marca la fase de vuelta
+  "fases": ["arriba", "descenso", "fondo", "ascenso"],  // reposo, ida, extremo, vuelta
+  "suavizado": 3,          // media móvil, en frames
+  "confianza_minima": 0.5  // por debajo, la señal se ignora y el estado se congela
+}
+
+// alternante: un ciclo por pierna; una repetición = una elevación
+"segmentacion": {
+  "tipo": "alternante",
+  "senal_izq": "angulos.cadera_izq", "senal_der": "angulos.cadera_der",
+  "reposo": 150, "extremo": 115, "margen_retorno": 10,
+  "fase_izq_arriba": "apoyo_der", "fase_der_arriba": "apoyo_izq",
+  "fase_transicion": "transicion"
+}
+```
+
+- `senal` es `"angulos.<nombre>"` o `"distancias.<nombre>"` de la `Observacion`, o una **lista ordenada**: se usa la primera con confianza suficiente. Hace falta porque de perfil la pierna lejana queda ocluida y `rodilla_media` hereda la confianza mínima de los dos lados.
+- El sentido (señal que baja o que sube) se deduce de `reposo` y `extremo`.
+- Los nombres de fase deben estar en `fases` del skill; el cargador lo comprueba.
+- La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
+- En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
+- Todos los umbrales actuales son `[?]` provisionales: se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`.
+
 ## Reglas de higiene que el cargador impone
 
 - `segmento` debe estar en el vocabulario cerrado (`contrato.SEGMENTOS`). Es lo que permite al validador de salida rechazar mensajes que nombren otra parte del cuerpo.

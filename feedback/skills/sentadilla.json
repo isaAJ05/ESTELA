@@ -17,6 +17,16 @@
     "confianza_minima": 0.6,
     "tolerancia_orientacion_grados": 30.0
   },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"],
+    "reposo": 155,
+    "extremo": 110,
+    "margen_retorno": 10,
+    "fases": ["arriba", "descenso", "fondo", "ascenso"],
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional: señales 3D (world landmarks) de PRUEBAS/DATASET/videos/sentadilla/v_BodyWeightSquats_g01_c01.avi (rodilla ~168 arriba, ~78 en el fondo)"
+  },
   "reglas": [
     {
       "error_id": "tronco_muy_inclinado",
