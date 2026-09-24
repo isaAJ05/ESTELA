@@ -1,0 +1,33 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "estela"
+version = "0.1.0"
+description = "ESTELA: retroalimentación hablada en vivo para un calentamiento de bajo impacto"
+readme = "Readme.md"
+requires-python = ">=3.10"
+# Versiones con las que se validó la v1 (Python 3.14, Linux x86_64).
+dependencies = [
+    "mediapipe>=1.0.1,<2",
+    "opencv-python>=4.9",
+    "numpy>=1.26",
+    "pillow>=10.1",
+]
+
+[project.optional-dependencies]
+voz = ["piper-tts>=1.3,<2", "sounddevice>=0.4"]
+reconocimiento = ["h5py>=3.10"]
+dev = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["estela*", "feedback*"]
+exclude = ["feedback.tests*"]
+
+[tool.setuptools.package-data]
+feedback = ["skills/*.json", "verbalizador/*.json"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]

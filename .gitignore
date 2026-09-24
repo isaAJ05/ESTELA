@@ -1,0 +1,11 @@
+# Entorno
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/
+
+# Modelos descargados (scripts/descargar_modelos.py)
+modelos/
+
+# Métricas de sesión (derivadas, pueden contener datos de una persona)
+sesiones/

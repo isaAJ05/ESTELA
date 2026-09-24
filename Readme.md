@@ -10,6 +10,34 @@ El alcance del proyecto se delimita a un prototipo funcional para un solo usuari
 
 El principal valor de ESTELA se encuentra en explorar una alternativa de acompañamiento accesible y orientada a la privacidad, mientras se estudia experimentalmente la precisión y latencia necesarias para proporcionar retroalimentación útil durante la práctica de actividad física.
 
+## Cómo ejecutar la v1
+
+Primera versión del flujo completo: cámara → MediaPipe Pose Landmarker → segmentación y conteo de repeticiones → motor de feedback determinista → voz local en español. La instalación detallada está en [Instalación.md](./Instalación.md).
+
+```bash
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[voz,reconocimiento,dev]"
+python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
+
+python -m estela                              # rutina de calentamiento con la cámara
+python -m estela --ejercicio sentadilla --repeticiones 8
+python -m estela --auto                       # + sugerencia de ejercicio (BiLSTM)
+pytest                                        # tests de estela/ (sin cámara)
+python -m unittest discover -s feedback/tests -t .   # tests del módulo de feedback
+```
+
+Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
+
+| Carpeta | Contenido |
+|---|---|
+| `estela/` | Aplicación: captura, pose, segmentación/conteo, sesión, voz, interfaz, reconocimiento BiLSTM |
+| `feedback/` | Motor de decisión + verbalizador (ADR-001) y skills de los ejercicios |
+| `rutinas/` | Rutinas de calentamiento (JSON) |
+| `tests/` | Tests de la aplicación |
+| `PRUEBAS/` | Prototipos, dataset y BiLSTM entrenada |
+
+Decisiones de esta versión: `docs/decisiones/ADR-003-aplicacion-v1.md` (en el espacio de trabajo del proyecto).
+
 ## Documentación del repositorio
 
 ### Primer informe

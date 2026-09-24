@@ -2,8 +2,7 @@
 
 Un `skill` es el archivo externo que define todo lo que el sistema sabe de un
 ejercicio: qué medidas necesita, qué cuenta como error, con qué prioridad y
-cuándo callar. Añadir un ejercicio es añadir un archivo; no se toca el motor
-(CLAUDE.md §5).
+cuándo callar. Añadir un ejercicio es añadir un archivo; no se toca el motor.
 
 El esquema está documentado en `feedback/skills/ESQUEMA.md`.
 """
