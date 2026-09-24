@@ -1,0 +1,64 @@
+{
+  "skill_id": "marcha_rodillas",
+  "nombre": "Marcha con elevación de rodillas",
+  "version": "0.1.0",
+  "estado": "candidato",
+  "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json.",
+  "fases": ["apoyo_izq", "apoyo_der", "transicion"],
+  "orientacion_preferida": "sagital",
+  "angulos_requeridos": ["cadera_izq", "cadera_der", "tronco_inclinacion"],
+  "politica_silencio": {
+    "refractario_ms": 4000,
+    "refractario_mismo_error_ms": 10000,
+    "repeticiones_evidencia": 3,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 4,
+    "fases_silenciadas": ["transicion"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "reglas": [
+    {
+      "error_id": "tronco_muy_inclinado",
+      "descripcion": "El tronco se inclina hacia atrás o hacia delante al elevar la rodilla.",
+      "medida": {"tipo": "angulo", "nombre": "tronco_inclinacion"},
+      "condicion": {"op": ">", "umbral": 20},
+      "fases": ["apoyo_izq", "apoyo_der"],
+      "plano": "sagital",
+      "segmento": "tronco",
+      "lado": "na",
+      "prioridad": 1,
+      "severidad": {"moderada": 8, "alta": 18},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "tronco_muy_inclinado"
+    },
+    {
+      "error_id": "rodilla_izq_baja",
+      "descripcion": "La rodilla izquierda no alcanza la altura objetivo.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "cadera_izq", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 110},
+      "fases": ["apoyo_der"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "izquierdo",
+      "prioridad": 2,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "rodilla_baja"
+    },
+    {
+      "error_id": "rodilla_der_baja",
+      "descripcion": "La rodilla derecha no alcanza la altura objetivo.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "cadera_der", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 110},
+      "fases": ["apoyo_izq"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "derecho",
+      "prioridad": 3,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "rodilla_baja"
+    }
+  ]
+}
