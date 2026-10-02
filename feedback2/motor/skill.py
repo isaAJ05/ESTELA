@@ -144,24 +144,6 @@ class PoliticaSilencio:
 
 
 @dataclass(frozen=True)
-class PoliticaRefuerzo:
-    """Política de cuándo elogiar.
-
-    Simétrica a `PoliticaSilencio`: tan importante es no corregir de más
-    como no quedarse muda cuando la ejecución va bien. Desactivada por
-    defecto (`activa=False`): un skill nuevo no gana este comportamiento
-    sin que alguien lo declare explícitamente en su JSON.
-    """
-    activa: bool = False
-    #: repeticiones limpias consecutivas necesarias antes de hablar
-    repeticiones_limpias: int = 3
-    #: no elogiar más seguido que esto, en milisegundos
-    refractario_ms: int = 15000
-    #: tope de elogios por sesión, para que no pierda valor por repetirse
-    max_emisiones: int = 3
-
-
-@dataclass(frozen=True)
 class Skill:
     skill_id: str
     nombre: str
@@ -170,7 +152,6 @@ class Skill:
     fases: Sequence[str]
     reglas: Sequence[Regla]
     politica: PoliticaSilencio
-    politica_refuerzo: PoliticaRefuerzo = field(default_factory=PoliticaRefuerzo)
     angulos_requeridos: Sequence[str] = ()
     orientacion_preferida: Plano = Plano.CUALQUIERA
     notas: str = ""
@@ -269,13 +250,6 @@ def skill_desde_dict(d: Dict[str, Any]) -> Skill:
         tolerancia_orientacion_grados=float(
             pol.get("tolerancia_orientacion_grados", 30.0)),
     )
-    pr = d.get("politica_refuerzo", {})
-    politica_refuerzo = PoliticaRefuerzo(
-        activa=bool(pr.get("activa", False)),
-        repeticiones_limpias=int(pr.get("repeticiones_limpias", 3)),
-        refractario_ms=int(pr.get("refractario_ms", 15000)),
-        max_emisiones=int(pr.get("max_emisiones", 3)),
-    )
     return Skill(
         skill_id=d["skill_id"],
         nombre=d["nombre"],
@@ -284,7 +258,6 @@ def skill_desde_dict(d: Dict[str, Any]) -> Skill:
         fases=tuple(d.get("fases", ())),
         reglas=tuple(reglas),
         politica=politica,
-        politica_refuerzo=politica_refuerzo,
         angulos_requeridos=tuple(d.get("angulos_requeridos", ())),
         orientacion_preferida=Plano(d.get("orientacion_preferida", "cualquiera")),
         notas=d.get("notas", ""),
@@ -315,7 +288,7 @@ def directorio_skills() -> str:
 
 
 __all__ = [
-    "Skill", "Regla", "Medida", "Condicion", "PoliticaSilencio", "PoliticaRefuerzo",
+    "Skill", "Regla", "Medida", "Condicion", "PoliticaSilencio",
     "SkillInvalido", "cargar_skill", "cargar_skills", "skill_desde_dict",
     "directorio_skills",
 ]

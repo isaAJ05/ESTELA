@@ -1,7 +1,7 @@
 import unittest
 
-from feedback.motor.skill import cargar_skills, directorio_skills
-from feedback.verbalizador.plantillas import VerbalizadorPlantillas
+from feedback2.motor.skill import cargar_skills, directorio_skills
+from feedback2.verbalizador.plantillas import VerbalizadorPlantillas
 from feedback_testing.generador_episodios import construir_episodio, generar_banco
 from feedback_testing.metricas import percentil
 from feedback_testing.runner import ejecutar_episodio
@@ -62,7 +62,7 @@ class TestComportamientoEsperado(unittest.TestCase):
         self.assertEqual(fallos, [])
 
     def test_ningun_mensaje_afirma_algo_fuera_del_contrato(self):
-        from feedback.verbalizador.validador import afirmaciones_no_soportadas
+        from feedback2.verbalizador.validador import afirmaciones_no_soportadas
         fallos = []
         for e in BANCO:
             for m in self._ej(e).mensajes:

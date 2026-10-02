@@ -11,7 +11,7 @@ import time
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 
-from .contrato import ErrorTipificado, MensajeFeedback, Observacion, Refuerzo, Silencio
+from .contrato import ErrorTipificado, MensajeFeedback, Observacion, Silencio
 from .motor.decision import MotorDecision
 from .motor.skill import Skill
 from .verbalizador.base import Verbalizador
@@ -51,10 +51,7 @@ class MotorFeedback:
             self.historial.append(decision)
             return decision
 
-        if isinstance(decision, Refuerzo):
-            mensaje = self.verbalizador.verbalizar_refuerzo(decision)
-        else:
-            mensaje = self.verbalizador.verbalizar(decision)
+        mensaje = self.verbalizador.verbalizar(decision)
         t2 = time.perf_counter()
         self.ultimos_tiempos = Tiempos((t1 - t0) * 1000.0, (t2 - t1) * 1000.0)
         self.historial.append(mensaje)

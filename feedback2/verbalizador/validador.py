@@ -132,29 +132,6 @@ def validar(texto: str, error: ErrorTipificado,
     return ResultadoValidacion(True)
 
 
-def validar_generico(texto: str, max_palabras: int = MAX_PALABRAS
-                     ) -> ResultadoValidacion:
-    """Validación reducida para mensajes sin segmento ni lado propios.
-
-    Es el caso del refuerzo positivo: no nace de un `ErrorTipificado`, así
-    que no hay segmento/lado contra qué comparar. Se conservan las dos
-    comprobaciones que sí aplican siempre: longitud y vocabulario prohibido.
-    """
-    if not texto or not texto.strip():
-        return ResultadoValidacion(False, "mensaje_vacio")
-
-    palabras = _palabras(texto)
-    if len(palabras) > max_palabras:
-        return ResultadoValidacion(False, f"demasiado_largo:{len(palabras)}")
-
-    texto_norm = normalizar(texto)
-    for prohibida in VOCABULARIO_PROHIBIDO:
-        if normalizar(prohibida) in texto_norm:
-            return ResultadoValidacion(False, f"vocabulario_medico:{prohibida}")
-
-    return ResultadoValidacion(True)
-
-
 def afirmaciones_no_soportadas(texto: str, error: ErrorTipificado) -> Tuple[str, ...]:
     """Métrica M2 de EXP-001: qué afirma el mensaje que no está en el contrato.
 
@@ -170,7 +147,7 @@ def afirmaciones_no_soportadas(texto: str, error: ErrorTipificado) -> Tuple[str,
 
 
 __all__ = [
-    "validar", "validar_generico", "ResultadoValidacion", "segmentos_mencionados",
+    "validar", "ResultadoValidacion", "segmentos_mencionados",
     "lados_mencionados", "afirmaciones_no_soportadas", "normalizar",
     "LEXICO_SEGMENTOS", "LEXICO_LADOS", "MAX_PALABRAS",
 ]

@@ -1,12 +1,12 @@
 import unittest
 
-from feedback.contrato import (
-    ErrorTipificado, Lado, Observacion, Refuerzo, Silencio,
+from feedback2.contrato import (
+    ErrorTipificado, Lado, Observacion, Silencio,
     MOTIVO_CONFIANZA_BAJA, MOTIVO_EVIDENCIA_INSUFICIENTE,
     MOTIVO_FASE_SILENCIADA, MOTIVO_PLANO_NO_OBSERVABLE, MOTIVO_REFRACTARIO,
 )
-from feedback.motor.decision import MotorDecision
-from feedback.motor.skill import cargar_skills, directorio_skills
+from feedback2.motor.decision import MotorDecision
+from feedback2.motor.skill import cargar_skills, directorio_skills
 
 SKILLS = cargar_skills(directorio_skills())
 
@@ -158,76 +158,6 @@ class TestAgregados(unittest.TestCase):
                                    confianza={"rodilla_media": 1.0},
                                    fase="ascenso", repeticion=2))
         self.assertIsInstance(d, Silencio)  # falta evidencia (1 repeticion)
-
-
-class TestRefuerzo(unittest.TestCase):
-    """`sentadilla` tiene politica_refuerzo.activa=true, repeticiones_limpias=3,
-    refractario_ms=15000 (ver skills/sentadilla.json)."""
-
-    def setUp(self):
-        self.motor = MotorDecision(SKILLS["sentadilla"])
-
-    def test_racha_limpia_dispara_refuerzo(self):
-        for rep in (1, 2, 3):
-            d = self.motor.observar(obs(rep * 1000, rep, tronco=20.0))
-            self.assertIsInstance(d, Silencio)
-        # al empezar la repeticion 4 se cierra la racha de 3 limpias.
-        d = self.motor.observar(obs(4000, 4, tronco=20.0))
-        self.assertIsInstance(d, Refuerzo)
-        self.assertEqual(d.racha, 3)
-        self.assertEqual(d.ejercicio_id, "sentadilla")
-
-    def test_una_repeticion_sucia_rompe_la_racha(self):
-        self.motor.observar(obs(1000, 1, tronco=20.0))
-        self.motor.observar(obs(2000, 2, tronco=20.0))
-        self.motor.observar(obs(3000, 3, tronco=60.0))  # error: rompe la racha
-        self.motor.observar(obs(4000, 4, tronco=20.0))
-        self.motor.observar(obs(5000, 5, tronco=20.0))
-        self.motor.observar(obs(6000, 6, tronco=20.0))
-        d = self.motor.observar(obs(7000, 7, tronco=20.0))
-        self.assertIsInstance(d, Refuerzo)
-        self.assertEqual(d.racha, 3)  # solo cuenta desde la repeticion 4
-
-    def test_repeticion_no_evaluable_no_cuenta_ni_rompe(self):
-        self.motor.observar(obs(1000, 1, tronco=20.0))
-        self.motor.observar(obs(2000, 2, tronco=20.0))
-        # repeticion 3 totalmente ciega (confianza baja en todo): el motor no
-        # pudo ver nada, así que no cuenta como limpia ni rompe la racha.
-        d_ciega = self.motor.observar(obs(2500, 3, tronco=20.0, conf=0.1))
-        self.assertIsInstance(d_ciega, Silencio)
-        d_tras_ciega = self.motor.observar(obs(3000, 4, tronco=20.0))
-        self.assertIsInstance(d_tras_ciega, Silencio)  # racha sigue en 2
-        d = self.motor.observar(obs(4000, 5, tronco=20.0))
-        self.assertIsInstance(d, Refuerzo)
-        self.assertEqual(d.racha, 3)
-
-    def test_refractario_impide_dos_refuerzos_seguidos(self):
-        for rep in range(1, 4):
-            self.motor.observar(obs(rep * 1000, rep, tronco=20.0))
-        d1 = self.motor.observar(obs(4000, 4, tronco=20.0))
-        self.assertIsInstance(d1, Refuerzo)  # racha=3
-
-        d2 = None
-        for rep, t in ((5, 5000), (6, 6000), (7, 7000)):
-            d2 = self.motor.observar(obs(t, rep, tronco=20.0))
-        # al cerrar la repeticion 6 la racha llega a 6 (multiplo de 3), pero
-        # pasaron solo 3000 ms desde el ultimo refuerzo (refractario 15000).
-        self.assertIsInstance(d2, Silencio)
-
-    def test_desactivado_por_defecto_en_un_skill_sin_politica(self):
-        # jumping_jacks sí tiene politica_refuerzo propia; comprobamos que un
-        # skill cargado desde un dict sin la clave queda con activa=False.
-        from feedback.motor.skill import skill_desde_dict
-        base = {
-            "skill_id": "x", "nombre": "x", "version": "0.1.0",
-            "reglas": [{
-                "error_id": "e", "medida": {"tipo": "angulo", "nombre": "a"},
-                "condicion": {"op": ">", "umbral": 1}, "segmento": "tronco",
-                "lado": "na", "plano": "cualquiera", "prioridad": 1,
-            }],
-        }
-        skill = skill_desde_dict(base)
-        self.assertFalse(skill.politica_refuerzo.activa)
 
 
 class TestContratoDeEntrada(unittest.TestCase):

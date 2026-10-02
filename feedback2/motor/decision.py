@@ -28,14 +28,14 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Tuple, Union
 
 from ..contrato import (
-    ErrorTipificado, Lado, Observacion, Refuerzo, Severidad, Silencio, Plano,
+    ErrorTipificado, Lado, Observacion, Severidad, Silencio, Plano,
     MOTIVO_CONFIANZA_BAJA, MOTIVO_DESVANECIMIENTO,
     MOTIVO_EVIDENCIA_INSUFICIENTE, MOTIVO_FASE_SILENCIADA,
     MOTIVO_PLANO_NO_OBSERVABLE, MOTIVO_REFRACTARIO, MOTIVO_SIN_ERROR,
 )
-from .skill import Medida, PoliticaRefuerzo, Regla, Skill
+from .skill import Medida, Regla, Skill
 
-Decision = Union[ErrorTipificado, Refuerzo, Silencio]
+Decision = Union[ErrorTipificado, Silencio]
 
 
 # ---------------------------------------------------------------------------
@@ -70,14 +70,6 @@ class _EstadoError:
     """Historial de un error concreto dentro de la sesión."""
     repeticiones_consecutivas: int = 0
     ultima_repeticion_vista: Optional[int] = None
-    emisiones: int = 0
-    t_ultima_emision_ms: Optional[int] = None
-
-
-@dataclass
-class _EstadoRefuerzo:
-    """Historial de la racha de repeticiones limpias dentro de la sesión."""
-    repeticiones_limpias_consecutivas: int = 0
     emisiones: int = 0
     t_ultima_emision_ms: Optional[int] = None
 
@@ -122,21 +114,12 @@ class MotorDecision:
     def __init__(self, skill: Skill) -> None:
         self.skill = skill
         self.politica = skill.politica
-        self.politica_refuerzo = skill.politica_refuerzo
         self._acum = _AcumuladorRepeticion()
         self._repeticion_actual: Optional[int] = None
         self._estado: Dict[str, _EstadoError] = {}
         self._t_ultima_emision_ms: Optional[int] = None
         #: diagnóstico: cuántas veces se abstuvo por cada motivo
         self.contador_abstenciones: Dict[str, int] = {}
-        #: estado de la racha de repeticiones limpias (refuerzo positivo)
-        self._refuerzo = _EstadoRefuerzo()
-        #: ¿se evaluó alguna regla durante la repetición en curso?
-        self._rep_evaluada = False
-        #: ¿se disparó algún candidato durante la repetición en curso?
-        self._rep_sucia = False
-        #: una racha se acaba de cerrar limpia y toca decidir si se habla
-        self._racha_cerrada_pendiente = False
 
     # -- utilidades internas ------------------------------------------------
 
@@ -149,28 +132,8 @@ class MotorDecision:
 
     def _rota_repeticion(self, obs: Observacion) -> None:
         if obs.repeticion != self._repeticion_actual:
-            self._cierra_repeticion_anterior()
             self._repeticion_actual = obs.repeticion
             self._acum = _AcumuladorRepeticion()
-            self._rep_evaluada = False
-            self._rep_sucia = False
-
-    def _cierra_repeticion_anterior(self) -> None:
-        """Decide si la repetición que acaba de terminar fue 'limpia'.
-
-        Solo cuenta si al menos una regla pudo evaluarse en algún momento de
-        la repetición: una repetición nunca observada (confianza baja o plano
-        no observable todo el tiempo) no suma ni rompe la racha, porque el
-        motor no sabe nada de ella -- igual que `evaluadas == 0` no se reporta
-        como `sin_error` en `observar()`.
-        """
-        if self._repeticion_actual is None or not self._rep_evaluada:
-            return
-        if self._rep_sucia:
-            self._refuerzo.repeticiones_limpias_consecutivas = 0
-        else:
-            self._refuerzo.repeticiones_limpias_consecutivas += 1
-            self._racha_cerrada_pendiente = True
 
     def _anota(self, obs: Observacion) -> None:
         for nombre, valor in obs.angulos.items():
@@ -298,42 +261,6 @@ class MotorDecision:
 
         return None
 
-    def _revisa_refuerzo_pendiente(self, obs: Observacion) -> Optional[Refuerzo]:
-        """Si se acaba de cerrar una racha limpia, decide si corresponde
-        emitir un `Refuerzo` ahora. Consume la bandera en cualquier caso:
-        una racha que no llega a hablar (p. ej. por refractario) no se
-        reintenta frame a frame, solo la próxima vez que se cierre otra
-        repetición limpia.
-        """
-        pr = self.politica_refuerzo
-        pendiente = self._racha_cerrada_pendiente
-        self._racha_cerrada_pendiente = False
-
-        if not pr.activa or not pendiente:
-            return None
-
-        racha = self._refuerzo.repeticiones_limpias_consecutivas
-        if racha == 0 or racha % pr.repeticiones_limpias != 0:
-            return None
-        if self._refuerzo.emisiones >= pr.max_emisiones:
-            return None
-        if (self._t_ultima_emision_ms is not None
-                and obs.t_ms - self._t_ultima_emision_ms < pr.refractario_ms):
-            return None
-        if (self._refuerzo.t_ultima_emision_ms is not None
-                and obs.t_ms - self._refuerzo.t_ultima_emision_ms < pr.refractario_ms):
-            return None
-
-        self._refuerzo.emisiones += 1
-        self._refuerzo.t_ultima_emision_ms = obs.t_ms
-        self._t_ultima_emision_ms = obs.t_ms
-        return Refuerzo(
-            ejercicio_id=self.skill.skill_id,
-            repeticion=obs.repeticion,
-            racha=racha,
-            t_ms=obs.t_ms,
-        )
-
     # -- API pública --------------------------------------------------------
 
     def observar(self, obs: Observacion) -> Decision:
@@ -346,20 +273,7 @@ class MotorDecision:
         self._rota_repeticion(obs)
         self._anota(obs)
 
-        # Si una racha limpia se acaba de cerrar, el refuerzo tiene prioridad
-        # sobre la evaluación de errores de este frame: así no queda diluido
-        # detrás de una corrección en el mismo instante. El coste es que este
-        # frame puntual no se usa para evaluar errores, lo cual es aceptable
-        # frente a ~30 frames por repetición.
-        refuerzo = self._revisa_refuerzo_pendiente(obs)
-        if refuerzo is not None:
-            return refuerzo
-
         candidatos, motivos, evaluadas = self._candidatos(obs)
-        if evaluadas > 0:
-            self._rep_evaluada = True
-        if candidatos:
-            self._rep_sucia = True
         self._actualiza_evidencia(obs, [r.error_id for r, _, _ in candidatos])
 
         # Las abstenciones se contabilizan siempre, aunque otra regla sí se
@@ -416,12 +330,6 @@ class MotorDecision:
         self._estado.clear()
         self._t_ultima_emision_ms = None
         self.contador_abstenciones.clear()
-        self._refuerzo = _EstadoRefuerzo()
-        self._rep_evaluada = False
-        self._rep_sucia = False
-        self._racha_cerrada_pendiente = False
 
 
 __all__ = ["MotorDecision", "Decision", "plano_observable"]
-
-

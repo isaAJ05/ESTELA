@@ -19,9 +19,9 @@ import os
 import time
 from typing import Dict, List, Optional
 
-from ..contrato import ErrorTipificado, Lado, MensajeFeedback, Refuerzo
+from ..contrato import ErrorTipificado, Lado, MensajeFeedback
 from .base import Verbalizador
-from .validador import ResultadoValidacion, validar, validar_generico
+from .validador import ResultadoValidacion, validar
 
 #: Forma de superficie y género gramatical de cada segmento.
 #: El género es necesario para concordar el adjetivo de lado en español:
@@ -98,42 +98,6 @@ class VerbalizadorPlantillas(Verbalizador):
         return " ".join(texto.split())
 
     # -- API ----------------------------------------------------------------
-
-    def verbalizar_refuerzo(self, refuerzo: Refuerzo) -> MensajeFeedback:
-        """Mismo contrato que `verbalizar`, pero sin segmento ni lado.
-
-        Selección determinista igual que en los errores: el índice depende
-        de cuántas veces ya se habló este refuerzo en la sesión, no de la
-        racha completa, para que las variantes roten en vez de repetirse
-        apenas se cruza el umbral varias veces.
-        """
-        t0 = time.perf_counter()
-        bloque = self.plantillas.get("_refuerzo", {})
-        variantes = bloque.get("general") or ["Vas bien, sigue así."]
-
-        # Selección determinista por racha: misma entrada -> mismo texto,
-        # y rota entre repeticiones para no sonar a grabación (igual que en
-        # `_variantes` para los errores, pero sin índice de repetición propio
-        # porque Refuerzo no lo necesita para esto).
-        idx = refuerzo.racha % len(variantes)
-        texto = " ".join(variantes[idx].split())
-
-        motivo = ""
-        if self.validar_salida:
-            res: ResultadoValidacion = validar_generico(texto)
-            if not res.valido:
-                motivo = res.motivo
-                texto = (bloque.get("general") or ["Vas bien, sigue así."])[0]
-
-        dt = (time.perf_counter() - t0) * 1000.0
-        return MensajeFeedback(
-            texto=texto,
-            error=None,
-            verbalizador=self.nombre,
-            latencia_ms=dt,
-            fallback=bool(motivo),
-            motivo_rechazo=motivo,
-        )
 
     def verbalizar(self, error: ErrorTipificado) -> MensajeFeedback:
         t0 = time.perf_counter()

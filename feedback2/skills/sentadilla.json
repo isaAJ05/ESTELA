@@ -17,12 +17,6 @@
     "confianza_minima": 0.6,
     "tolerancia_orientacion_grados": 30.0
   },
-  "politica_refuerzo": {
-    "activa": true,
-    "repeticiones_limpias": 3,
-    "refractario_ms": 15000,
-    "max_emisiones": 3
-  },
   "segmentacion": {
     "tipo": "ciclo",
     "senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"],

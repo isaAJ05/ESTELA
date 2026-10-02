@@ -2,7 +2,7 @@
 
 import pytest
 
-from feedback.contrato import Observacion
+from feedback2.contrato import Observacion
 
 from estela.conteo.segmentador import (
     EVENTO_COMPLETA, EVENTO_INCOMPLETA, SegmentacionInvalida,

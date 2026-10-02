@@ -18,7 +18,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 
-from ..contrato import ErrorTipificado, MensajeFeedback, Refuerzo
+from ..contrato import ErrorTipificado, MensajeFeedback
 
 
 class Verbalizador(ABC):
@@ -30,20 +30,6 @@ class Verbalizador(ABC):
     def verbalizar(self, error: ErrorTipificado) -> MensajeFeedback:
         """Produce el mensaje. No debe lanzar: ante fallo, devuelve fallback."""
         raise NotImplementedError
-
-    def verbalizar_refuerzo(self, refuerzo: Refuerzo) -> MensajeFeedback:
-        """Produce un mensaje de refuerzo positivo.
-
-        No es abstracto a propósito: el refuerzo se añadió después de que
-        las tres condiciones de EXP-001 ya existieran, y ningún verbalizador
-        debería dejar de instanciarse por no implementarlo todavía. La
-        implementación por defecto delega en `VerbalizadorPlantillas`, que es
-        el suelo determinista de todo el sistema (ver `plantillas.py`).
-        Un verbalizador que quiera frases de refuerzo distintas (p. ej. el
-        LLM local) puede sobreescribir este método.
-        """
-        from .plantillas import VerbalizadorPlantillas  # import perezoso: evita ciclo
-        return VerbalizadorPlantillas().verbalizar_refuerzo(refuerzo)
 
 
 __all__ = ["Verbalizador"]

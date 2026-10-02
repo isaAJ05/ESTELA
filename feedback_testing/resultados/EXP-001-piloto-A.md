@@ -24,8 +24,8 @@
 
 | Etapa | p50 | p95 | máx | n |
 |---|---|---|---|---|
-| Decisión | 0.0041 | 0.0117 | 0.0858 | 5184 |
-| Verbalización | 0.0711 | 0.1063 | 0.2983 | 114 |
+| Decisión | 0.0069 | 0.0255 | 0.4963 | 5184 |
+| Verbalización | 0.1397 | 0.4381 | 2.0853 | 114 |
 
 Medido en el entorno de desarrollo, no en el hardware del proyecto. No sustituye la medición en el M2 Ultra. No incluye pose, DTW ni TTS.
 

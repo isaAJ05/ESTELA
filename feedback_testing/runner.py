@@ -40,7 +40,7 @@ def construir_verbalizador(condicion: str) -> Verbalizador:
     if condicion == "A":
         return VerbalizadorPlantillas()
     if condicion in ("F", "Fp"):
-        from feedback.verbalizador.llm_local import VerbalizadorLLMLocal
+        from feedback2.verbalizador.llm_local import VerbalizadorLLMLocal
         return VerbalizadorLLMLocal(restringido=(condicion == "F"))
     raise SystemExit(f"condición desconocida: {condicion}")
 

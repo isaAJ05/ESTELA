@@ -220,30 +220,6 @@ class MensajeFeedback:
 
 
 @dataclass(frozen=True)
-class Refuerzo:
-    """Mensaje de refuerzo positivo: 'lo estás haciendo bien'.
-
-    Se emite cuando se cierra una racha de `racha` repeticiones consecutivas
-    en las que al menos una regla fue evaluable (el motor sí pudo mirar) y
-    ninguna se disparó. Deliberadamente no nombra segmento ni lado: lo único
-    que el motor puede garantizar es "la ejecución reciente no mostró errores
-    detectables", nunca "tal articulación concreta estuvo perfecta" -- eso
-    sería afirmar más de lo que el sistema observó.
-
-    `[R]` Es el mismo principio de bandwidth feedback que ya rige los errores
-    (Sigrist et al.): un refuerzo constante pierde valor tan rápido como una
-    corrección constante induce dependencia. Por eso tiene su propia política
-    de repeticiones-antes-de-hablar, refractario y tope de emisiones, en vez
-    de dispararse cada vez que `MOTIVO_SIN_ERROR` sería el resultado.
-    """
-    ejercicio_id: str
-    repeticion: Optional[int]
-    #: repeticiones consecutivas limpias que sostienen este refuerzo
-    racha: int
-    t_ms: int = 0
-
-
-@dataclass(frozen=True)
 class Silencio:
     """Resultado explícito de 'no hay nada que decir ahora'.
 
@@ -270,7 +246,7 @@ MOTIVO_FASE_SILENCIADA = "fase_silenciada"
 __all__ = [
     "Lado", "Severidad", "Plano", "SEGMENTOS", "VOCABULARIO_PROHIBIDO",
     "Keypoint", "MuestraPose", "Observacion", "ErrorTipificado",
-    "MensajeFeedback", "Refuerzo", "Silencio",
+    "MensajeFeedback", "Silencio",
     "MOTIVO_SIN_ERROR", "MOTIVO_CONFIANZA_BAJA", "MOTIVO_PLANO_NO_OBSERVABLE",
     "MOTIVO_REFRACTARIO", "MOTIVO_EVIDENCIA_INSUFICIENTE",
     "MOTIVO_DESVANECIMIENTO", "MOTIVO_FASE_SILENCIADA",

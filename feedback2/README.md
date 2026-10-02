@@ -23,12 +23,10 @@ Observacion (ángulos + confianza + fase + orientación)
 │   3. ¿se cumple alguna regla del skill?      │
 │   4. ¿hay evidencia en N repeticiones?       │  → Silencio(evidencia_insuficiente)
 │   5. UNA prioridad + política de silencio    │  → Silencio(refractario | desvanecimiento | fase)
-│   (en paralelo) ¿se cerró una racha limpia?  │  → Refuerzo (política propia, ver abajo)
 └──────────────────────────────────────────────┘
         │
         ▼  contrato estable
    ErrorTipificado{error_id, segmento, lado, severidad, fase, repeticion, magnitud, confianza}
-   Refuerzo{ejercicio_id, repeticion, racha}
         │
         ├────────────────────────────┐
         ▼                            ▼
@@ -40,32 +38,6 @@ Observacion (ángulos + confianza + fase + orientación)
                        ▼
                  MensajeFeedback  → TTS (fuera de este módulo)
 ```
-
-### Refuerzo positivo
-
-Añadido tras el prototipo inicial. `Refuerzo` es un tercer tipo de decisión,
-además de `ErrorTipificado` y `Silencio`: se emite cuando se cierra una racha
-de `repeticiones_limpias` repeticiones consecutivas en las que al menos una
-regla fue evaluable y ninguna se disparó. Sigue el mismo principio de
-*bandwidth feedback* que ya regía los errores (Sigrist et al.): hablar en
-cada repetición sin error sería tan nocivo como corregir en cada repetición
-con error, así que tiene su propia `politica_refuerzo` por skill
-(`repeticiones_limpias`, `refractario_ms`, `max_emisiones`), **desactivada
-por defecto** (`activa: false`) para que un skill nuevo no la herede sin que
-alguien la declare a propósito. No nombra segmento ni lado -- lo único que el
-motor puede garantizar es que no vio errores, nunca que una articulación
-concreta estuvo perfecta.
-
-Una repetición en la que ninguna regla pudo evaluarse (confianza baja o plano
-no observable todo el tiempo) no cuenta como limpia ni rompe la racha: el
-motor simplemente no vio nada, igual que con `MOTIVO_SIN_ERROR`.
-
-El `Verbalizador` ganó un método `verbalizar_refuerzo()` no abstracto (con
-implementación por defecto que delega en `VerbalizadorPlantillas`), para no
-romper verbalizadores existentes que todavía no lo necesiten. Las frases
-viven en `plantillas_es.json` bajo la clave `_refuerzo` y pasan por
-`validador.validar_generico()` (longitud y vocabulario prohibido, sin
-comparar segmento/lado porque `Refuerzo` no tiene).
 
 Las tres decisiones que sostienen el diseño:
 

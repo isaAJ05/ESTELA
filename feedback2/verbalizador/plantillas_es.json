@@ -2,7 +2,7 @@
   "_meta": {
     "idioma": "es",
     "version": "0.1.0",
-    "nota": "Condición A de EXP-001. Cada mensaje de error menciona un único segmento, el del contrato. Las variantes existen para reducir la repetitividad sin romper el determinismo: la variante se elige por el índice de repetición, no al azar. Excepción: '_refuerzo' no nace de un ErrorTipificado y no menciona segmento ni lado a propósito (ver contrato.Refuerzo).",
+    "nota": "Condición A de EXP-001. Cada mensaje menciona un único segmento, el del contrato. Las variantes existen para reducir la repetitividad sin romper el determinismo: la variante se elige por el índice de repetición, no al azar.",
     "revision_pendiente": "[?] Redacción no revisada por la licenciada en educación física ni por el entrenador. Antes de usar con usuarias reales debe validarse que la instrucción es correcta y accionable."
   },
 
@@ -82,16 +82,6 @@
     "leve": ["Mantén las {segmento_pl} un poco más quietas."],
     "moderada": ["Mantén las {segmento_pl} fijas mientras giras."],
     "alta": ["No muevas las {segmento_pl}, el giro es solo de arriba."]
-  },
-
-  "_refuerzo": {
-    "general": [
-      "Vas muy bien, sigue así.",
-      "Buena forma, mantén ese ritmo.",
-      "Así es, sigue exactamente así.",
-      "Excelente ejecución, continúa.",
-      "Lo estás haciendo bien."
-    ]
   },
 
   "_generico": {

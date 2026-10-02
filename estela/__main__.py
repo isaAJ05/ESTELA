@@ -1,7 +1,7 @@
 """ESTELA v1 — sesión en vivo: cámara → pose → conteo → feedback → voz.
 
 Ejemplos:
-    python -m estela --rutina rutinas/calentamiento_basico.json
+     
     python -m estela --ejercicio sentadilla --repeticiones 8
     python -m estela --ejercicio sentadilla --video ruta.mp4 --voz texto --sin-ventana
 
