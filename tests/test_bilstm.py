@@ -43,5 +43,4 @@ def test_reconocedor_en_linea_sin_persona_no_falla():
     assert r.agregar(None).skill_id is None
     for _ in range(40):
         sug = r.agregar(np.random.default_rng(0).random((33, 4), dtype=np.float32))
-    assert sug.skill_id in (None, "elevacion_brazos", "jumping_jacks",
-                            "marcha_rodillas", "sentadilla")
+    assert sug.skill_id in (None, "jumping_jacks", "marcha_rodillas")

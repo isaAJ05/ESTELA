@@ -1,0 +1,83 @@
+{
+  "skill_id": "plancha",
+  "nombre": "Plancha",
+  "version": "0.1.0",
+  "estado": "candidato",
+  "notas": "Postura mantenida, de perfil a la cámara (ADR-004). El objetivo de la rutina va en segundos (`duracion_s`). Para el motor, cada bloque de `bloque_s` segundos en posición es una «repetición»: un error tiene que mantenerse en `repeticiones_evidencia` bloques seguidos antes de decirse, y el refuerzo cuenta bloques limpios. La cadera hundida o elevada se mide con la altura de la cadera respecto a la recta hombro-tobillo (`alineacion_cadera`), que es lo observable de perfil con los 33 puntos; la curvatura lumbar en sí no lo es (EXP-004). TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
+  "fases": ["preparacion", "mantenimiento"],
+  "orientacion_preferida": "sagital",
+  "angulos_requeridos": ["tronco_inclinacion", "cabeza_adelantada"],
+  "politica_silencio": {
+    "refractario_ms": 5000,
+    "refractario_mismo_error_ms": 12000,
+    "repeticiones_evidencia": 2,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 3,
+    "fases_silenciadas": ["preparacion"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 3,
+    "refractario_ms": 15000,
+    "max_emisiones": 2
+  },
+  "segmentacion": {
+    "tipo": "mantenido",
+    "condiciones": [
+      {"senal": "angulos.tronco_inclinacion", "min": 55},
+      {"senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"], "min": 145}
+    ],
+    "fases": ["preparacion", "mantenimiento"],
+    "entrada_ms": 1000,
+    "salida_ms": 1500,
+    "bloque_s": 5,
+    "confianza_minima": 0.5,
+    "umbral_origen": "[?] provisional: en plancha el tronco está casi horizontal (~75-95° respecto a la vertical) y las rodillas extendidas; la condición de rodillas evita contar como plancha la postura a cuatro patas."
+  },
+  "reglas": [
+    {
+      "error_id": "cadera_hundida",
+      "descripcion": "La cadera cae por debajo de la línea hombro-tobillo.",
+      "medida": {"tipo": "distancia", "nombre": "alineacion_cadera"},
+      "condicion": {"op": ">", "umbral": 0.10},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "cadera",
+      "lado": "bilateral",
+      "prioridad": 1,
+      "severidad": {"moderada": 0.05, "alta": 0.15},
+      "umbral_origen": "[?] provisional, sin calibrar: 0,10 escalas corporales ≈ 5 cm",
+      "mensaje_id": "cadera_hundida"
+    },
+    {
+      "error_id": "cadera_elevada",
+      "descripcion": "La cadera sube por encima de la línea hombro-tobillo.",
+      "medida": {"tipo": "distancia", "nombre": "alineacion_cadera"},
+      "condicion": {"op": "<", "umbral": -0.15},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "cadera",
+      "lado": "bilateral",
+      "prioridad": 2,
+      "severidad": {"moderada": 0.05, "alta": 0.15},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "cadera_elevada"
+    },
+    {
+      "error_id": "cabeza_desalineada",
+      "descripcion": "La cabeza cae o se levanta en lugar de seguir la línea del tronco.",
+      "medida": {"tipo": "angulo", "nombre": "cabeza_adelantada"},
+      "condicion": {"op": ">", "umbral": 30},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "cabeza",
+      "lado": "na",
+      "prioridad": 3,
+      "severidad": {"moderada": 10, "alta": 20},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "cabeza_desalineada"
+    }
+  ]
+}

@@ -72,6 +72,9 @@ class _EstadoError:
     ultima_repeticion_vista: Optional[int] = None
     emisiones: int = 0
     t_ultima_emision_ms: Optional[int] = None
+    #: última repetición en la que la regla se pudo comprobar, y la anterior
+    rep_evaluada: Optional[int] = None
+    rep_evaluada_anterior: Optional[int] = None
 
 
 @dataclass
@@ -207,17 +210,17 @@ class MotorDecision:
     # -- evaluación ---------------------------------------------------------
 
     def _candidatos(self, obs: Observacion
-                    ) -> Tuple[List[Tuple[Regla, float, float]], List[str], int]:
+                    ) -> Tuple[List[Tuple[Regla, float, float]], List[str], List[str]]:
         """Devuelve (candidatos, motivos_de_abstencion, reglas_evaluadas).
 
-        Cada candidato es (regla, exceso, confianza). `reglas_evaluadas` cuenta
-        las reglas que sí se pudieron comprobar: distingue «no hay error» de
-        «no pude mirar», que es una distinción que el sistema debe poder hacer
-        y reportar.
+        Cada candidato es (regla, exceso, confianza). `reglas_evaluadas` son
+        los `error_id` de las reglas que sí se pudieron comprobar: distingue
+        «no hay error» de «no pude mirar», que es una distinción que el sistema
+        debe poder hacer y reportar.
         """
         candidatos: List[Tuple[Regla, float, float]] = []
         motivos: List[str] = []
-        evaluadas = 0
+        evaluadas: List[str] = []
 
         for regla in self.skill.reglas:
             if regla.fases and obs.fase not in regla.fases:
@@ -238,20 +241,27 @@ class MotorDecision:
                 motivos.append(MOTIVO_CONFIANZA_BAJA)
                 continue
 
-            evaluadas += 1
+            evaluadas.append(regla.error_id)
             if regla.condicion.evalua(valor):
                 candidatos.append((regla, regla.condicion.exceso(valor), conf))
 
         return candidatos, motivos, evaluadas
 
-    def _actualiza_evidencia(self, obs: Observacion,
-                             disparadas: List[str]) -> None:
+    def _actualiza_evidencia(self, obs: Observacion, disparadas: List[str],
+                             evaluadas: List[str]) -> None:
         """Cuenta repeticiones consecutivas con el mismo error.
 
         Se actualiza una vez por repetición, no una vez por frame: lo que
         importa para el *bandwidth feedback* es la persistencia del error entre
         repeticiones, no su persistencia entre frames contiguos (que es casi
         automática y no es evidencia de nada).
+
+        «Consecutivas» se cuenta entre las repeticiones en las que la regla se
+        pudo comprobar. La cadena se rompe si la regla se comprobó en una
+        repetición y no tuvo el error; una repetición en la que no se pudo
+        mirar (otra fase, confianza baja) no suma ni rompe. Sin esto, en un
+        ejercicio alterno las reglas de un lado, que solo se comprueban en las
+        repeticiones de esa pierna (1, 3, 5…), no acumulaban evidencia nunca.
         """
         rep = obs.repeticion
         if rep is None:
@@ -262,13 +272,19 @@ class MotorDecision:
                     self.politica.repeticiones_evidencia)
             return
 
+        for eid in evaluadas:
+            st = self._estado_de(eid)
+            if st.rep_evaluada != rep:
+                st.rep_evaluada_anterior, st.rep_evaluada = st.rep_evaluada, rep
+
         for eid in disparadas:
             st = self._estado_de(eid)
             if st.ultima_repeticion_vista == rep:
                 continue
             if (st.ultima_repeticion_vista is None
-                    or rep - st.ultima_repeticion_vista > 1):
-                # La cadena se rompió: la repetición anterior no tuvo el error.
+                    or st.rep_evaluada_anterior != st.ultima_repeticion_vista):
+                # La cadena se rompió: la última repetición en la que se pudo
+                # comprobar la regla no tuvo el error.
                 st.repeticiones_consecutivas = 1
             else:
                 st.repeticiones_consecutivas += 1
@@ -355,12 +371,14 @@ class MotorDecision:
         if refuerzo is not None:
             return refuerzo
 
-        candidatos, motivos, evaluadas = self._candidatos(obs)
+        candidatos, motivos, evaluadas_ids = self._candidatos(obs)
+        evaluadas = len(evaluadas_ids)
         if evaluadas > 0:
             self._rep_evaluada = True
         if candidatos:
             self._rep_sucia = True
-        self._actualiza_evidencia(obs, [r.error_id for r, _, _ in candidatos])
+        self._actualiza_evidencia(obs, [r.error_id for r, _, _ in candidatos],
+                                  evaluadas_ids)
 
         # Las abstenciones se contabilizan siempre, aunque otra regla sí se
         # haya podido evaluar: su frecuencia es la señal de que la cámara está

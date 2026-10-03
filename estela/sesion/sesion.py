@@ -76,6 +76,7 @@ class EstadoFrame:
     landmarks: Optional[np.ndarray]    # (33, 4) de imagen, para dibujar
     latencia_ms: Dict[str, float]
     terminada: bool
+    unidad: str = "repeticiones"       # o "segundos" en ejercicios mantenidos
 
 
 @dataclass
@@ -152,7 +153,7 @@ class Sesion:
     @staticmethod
     def _anuncio(ej: Ejercicio, reps: int) -> str:
         colocacion = _COLOCACION.get(ej.skill.orientacion_preferida, "")
-        return f"Ahora, {ej.skill.nombre.lower()}. {reps} repeticiones. {colocacion}".strip()
+        return f"Ahora, {ej.skill.nombre.lower()}. {reps} {ej.unidad}. {colocacion}".strip()
 
     def siguiente(self) -> None:
         """Salta al siguiente ejercicio (tecla de la interfaz)."""
@@ -279,7 +280,7 @@ class Sesion:
             orientacion=orientacion, aviso=aviso,
             ultimo_mensaje=self._ultimo_mensaje, sugerencia=sugerencia,
             landmarks=res.imagen if res is not None else None,
-            latencia_ms=lat, terminada=False)
+            latencia_ms=lat, terminada=False, unidad=p.ejercicio.unidad)
 
     # -- resumen ------------------------------------------------------------
 
@@ -291,6 +292,7 @@ class Sesion:
             pasos.append({
                 "skill_id": p.ejercicio.skill.skill_id,
                 "objetivo": p.objetivo,
+                "unidad": p.ejercicio.unidad,
                 "completadas": seg.completadas if seg else 0,
                 "incompletas": seg.incompletas if seg else 0,
                 "duracion_s": (round(((p.fin_ms if p.fin_ms is not None else self._t_ms)

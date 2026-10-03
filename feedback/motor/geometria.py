@@ -78,6 +78,15 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "separacion_pies": Plano.FRONTAL,
     "rotacion_tronco": Plano.TRANSVERSAL,
     "azimut_cadera": Plano.TRANSVERSAL,
+    # ADR-004: medidas con los 33 puntos que no se usaban (EXP-004, brazo A0+).
+    # `[I]` Planos asignados por geometría, sin medir aún con EXP-002.
+    "oblicuidad_pelvis": Plano.FRONTAL,
+    "oblicuidad_hombros": Plano.FRONTAL,
+    "inclinacion_lateral": Plano.FRONTAL,
+    "cabeza_adelantada": Plano.SAGITAL,
+    "abduccion_cadera_izq": Plano.FRONTAL,
+    "abduccion_cadera_der": Plano.FRONTAL,
+    "alineacion_cadera": Plano.SAGITAL,
 }
 
 
@@ -256,6 +265,146 @@ def rotacion_tronco(kps: Dict[str, Keypoint]) -> Optional[float]:
     return d
 
 
+def _horizontal(v: Vec) -> float:
+    """Longitud de la parte horizontal de un vector: (x, z) en 3D, x en 2D."""
+    return math.hypot(v[0], v[2]) if len(v) == 3 else abs(v[0])
+
+
+def _oblicuidad(izq: Keypoint, der: Keypoint, usar_z: bool) -> Optional[float]:
+    d = _resta(_coords(izq, usar_z), _coords(der, usar_z))
+    h = _horizontal(d)
+    if h < 1e-9 and abs(d[1]) < 1e-9:
+        return None
+    # y crece hacia abajo: «izquierdo más alto» es d_y < 0.
+    return math.degrees(math.atan2(-d[1], h))
+
+
+def oblicuidad_pelvis(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Inclinación de la línea de caderas respecto a la horizontal, en grados.
+
+    Positivo = la cadera izquierda está más alta que la derecha. Es la medida
+    de «subir la cadera» o de «dejarla caer» de un lado. Con z la horizontal
+    incluye la profundidad, así que no depende de cuánto gire la persona; sin z
+    solo vale de frente. Plano frontal.
+    """
+    if "left_hip" not in kps or "right_hip" not in kps:
+        return None
+    return _oblicuidad(kps["left_hip"], kps["right_hip"], usar_z)
+
+
+def oblicuidad_hombros(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Igual que `oblicuidad_pelvis`, con la línea de hombros."""
+    if "left_shoulder" not in kps or "right_shoulder" not in kps:
+        return None
+    return _oblicuidad(kps["left_shoulder"], kps["right_shoulder"], usar_z)
+
+
+def inclinacion_lateral(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Inclinación lateral del tronco con signo, en grados.
+
+    Ángulo del vector cadera media → hombro medio respecto a la vertical,
+    medido hacia los lados de la persona. Positivo = el tronco se inclina hacia
+    su izquierda. El eje izquierda-derecha se toma de la línea de caderas
+    (horizontal), no de la imagen, así que el signo no depende del espejo ni de
+    hacia dónde mire. A diferencia de `tronco_inclinacion`, ignora la
+    inclinación hacia delante. Plano frontal.
+    """
+    req = ("left_shoulder", "right_shoulder", "left_hip", "right_hip")
+    if any(k not in kps for k in req):
+        return None
+    hombro = punto_medio(_coords(kps["left_shoulder"], usar_z),
+                         _coords(kps["right_shoulder"], usar_z))
+    cadera = punto_medio(_coords(kps["left_hip"], usar_z),
+                         _coords(kps["right_hip"], usar_z))
+    v = _resta(hombro, cadera)
+    lr = _resta(_coords(kps["left_hip"], usar_z), _coords(kps["right_hip"], usar_z))
+    if len(v) == 3:
+        h = math.hypot(lr[0], lr[2])
+        if h < 1e-9:
+            return None
+        u = (lr[0] / h, 0.0, lr[2] / h)
+    else:
+        if abs(lr[0]) < 1e-9:
+            return None
+        u = (math.copysign(1.0, lr[0]), 0.0)
+    if _norma(v) < 1e-9:
+        return None
+    return math.degrees(math.atan2(_punto(v, u), -v[1]))
+
+
+def cabeza_adelantada(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Desalineación de la cabeza respecto al tronco, en grados, sin signo.
+
+    Ángulo entre el eje del tronco (cadera media → hombro medio) y el del cuello
+    (hombro medio → oreja media). 0 = la cabeza sigue la prolongación del
+    tronco. Crece si la cabeza se adelanta o cae, y también si se echa hacia
+    atrás. Vale igual de pie que tumbada (plancha). Plano sagital.
+    """
+    req = ("left_shoulder", "right_shoulder", "left_hip", "right_hip",
+           "left_ear", "right_ear")
+    if any(k not in kps for k in req):
+        return None
+    hombro = punto_medio(_coords(kps["left_shoulder"], usar_z),
+                         _coords(kps["right_shoulder"], usar_z))
+    cadera = punto_medio(_coords(kps["left_hip"], usar_z),
+                         _coords(kps["right_hip"], usar_z))
+    oreja = punto_medio(_coords(kps["left_ear"], usar_z),
+                        _coords(kps["right_ear"], usar_z))
+    ang = angulo_entre(cadera, hombro, oreja)
+    return None if ang is None else 180.0 - ang
+
+
+def abduccion_cadera(kps: Dict[str, Keypoint], lado: str) -> Optional[float]:
+    """Separación lateral del muslo respecto a la vertical, en grados.
+
+    Se mide en el plano frontal, solo con (x, y): la abducción vive en ese
+    plano, y la profundidad z, que es la componente menos fiable, solo añadiría
+    la flexión de cadera. Positivo = el muslo se abre hacia fuera; negativo =
+    cruza hacia la línea media. Requiere estar de frente (EXP-002).
+    """
+    pref, otro = ("left", "right") if lado == "izq" else ("right", "left")
+    req = (f"{pref}_hip", f"{pref}_knee", f"{otro}_hip")
+    if any(k not in kps for k in req):
+        return None
+    cadera, rodilla = kps[f"{pref}_hip"], kps[f"{pref}_knee"]
+    fuera = cadera.x - kps[f"{otro}_hip"].x
+    if abs(fuera) < 1e-9:
+        return None
+    dx, dy = rodilla.x - cadera.x, rodilla.y - cadera.y
+    if math.hypot(dx, dy) < 1e-9:
+        return None
+    return math.degrees(math.atan2(math.copysign(1.0, fuera) * dx, dy))
+
+
+def alineacion_cadera(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Altura de la cadera respecto a la recta hombro medio → tobillo medio.
+
+    Distancia vertical con signo de la cadera media a esa recta, dividida por
+    la escala corporal. Positivo = la cadera queda por debajo (hundida);
+    negativo = por encima (elevada). Pensada para la plancha, con el cuerpo
+    horizontal: de pie la recta es vertical y la medida no significa nada.
+    Plano sagital.
+    """
+    req = ("left_shoulder", "right_shoulder", "left_hip", "right_hip",
+           "left_ankle", "right_ankle")
+    if any(k not in kps for k in req):
+        return None
+    hombro = punto_medio(_coords(kps["left_shoulder"], usar_z),
+                         _coords(kps["right_shoulder"], usar_z))
+    cadera = punto_medio(_coords(kps["left_hip"], usar_z),
+                         _coords(kps["right_hip"], usar_z))
+    tobillo = punto_medio(_coords(kps["left_ankle"], usar_z),
+                          _coords(kps["right_ankle"], usar_z))
+    d = _resta(tobillo, hombro)
+    largo2 = _punto(d, d)
+    esc = escala_corporal(kps, usar_z)
+    if largo2 < 1e-12 or esc is None:
+        return None
+    k = _punto(_resta(cadera, hombro), d) / largo2
+    en_recta_y = hombro[1] + k * d[1]
+    return (cadera[1] - en_recta_y) / esc
+
+
 def separacion_pies(kps: Dict[str, Keypoint]) -> Optional[float]:
     """Separación de tobillos dividida por la separación de caderas."""
     req = ("left_ankle", "right_ankle", "left_hip", "right_hip")
@@ -341,6 +490,24 @@ def observacion_desde_pose(
         confianza["azimut_cadera"] = confianza_de_terna(
             kps, ("left_hip", "right_hip"))
 
+    caderas = ("left_hip", "right_hip")
+    hombros = ("left_shoulder", "right_shoulder")
+    nuevas = (
+        ("oblicuidad_pelvis", oblicuidad_pelvis(kps, usar_z), caderas),
+        ("oblicuidad_hombros", oblicuidad_hombros(kps, usar_z), hombros),
+        ("inclinacion_lateral", inclinacion_lateral(kps, usar_z), hombros + caderas),
+        ("cabeza_adelantada", cabeza_adelantada(kps, usar_z),
+         hombros + caderas + ("left_ear", "right_ear")),
+        ("abduccion_cadera_izq", abduccion_cadera(kps, "izq"),
+         ("left_hip", "left_knee", "right_hip")),
+        ("abduccion_cadera_der", abduccion_cadera(kps, "der"),
+         ("right_hip", "right_knee", "left_hip")),
+    )
+    for nombre, valor, implicados in nuevas:
+        if valor is not None:
+            angulos[nombre] = valor
+            confianza[nombre] = confianza_de_terna(kps, implicados)
+
     distancias: Dict[str, float] = {}
     for lado, suf in (("izq", "left"), ("der", "right")):
         v = desviacion_lateral_rodilla(kps, lado)
@@ -353,6 +520,11 @@ def observacion_desde_pose(
         distancias["separacion_pies"] = sep
         confianza["separacion_pies"] = confianza_de_terna(
             kps, ("left_ankle", "right_ankle", "left_hip", "right_hip"))
+    alin = alineacion_cadera(kps, usar_z)
+    if alin is not None:
+        distancias["alineacion_cadera"] = alin
+        confianza["alineacion_cadera"] = confianza_de_terna(
+            kps, hombros + caderas + ("left_ankle", "right_ankle"))
 
     return Observacion(
         t_ms=muestra.t_ms,
@@ -372,5 +544,7 @@ __all__ = [
     "angulo_entre", "punto_medio", "escala_corporal", "inclinacion_tronco",
     "orientacion_camara", "desviacion_lateral_rodilla", "separacion_pies",
     "rotacion_tronco", "azimut_cadera",
+    "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_lateral",
+    "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera",
     "confianza_de_terna", "observacion_desde_pose",
 ]

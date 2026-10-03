@@ -47,6 +47,13 @@ LADO_ES: Dict[Lado, Dict[str, str]] = {
     Lado.DERECHO:   {"m": "derecho",   "f": "derecha"},
 }
 
+#: Dirección hacia un lado, sin concordancia con el segmento: «el tronco se
+#: inclina hacia la izquierda», no «hacia el izquierdo».
+HACIA_LADO_ES: Dict[Lado, str] = {
+    Lado.IZQUIERDO: "hacia la izquierda",
+    Lado.DERECHO: "hacia la derecha",
+}
+
 
 def ruta_plantillas_por_defecto() -> str:
     return os.path.join(os.path.dirname(os.path.abspath(__file__)),
@@ -94,6 +101,7 @@ class VerbalizadorPlantillas(Verbalizador):
                  .replace("{art_pl}", "las" if fem else "los")
                  .replace("{de_art}", "de la" if fem else "del")
                  .replace("{art}", "la" if fem else "el")
+                 .replace("{hacia_lado}", HACIA_LADO_ES.get(error.lado, ""))
                  .replace("{lado}", lado_txt))
         return " ".join(texto.split())
 

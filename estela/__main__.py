@@ -2,8 +2,9 @@
 
 Ejemplos:
      
-    python -m estela --ejercicio sentadilla --repeticiones 8
-    python -m estela --ejercicio sentadilla --video ruta.mp4 --voz texto --sin-ventana
+    python -m estela --ejercicio zancada_atras_izq --repeticiones 8
+    python -m estela --ejercicio plancha --repeticiones 30          # segundos
+    python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana
 
 Teclas (con ventana): q/Esc salir · n siguiente ejercicio · r reiniciar ejercicio.
 """
@@ -37,7 +38,8 @@ def _argumentos(argv=None) -> argparse.Namespace:
                      help="archivo JSON de rutina")
     grupo.add_argument("--ejercicio", help="un solo ejercicio (skill_id)")
     p.add_argument("--repeticiones", type=int, default=10,
-                   help="objetivo con --ejercicio (defecto 10)")
+                   help="objetivo con --ejercicio: repeticiones, o segundos en "
+                        "un ejercicio mantenido como la plancha (defecto 10)")
     p.add_argument("--video", type=Path, help="usar un vídeo en lugar de la cámara")
     p.add_argument("--camara", type=int, default=0, help="índice de cámara")
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="full",
@@ -56,8 +58,10 @@ def _argumentos(argv=None) -> argparse.Namespace:
 def _imprimir_resumen(r: dict) -> None:
     print("\n=== Resumen de la sesión ===")
     for paso in r["pasos"]:
-        print(f"- {paso['skill_id']}: {paso['completadas']}/{paso['objetivo']} "
-              f"completas, {paso['incompletas']} incompletas, "
+        hechas = (" s en posición, {} pausas" if paso["unidad"] == "segundos"
+                  else " completas, {} incompletas").format(paso["incompletas"])
+        print(f"- {paso['skill_id']}: {paso['completadas']}/{paso['objetivo']}"
+              f"{hechas}, "
               f"{len(paso['mensajes'])} correcciones, {paso['duracion_s']} s")
         for m in paso["mensajes"]:
             print(f"    [{m['t_ms'] / 1000:6.1f} s · rep {m['repeticion']}] {m['texto']}")

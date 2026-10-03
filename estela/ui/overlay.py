@@ -78,11 +78,13 @@ def dibujar(frame: np.ndarray, estado: EstadoFrame, espejo: bool = True,
         textos.append(((t(20), t(12)),
                        f"Ejercicio {estado.paso}/{estado.total_pasos} · {estado.ejercicio}",
                        t(30), BLANCO))
+        sufijo = " s" if estado.unidad == "segundos" else ""
         textos.append(((t(20), t(52)),
-                       f"{estado.completadas} / {estado.objetivo}", t(56), VERDE))
+                       f"{estado.completadas} / {estado.objetivo}{sufijo}", t(56), VERDE))
         detalle = f"fase: {estado.fase or '—'}"
         if estado.incompletas:
-            detalle += f"   incompletas: {estado.incompletas}"
+            etiqueta = "pausas" if estado.unidad == "segundos" else "incompletas"
+            detalle += f"   {etiqueta}: {estado.incompletas}"
         textos.append(((t(250), t(70)), detalle, t(26), GRIS))
 
     derecha = []

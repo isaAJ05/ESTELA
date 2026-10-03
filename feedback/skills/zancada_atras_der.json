@@ -1,0 +1,66 @@
+{
+  "skill_id": "zancada_atras_der",
+  "nombre": "Zancada atrás estática, pierna derecha atrás",
+  "version": "0.1.0",
+  "estado": "candidato",
+  "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás: la rodilla delantera es la izquierda. Mismas notas y mismos umbrales provisionales (ADR-004).",
+  "fases": ["arriba", "descenso", "fondo", "ascenso"],
+  "orientacion_preferida": "sagital",
+  "angulos_requeridos": ["rodilla_izq", "rodilla_der", "tronco_inclinacion"],
+  "politica_silencio": {
+    "refractario_ms": 4000,
+    "refractario_mismo_error_ms": 12000,
+    "repeticiones_evidencia": 2,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 4,
+    "fases_silenciadas": ["fondo"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 3,
+    "refractario_ms": 15000,
+    "max_emisiones": 3
+  },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"],
+    "reposo": 150,
+    "extremo": 115,
+    "margen_retorno": 10,
+    "fases": ["arriba", "descenso", "fondo", "ascenso"],
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional, ver zancada_atras_izq.json"
+  },
+  "reglas": [
+    {
+      "error_id": "tronco_muy_inclinado",
+      "descripcion": "El tronco se inclina demasiado (hacia delante o hacia atrás) al bajar.",
+      "medida": {"tipo": "angulo", "nombre": "tronco_inclinacion"},
+      "condicion": {"op": ">", "umbral": 30},
+      "fases": ["descenso", "fondo"],
+      "plano": "sagital",
+      "segmento": "tronco",
+      "lado": "na",
+      "prioridad": 1,
+      "severidad": {"moderada": 10, "alta": 20},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "tronco_muy_inclinado"
+    },
+    {
+      "error_id": "profundidad_insuficiente_izq",
+      "descripcion": "La rodilla delantera (izquierda) no llega a flexionarse lo suficiente en el punto más bajo.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 110},
+      "fases": ["ascenso"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "izquierdo",
+      "prioridad": 2,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "profundidad_rodilla"
+    }
+  ]
+}

@@ -1,0 +1,66 @@
+{
+  "skill_id": "zancada_atras_izq",
+  "nombre": "Zancada atrás estática, pierna izquierda atrás",
+  "version": "0.1.0",
+  "estado": "candidato",
+  "notas": "Zancada estática (los pies no se mueven: se baja y se sube) con la pierna izquierda atrás, de perfil a la cámara (ADR-004). Hay un skill por pierna para poder anunciar qué pierna va atrás y medir la rodilla delantera: es un ejercicio en la rutina y dos archivos aquí. La gemela es zancada_atras_der.json. TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
+  "fases": ["arriba", "descenso", "fondo", "ascenso"],
+  "orientacion_preferida": "sagital",
+  "angulos_requeridos": ["rodilla_der", "rodilla_izq", "tronco_inclinacion"],
+  "politica_silencio": {
+    "refractario_ms": 4000,
+    "refractario_mismo_error_ms": 12000,
+    "repeticiones_evidencia": 2,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 4,
+    "fases_silenciadas": ["fondo"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 3,
+    "refractario_ms": 15000,
+    "max_emisiones": 3
+  },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": ["angulos.rodilla_media", "angulos.rodilla_der", "angulos.rodilla_izq"],
+    "reposo": 150,
+    "extremo": 115,
+    "margen_retorno": 10,
+    "fases": ["arriba", "descenso", "fondo", "ascenso"],
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional, sin vídeo de referencia: en la zancada estática las dos rodillas se flexionan (~165° arriba, ~90° abajo), por eso sirve la media y, si un lado está ocluido, cualquiera de las dos."
+  },
+  "reglas": [
+    {
+      "error_id": "tronco_muy_inclinado",
+      "descripcion": "El tronco se inclina demasiado (hacia delante o hacia atrás) al bajar.",
+      "medida": {"tipo": "angulo", "nombre": "tronco_inclinacion"},
+      "condicion": {"op": ">", "umbral": 30},
+      "fases": ["descenso", "fondo"],
+      "plano": "sagital",
+      "segmento": "tronco",
+      "lado": "na",
+      "prioridad": 1,
+      "severidad": {"moderada": 10, "alta": 20},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "tronco_muy_inclinado"
+    },
+    {
+      "error_id": "profundidad_insuficiente_der",
+      "descripcion": "La rodilla delantera (derecha) no llega a flexionarse lo suficiente en el punto más bajo.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 110},
+      "fases": ["ascenso"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "derecho",
+      "prioridad": 2,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "profundidad_rodilla"
+    }
+  ]
+}

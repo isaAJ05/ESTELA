@@ -5,8 +5,9 @@ import pytest
 from feedback2.contrato import Observacion
 
 from estela.conteo.segmentador import (
-    EVENTO_COMPLETA, EVENTO_INCOMPLETA, SegmentacionInvalida,
-    SegmentadorAlternante, SegmentadorCiclo, leer_senal, segmentador_desde_dict,
+    EVENTO_COMPLETA, EVENTO_INCOMPLETA, CondicionPostura, SegmentacionInvalida,
+    SegmentadorAlternante, SegmentadorCiclo, SegmentadorMantenido, leer_senal,
+    segmentador_desde_dict,
 )
 from estela.sesion.rutina import cargar_catalogo
 
@@ -162,10 +163,95 @@ def test_desde_dict_valida_fases_contra_el_skill():
 
 def test_skills_del_repositorio_cargan_su_segmentacion():
     catalogo = cargar_catalogo()
-    soportados = {k for k, e in catalogo.items() if e.soportado}
-    assert soportados == {"sentadilla", "elevacion_brazos", "jumping_jacks",
-                          "marcha_rodillas"}
-    assert not catalogo["rotacion_tronco"].soportado
+    assert {k for k, e in catalogo.items() if e.soportado} == set(catalogo)
+    assert set(catalogo) == {"jumping_jacks", "marcha_rodillas", "abduccion_cadera",
+                             "zancada_atras_izq", "zancada_atras_der", "plancha"}
     for e in catalogo.values():
-        if e.soportado:
-            e.nuevo_segmentador()
+        e.nuevo_segmentador()
+    assert catalogo["plancha"].unidad == "segundos"
+    assert {e.unidad for k, e in catalogo.items() if k != "plancha"} == {"repeticiones"}
+
+
+# ---------------------------------------------------------------------------
+# Postura mantenida (plancha)
+# ---------------------------------------------------------------------------
+
+def seg_plancha(**kw):
+    base = dict(condiciones=[CondicionPostura("angulos.tronco_inclinacion", min=55),
+                             CondicionPostura("angulos.rodilla_media", min=145)],
+                fases=("preparacion", "mantenimiento"),
+                entrada_ms=1000, salida_ms=1500, bloque_s=5)
+    base.update(kw)
+    return SegmentadorMantenido(**base)
+
+
+def sostener(seg, segundos, t0=0, tronco=85.0, rodilla=175.0, dt=100):
+    n = int(round(segundos * 1000 / dt))
+    return [seg.actualizar(obs(t0 + i * dt, {"tronco_inclinacion": tronco,
+                                             "rodilla_media": rodilla}))
+            for i in range(n)]
+
+
+def test_mantenido_entra_tras_la_espera_y_cuenta_segundos():
+    estados = sostener(seg_plancha(), 7.0)          # t = 0 … 6,9 s
+    assert estados[5].fase == "preparacion"
+    assert estados[10].fase == "mantenimiento"      # entra a t = 1 s
+    assert estados[-1].completadas == 5             # 5,9 s en posición
+    eventos = [e.evento for e in estados if e.evento == EVENTO_COMPLETA]
+    assert len(eventos) == 5                        # uno por segundo
+
+
+def test_mantenido_la_repeticion_es_el_bloque_de_cinco_segundos():
+    estados = sostener(seg_plancha(), 13.0)
+    assert estados[0].repeticion == 0
+    assert sorted({e.repeticion for e in estados}) == [0, 1, 2, 3]
+
+
+def test_mantenido_un_frame_malo_no_interrumpe():
+    seg = seg_plancha()
+    sostener(seg, 3.0)
+    sostener(seg, 0.1, t0=3000, tronco=20.0)        # un frame de pie
+    e = sostener(seg, 2.0, t0=3100)[-1]
+    assert e.fase == "mantenimiento" and e.incompletas == 0
+    assert e.completadas >= 3
+
+
+def test_mantenido_salir_de_la_postura_pausa_y_cuenta_la_interrupcion():
+    seg = seg_plancha()
+    sostener(seg, 4.0)                              # 3 s en posición
+    fuera = sostener(seg, 3.0, t0=4000, tronco=10.0)
+    assert fuera[-1].fase == "preparacion" and fuera[-1].incompletas == 1
+    assert [e.evento for e in fuera if e.evento] == [EVENTO_INCOMPLETA]
+    assert fuera[-1].completadas == 2               # el tiempo no suma fuera
+    vuelta = sostener(seg, 3.0, t0=7000)            # 1 s de entrada + 2 s
+    assert vuelta[-1].fase == "mantenimiento"
+    assert vuelta[-1].completadas == 4
+
+
+def test_mantenido_a_cuatro_patas_no_cuenta_como_plancha():
+    estados = sostener(seg_plancha(), 5.0, rodilla=90.0)
+    assert {e.fase for e in estados} == {"preparacion"}
+    assert estados[-1].completadas == 0
+
+
+def test_mantenido_sin_senal_congela_y_no_suma():
+    seg = seg_plancha()
+    sostener(seg, 3.0)
+    ciegos = [seg.actualizar(obs(3000 + i * 100, {})) for i in range(20)]
+    assert all(not e.senal_valida for e in ciegos)
+    assert ciegos[-1].fase == "mantenimiento" and ciegos[-1].completadas == 1
+    e = sostener(seg, 1.0, t0=5000)[-1]
+    assert e.completadas == 2
+
+
+def test_mantenido_desde_dict_valida_la_configuracion():
+    d = {"tipo": "mantenido", "fases": ["preparacion", "mantenimiento"],
+         "condiciones": [{"senal": "angulos.tronco_inclinacion", "min": 55}]}
+    assert isinstance(segmentador_desde_dict(d, ("preparacion", "mantenimiento")),
+                      SegmentadorMantenido)
+    with pytest.raises(SegmentacionInvalida):
+        segmentador_desde_dict({**d, "condiciones": [{"senal": "angulos.x"}]})
+    with pytest.raises(SegmentacionInvalida):
+        segmentador_desde_dict({**d, "condiciones": []})
+    with pytest.raises(SegmentacionInvalida):
+        segmentador_desde_dict({**d, "fases": ["a", "b", "c"]})

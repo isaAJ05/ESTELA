@@ -4,6 +4,10 @@ Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un 
 
 El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archivo mal formado no se carga a medias.
 
+Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-004 (sentadilla, elevación de brazos, rotación de tronco): siguen siendo válidos y los tests del motor usan la sentadilla como banco de pruebas, pero no forman parte del catálogo.
+
+Ejercicios actuales (ADR-004): `marcha_rodillas`, `jumping_jacks`, `abduccion_cadera`, `zancada_atras_izq` + `zancada_atras_der` (un ejercicio, un archivo por pierna) y `plancha`.
+
 ## Estructura
 
 ```jsonc
@@ -76,7 +80,7 @@ El **exceso** (cuánto se rebasa el umbral) determina la severidad mediante el b
 
 ## `segmentacion` (opcional; la usa `estela/`, no el motor)
 
-El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce. La usa la aplicación (`estela/conteo/segmentador.py`) para producir `Observacion.fase` y `Observacion.repeticion` y para contar repeticiones. Un skill sin `segmentacion` se carga, pero no se puede usar en sesión (hoy: `rotacion_tronco`).
+El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce. La usa la aplicación (`estela/conteo/segmentador.py`) para producir `Observacion.fase` y `Observacion.repeticion` y para contar repeticiones. Un skill sin `segmentacion` se carga, pero no se puede usar en sesión.
 
 ```jsonc
 // ciclo: una señal que va del reposo al extremo y vuelve
@@ -99,6 +103,20 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
   "fase_izq_arriba": "apoyo_der", "fase_der_arriba": "apoyo_izq",
   "fase_transicion": "transicion"
 }
+
+// mantenido: una postura sostenida (plancha); el objetivo va en segundos
+"segmentacion": {
+  "tipo": "mantenido",
+  "condiciones": [                             // en posición = se cumplen todas
+    {"senal": "angulos.tronco_inclinacion", "min": 55},
+    {"senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"], "min": 145}
+  ],
+  "fases": ["preparacion", "mantenimiento"],   // fuera de la postura, en la postura
+  "entrada_ms": 1000,      // tiempo cumpliendo las condiciones antes de empezar a contar
+  "salida_ms": 1500,       // tiempo sin cumplirlas antes de dar la postura por interrumpida
+  "bloque_s": 5,           // cada bloque es una «repetición» para el motor
+  "confianza_minima": 0.5
+}
 ```
 
 - `senal` es `"angulos.<nombre>"` o `"distancias.<nombre>"` de la `Observacion`, o una **lista ordenada**: se usa la primera con confianza suficiente. Hace falta porque de perfil la pierna lejana queda ocluida y `rodilla_media` hereda la confianza mínima de los dos lados.
@@ -106,7 +124,25 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
 - Los nombres de fase deben estar en `fases` del skill; el cargador lo comprueba.
 - La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
 - En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
-- Todos los umbrales actuales son `[?]` provisionales: se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`.
+- En `mantenido`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
+- Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción, zancada y plancha no tienen vídeo de referencia.
+
+## Medidas disponibles
+
+Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_DE_ANGULO` (desde dónde es observable con una cámara, EXP-002). Una medida nueva es una ampliación del contrato (ADR-002, ADR-004), no un detalle de implementación.
+
+| Medida | Tipo | Plano | Qué es |
+|---|---|---|---|
+| `codo_*`, `hombro_*`, `cadera_*`, `rodilla_*` (`_izq`, `_der`, `_media`/`_medio`) | ángulo | sagital (hombro: frontal) | Ángulo articular de la terna; 180 = extendido |
+| `tronco_inclinacion` | ángulo | sagital | Tronco respecto a la vertical, sin signo |
+| `inclinacion_lateral` | ángulo | frontal | Tronco hacia los lados, con signo: + = hacia la izquierda de la persona |
+| `oblicuidad_pelvis`, `oblicuidad_hombros` | ángulo | frontal | Línea de caderas / hombros respecto a la horizontal: + = lado izquierdo más alto |
+| `cabeza_adelantada` | ángulo | sagital | Cuello respecto a la prolongación del tronco, sin signo; 0 = alineada |
+| `abduccion_cadera_izq`, `_der` | ángulo | frontal | Muslo respecto a la vertical en el plano frontal: + = hacia fuera |
+| `rotacion_tronco`, `azimut_cadera` | ángulo | transversal | No observables con una cámara (EXP-002) |
+| `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
+| `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
+| `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
 
 ## Reglas de higiene que el cargador impone
 

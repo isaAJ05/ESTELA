@@ -1,6 +1,6 @@
 """Demostración sin cámara ni modelo.
 
-Simula una serie de repeticiones de sentadilla con un error de tronco que
+Simula una serie de zancadas atrás estáticas con un error de tronco que
 aparece, se corrige y reaparece, e imprime lo que el sistema diría y lo que
 callaría, con el motivo.
 
@@ -16,27 +16,28 @@ from .pipeline import MotorFeedback
 #: inclinación de tronco por repetición: mal, mal, mal, bien, bien, mal, mal, mal
 GUION = [60.0, 62.0, 58.0, 20.0, 18.0, 64.0, 66.0, 61.0]
 FASES = ["arriba", "descenso", "fondo", "ascenso"]
+EJERCICIO = "zancada_atras_izq"
 
 
 def main() -> int:
     skills = cargar_skills(directorio_skills())
-    motor = MotorFeedback(skills["sentadilla"])
+    motor = MotorFeedback(skills[EJERCICIO])
 
-    print("Ejercicio: sentadilla · verbalizador: plantillas · sin cámara\n")
+    print(f"Ejercicio: {EJERCICIO} · verbalizador: plantillas · sin cámara\n")
     t = 0
     for rep, tronco in enumerate(GUION, start=1):
         print(f"--- repetición {rep} (tronco {tronco:.0f}°)")
         for fase in FASES:
             obs = Observacion(
-                t_ms=t, ejercicio_id="sentadilla",
-                angulos={"tronco_inclinacion": tronco, "rodilla_media": 85.0},
-                confianza={"tronco_inclinacion": 0.95, "rodilla_media": 0.95},
+                t_ms=t, ejercicio_id=EJERCICIO,
+                angulos={"tronco_inclinacion": tronco, "rodilla_der": 85.0},
+                confianza={"tronco_inclinacion": 0.95, "rodilla_der": 0.95},
                 fase=fase, repeticion=rep, orientacion=85.0)
             salida = motor.procesar(obs)
             t += 750
             if isinstance(salida, MensajeFeedback):
                 print(f"    [{fase:9}] HABLA  «{salida.texto}»  "
-                      f"({salida.error.severidad.value}, "
+                      f"({salida.error.severidad.value if salida.error else 'refuerzo'}, "
                       f"{motor.ultimos_tiempos.total_ms:.3f} ms)")
             elif fase == "descenso":
                 print(f"    [{fase:9}] calla  ({salida.motivo})")

@@ -79,11 +79,12 @@ Quedan en `modelos/`, que está ignorado por git.
 
 ```bash
 python -m estela                                   # rutina rutinas/calentamiento_basico.json
-python -m estela --ejercicio sentadilla --repeticiones 8
-python -m estela --auto                            # + sugerencia BiLSTM
+python -m estela --ejercicio zancada_atras_izq --repeticiones 8
+python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
+python -m estela --auto                            # + sugerencia BiLSTM (solo reconoce marcha y jumping jacks)
 python -m estela --voz texto                       # sin audio
 python -m estela --modelo lite                     # pose más rápida y menos precisa
-python -m estela --ejercicio sentadilla --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas
+python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas
 ```
 
 Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
@@ -121,7 +122,7 @@ Para una prueba reproducible sin cámara, ejecutar un vídeo del dataset con `--
 ## 7. Mantenimiento y actualización
 
 - Para **añadir un ejercicio**, crear un nuevo `feedback/skills/<id>.json` con reglas y una sección `segmentacion` (ver `feedback/skills/ESQUEMA.md`) y añadirlo a una rutina. No se modifica código.
-- Para **cambiar la rutina**, editar o crear un JSON en `rutinas/` y pasarlo con `--rutina`.
+- Para **cambiar la rutina**, editar o crear un JSON en `rutinas/` y pasarlo con `--rutina`. El objetivo de cada paso es `"repeticiones"`, salvo en los ejercicios mantenidos (plancha), que usan `"duracion_s"`.
 
 ## 8. Referencias relacionadas
 

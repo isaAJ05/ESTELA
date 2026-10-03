@@ -30,11 +30,15 @@ from typing import Deque, Dict, List, Optional, Sequence
 import numpy as np
 
 #: Nombres de clase del entrenamiento → skill_id de feedback/skills.
+#: `[F]` La red se entrenó con los 4 ejercicios anteriores a ADR-004: de los 5
+#: actuales solo reconoce jumping jacks y marcha. Las clases de ejercicios
+#: retirados se mapean a None (sin sugerencia), y abducción, zancada y plancha
+#: no tienen clase: habría que reentrenarla con vídeos de esos ejercicios.
 CLASE_A_SKILL = {
-    "elevacion_brazos": "elevacion_brazos",
+    "elevacion_brazos": None,
     "jumping_jack": "jumping_jacks",
     "marcha_rodillas": "marcha_rodillas",
-    "sentadilla": "sentadilla",
+    "sentadilla": None,
 }
 
 VENTANA = 30

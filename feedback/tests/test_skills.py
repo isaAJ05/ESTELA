@@ -1,3 +1,4 @@
+import os
 import unittest
 
 from feedback.contrato import SEGMENTOS
@@ -11,8 +12,17 @@ class TestCargaDeSkills(unittest.TestCase):
     def setUpClass(cls):
         cls.skills = cargar_skills(directorio_skills())
 
-    def test_hay_cinco_skills(self):
-        self.assertEqual(len(self.skills), 5, sorted(self.skills))
+    def test_son_los_ejercicios_de_adr_004(self):
+        # 5 ejercicios; la zancada tiene un skill por pierna.
+        self.assertEqual(set(self.skills), {
+            "jumping_jacks", "marcha_rodillas", "abduccion_cadera",
+            "zancada_atras_izq", "zancada_atras_der", "plancha"})
+
+    def test_los_retirados_no_se_cargan_pero_siguen_siendo_validos(self):
+        retirados = os.path.join(directorio_skills(), "retirados")
+        viejos = cargar_skills(retirados)
+        self.assertEqual(set(viejos), {"sentadilla", "elevacion_brazos", "rotacion_tronco"})
+        self.assertFalse(set(viejos) & set(self.skills))
 
     def test_todas_las_reglas_usan_segmentos_del_vocabulario(self):
         for skill in self.skills.values():

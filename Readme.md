@@ -20,13 +20,16 @@ pip install -e ".[voz,reconocimiento,dev]"
 python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
 
 python -m estela                              # rutina de calentamiento con la cámara
-python -m estela --ejercicio sentadilla --repeticiones 8
+python -m estela --ejercicio zancada_atras_izq --repeticiones 8
+python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
 python -m estela --auto                       # + sugerencia de ejercicio (BiLSTM)
 pytest                                        # tests de estela/ (sin cámara)
 python -m unittest discover -s feedback/tests -t .   # tests del módulo de feedback
 ```
 
 Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
+
+Ejercicios (ADR-004): marcha con elevación de rodillas, jumping jacks, abducción de cadera de pie, zancada atrás estática (una serie por pierna: `zancada_atras_izq`, `zancada_atras_der`) y plancha.
 
 | Carpeta | Contenido |
 |---|---|

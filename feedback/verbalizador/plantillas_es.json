@@ -84,6 +84,48 @@
     "alta": ["No muevas las {segmento_pl}, el giro es solo de arriba."]
   },
 
+  "inclinacion_lateral": {
+    "leve": ["Endereza un poco el {segmento}, se va {hacia_lado}."],
+    "moderada": ["No inclines el {segmento} {hacia_lado}.", "Mantén el {segmento} recto, sin irte {hacia_lado}."],
+    "alta": ["Endereza el {segmento}, te estás inclinando {hacia_lado}."]
+  },
+
+  "cadera_sube": {
+    "leve": ["Mantén la {segmento} {lado} un poco más baja."],
+    "moderada": ["No subas la {segmento} {lado}, mantenla nivelada."],
+    "alta": ["Baja la {segmento} {lado}, la estás subiendo mucho."]
+  },
+
+  "abduccion_insuficiente": {
+    "leve": ["Sube un poco más la {segmento} {lado} hacia el lado."],
+    "moderada": ["Abre más la {segmento} {lado} hacia el lado."],
+    "alta": ["Sube bien la {segmento} {lado}, casi no la separas."]
+  },
+
+  "profundidad_rodilla": {
+    "leve": ["Baja un poco más, flexiona la {segmento} {lado}."],
+    "moderada": ["Baja más, flexiona bien la {segmento} {lado}."],
+    "alta": ["Baja mucho más, la {segmento} {lado} casi no se flexiona."]
+  },
+
+  "cadera_hundida": {
+    "leve": ["Sube un poco las {segmento_pl}."],
+    "moderada": ["Sube las {segmento_pl}, no las dejes caer.", "Sube las {segmento_pl} y mantén el cuerpo recto."],
+    "alta": ["Sube bien las {segmento_pl}, se están hundiendo."]
+  },
+
+  "cadera_elevada": {
+    "leve": ["Baja un poco las {segmento_pl}."],
+    "moderada": ["Baja las {segmento_pl}, alinea el cuerpo."],
+    "alta": ["Baja bien las {segmento_pl}, las tienes muy altas."]
+  },
+
+  "cabeza_desalineada": {
+    "leve": ["Alinea un poco la {segmento} con el cuerpo."],
+    "moderada": ["Mantén la {segmento} en línea con el cuerpo."],
+    "alta": ["Coloca la {segmento} en línea, ni caída ni levantada."]
+  },
+
   "_refuerzo": {
     "general": [
       "Vas muy bien, sigue así.",

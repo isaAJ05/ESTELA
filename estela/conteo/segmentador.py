@@ -7,16 +7,18 @@ escalar de la `Observacion`, según la sección opcional `segmentacion` del
 skill JSON (ver feedback/skills/ESQUEMA.md). Añadir un ejercicio sigue sin
 tocar código.
 
-Dos tipos:
+Tres tipos:
 
 ``ciclo``  Una señal que va de un valor de *reposo* a un *extremo* y vuelve
-           (rodilla en la sentadilla, hombro en la elevación de brazos,
-           separación de pies en jumping jacks). Cuatro fases:
-           reposo → ida → extremo → vuelta.
+           (rodillas en la zancada, separación de pies en jumping jacks).
+           Cuatro fases: reposo → ida → extremo → vuelta.
 
 ``alternante``  Dos señales, una por lado, cada una con su propio ciclo
-           (cadera izquierda y derecha en la marcha). Una repetición es una
-           elevación de una pierna.
+           (cadera en la marcha, abducción en la elevación lateral). Una
+           repetición es una elevación de una pierna.
+
+``mantenido``  Una postura que se sostiene (plancha). Cuenta segundos en
+           posición, no repeticiones; ver `SegmentadorMantenido`.
 
 Decisiones de diseño:
 
@@ -264,6 +266,113 @@ class SegmentadorAlternante(Segmentador):
         self._rep = self._completadas = self._incompletas = 0
 
 
+@dataclass(frozen=True)
+class CondicionPostura:
+    """La señal debe estar en [min, max] (cualquiera de los dos puede faltar)."""
+    senal: Union[str, Sequence[str]]
+    min: Optional[float] = None
+    max: Optional[float] = None
+
+    def cumple(self, valor: float) -> bool:
+        return ((self.min is None or valor >= self.min)
+                and (self.max is None or valor <= self.max))
+
+
+class SegmentadorMantenido(Segmentador):
+    """Postura mantenida: cuenta segundos en posición, no repeticiones.
+
+    La usuaria está «en posición» cuando se cumplen **todas** las
+    `condiciones`. Hay histéresis temporal: se entra tras `entrada_ms`
+    cumpliéndolas y se sale tras `salida_ms` sin cumplirlas, para que un frame
+    ruidoso no interrumpa la plancha. Mientras se está saliendo, el tiempo no
+    suma.
+
+    Lo que entrega al resto del sistema:
+
+    * `completadas` = segundos enteros acumulados en posición. El objetivo de
+      la rutina se expresa en segundos y la sesión avanza con el mismo
+      `EVENTO_COMPLETA`, que aquí se emite cada segundo.
+    * `repeticion` = bloque de `bloque_s` segundos en curso. Es la unidad con
+      la que el motor exige evidencia (`repeticiones_evidencia`) y acumula
+      agregados, así que un error tiene que mantenerse varios bloques antes de
+      que se diga, igual que en un ejercicio de repeticiones.
+    * `incompletas` = veces que la postura se interrumpió.
+
+    Si alguna señal falta o no es confiable, el estado se congela y el tiempo
+    no suma: no se cuenta lo que no se ve.
+    """
+
+    def __init__(self, condiciones: Sequence[CondicionPostura], fases: Tuple[str, str],
+                 entrada_ms: int = 1000, salida_ms: int = 1500,
+                 bloque_s: float = 5.0, confianza_minima: float = 0.5) -> None:
+        if not condiciones:
+            raise SegmentacionInvalida("mantenido necesita al menos una condición")
+        if len(fases) != 2:
+            raise SegmentacionInvalida("mantenido necesita 2 fases (fuera, en posición)")
+        if bloque_s <= 0:
+            raise SegmentacionInvalida("bloque_s debe ser positivo")
+        self.condiciones = tuple(condiciones)
+        self._fuera, self._dentro = fases
+        self.entrada_ms, self.salida_ms = int(entrada_ms), int(salida_ms)
+        self.bloque_ms = bloque_s * 1000.0
+        self.confianza_minima = confianza_minima
+        self.reiniciar()
+
+    def reiniciar(self) -> None:
+        self._en_posicion = False
+        self._cumple_desde: Optional[int] = None
+        self._falla_desde: Optional[int] = None
+        self._t_prev: Optional[int] = None
+        self._acumulado_ms = 0.0
+        self._interrupciones = 0
+        self._rep = 0
+
+    def _estado(self, evento: Optional[str], valida: bool) -> EstadoSegmento:
+        return EstadoSegmento(self._dentro if self._en_posicion else self._fuera,
+                              self._rep, int(self._acumulado_ms // 1000),
+                              self._interrupciones, evento, senal_valida=valida)
+
+    def actualizar(self, obs: Observacion) -> EstadoSegmento:
+        valores = [leer_senal(obs, c.senal, self.confianza_minima)
+                   for c in self.condiciones]
+        if any(v is None for v in valores):
+            self._t_prev = None                 # no se suma el hueco
+            return self._estado(None, False)
+        cumple = all(c.cumple(v) for c, v in zip(self.condiciones, valores))
+        t = obs.t_ms
+        evento = None
+
+        if not self._en_posicion:
+            if not cumple:
+                self._cumple_desde = None
+            else:
+                if self._cumple_desde is None:
+                    self._cumple_desde = t
+                if t - self._cumple_desde >= self.entrada_ms:
+                    self._en_posicion, self._falla_desde, self._t_prev = True, None, t
+                    evento = EVENTO_INICIO
+                    self._rep = max(self._rep, 1 + int(self._acumulado_ms // self.bloque_ms))
+            return self._estado(evento, True)
+
+        if cumple:
+            self._falla_desde = None
+            antes = int(self._acumulado_ms // 1000)
+            if self._t_prev is not None:
+                self._acumulado_ms += max(0, t - self._t_prev)
+            if int(self._acumulado_ms // 1000) > antes:
+                evento = EVENTO_COMPLETA
+            self._rep = 1 + int(self._acumulado_ms // self.bloque_ms)
+        else:
+            if self._falla_desde is None:
+                self._falla_desde = t
+            if t - self._falla_desde >= self.salida_ms:
+                self._en_posicion, self._cumple_desde = False, None
+                self._interrupciones += 1
+                evento = EVENTO_INCOMPLETA
+        self._t_prev = t
+        return self._estado(evento, True)
+
+
 # ---------------------------------------------------------------------------
 # Construcción desde el JSON del skill
 # ---------------------------------------------------------------------------
@@ -277,6 +386,25 @@ def _num(d: Mapping[str, Any], campo: str) -> float:
 def segmentador_desde_dict(d: Mapping[str, Any],
                            fases_skill: Tuple[str, ...] = ()) -> Segmentador:
     tipo = d.get("tipo")
+    if tipo == "mantenido":
+        fases = tuple(d.get("fases", ()))
+        if len(fases) != 2:
+            raise SegmentacionInvalida("mantenido necesita 2 fases (fuera, en posición)")
+        _valida_fases(fases, fases_skill)
+        condiciones = []
+        for c in d.get("condiciones", ()):
+            if "senal" not in c or ("min" not in c and "max" not in c):
+                raise SegmentacionInvalida("cada condición necesita 'senal' y 'min' o 'max'")
+            condiciones.append(CondicionPostura(
+                c["senal"],
+                float(c["min"]) if "min" in c else None,
+                float(c["max"]) if "max" in c else None))
+        return SegmentadorMantenido(
+            condiciones, fases,
+            entrada_ms=int(d.get("entrada_ms", 1000)),
+            salida_ms=int(d.get("salida_ms", 1500)),
+            bloque_s=float(d.get("bloque_s", 5.0)),
+            confianza_minima=float(d.get("confianza_minima", 0.5)))
     comunes: Dict[str, Any] = dict(
         reposo=_num(d, "reposo"), extremo=_num(d, "extremo"),
         margen_retorno=_num(d, "margen_retorno"),
@@ -309,7 +437,8 @@ def _valida_fases(fases: Tuple[Any, ...], fases_skill: Tuple[str, ...]) -> None:
 
 
 __all__ = [
-    "Ciclo", "EstadoSegmento", "Segmentador", "SegmentadorCiclo",
-    "SegmentadorAlternante", "SegmentacionInvalida", "segmentador_desde_dict",
+    "Ciclo", "CondicionPostura", "EstadoSegmento", "Segmentador", "SegmentadorCiclo",
+    "SegmentadorAlternante", "SegmentadorMantenido", "SegmentacionInvalida",
+    "segmentador_desde_dict",
     "leer_senal", "EVENTO_INICIO", "EVENTO_COMPLETA", "EVENTO_INCOMPLETA",
 ]

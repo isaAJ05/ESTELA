@@ -75,15 +75,87 @@ class TestMedidas(unittest.TestCase):
         self.assertAlmostEqual(g.orientacion_camara(c), 90.0, places=6)
 
 
+class TestMedidasADR004(unittest.TestCase):
+    """Medidas añadidas con los 33 puntos existentes (ADR-004)."""
+
+    def _cuerpo(self, **kw):
+        c = TestMedidas()._cuerpo(left_ear=kp(-0.08, -0.7), right_ear=kp(0.08, -0.7))
+        c.update(kw)
+        return c
+
+    def test_oblicuidades_nulas_si_esta_nivelado(self):
+        c = self._cuerpo()
+        self.assertAlmostEqual(g.oblicuidad_pelvis(c), 0.0, places=6)
+        self.assertAlmostEqual(g.oblicuidad_hombros(c), 0.0, places=6)
+
+    def test_oblicuidad_positiva_si_sube_el_lado_izquierdo(self):
+        c = self._cuerpo(left_hip=kp(-0.1, -0.03), left_shoulder=kp(-0.2, -0.55))
+        self.assertGreater(g.oblicuidad_pelvis(c), 5.0)
+        self.assertGreater(g.oblicuidad_hombros(c), 5.0)
+        c = self._cuerpo(right_hip=kp(0.1, -0.03))
+        self.assertLess(g.oblicuidad_pelvis(c), -5.0)
+
+    def test_inclinacion_lateral_con_signo_de_la_persona(self):
+        self.assertAlmostEqual(g.inclinacion_lateral(self._cuerpo()), 0.0, places=6)
+        # En este cuerpo el lado izquierdo está en x negativa.
+        hacia_izq = self._cuerpo(left_shoulder=kp(-0.3, -0.5), right_shoulder=kp(0.1, -0.5))
+        self.assertGreater(g.inclinacion_lateral(hacia_izq), 5.0)
+
+    def test_inclinacion_lateral_no_depende_del_espejo(self):
+        c = self._cuerpo(left_shoulder=kp(-0.3, -0.5), right_shoulder=kp(0.1, -0.5))
+        espejo = {k: kp(-p.x, p.y, p.z) for k, p in c.items()}
+        self.assertAlmostEqual(g.inclinacion_lateral(c), g.inclinacion_lateral(espejo),
+                               places=6)
+
+    def test_inclinacion_lateral_ignora_la_flexion_hacia_delante(self):
+        c = self._cuerpo(left_shoulder=kp(-0.2, -0.4, 0.3), right_shoulder=kp(0.2, -0.4, 0.3))
+        self.assertGreater(g.inclinacion_tronco(c), 30.0)
+        self.assertAlmostEqual(g.inclinacion_lateral(c), 0.0, places=6)
+
+    def test_cabeza_alineada_cero_y_adelantada_positiva(self):
+        self.assertAlmostEqual(g.cabeza_adelantada(self._cuerpo()), 0.0, places=6)
+        c = self._cuerpo(left_ear=kp(-0.08, -0.65, 0.12), right_ear=kp(0.08, -0.65, 0.12))
+        self.assertGreater(g.cabeza_adelantada(c), 30.0)
+
+    def test_abduccion_de_la_pierna_que_se_abre(self):
+        c = self._cuerpo()
+        self.assertAlmostEqual(g.abduccion_cadera(c, "izq"), 0.0, places=6)
+        abierta = self._cuerpo(left_knee=kp(-0.1 - 0.5 * math.sin(math.radians(30)),
+                                            0.5 * math.cos(math.radians(30))))
+        self.assertAlmostEqual(g.abduccion_cadera(abierta, "izq"), 30.0, places=4)
+        self.assertAlmostEqual(g.abduccion_cadera(abierta, "der"), 0.0, places=6)
+
+    def test_alineacion_de_cadera_en_plancha(self):
+        def plancha(y_cadera):
+            return {"left_shoulder": kp(0.5, -0.05, 0.15), "right_shoulder": kp(0.5, -0.05, -0.15),
+                    "left_hip": kp(0.0, y_cadera, 0.1), "right_hip": kp(0.0, y_cadera, -0.1),
+                    "left_ankle": kp(-0.9, 0.06, 0.1), "right_ankle": kp(-0.9, 0.06, -0.1)}
+        recta = g.alineacion_cadera(plancha(-0.0107))
+        self.assertAlmostEqual(recta, 0.0, places=2)
+        self.assertGreater(g.alineacion_cadera(plancha(0.08)), 0.1)     # hundida
+        self.assertLess(g.alineacion_cadera(plancha(-0.12)), -0.1)      # elevada
+
+
 class TestObservacion(unittest.TestCase):
     def test_construye_angulos_y_medios(self):
         kps = TestMedidas()._cuerpo()
         obs = g.observacion_desde_pose(
             MuestraPose(t_ms=0, keypoints=kps), "sentadilla")
         for nombre in ("rodilla_izq", "rodilla_der", "rodilla_media",
-                       "tronco_inclinacion"):
+                       "tronco_inclinacion", "oblicuidad_pelvis",
+                       "oblicuidad_hombros", "inclinacion_lateral",
+                       "abduccion_cadera_izq", "abduccion_cadera_der"):
             self.assertIn(nombre, obs.angulos, nombre)
+            self.assertIn(nombre, g.PLANO_DE_ANGULO, nombre)
         self.assertIn("separacion_pies", obs.distancias)
+        self.assertIn("alineacion_cadera", obs.distancias)
+
+    def test_cabeza_requiere_orejas(self):
+        sin = g.observacion_desde_pose(MuestraPose(t_ms=0, keypoints=TestMedidas()._cuerpo()), "x")
+        self.assertNotIn("cabeza_adelantada", sin.angulos)
+        con = g.observacion_desde_pose(
+            MuestraPose(t_ms=0, keypoints=TestMedidasADR004()._cuerpo()), "x")
+        self.assertIn("cabeza_adelantada", con.angulos)
 
     def test_confianza_ausente_es_cero_no_uno(self):
         obs = g.observacion_desde_pose(

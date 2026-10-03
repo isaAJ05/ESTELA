@@ -2,8 +2,12 @@
 
 El catálogo son los skills de `feedback/skills/` más su sección opcional
 `segmentacion`. Un skill sin `segmentacion` se carga (el motor lo acepta) pero
-no se puede usar en sesión: hoy es el caso de `rotacion_tronco`, que no es
-observable con una cámara (EXP-002, IC-001).
+no se puede usar en sesión. Los skills retirados (`feedback/skills/retirados/`,
+ADR-004) no forman parte del catálogo.
+
+El objetivo de cada paso se mide en repeticiones, salvo en los ejercicios
+mantenidos (segmentación `mantenido`, p. ej. la plancha), que se miden en
+segundos y en la rutina se escriben con `duracion_s`.
 """
 
 from __future__ import annotations
@@ -32,6 +36,12 @@ class Ejercicio:
     def soportado(self) -> bool:
         return self.segmentacion is not None
 
+    @property
+    def unidad(self) -> str:
+        """En qué se cuenta el objetivo: «repeticiones» o «segundos»."""
+        tipo = (self.segmentacion or {}).get("tipo")
+        return "segundos" if tipo == "mantenido" else "repeticiones"
+
     def nuevo_segmentador(self) -> Segmentador:
         if self.segmentacion is None:
             raise RutinaInvalida(
@@ -59,6 +69,8 @@ def cargar_catalogo(directorio: Optional[Union[str, Path]] = None
 @dataclass(frozen=True)
 class PasoRutina:
     skill_id: str
+    #: objetivo del paso, en la unidad del ejercicio (`Ejercicio.unidad`):
+    #: repeticiones, o segundos si es un ejercicio mantenido
     repeticiones: int
 
 
@@ -78,9 +90,10 @@ def rutina_desde_dict(d: Mapping[str, Any],
         if not catalogo[sid].soportado:
             raise RutinaInvalida(
                 f"'{sid}' no está soportado en sesión (sin 'segmentacion').")
-        reps = int(p.get("repeticiones", 10))
+        clave = "duracion_s" if catalogo[sid].unidad == "segundos" else "repeticiones"
+        reps = int(p.get(clave, 10))
         if reps <= 0:
-            raise RutinaInvalida(f"repeticiones debe ser positivo en '{sid}'")
+            raise RutinaInvalida(f"{clave} debe ser positivo en '{sid}'")
         pasos.append(PasoRutina(sid, reps))
     if not pasos:
         raise RutinaInvalida("la rutina no tiene pasos")
@@ -95,9 +108,12 @@ def cargar_rutina(ruta: Union[str, Path],
 
 def rutina_de_un_ejercicio(skill_id: str, repeticiones: int,
                            catalogo: Mapping[str, Ejercicio]) -> Rutina:
+    """`repeticiones` va en la unidad del ejercicio (segundos si es mantenido)."""
+    ej = catalogo.get(skill_id)
+    clave = "duracion_s" if ej is not None and ej.unidad == "segundos" else "repeticiones"
     return rutina_desde_dict(
         {"nombre": skill_id,
-         "pasos": [{"skill_id": skill_id, "repeticiones": repeticiones}]},
+         "pasos": [{"skill_id": skill_id, clave: repeticiones}]},
         catalogo)
 
 
