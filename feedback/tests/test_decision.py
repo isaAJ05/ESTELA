@@ -11,7 +11,7 @@ from feedback.motor.skill import cargar_skill, cargar_skills, directorio_skills
 
 SKILLS = cargar_skills(directorio_skills())
 #: Los tests de mecánica del motor (abstención, evidencia, prioridad, refuerzo)
-#: usan como banco de pruebas el skill retirado de sentadilla (ADR-004): sus
+#: usan como banco de pruebas el skill retirado de sentadilla (ADR-005): sus
 #: reglas cubren todos esos casos y sus umbrales quedan fijos. No está en el
 #: catálogo; las reglas de los ejercicios actuales se prueban en TestSkillsActuales.
 SKILLS["sentadilla"] = cargar_skill(
@@ -264,7 +264,7 @@ class TestRefuerzo(unittest.TestCase):
 
 
 class TestSkillsActuales(unittest.TestCase):
-    """Reglas de los ejercicios de ADR-004 con observaciones mínimas."""
+    """Reglas de los ejercicios de ADR-005 con observaciones mínimas."""
 
     def _obs(self, skill_id, t, rep, fase, angulos=None, distancias=None,
              orientacion=None):
@@ -279,33 +279,38 @@ class TestSkillsActuales(unittest.TestCase):
         m.observar(self._obs(skill_id, 1000, 1, **kw))
         return m.observar(self._obs(skill_id, 2000, 2, **kw))
 
-    def test_abduccion_inclinacion_lateral_dice_el_lado(self):
-        d = self._dos_repeticiones(
-            "abduccion_cadera", fase="apoyo_der", orientacion=0.0,
-            angulos={"inclinacion_lateral": -15.0, "oblicuidad_pelvis": 0.0})
-        self.assertIsInstance(d, ErrorTipificado)
-        self.assertEqual((d.error_id, d.lado), ("tronco_inclinado_der", Lado.DERECHO))
+    def test_abduccion_tronco_hacia_el_lado_contrario(self):
+        for skill_id, incl, error_id, lado in (
+                ("abduccion_cadera_izq", -15.0, "tronco_inclinado_der", Lado.DERECHO),
+                ("abduccion_cadera_der", 15.0, "tronco_inclinado_izq", Lado.IZQUIERDO)):
+            d = self._dos_repeticiones(
+                skill_id, fase="arriba", orientacion=0.0,
+                angulos={"inclinacion_lateral": incl, "oblicuidad_pelvis": 0.0})
+            self.assertIsInstance(d, ErrorTipificado, skill_id)
+            self.assertEqual((d.error_id, d.lado), (error_id, lado))
 
     def test_abduccion_la_compensacion_del_tronco_va_antes_que_la_cadera(self):
         d = self._dos_repeticiones(
-            "abduccion_cadera", fase="apoyo_der", orientacion=0.0,
-            angulos={"inclinacion_lateral": 15.0, "oblicuidad_pelvis": 10.0})
-        self.assertEqual(d.error_id, "tronco_inclinado_izq")
+            "abduccion_cadera_izq", fase="arriba", orientacion=0.0,
+            angulos={"inclinacion_lateral": -15.0, "oblicuidad_pelvis": 10.0})
+        self.assertEqual(d.error_id, "tronco_inclinado_der")
 
-    def test_abduccion_cadera_que_sube_solo_con_su_pierna_arriba(self):
+    def test_abduccion_solo_corrige_la_cadera_de_la_pierna_que_sube(self):
         d = self._dos_repeticiones(
-            "abduccion_cadera", fase="apoyo_der", orientacion=0.0,
+            "abduccion_cadera_izq", fase="arriba", orientacion=0.0,
             angulos={"inclinacion_lateral": 0.0, "oblicuidad_pelvis": 10.0})
         self.assertEqual((d.error_id, d.lado), ("cadera_izq_sube", Lado.IZQUIERDO))
+        # En la serie de la pierna derecha, que la izquierda quede más alta no
+        # es «subir la cadera derecha».
         d = self._dos_repeticiones(
-            "abduccion_cadera", fase="apoyo_izq", orientacion=0.0,
+            "abduccion_cadera_der", fase="arriba", orientacion=0.0,
             angulos={"inclinacion_lateral": 0.0, "oblicuidad_pelvis": 10.0})
         self.assertIsInstance(d, Silencio)
 
     def test_abduccion_de_perfil_no_es_observable(self):
         d = self._dos_repeticiones(
-            "abduccion_cadera", fase="apoyo_der", orientacion=90.0,
-            angulos={"inclinacion_lateral": 15.0})
+            "abduccion_cadera_izq", fase="arriba", orientacion=90.0,
+            angulos={"inclinacion_lateral": -15.0})
         self.assertIsInstance(d, Silencio)
         self.assertEqual(d.motivo, MOTIVO_PLANO_NO_OBSERVABLE)
 

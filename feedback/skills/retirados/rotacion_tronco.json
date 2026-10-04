@@ -2,7 +2,7 @@
   "skill_id": "rotacion_tronco",
   "nombre": "Rotación de tronco",
   "version": "0.1.0",
-  "estado": "candidato_en_duda",
+  "estado": "descartado",
   "notas": "Este skill está incluido a propósito como caso adverso. Sus dos reglas viven en el plano TRANSVERSAL, que con una sola cámara depende por completo de la profundidad estimada. EXP-002 mide el error inducido; si resulta inaceptable, la conclusión no es mejorar el umbral sino sustituir este ejercicio por otro de los candidatos. Umbrales provisionales, sin calibrar.",
   "fases": ["centro", "giro_izq", "giro_der"],
   "orientacion_preferida": "frontal",

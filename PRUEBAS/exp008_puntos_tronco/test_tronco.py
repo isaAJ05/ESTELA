@@ -1,6 +1,6 @@
-"""Pruebas de la geometría de EXP-004. Sin modelos: solo numpy.
+"""Pruebas de la geometría de EXP-008. Sin modelos: solo numpy.
 
-    python -m unittest PRUEBAS/exp004_puntos_tronco/test_tronco.py
+    python -m unittest PRUEBAS/exp008_puntos_tronco/test_tronco.py
 """
 
 import os

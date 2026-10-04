@@ -3,6 +3,11 @@
 Nomenclatura alineada con ADR-001 §5. Donde una métrica no se puede obtener
 con datos sintéticos se dice explícitamente en su docstring y **no** se
 sustituye por un sucedáneo con el mismo nombre.
+
+Desde que el motor da refuerzo positivo (`contrato.Refuerzo`), un
+`MensajeFeedback` puede ser una corrección (`error` presente) o un elogio
+(`error is None`). Las métricas de corrección cuentan solo correcciones, como
+dicen sus definiciones; el elogio se mide aparte con M8, el espejo de M3.
 """
 
 from __future__ import annotations
@@ -26,14 +31,31 @@ class ResultadoEpisodio:
     latencias_verbalizacion_ms: List[float] = field(default_factory=list)
 
     @property
+    def correcciones(self) -> List[MensajeFeedback]:
+        return [m for m in self.mensajes if m.error is not None]
+
+    @property
+    def refuerzos(self) -> List[MensajeFeedback]:
+        return [m for m in self.mensajes if m.error is None]
+
+    @property
     def hubo_mensaje(self) -> bool:
+        """Cualquier mensaje, corrección o elogio. Solo para la densidad."""
         return bool(self.mensajes)
 
     @property
+    def hubo_correccion(self) -> bool:
+        return bool(self.correcciones)
+
+    @property
+    def hubo_refuerzo(self) -> bool:
+        return bool(self.refuerzos)
+
+    @property
     def primer_error_id(self) -> Optional[str]:
-        if not self.mensajes or self.mensajes[0].error is None:
-            return None
-        return self.mensajes[0].error.error_id
+        """`error_id` de la primera **corrección** (un elogio previo no cuenta)."""
+        correcciones = self.correcciones
+        return correcciones[0].error.error_id if correcciones else None
 
     @property
     def secuencia_errores(self) -> Tuple[str, ...]:
@@ -104,7 +126,7 @@ def m3_sobrecorreccion(resultados: Sequence[ResultadoEpisodio]) -> Tuple[float, 
     casos = [r for r in resultados if r.condicion == "correcto"]
     if not casos:
         return float("nan"), 0
-    return sum(1 for r in casos if r.hubo_mensaje) / len(casos), len(casos)
+    return sum(1 for r in casos if r.hubo_correccion) / len(casos), len(casos)
 
 
 def m4_latencias(resultados: Sequence[ResultadoEpisodio]) -> Dict[str, float]:
@@ -143,22 +165,62 @@ def m7_fallback(resultados: Sequence[ResultadoEpisodio]) -> Tuple[float, int]:
     return malos / total, total
 
 
+#: Condiciones del banco en las que el error está presente pero el sistema no
+#: puede verlo (medida ocluida o sujeto mal orientado).
+CONDICIONES_NO_OBSERVABLES = ("ocluido", "plano_malo")
+
+
+def m8_refuerzo_indebido(resultados: Sequence[ResultadoEpisodio],
+                         condiciones: Sequence[str] = ("error",)
+                         ) -> Tuple[float, int]:
+    """Fracción de episodios **con un error presente** que reciben algún
+    elogio. Es el espejo de M3: M3 es corregir cuando no hay nada mal; M8 es
+    felicitar cuando sí lo hay.
+
+    Con la condición `error` (error inducido y observable) debe ser 0: el
+    refuerzo exige repeticiones limpias. Con las condiciones no observables
+    (`CONDICIONES_NO_OBSERVABLES`) mide otra cosa: el elogio que se da porque
+    las reglas que sí se ven están bien, aunque haya un error que la cámara no
+    ve. No es un fallo del motor tal como está definido el refuerzo
+    (`contrato.Refuerzo`: «no se detectaron errores»), pero es lo que oye la
+    usuaria, y por eso se reporta aparte.
+    """
+    casos = [r for r in resultados if r.condicion in condiciones]
+    if not casos:
+        return float("nan"), 0
+    return sum(1 for r in casos if r.hubo_refuerzo) / len(casos), len(casos)
+
+
+def refuerzo_en_correctas(resultados: Sequence[ResultadoEpisodio]) -> Tuple[float, int]:
+    """Fracción de ejecuciones correctas que reciben algún elogio. No es una
+    métrica de error: dice si el refuerzo llega a darse donde corresponde."""
+    casos = [r for r in resultados if r.condicion == "correcto"]
+    if not casos:
+        return float("nan"), 0
+    return sum(1 for r in casos if r.hubo_refuerzo) / len(casos), len(casos)
+
+
 def abstencion(resultados: Sequence[ResultadoEpisodio], condicion: str) -> Tuple[float, int]:
-    """Fracción de episodios de una condición adversa en los que el sistema
-    calló, que es lo correcto."""
+    """Fracción de episodios de una condición adversa en los que el sistema no
+    corrigió, que es lo correcto. Un elogio no es una corrección: se mide con
+    `m8_refuerzo_indebido`."""
     casos = [r for r in resultados if r.condicion == condicion]
     if not casos:
         return float("nan"), 0
-    return sum(1 for r in casos if not r.hubo_mensaje) / len(casos), len(casos)
+    return sum(1 for r in casos if not r.hubo_correccion) / len(casos), len(casos)
 
 
 def mensajes_por_minuto(resultados: Sequence[ResultadoEpisodio],
-                        ms_por_episodio: float) -> float:
+                        ms_por_episodio: float, tipo: str = "todos") -> float:
     """Densidad de feedback. `[F]` Sigrist et al.: el feedback permanente
-    induce dependencia; esta cifra es la que hay que mantener baja."""
+    induce dependencia; esta cifra es la que hay que mantener baja.
+
+    `tipo`: "todos", "correccion" o "refuerzo"."""
     if not resultados or ms_por_episodio <= 0:
         return float("nan")
-    total = sum(len(r.mensajes) for r in resultados)
+    elegir = {"todos": lambda r: r.mensajes, "correccion": lambda r: r.correcciones,
+              "refuerzo": lambda r: r.refuerzos}[tipo]
+    total = sum(len(elegir(r)) for r in resultados)
     minutos = len(resultados) * ms_por_episodio / 60000.0
     return total / minutos if minutos else float("nan")
 
@@ -166,5 +228,7 @@ def mensajes_por_minuto(resultados: Sequence[ResultadoEpisodio],
 __all__ = [
     "ResultadoEpisodio", "percentil", "m1_sintetica",
     "m2_aserciones_no_soportadas", "m3_sobrecorreccion", "m4_latencias",
-    "m5_determinismo", "m7_fallback", "abstencion", "mensajes_por_minuto",
+    "m5_determinismo", "m7_fallback", "m8_refuerzo_indebido",
+    "refuerzo_en_correctas", "CONDICIONES_NO_OBSERVABLES", "abstencion",
+    "mensajes_por_minuto",
 ]

@@ -97,11 +97,6 @@ def dibujar(frame: np.ndarray, estado: EstadoFrame, espejo: bool = True,
     for k, linea in enumerate(derecha):
         textos.append(((w - t(260), t(12 + 30 * k)), linea, t(22), GRIS))
 
-    if estado.sugerencia:
-        distinto = estado.sugerencia != estado.ejercicio_id
-        textos.append(((w - t(260), t(12 + 30 * len(derecha))),
-                       f"BiLSTM: {estado.sugerencia}" + ("  ≠ rutina" if distinto else ""),
-                       t(22), NARANJA if distinto else GRIS))
     if estado.aviso:
         textos.append(((t(20), t(135)), estado.aviso, t(30), NARANJA))
     if estado.ultimo_mensaje:

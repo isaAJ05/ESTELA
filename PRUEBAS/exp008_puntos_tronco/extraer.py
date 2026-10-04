@@ -1,4 +1,4 @@
-"""EXP-004 — extracción: MediaPipe (+ contorno de la máscara) y SpinePose.
+"""EXP-008 — extracción: MediaPipe (+ contorno de la máscara) y SpinePose.
 
 Procesa un vídeo o la cámara y guarda, por frame, solo datos derivados: los
 puntos 2D de los dos modelos, las distancias del contorno dorsal y las
@@ -11,11 +11,11 @@ que trae tarda ~340 ms por frame en la CPU de desarrollo, y en ESTELA siempre
 habrá una sola persona ya localizada por MediaPipe.
 
     # vídeo existente
-    python PRUEBAS/exp004_puntos_tronco/extraer.py --video RUTA \\
+    python PRUEBAS/exp008_puntos_tronco/extraer.py --video RUTA \\
         --sujeto ucf_g01 --condicion sentadilla_libre --vista perfil
 
     # cámara: cuenta atrás de 5 s y 10 s de registro de la condición
-    python PRUEBAS/exp004_puntos_tronco/extraer.py --camara 0 --duracion 10 \\
+    python PRUEBAS/exp008_puntos_tronco/extraer.py --camara 0 --duracion 10 \\
         --sujeto S1 --condicion bisagra_neutra --vista perfil
 """
 
@@ -134,7 +134,7 @@ def main() -> None:
         ahora = time.monotonic()
         if args.camara is not None and ahora < t_registro:   # cuenta atrás, no se registra
             if ventana:
-                cv2.imshow("EXP-004", dibujar(frame, None, None,
+                cv2.imshow("EXP-008", dibujar(frame, None, None,
                            f"{args.condicion}: empieza en {t_registro - ahora:.0f} s", True))
                 if cv2.waitKey(1) & 0xFF == ord("q"):
                     break
@@ -186,7 +186,7 @@ def main() -> None:
         i += 1
 
         if ventana:
-            cv2.imshow("EXP-004", dibujar(frame, img_px, sp_kp if img_px is not None else None,
+            cv2.imshow("EXP-008", dibujar(frame, img_px, sp_kp if img_px is not None else None,
                                           f"{args.condicion}  {lat_mp:.0f}+{lat_sp:.0f} ms",
                                           args.camara is not None))
             if cv2.waitKey(1) & 0xFF == ord("q"):

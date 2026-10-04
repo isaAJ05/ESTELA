@@ -1,4 +1,4 @@
-"""Geometría del tronco para EXP-004 (puntos adicionales de columna y pelvis).
+"""Geometría del tronco para EXP-008 (puntos adicionales de columna y pelvis).
 
 Todo se calcula en 2D, en píxeles del plano de imagen (x a la derecha, y hacia
 abajo). SpinePose solo entrega 2D, y para comparar en igualdad de condiciones

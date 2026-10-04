@@ -2,7 +2,7 @@
   "skill_id": "elevacion_brazos",
   "nombre": "Elevación de brazos",
   "version": "0.1.0",
-  "estado": "candidato",
+  "estado": "descartado",
   "notas": "Umbrales provisionales, sin calibrar. Ver nota de sentadilla.json.",
   "fases": ["abajo", "subida", "arriba", "bajada"],
   "orientacion_preferida": "frontal",

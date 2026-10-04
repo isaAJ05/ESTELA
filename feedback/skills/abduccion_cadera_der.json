@@ -1,0 +1,131 @@
+{
+  "skill_id": "abduccion_cadera_der",
+  "nombre": "Abducción de cadera de pie, pierna derecha",
+  "version": "0.2.0",
+  "estado": "candidato",
+  "notas": "Elevación lateral de la pierna derecha, de pie y de frente a la cámara, en serie por pierna (ADR-005). La gemela es abduccion_cadera_izq.json. TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La abducción se mide en el plano frontal respecto a la vertical; las compensaciones (tronco hacia el lado contrario y subir la cadera del lado que se eleva) se miden aparte (ADR-006). De frente no se evalúan la flexión de rodilla ni la rotación del pie (ADR-005 §3). La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
+  "fases": [
+    "abajo",
+    "subida",
+    "arriba",
+    "bajada"
+  ],
+  "orientacion_preferida": "frontal",
+  "angulos_requeridos": [
+    "abduccion_cadera_der",
+    "inclinacion_lateral",
+    "oblicuidad_pelvis"
+  ],
+  "politica_silencio": {
+    "refractario_ms": 4000,
+    "refractario_mismo_error_ms": 12000,
+    "repeticiones_evidencia": 2,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 4,
+    "fases_silenciadas": [],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 3,
+    "refractario_ms": 15000,
+    "max_emisiones": 3
+  },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": "angulos.abduccion_cadera_der",
+    "reposo": 12,
+    "extremo": 25,
+    "margen_retorno": 5,
+    "fases": [
+      "abajo",
+      "subida",
+      "arriba",
+      "bajada"
+    ],
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional, sin vídeo de referencia: 0-5° de pie, 25° como mínimo de una elevación lateral."
+  },
+  "reglas": [
+    {
+      "error_id": "tronco_inclinado_izq",
+      "descripcion": "Al elevar la pierna derecha, el tronco se inclina hacia el lado contrario.",
+      "medida": {
+        "tipo": "angulo",
+        "nombre": "inclinacion_lateral"
+      },
+      "condicion": {
+        "op": ">",
+        "umbral": 8
+      },
+      "fases": [
+        "subida",
+        "arriba"
+      ],
+      "plano": "frontal",
+      "segmento": "tronco",
+      "lado": "izquierdo",
+      "prioridad": 1,
+      "severidad": {
+        "moderada": 5,
+        "alta": 12
+      },
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "inclinacion_lateral"
+    },
+    {
+      "error_id": "cadera_der_sube",
+      "descripcion": "Al elevar la pierna derecha, la cadera de ese lado sube en lugar de quedar nivelada.",
+      "medida": {
+        "tipo": "angulo",
+        "nombre": "oblicuidad_pelvis"
+      },
+      "condicion": {
+        "op": "<",
+        "umbral": -6
+      },
+      "fases": [
+        "subida",
+        "arriba"
+      ],
+      "plano": "frontal",
+      "segmento": "cadera",
+      "lado": "derecho",
+      "prioridad": 2,
+      "severidad": {
+        "moderada": 4,
+        "alta": 8
+      },
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "cadera_sube"
+    },
+    {
+      "error_id": "abduccion_insuficiente_der",
+      "descripcion": "La pierna derecha no se separa lo suficiente hacia el lado.",
+      "medida": {
+        "tipo": "agregado",
+        "fn": "max",
+        "nombre": "abduccion_cadera_der",
+        "ventana": "repeticion"
+      },
+      "condicion": {
+        "op": "<",
+        "umbral": 25
+      },
+      "fases": [
+        "bajada"
+      ],
+      "plano": "frontal",
+      "segmento": "pierna",
+      "lado": "derecho",
+      "prioridad": 3,
+      "severidad": {
+        "moderada": 8,
+        "alta": 15
+      },
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "abduccion_insuficiente"
+    }
+  ]
+}

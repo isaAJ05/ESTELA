@@ -3,7 +3,7 @@
   "nombre": "Plancha",
   "version": "0.1.0",
   "estado": "candidato",
-  "notas": "Postura mantenida, de perfil a la cámara (ADR-004). El objetivo de la rutina va en segundos (`duracion_s`). Para el motor, cada bloque de `bloque_s` segundos en posición es una «repetición»: un error tiene que mantenerse en `repeticiones_evidencia` bloques seguidos antes de decirse, y el refuerzo cuenta bloques limpios. La cadera hundida o elevada se mide con la altura de la cadera respecto a la recta hombro-tobillo (`alineacion_cadera`), que es lo observable de perfil con los 33 puntos; la curvatura lumbar en sí no lo es (EXP-004). TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
+  "notas": "Postura mantenida, de perfil a la cámara (ADR-005; segmentación `isometrico`, ADR-006). El objetivo de la rutina va en segundos (`duracion_s`). Para el motor, cada bloque de `bloque_s` segundos en posición es una «repetición»: un error tiene que mantenerse en `repeticiones_evidencia` bloques seguidos antes de decirse, y el refuerzo cuenta bloques limpios. La cadera hundida o elevada se mide con la altura de la cadera respecto a la recta hombro-tobillo (`alineacion_cadera`), que es lo observable de perfil con los 33 puntos; la curvatura lumbar en sí no lo es (EXP-008). TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
   "fases": ["preparacion", "mantenimiento"],
   "orientacion_preferida": "sagital",
   "angulos_requeridos": ["tronco_inclinacion", "cabeza_adelantada"],
@@ -24,7 +24,7 @@
     "max_emisiones": 2
   },
   "segmentacion": {
-    "tipo": "mantenido",
+    "tipo": "isometrico",
     "condiciones": [
       {"senal": "angulos.tronco_inclinacion", "min": 55},
       {"senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"], "min": 145}

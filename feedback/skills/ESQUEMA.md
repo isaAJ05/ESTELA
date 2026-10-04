@@ -4,9 +4,9 @@ Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un 
 
 El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archivo mal formado no se carga a medias.
 
-Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-004 (sentadilla, elevación de brazos, rotación de tronco): siguen siendo válidos y los tests del motor usan la sentadilla como banco de pruebas, pero no forman parte del catálogo.
+Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla como banco de pruebas, pero no forman parte del catálogo.
 
-Ejercicios actuales (ADR-004): `marcha_rodillas`, `jumping_jacks`, `abduccion_cadera`, `zancada_atras_izq` + `zancada_atras_der` (un ejercicio, un archivo por pierna) y `plancha`.
+Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `marcha_rodillas`, `zancada_atras_izq` + `zancada_atras_der` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
 
 ## Estructura
 
@@ -104,9 +104,9 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
   "fase_transicion": "transicion"
 }
 
-// mantenido: una postura sostenida (plancha); el objetivo va en segundos
+// isometrico: una postura sostenida (plancha, ADR-005); el objetivo va en segundos
 "segmentacion": {
-  "tipo": "mantenido",
+  "tipo": "isometrico",
   "condiciones": [                             // en posición = se cumplen todas
     {"senal": "angulos.tronco_inclinacion", "min": 55},
     {"senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"], "min": 145}
@@ -124,12 +124,12 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
 - Los nombres de fase deben estar en `fases` del skill; el cargador lo comprueba.
 - La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
 - En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
-- En `mantenido`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
+- En `isometrico`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
 - Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción, zancada y plancha no tienen vídeo de referencia.
 
 ## Medidas disponibles
 
-Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_DE_ANGULO` (desde dónde es observable con una cámara, EXP-002). Una medida nueva es una ampliación del contrato (ADR-002, ADR-004), no un detalle de implementación.
+Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_DE_ANGULO` (desde dónde es observable con una cámara, EXP-002). Una medida nueva es una ampliación del contrato (ADR-002, ADR-006), no un detalle de implementación.
 
 | Medida | Tipo | Plano | Qué es |
 |---|---|---|---|

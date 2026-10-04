@@ -162,7 +162,7 @@ def test_el_resumen_no_contiene_datos_biometricos(catalogo):
 
 
 def test_ejercicio_retirado_se_rechaza(catalogo):
-    """ADR-004: sentadilla, elevación de brazos y rotación de tronco salieron."""
+    """ADR-005: sentadilla, elevación de brazos y rotación de tronco salieron."""
     for retirado in ("sentadilla", "elevacion_brazos", "rotacion_tronco"):
         with pytest.raises(RutinaInvalida):
             rutina_de_un_ejercicio(retirado, 5, catalogo)
@@ -256,7 +256,8 @@ def test_plancha_cadera_hundida_se_corrige_tras_dos_bloques(catalogo):
 def test_la_rutina_por_defecto_carga_los_cinco_ejercicios(catalogo):
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
     ids = [p.skill_id for p in rutina.pasos]
-    assert ids == ["marcha_rodillas", "jumping_jacks", "abduccion_cadera",
-                   "zancada_atras_izq", "zancada_atras_der", "plancha"]
+    assert ids == ["jumping_jacks", "abduccion_cadera_izq", "abduccion_cadera_der",
+                   "marcha_rodillas", "zancada_atras_izq", "zancada_atras_der",
+                   "plancha"]
     plancha = rutina.pasos[-1]
     assert catalogo[plancha.skill_id].unidad == "segundos" and plancha.repeticiones == 20

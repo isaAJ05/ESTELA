@@ -3,10 +3,10 @@
 El catálogo son los skills de `feedback/skills/` más su sección opcional
 `segmentacion`. Un skill sin `segmentacion` se carga (el motor lo acepta) pero
 no se puede usar en sesión. Los skills retirados (`feedback/skills/retirados/`,
-ADR-004) no forman parte del catálogo.
+ADR-005) no forman parte del catálogo.
 
 El objetivo de cada paso se mide en repeticiones, salvo en los ejercicios
-mantenidos (segmentación `mantenido`, p. ej. la plancha), que se miden en
+isométricos (segmentación `isometrico`, p. ej. la plancha), que se miden en
 segundos y en la rutina se escriben con `duracion_s`.
 """
 
@@ -40,7 +40,7 @@ class Ejercicio:
     def unidad(self) -> str:
         """En qué se cuenta el objetivo: «repeticiones» o «segundos»."""
         tipo = (self.segmentacion or {}).get("tipo")
-        return "segundos" if tipo == "mantenido" else "repeticiones"
+        return "segundos" if tipo == "isometrico" else "repeticiones"
 
     def nuevo_segmentador(self) -> Segmentador:
         if self.segmentacion is None:
@@ -70,7 +70,7 @@ def cargar_catalogo(directorio: Optional[Union[str, Path]] = None
 class PasoRutina:
     skill_id: str
     #: objetivo del paso, en la unidad del ejercicio (`Ejercicio.unidad`):
-    #: repeticiones, o segundos si es un ejercicio mantenido
+    #: repeticiones, o segundos si es un ejercicio isométrico
     repeticiones: int
 
 
@@ -108,7 +108,7 @@ def cargar_rutina(ruta: Union[str, Path],
 
 def rutina_de_un_ejercicio(skill_id: str, repeticiones: int,
                            catalogo: Mapping[str, Ejercicio]) -> Rutina:
-    """`repeticiones` va en la unidad del ejercicio (segundos si es mantenido)."""
+    """`repeticiones` va en la unidad del ejercicio (segundos si es isométrico)."""
     ej = catalogo.get(skill_id)
     clave = "duracion_s" if ej is not None and ej.unidad == "segundos" else "repeticiones"
     return rutina_desde_dict(

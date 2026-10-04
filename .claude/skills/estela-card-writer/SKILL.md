@@ -79,7 +79,6 @@ Nombra un módulo concreto del repositorio:
 |--------|-----------------|
 | `estela/captura` | Adquisición de fotogramas de la cámara y transporte |
 | `estela/pose` | Estimación de pose y landmarks |
-| `estela/reconocimiento` | Reconocimiento consultivo del ejercicio (BiLSTM) |
 | `estela/conteo` | Segmentación de repeticiones y conteo |
 | `estela/sesion` | Orquestación de la sesión, rutina y métricas |
 | `estela/voz` | Cola de voz y motores de TTS |

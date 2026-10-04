@@ -13,16 +13,18 @@ class TestCargaDeSkills(unittest.TestCase):
         cls.skills = cargar_skills(directorio_skills())
 
     def test_son_los_ejercicios_de_adr_004(self):
-        # 5 ejercicios; la zancada tiene un skill por pierna.
+        # 5 ejercicios (ADR-005); abducción y zancada, un skill por pierna.
         self.assertEqual(set(self.skills), {
-            "jumping_jacks", "marcha_rodillas", "abduccion_cadera",
-            "zancada_atras_izq", "zancada_atras_der", "plancha"})
+            "jumping_jacks", "marcha_rodillas", "plancha",
+            "abduccion_cadera_izq", "abduccion_cadera_der",
+            "zancada_atras_izq", "zancada_atras_der"})
 
     def test_los_retirados_no_se_cargan_pero_siguen_siendo_validos(self):
         retirados = os.path.join(directorio_skills(), "retirados")
         viejos = cargar_skills(retirados)
         self.assertEqual(set(viejos), {"sentadilla", "elevacion_brazos", "rotacion_tronco"})
         self.assertFalse(set(viejos) & set(self.skills))
+        self.assertEqual({s.estado for s in viejos.values()}, {"descartado"})
 
     def test_todas_las_reglas_usan_segmentos_del_vocabulario(self):
         for skill in self.skills.values():

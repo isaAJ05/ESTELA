@@ -1,7 +1,7 @@
 import unittest
 
-from feedback2.motor.skill import cargar_skills, directorio_skills
-from feedback2.verbalizador.plantillas import VerbalizadorPlantillas
+from feedback.motor.skill import cargar_skills, directorio_skills
+from feedback.verbalizador.plantillas import VerbalizadorPlantillas
 from feedback_testing.generador_episodios import construir_episodio, generar_banco
 from feedback_testing.metricas import percentil
 from feedback_testing.runner import ejecutar_episodio
@@ -38,8 +38,22 @@ class TestComportamientoEsperado(unittest.TestCase):
 
     def test_los_episodios_correctos_no_reciben_correccion(self):
         fallos = [e.episodio_id for e in BANCO
-                  if e.condicion == "correcto" and self._ej(e).hubo_mensaje]
+                  if e.condicion == "correcto" and self._ej(e).hubo_correccion]
         self.assertEqual(fallos, [])
+
+    def test_nunca_se_elogia_con_un_error_observable(self):
+        """M8 = 0: espejo de M3."""
+        fallos = [e.episodio_id for e in BANCO
+                  if e.condicion == "error" and self._ej(e).hubo_refuerzo]
+        self.assertEqual(fallos, [])
+
+    def test_un_elogio_no_cuenta_como_correccion(self):
+        """Regresión: desde que existe el refuerzo, M3 contaba los elogios como
+        correcciones (80 % en e50a755 con un motor que no sobrecorregía)."""
+        from feedback_testing.metricas import m3_sobrecorreccion
+        correctos = [self._ej(e) for e in BANCO if e.condicion == "correcto"]
+        self.assertTrue(any(r.hubo_refuerzo for r in correctos))
+        self.assertEqual(m3_sobrecorreccion(correctos)[0], 0.0)
 
     def test_los_episodios_con_error_senalan_ese_error(self):
         fallos = []
@@ -53,19 +67,19 @@ class TestComportamientoEsperado(unittest.TestCase):
 
     def test_el_sistema_calla_cuando_la_medida_esta_ocluida(self):
         fallos = [e.episodio_id for e in BANCO
-                  if e.condicion == "ocluido" and self._ej(e).hubo_mensaje]
+                  if e.condicion == "ocluido" and self._ej(e).hubo_correccion]
         self.assertEqual(fallos, [])
 
     def test_el_sistema_calla_cuando_el_plano_no_es_observable(self):
         fallos = [e.episodio_id for e in BANCO
-                  if e.condicion == "plano_malo" and self._ej(e).hubo_mensaje]
+                  if e.condicion == "plano_malo" and self._ej(e).hubo_correccion]
         self.assertEqual(fallos, [])
 
     def test_ningun_mensaje_afirma_algo_fuera_del_contrato(self):
-        from feedback2.verbalizador.validador import afirmaciones_no_soportadas
+        from feedback.verbalizador.validador import afirmaciones_no_soportadas
         fallos = []
         for e in BANCO:
-            for m in self._ej(e).mensajes:
+            for m in self._ej(e).correcciones:     # los elogios no tienen contrato
                 extra = afirmaciones_no_soportadas(m.texto, m.error)
                 if extra:
                     fallos.append(f"{m.texto} -> {extra}")

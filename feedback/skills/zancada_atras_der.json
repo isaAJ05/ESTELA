@@ -3,7 +3,7 @@
   "nombre": "Zancada atrás estática, pierna derecha atrás",
   "version": "0.1.0",
   "estado": "candidato",
-  "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás: la rodilla delantera es la izquierda. Mismas notas y mismos umbrales provisionales (ADR-004).",
+  "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás: la rodilla delantera es la izquierda. Mismas notas y mismos umbrales provisionales (ADR-005).",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",
   "angulos_requeridos": ["rodilla_izq", "rodilla_der", "tronco_inclinacion"],

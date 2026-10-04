@@ -78,7 +78,7 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "separacion_pies": Plano.FRONTAL,
     "rotacion_tronco": Plano.TRANSVERSAL,
     "azimut_cadera": Plano.TRANSVERSAL,
-    # ADR-004: medidas con los 33 puntos que no se usaban (EXP-004, brazo A0+).
+    # ADR-006: medidas con los 33 puntos que no se usaban (EXP-008, brazo A0+).
     # `[I]` Planos asignados por geometría, sin medir aún con EXP-002.
     "oblicuidad_pelvis": Plano.FRONTAL,
     "oblicuidad_hombros": Plano.FRONTAL,

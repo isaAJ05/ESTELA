@@ -1,6 +1,6 @@
-# EXP-004 — Puntos adicionales de tronco y pelvis
+# EXP-008 — Puntos adicionales de tronco y pelvis
 
-Arnés del experimento descrito en `docs/experimentos/EXP-004-puntos-tronco.md` (espacio de trabajo del proyecto). Pregunta: **¿añadir puntos de columna y pelvis aporta información sobre el movimiento de la lumbar, la columna y la cadera que los 33 puntos de MediaPipe no tienen, y a qué coste de latencia?**
+Arnés del experimento descrito en `docs/experimentos/EXP-008-puntos-tronco.md` (espacio de trabajo del proyecto). Pregunta: **¿añadir puntos de columna y pelvis aporta información sobre el movimiento de la lumbar, la columna y la cadera que los 33 puntos de MediaPipe no tienen, y a qué coste de latencia?**
 
 No toca `estela/` ni `feedback/`, ni añade dependencias a `pyproject.toml`.
 
@@ -16,7 +16,7 @@ No toca `estela/` ni `feedback/`, ni añade dependencias a `pyproject.toml`.
 
 ```bash
 source .venv/bin/activate                    # el entorno de ESTELA
-pip install -r PRUEBAS/exp004_puntos_tronco/requirements.txt
+pip install -r PRUEBAS/exp008_puntos_tronco/requirements.txt
 pip install --no-deps spinepose==2.1.0       # sin torch: el código no lo usa
 ```
 
@@ -27,18 +27,18 @@ La primera ejecución descarga los pesos de SpinePose en `~/.cache/spinepose` (�
 ## Comandos
 
 ```bash
-python -m unittest PRUEBAS/exp004_puntos_tronco/test_tronco.py
+python -m unittest PRUEBAS/exp008_puntos_tronco/test_tronco.py
 
 # Un vídeo existente (sin etiqueta de condición: solo latencia y descriptivos)
-python PRUEBAS/exp004_puntos_tronco/extraer.py --video RUTA.mp4 \
+python PRUEBAS/exp008_puntos_tronco/extraer.py --video RUTA.mp4 \
     --sujeto ucf_g01 --condicion sentadilla_libre --vista perfil
 
 # Un intento del protocolo con la cámara: 5 s de cuenta atrás, 8 s de registro
-python PRUEBAS/exp004_puntos_tronco/extraer.py --camara 0 --espera 5 --duracion 8 \
+python PRUEBAS/exp008_puntos_tronco/extraer.py --camara 0 --espera 5 --duracion 8 \
     --sujeto S1 --condicion bisagra_neutra --vista perfil
 
-python PRUEBAS/exp004_puntos_tronco/analizar.py PRUEBAS/exp004_puntos_tronco/resultados/*.npz \
-    --salida PRUEBAS/exp004_puntos_tronco/resultados/informe.md
+python PRUEBAS/exp008_puntos_tronco/analizar.py PRUEBAS/exp008_puntos_tronco/resultados/*.npz \
+    --salida PRUEBAS/exp008_puntos_tronco/resultados/informe.md
 ```
 
 Cada ejecución crea `resultados/<sujeto>_<condicion>_<vista>_NN.npz` con el siguiente número libre, así que repetir el comando es registrar otro intento.
@@ -51,11 +51,11 @@ Opciones útiles de `extraer.py`: `--spinepose small|medium|ninguno`, `--version
 D="PRUEBAS/Prueba red neuronal (dataset-pose-deteccion-conteo)/DATASET/videos/sentadilla"
 for v in v_BodyWeightSquats_g01_c01.avi v_BodyWeightSquats_g01_c02.avi v_BodyWeightSquats_g02_c03.avi \
          v_BodyWeightSquats_g04_c03.avi v_BodyWeightSquats_g04_c04.avi 1e2c254b-0d5a-4fd6-a6d4-2681333d927b.mp4; do
-  python PRUEBAS/exp004_puntos_tronco/extraer.py --video "$D/$v" --sujeto "${v%%.*}" \
-      --condicion sentadilla_libre --vista perfil --salida PRUEBAS/exp004_puntos_tronco/resultados/fase0
+  python PRUEBAS/exp008_puntos_tronco/extraer.py --video "$D/$v" --sujeto "${v%%.*}" \
+      --condicion sentadilla_libre --vista perfil --salida PRUEBAS/exp008_puntos_tronco/resultados/fase0
 done
-python PRUEBAS/exp004_puntos_tronco/analizar.py PRUEBAS/exp004_puntos_tronco/resultados/fase0/*.npz \
-    --salida PRUEBAS/exp004_puntos_tronco/resultados/fase0/informe.md
+python PRUEBAS/exp008_puntos_tronco/analizar.py PRUEBAS/exp008_puntos_tronco/resultados/fase0/*.npz \
+    --salida PRUEBAS/exp008_puntos_tronco/resultados/fase0/informe.md
 ```
 
 La latencia varía entre ejecuciones (el p50 de MediaPipe osciló entre 33 y 51 ms en la máquina de desarrollo); las cifras de la geometría son deterministas.
@@ -86,7 +86,7 @@ Ejemplo de una serie completa de la prueba central:
 for i in 1 2 3; do
   for c in bisagra_neutra bisagra_redondeada; do
     read -p "Siguiente: $c (intento $i). Enter para empezar " _
-    python PRUEBAS/exp004_puntos_tronco/extraer.py --camara 0 --duracion 8 \
+    python PRUEBAS/exp008_puntos_tronco/extraer.py --camara 0 --duracion 8 \
         --sujeto S1 --condicion $c --vista perfil
   done
 done

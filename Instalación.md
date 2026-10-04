@@ -11,7 +11,6 @@
 | Captura y visualización | OpenCV, Pillow (texto con tildes) |
 | Feedback | Motor determinista + plantillas en español (`feedback/`, solo biblioteca estándar) |
 | Voz | Piper (`piper-tts`), con caída a espeak-ng / `say` o solo texto |
-| Reconocimiento de ejercicio (opcional) | BiLSTM entrenada en `PRUEBAS/`, ejecutada en numpy + h5py (sin TensorFlow) |
 
 ### 1.2 Componentes de la solución
 
@@ -53,12 +52,11 @@ git clone <url-del-repositorio> ESTELA && cd ESTELA
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[voz,reconocimiento,dev]"
+pip install -e ".[voz,dev]"
 ```
 
 Extras opcionales:
 - `voz` instala Piper.
-- `reconocimiento` instala h5py para la BiLSTM.
 - `dev` instala pytest.
 
 #### 3.1.3 Configurar variables de entorno
@@ -81,7 +79,6 @@ Quedan en `modelos/`, que está ignorado por git.
 python -m estela                                   # rutina rutinas/calentamiento_basico.json
 python -m estela --ejercicio zancada_atras_izq --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
-python -m estela --auto                            # + sugerencia BiLSTM (solo reconoce marcha y jumping jacks)
 python -m estela --voz texto                       # sin audio
 python -m estela --modelo lite                     # pose más rápida y menos precisa
 python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas
@@ -122,7 +119,7 @@ Para una prueba reproducible sin cámara, ejecutar un vídeo del dataset con `--
 ## 7. Mantenimiento y actualización
 
 - Para **añadir un ejercicio**, crear un nuevo `feedback/skills/<id>.json` con reglas y una sección `segmentacion` (ver `feedback/skills/ESQUEMA.md`) y añadirlo a una rutina. No se modifica código.
-- Para **cambiar la rutina**, editar o crear un JSON en `rutinas/` y pasarlo con `--rutina`. El objetivo de cada paso es `"repeticiones"`, salvo en los ejercicios mantenidos (plancha), que usan `"duracion_s"`.
+- Para **cambiar la rutina**, editar o crear un JSON en `rutinas/` y pasarlo con `--rutina`. El objetivo de cada paso es `"repeticiones"`, salvo en los ejercicios isométricos (plancha), que usan `"duracion_s"`.
 
 ## 8. Referencias relacionadas
 

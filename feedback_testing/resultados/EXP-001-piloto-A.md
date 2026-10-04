@@ -1,6 +1,6 @@
 # EXP-001 piloto — condición A (banco sintético)
 
-- Episodios: **108**
+- Episodios: **116**
 - Observaciones por episodio: 48 (8 repeticiones x 6 frames)
 - Duración nominal de un episodio: 24 s
 - Repeticiones para M5: 10
@@ -11,21 +11,26 @@
 |---|---|---|---|
 | M1* | Coherencia detector-referencia (sintética) | 100.0 % | 57 |
 | M2 | Aserciones no soportadas | 0.0 % | 114 mensajes |
-| M3 | Sobrecorrección en ejecuciones correctas | 0.0 % | 15 |
-| M5 | Determinismo | 100.0 % | 108 |
-| M7 | Caída a fallback | 0.0 % | 114 mensajes |
-| — | Abstención con medida ocluida | 100.0 % | 19 |
-| — | Abstención con plano no observable | 100.0 % | 17 |
-| — | Mensajes por minuto de ejercicio | 2.64 | — |
+| M3 | Sobrecorrección en ejecuciones correctas | 0.0 % | 21 |
+| M5 | Determinismo | 100.0 % | 116 |
+| M7 | Caída a fallback | 0.0 % | 150 mensajes |
+| M8 | Refuerzo indebido: elogio con un error inducido y observable | 0.0 % | 57 |
+| M8′ | Elogio con un error presente pero no observable | 39.5 % | 38 |
+| — | Elogio en ejecuciones correctas | 100.0 % | 21 |
+| — | Abstención (sin corrección) con medida ocluida | 100.0 % | 19 |
+| — | Abstención (sin corrección) con plano no observable | 100.0 % | 19 |
+| — | Mensajes por minuto (correcciones + elogios) | 3.23 (2.46 + 0.78) | — |
 
 **M1\*** no es la M1 de ADR-001 §5: mide coherencia del motor sobre entrada sintética, no exactitud de contenido sobre vídeo real.
+
+M3, M1\* y la abstención cuentan solo **correcciones**. El elogio (refuerzo positivo) se mide con M8, el espejo de M3: M8 debe ser 0; M8′ es el elogio que se da porque las reglas visibles están bien aunque haya un error que la cámara no ve.
 
 ## M4 — latencia por etapa (ms)
 
 | Etapa | p50 | p95 | máx | n |
 |---|---|---|---|---|
-| Decisión | 0.0069 | 0.0255 | 0.4963 | 5184 |
-| Verbalización | 0.1397 | 0.4381 | 2.0853 | 114 |
+| Decisión | 0.0023 | 0.0103 | 0.3410 | 5568 |
+| Verbalización | 0.0736 | 0.1136 | 0.4378 | 150 |
 
 Medido en el entorno de desarrollo, no en el hardware del proyecto. No sustituye la medición en el M2 Ultra. No incluye pose, DTW ni TTS.
 
@@ -33,35 +38,41 @@ Medido en el entorno de desarrollo, no en el hardware del proyecto. No sustituye
 
 | Motivo | Veces |
 |---|---|
-| `sin_error` | 3832 |
-| `plano_no_observable` | 752 |
-| `periodo_refractario` | 351 |
-| `evidencia_insuficiente` | 111 |
-| `confianza_baja` | 24 |
+| `sin_error` | 4652 |
+| `periodo_refractario` | 357 |
+| `plano_no_observable` | 256 |
+| `evidencia_insuficiente` | 105 |
+| `confianza_baja` | 48 |
 
 ## Muestra de mensajes emitidos
 
-- `elevacion_brazos` / `rango_brazos_insuficiente` / leve -> «Sube un poco más los brazos.»
-- `elevacion_brazos` / `rango_brazos_insuficiente` / moderada -> «Sube más los brazos.»
-- `elevacion_brazos` / `rango_brazos_insuficiente` / alta -> «Sube mucho más los brazos, te estás quedando corta.»
-- `elevacion_brazos` / `codos_flexionados` / leve -> «Estira un poco más los codos.»
-- `elevacion_brazos` / `codos_flexionados` / moderada -> «Estira los codos.»
-- `elevacion_brazos` / `codos_flexionados` / alta -> «Estira bien los codos, los tienes muy doblados.»
-- `elevacion_brazos` / `asimetria_brazos` / leve -> «Iguala la altura de los dos brazos.»
-- `elevacion_brazos` / `asimetria_brazos` / moderada -> «Sube los dos brazos a la misma altura.»
-- `elevacion_brazos` / `asimetria_brazos` / alta -> «Los brazos están muy desiguales, súbelos parejos.»
-- `elevacion_brazos` / `brazo_izq_bajo` / leve -> «Sube un poco más el brazo izquierdo.»
-- `elevacion_brazos` / `brazo_izq_bajo` / moderada -> «Sube más el brazo izquierdo.»
-- `elevacion_brazos` / `brazo_izq_bajo` / alta -> «Sube bien el brazo izquierdo, está mucho más bajo.»
-- `elevacion_brazos` / `brazo_der_bajo` / leve -> «Sube un poco más el brazo derecho.»
-- `elevacion_brazos` / `brazo_der_bajo` / moderada -> «Sube más el brazo derecho.»
-- `elevacion_brazos` / `brazo_der_bajo` / alta -> «Sube bien el brazo derecho, está mucho más bajo.»
+- `abduccion_cadera_der` / `tronco_inclinado_izq` / leve -> «Endereza un poco el tronco, se va hacia la izquierda.»
+- `abduccion_cadera_der` / `tronco_inclinado_izq` / moderada -> «No inclines el tronco hacia la izquierda.»
+- `abduccion_cadera_der` / `tronco_inclinado_izq` / alta -> «Endereza el tronco, te estás inclinando hacia la izquierda.»
+- `abduccion_cadera_der` / `cadera_der_sube` / leve -> «Mantén la cadera derecha un poco más baja.»
+- `abduccion_cadera_der` / `cadera_der_sube` / moderada -> «No subas la cadera derecha, mantenla nivelada.»
+- `abduccion_cadera_der` / `cadera_der_sube` / alta -> «Baja la cadera derecha, la estás subiendo mucho.»
+- `abduccion_cadera_der` / `abduccion_insuficiente_der` / leve -> «Sube un poco más la pierna derecha hacia el lado.»
+- `abduccion_cadera_der` / `abduccion_insuficiente_der` / moderada -> «Abre más la pierna derecha hacia el lado.»
+- `abduccion_cadera_der` / `abduccion_insuficiente_der` / alta -> «Sube bien la pierna derecha, casi no la separas.»
+- `abduccion_cadera_izq` / `tronco_inclinado_der` / leve -> «Endereza un poco el tronco, se va hacia la derecha.»
+- `abduccion_cadera_izq` / `tronco_inclinado_der` / moderada -> «No inclines el tronco hacia la derecha.»
+- `abduccion_cadera_izq` / `tronco_inclinado_der` / alta -> «Endereza el tronco, te estás inclinando hacia la derecha.»
+- `abduccion_cadera_izq` / `cadera_izq_sube` / leve -> «Mantén la cadera izquierda un poco más baja.»
+- `abduccion_cadera_izq` / `cadera_izq_sube` / moderada -> «No subas la cadera izquierda, mantenla nivelada.»
+- `abduccion_cadera_izq` / `cadera_izq_sube` / alta -> «Baja la cadera izquierda, la estás subiendo mucho.»
+- `abduccion_cadera_izq` / `abduccion_insuficiente_izq` / leve -> «Sube un poco más la pierna izquierda hacia el lado.»
+- `abduccion_cadera_izq` / `abduccion_insuficiente_izq` / moderada -> «Abre más la pierna izquierda hacia el lado.»
+- `abduccion_cadera_izq` / `abduccion_insuficiente_izq` / alta -> «Sube bien la pierna izquierda, casi no la separas.»
 - `jumping_jacks` / `brazos_no_llegan_arriba` / leve -> «Sube un poco más los brazos.»
 - `jumping_jacks` / `brazos_no_llegan_arriba` / moderada -> «Te falta recorrido, eleva más los brazos.»
 - `jumping_jacks` / `brazos_no_llegan_arriba` / alta -> «Sube mucho más los brazos, te estás quedando corta.»
 - `jumping_jacks` / `apertura_pies_insuficiente` / leve -> «Abre un poco más los pies al saltar.»
 - `jumping_jacks` / `apertura_pies_insuficiente` / moderada -> «Abre más los pies en cada salto.»
 - `jumping_jacks` / `apertura_pies_insuficiente` / alta -> «Abre mucho más los pies, casi no te separas.»
+- `jumping_jacks` / `codos_flexionados` / leve -> «Estira un poco más los codos.»
+- `jumping_jacks` / `codos_flexionados` / moderada -> «Mantén los codos extendidos.»
+- `jumping_jacks` / `codos_flexionados` / alta -> «Estira bien los codos, los tienes muy doblados.»
 - `marcha_rodillas` / `tronco_muy_inclinado` / leve -> «Sube un poco el pecho.»
 - `marcha_rodillas` / `tronco_muy_inclinado` / moderada -> «Mantén el tronco más vertical.»
 - `marcha_rodillas` / `tronco_muy_inclinado` / alta -> «Endereza bien el tronco, te estás yendo hacia delante.»
@@ -71,25 +82,19 @@ Medido en el entorno de desarrollo, no en el hardware del proyecto. No sustituye
 - `marcha_rodillas` / `rodilla_der_baja` / leve -> «Sube un poco más la rodilla derecha.»
 - `marcha_rodillas` / `rodilla_der_baja` / moderada -> «Eleva más la rodilla derecha en cada paso.»
 - `marcha_rodillas` / `rodilla_der_baja` / alta -> «Sube bien la rodilla derecha, apenas la estás levantando.»
-- `rotacion_tronco` / `rotacion_insuficiente` / leve -> «Gira un poco más el tronco.»
-- `rotacion_tronco` / `rotacion_insuficiente` / moderada -> «Gira más el tronco en cada lado.»
-- `rotacion_tronco` / `rotacion_insuficiente` / alta -> «Gira mucho más el tronco, casi no rotas.»
-- `rotacion_tronco` / `cadera_acompana` / leve -> «Mantén las caderas un poco más quietas.»
-- `rotacion_tronco` / `cadera_acompana` / moderada -> «Mantén las caderas fijas mientras giras.»
-- `rotacion_tronco` / `cadera_acompana` / alta -> «No muevas las caderas, el giro es solo de arriba.»
-- `sentadilla` / `valgo_rodilla_izq` / leve -> «Abre un poco la rodilla izquierda.»
-- `sentadilla` / `valgo_rodilla_izq` / moderada -> «Abre la rodilla izquierda hacia fuera.»
-- `sentadilla` / `valgo_rodilla_izq` / alta -> «Abre bien la rodilla izquierda, se está metiendo hacia dentro.»
-- `sentadilla` / `valgo_rodilla_der` / leve -> «Abre un poco la rodilla derecha.»
-- `sentadilla` / `valgo_rodilla_der` / moderada -> «Abre la rodilla derecha hacia fuera.»
-- `sentadilla` / `valgo_rodilla_der` / alta -> «Abre bien la rodilla derecha, se está metiendo hacia dentro.»
-- `sentadilla` / `profundidad_insuficiente` / leve -> «Baja un poco más las rodillas.»
-- `sentadilla` / `profundidad_insuficiente` / moderada -> «Baja más, flexiona bien las rodillas.»
-- `sentadilla` / `profundidad_insuficiente` / alta -> «Baja mucho más, flexiona las rodillas hasta el fondo.»
-- `sentadilla` / `asimetria_rodillas` / leve -> «Reparte el peso entre las dos rodillas.»
-- `sentadilla` / `asimetria_rodillas` / moderada -> «Flexiona las dos rodillas por igual.»
-- `sentadilla` / `asimetria_rodillas` / alta -> «Estás cargando un lado, iguala las dos rodillas.»
-- `sentadilla` / `pies_muy_juntos` / leve -> «Separa un poco los pies.»
-- `sentadilla` / `pies_muy_juntos` / moderada -> «Abre más los pies.»
-- `sentadilla` / `pies_muy_juntos` / alta -> «Abre bien los pies, los tienes muy juntos.»
+- `plancha` / `cadera_hundida` / leve -> «Sube un poco las caderas.»
+- `plancha` / `cadera_hundida` / moderada -> «Sube las caderas, no las dejes caer.»
+- `plancha` / `cadera_hundida` / alta -> «Sube bien las caderas, se están hundiendo.»
+- `plancha` / `cadera_elevada` / leve -> «Baja un poco las caderas.»
+- `plancha` / `cadera_elevada` / moderada -> «Baja las caderas, alinea el cuerpo.»
+- `plancha` / `cadera_elevada` / alta -> «Baja bien las caderas, las tienes muy altas.»
+- `plancha` / `cabeza_desalineada` / leve -> «Alinea un poco la cabeza con el cuerpo.»
+- `plancha` / `cabeza_desalineada` / moderada -> «Mantén la cabeza en línea con el cuerpo.»
+- `plancha` / `cabeza_desalineada` / alta -> «Coloca la cabeza en línea, ni caída ni levantada.»
+- `zancada_atras_der` / `profundidad_insuficiente_izq` / leve -> «Baja un poco más, flexiona la rodilla izquierda.»
+- `zancada_atras_der` / `profundidad_insuficiente_izq` / moderada -> «Baja más, flexiona bien la rodilla izquierda.»
+- `zancada_atras_der` / `profundidad_insuficiente_izq` / alta -> «Baja mucho más, la rodilla izquierda casi no se flexiona.»
+- `zancada_atras_izq` / `profundidad_insuficiente_der` / leve -> «Baja un poco más, flexiona la rodilla derecha.»
+- `zancada_atras_izq` / `profundidad_insuficiente_der` / moderada -> «Baja más, flexiona bien la rodilla derecha.»
+- `zancada_atras_izq` / `profundidad_insuficiente_der` / alta -> «Baja mucho más, la rodilla derecha casi no se flexiona.»
 

@@ -2,11 +2,11 @@
 
 import pytest
 
-from feedback2.contrato import Observacion
+from feedback.contrato import Observacion
 
 from estela.conteo.segmentador import (
     EVENTO_COMPLETA, EVENTO_INCOMPLETA, CondicionPostura, SegmentacionInvalida,
-    SegmentadorAlternante, SegmentadorCiclo, SegmentadorMantenido, leer_senal,
+    SegmentadorAlternante, SegmentadorCiclo, SegmentadorIsometrico, leer_senal,
     segmentador_desde_dict,
 )
 from estela.sesion.rutina import cargar_catalogo
@@ -164,8 +164,9 @@ def test_desde_dict_valida_fases_contra_el_skill():
 def test_skills_del_repositorio_cargan_su_segmentacion():
     catalogo = cargar_catalogo()
     assert {k for k, e in catalogo.items() if e.soportado} == set(catalogo)
-    assert set(catalogo) == {"jumping_jacks", "marcha_rodillas", "abduccion_cadera",
-                             "zancada_atras_izq", "zancada_atras_der", "plancha"}
+    assert set(catalogo) == {"jumping_jacks", "marcha_rodillas", "plancha",
+                             "abduccion_cadera_izq", "abduccion_cadera_der",
+                             "zancada_atras_izq", "zancada_atras_der"}
     for e in catalogo.values():
         e.nuevo_segmentador()
     assert catalogo["plancha"].unidad == "segundos"
@@ -182,7 +183,7 @@ def seg_plancha(**kw):
                 fases=("preparacion", "mantenimiento"),
                 entrada_ms=1000, salida_ms=1500, bloque_s=5)
     base.update(kw)
-    return SegmentadorMantenido(**base)
+    return SegmentadorIsometrico(**base)
 
 
 def sostener(seg, segundos, t0=0, tronco=85.0, rodilla=175.0, dt=100):
@@ -192,7 +193,7 @@ def sostener(seg, segundos, t0=0, tronco=85.0, rodilla=175.0, dt=100):
             for i in range(n)]
 
 
-def test_mantenido_entra_tras_la_espera_y_cuenta_segundos():
+def test_isometrico_entra_tras_la_espera_y_cuenta_segundos():
     estados = sostener(seg_plancha(), 7.0)          # t = 0 … 6,9 s
     assert estados[5].fase == "preparacion"
     assert estados[10].fase == "mantenimiento"      # entra a t = 1 s
@@ -201,13 +202,13 @@ def test_mantenido_entra_tras_la_espera_y_cuenta_segundos():
     assert len(eventos) == 5                        # uno por segundo
 
 
-def test_mantenido_la_repeticion_es_el_bloque_de_cinco_segundos():
+def test_isometrico_la_repeticion_es_el_bloque_de_cinco_segundos():
     estados = sostener(seg_plancha(), 13.0)
     assert estados[0].repeticion == 0
     assert sorted({e.repeticion for e in estados}) == [0, 1, 2, 3]
 
 
-def test_mantenido_un_frame_malo_no_interrumpe():
+def test_isometrico_un_frame_malo_no_interrumpe():
     seg = seg_plancha()
     sostener(seg, 3.0)
     sostener(seg, 0.1, t0=3000, tronco=20.0)        # un frame de pie
@@ -216,7 +217,7 @@ def test_mantenido_un_frame_malo_no_interrumpe():
     assert e.completadas >= 3
 
 
-def test_mantenido_salir_de_la_postura_pausa_y_cuenta_la_interrupcion():
+def test_isometrico_salir_de_la_postura_pausa_y_cuenta_la_interrupcion():
     seg = seg_plancha()
     sostener(seg, 4.0)                              # 3 s en posición
     fuera = sostener(seg, 3.0, t0=4000, tronco=10.0)
@@ -228,13 +229,13 @@ def test_mantenido_salir_de_la_postura_pausa_y_cuenta_la_interrupcion():
     assert vuelta[-1].completadas == 4
 
 
-def test_mantenido_a_cuatro_patas_no_cuenta_como_plancha():
+def test_isometrico_a_cuatro_patas_no_cuenta_como_plancha():
     estados = sostener(seg_plancha(), 5.0, rodilla=90.0)
     assert {e.fase for e in estados} == {"preparacion"}
     assert estados[-1].completadas == 0
 
 
-def test_mantenido_sin_senal_congela_y_no_suma():
+def test_isometrico_sin_senal_congela_y_no_suma():
     seg = seg_plancha()
     sostener(seg, 3.0)
     ciegos = [seg.actualizar(obs(3000 + i * 100, {})) for i in range(20)]
@@ -244,11 +245,11 @@ def test_mantenido_sin_senal_congela_y_no_suma():
     assert e.completadas == 2
 
 
-def test_mantenido_desde_dict_valida_la_configuracion():
-    d = {"tipo": "mantenido", "fases": ["preparacion", "mantenimiento"],
+def test_isometrico_desde_dict_valida_la_configuracion():
+    d = {"tipo": "isometrico", "fases": ["preparacion", "mantenimiento"],
          "condiciones": [{"senal": "angulos.tronco_inclinacion", "min": 55}]}
     assert isinstance(segmentador_desde_dict(d, ("preparacion", "mantenimiento")),
-                      SegmentadorMantenido)
+                      SegmentadorIsometrico)
     with pytest.raises(SegmentacionInvalida):
         segmentador_desde_dict({**d, "condiciones": [{"senal": "angulos.x"}]})
     with pytest.raises(SegmentacionInvalida):

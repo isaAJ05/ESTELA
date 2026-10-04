@@ -76,7 +76,7 @@ class TestMedidas(unittest.TestCase):
 
 
 class TestMedidasADR004(unittest.TestCase):
-    """Medidas añadidas con los 33 puntos existentes (ADR-004)."""
+    """Medidas añadidas con los 33 puntos existentes (ADR-006)."""
 
     def _cuerpo(self, **kw):
         c = TestMedidas()._cuerpo(left_ear=kp(-0.08, -0.7), right_ear=kp(0.08, -0.7))

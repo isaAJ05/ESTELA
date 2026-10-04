@@ -1,10 +1,11 @@
 {
   "nombre": "Calentamiento básico",
-  "notas": "Los 5 ejercicios de ADR-004: marcha, jumping jacks, abducción de cadera de pie, zancada atrás estática (una serie por pierna) y plancha. Orden de lo general a lo específico, terminando en el suelo. Repeticiones y duración provisionales, sin revisar por la licenciada en educación física.",
+  "notas": "Los 5 ejercicios de ADR-005. Primero los de frente (jumping jacks, abducción de cadera por pierna) y después los de perfil (marcha, zancada atrás estática por pierna, plancha), para cambiar de orientación una sola vez; la plancha al final porque es en el suelo. Repeticiones y duración provisionales, sin revisar por la licenciada en educación física.",
   "pasos": [
-    {"skill_id": "marcha_rodillas", "repeticiones": 16},
     {"skill_id": "jumping_jacks", "repeticiones": 10},
-    {"skill_id": "abduccion_cadera", "repeticiones": 12},
+    {"skill_id": "abduccion_cadera_izq", "repeticiones": 8},
+    {"skill_id": "abduccion_cadera_der", "repeticiones": 8},
+    {"skill_id": "marcha_rodillas", "repeticiones": 16},
     {"skill_id": "zancada_atras_izq", "repeticiones": 6},
     {"skill_id": "zancada_atras_der", "repeticiones": 6},
     {"skill_id": "plancha", "duracion_s": 20}

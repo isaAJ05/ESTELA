@@ -16,28 +16,28 @@ Primera versión del flujo completo: cámara → MediaPipe Pose Landmarker → s
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[voz,reconocimiento,dev]"
+pip install -e ".[voz,dev]"
 python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
 
 python -m estela                              # rutina de calentamiento con la cámara
 python -m estela --ejercicio zancada_atras_izq --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
-python -m estela --auto                       # + sugerencia de ejercicio (BiLSTM)
 pytest                                        # tests de estela/ (sin cámara)
 python -m unittest discover -s feedback/tests -t .   # tests del módulo de feedback
 ```
 
 Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
 
-Ejercicios (ADR-004): marcha con elevación de rodillas, jumping jacks, abducción de cadera de pie, zancada atrás estática (una serie por pierna: `zancada_atras_izq`, `zancada_atras_der`) y plancha.
+Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con elevación de rodillas, zancada atrás estática y plancha. La abducción y la zancada se hacen en una serie por pierna y tienen un skill por pierna (`abduccion_cadera_izq`/`_der`, `zancada_atras_izq`/`_der`).
 
 | Carpeta | Contenido |
 |---|---|
-| `estela/` | Aplicación: captura, pose, segmentación/conteo, sesión, voz, interfaz, reconocimiento BiLSTM |
-| `feedback/` | Motor de decisión + verbalizador (ADR-001) y skills de los ejercicios |
+| `estela/` | Aplicación: captura, pose, segmentación/conteo, sesión, voz, interfaz |
+| `feedback/` | El motor de feedback (único): decisión determinista + verbalizador (ADR-001) y skills de los ejercicios |
+| `feedback_testing/` | Banco sintético y métricas de EXP-001, EXP-002 |
 | `rutinas/` | Rutinas de calentamiento (JSON) |
 | `tests/` | Tests de la aplicación |
-| `PRUEBAS/` | Prototipos, dataset y BiLSTM entrenada |
+| `PRUEBAS/` | Prototipos históricos (incluida la BiLSTM retirada), dataset de vídeos y arnés de EXP-008 |
 
 Decisiones de esta versión: `docs/decisiones/ADR-003-aplicacion-v1.md` (en el espacio de trabajo del proyecto).
 

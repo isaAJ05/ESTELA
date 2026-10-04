@@ -17,8 +17,8 @@ Tres tipos:
            (cadera en la marcha, abducción en la elevación lateral). Una
            repetición es una elevación de una pierna.
 
-``mantenido``  Una postura que se sostiene (plancha). Cuenta segundos en
-           posición, no repeticiones; ver `SegmentadorMantenido`.
+``isometrico``  Una postura que se sostiene (plancha, ADR-005). Cuenta segundos en
+           posición, no repeticiones; ver `SegmentadorIsometrico`.
 
 Decisiones de diseño:
 
@@ -278,7 +278,7 @@ class CondicionPostura:
                 and (self.max is None or valor <= self.max))
 
 
-class SegmentadorMantenido(Segmentador):
+class SegmentadorIsometrico(Segmentador):
     """Postura mantenida: cuenta segundos en posición, no repeticiones.
 
     La usuaria está «en posición» cuando se cumplen **todas** las
@@ -306,9 +306,9 @@ class SegmentadorMantenido(Segmentador):
                  entrada_ms: int = 1000, salida_ms: int = 1500,
                  bloque_s: float = 5.0, confianza_minima: float = 0.5) -> None:
         if not condiciones:
-            raise SegmentacionInvalida("mantenido necesita al menos una condición")
+            raise SegmentacionInvalida("isometrico necesita al menos una condición")
         if len(fases) != 2:
-            raise SegmentacionInvalida("mantenido necesita 2 fases (fuera, en posición)")
+            raise SegmentacionInvalida("isometrico necesita 2 fases (fuera, en posición)")
         if bloque_s <= 0:
             raise SegmentacionInvalida("bloque_s debe ser positivo")
         self.condiciones = tuple(condiciones)
@@ -386,10 +386,10 @@ def _num(d: Mapping[str, Any], campo: str) -> float:
 def segmentador_desde_dict(d: Mapping[str, Any],
                            fases_skill: Tuple[str, ...] = ()) -> Segmentador:
     tipo = d.get("tipo")
-    if tipo == "mantenido":
+    if tipo == "isometrico":
         fases = tuple(d.get("fases", ()))
         if len(fases) != 2:
-            raise SegmentacionInvalida("mantenido necesita 2 fases (fuera, en posición)")
+            raise SegmentacionInvalida("isometrico necesita 2 fases (fuera, en posición)")
         _valida_fases(fases, fases_skill)
         condiciones = []
         for c in d.get("condiciones", ()):
@@ -399,7 +399,7 @@ def segmentador_desde_dict(d: Mapping[str, Any],
                 c["senal"],
                 float(c["min"]) if "min" in c else None,
                 float(c["max"]) if "max" in c else None))
-        return SegmentadorMantenido(
+        return SegmentadorIsometrico(
             condiciones, fases,
             entrada_ms=int(d.get("entrada_ms", 1000)),
             salida_ms=int(d.get("salida_ms", 1500)),
@@ -438,7 +438,7 @@ def _valida_fases(fases: Tuple[Any, ...], fases_skill: Tuple[str, ...]) -> None:
 
 __all__ = [
     "Ciclo", "CondicionPostura", "EstadoSegmento", "Segmentador", "SegmentadorCiclo",
-    "SegmentadorAlternante", "SegmentadorMantenido", "SegmentacionInvalida",
+    "SegmentadorAlternante", "SegmentadorIsometrico", "SegmentacionInvalida",
     "segmentador_desde_dict",
     "leer_senal", "EVENTO_INICIO", "EVENTO_COMPLETA", "EVENTO_INCOMPLETA",
 ]

@@ -1,7 +1,7 @@
-"""EXP-004 — análisis. Lee los .npz de `extraer.py` y escribe el informe.
+"""EXP-008 — análisis. Lee los .npz de `extraer.py` y escribe el informe.
 
-    python PRUEBAS/exp004_puntos_tronco/analizar.py PRUEBAS/exp004_puntos_tronco/resultados/*.npz \\
-        --salida PRUEBAS/exp004_puntos_tronco/resultados/informe.md
+    python PRUEBAS/exp008_puntos_tronco/analizar.py PRUEBAS/exp008_puntos_tronco/resultados/*.npz \\
+        --salida PRUEBAS/exp008_puntos_tronco/resultados/informe.md
 
 Tres bloques:
 
@@ -258,7 +258,7 @@ def main() -> None:
 
     recs = [cargar(p) for p in sorted(args.npz)]
     meds = [medidas(r) for r in recs]
-    lineas = ["# EXP-004 — informe generado", "",
+    lineas = ["# EXP-008 — informe generado", "",
               f"Grabaciones: {len(recs)}. Generado con `analizar.py`; no editar a mano.", "",
               "## Latencia por frame", ""] + bloque_latencia(recs)
     lineas += ["", "## Contrastes neutra → inducida"] + bloque_contrastes(recs, meds)

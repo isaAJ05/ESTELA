@@ -30,9 +30,10 @@ from .generador_episodios import (
     generar_banco,
 )
 from .metricas import (
-    ResultadoEpisodio, abstencion, m1_sintetica, m2_aserciones_no_soportadas,
-    m3_sobrecorreccion, m4_latencias, m5_determinismo, m7_fallback,
-    mensajes_por_minuto,
+    CONDICIONES_NO_OBSERVABLES, ResultadoEpisodio, abstencion, m1_sintetica,
+    m2_aserciones_no_soportadas, m3_sobrecorreccion, m4_latencias,
+    m5_determinismo, m7_fallback, m8_refuerzo_indebido, mensajes_por_minuto,
+    refuerzo_en_correctas,
 )
 
 
@@ -40,7 +41,7 @@ def construir_verbalizador(condicion: str) -> Verbalizador:
     if condicion == "A":
         return VerbalizadorPlantillas()
     if condicion in ("F", "Fp"):
-        from feedback2.verbalizador.llm_local import VerbalizadorLLMLocal
+        from feedback.verbalizador.llm_local import VerbalizadorLLMLocal
         return VerbalizadorLLMLocal(restringido=(condicion == "F"))
     raise SystemExit(f"condición desconocida: {condicion}")
 
@@ -109,9 +110,12 @@ def informe(condicion: str, resultados: Sequence[ResultadoEpisodio],
     m7, n7 = m7_fallback(resultados)
     abs_ocl, n_ocl = abstencion(resultados, "ocluido")
     abs_pln, n_pln = abstencion(resultados, "plano_malo")
+    m8, n8 = m8_refuerzo_indebido(resultados)
+    m8_no, n8_no = m8_refuerzo_indebido(resultados, CONDICIONES_NO_OBSERVABLES)
+    ref_ok, n_ref_ok = refuerzo_en_correctas(resultados)
 
     err = [r for r in resultados if r.condicion == "error"]
-    sin_mensaje = [r for r in err if not r.hubo_mensaje]
+    sin_mensaje = [r for r in err if not r.hubo_correccion]
 
     motivos: Dict[str, int] = {}
     for r in resultados:
@@ -136,13 +140,25 @@ def informe(condicion: str, resultados: Sequence[ResultadoEpisodio],
     L.append(f"| M3 | Sobrecorrección en ejecuciones correctas | {_pct(m3)} | {n3} |")
     L.append(f"| M5 | Determinismo | {_pct(m5)} | {n5} |")
     L.append(f"| M7 | Caída a fallback | {_pct(m7)} | {n7} mensajes |")
-    L.append(f"| — | Abstención con medida ocluida | {_pct(abs_ocl)} | {n_ocl} |")
-    L.append(f"| — | Abstención con plano no observable | {_pct(abs_pln)} | {n_pln} |")
-    L.append(f"| — | Mensajes por minuto de ejercicio | "
-             f"{mensajes_por_minuto(resultados, ms_episodio):.2f} | — |")
+    L.append(f"| M8 | Refuerzo indebido: elogio con un error inducido y observable | "
+             f"{_pct(m8)} | {n8} |")
+    L.append(f"| M8′ | Elogio con un error presente pero no observable | "
+             f"{_pct(m8_no)} | {n8_no} |")
+    L.append(f"| — | Elogio en ejecuciones correctas | {_pct(ref_ok)} | {n_ref_ok} |")
+    L.append(f"| — | Abstención (sin corrección) con medida ocluida | {_pct(abs_ocl)} | {n_ocl} |")
+    L.append(f"| — | Abstención (sin corrección) con plano no observable | {_pct(abs_pln)} | {n_pln} |")
+    L.append(f"| — | Mensajes por minuto (correcciones + elogios) | "
+             f"{mensajes_por_minuto(resultados, ms_episodio):.2f} "
+             f"({mensajes_por_minuto(resultados, ms_episodio, 'correccion'):.2f} + "
+             f"{mensajes_por_minuto(resultados, ms_episodio, 'refuerzo'):.2f}) | — |")
     L.append("")
     L.append("**M1\\*** no es la M1 de ADR-001 §5: mide coherencia del motor sobre "
              "entrada sintética, no exactitud de contenido sobre vídeo real.")
+    L.append("")
+    L.append("M3, M1\\* y la abstención cuentan solo **correcciones**. El elogio "
+             "(refuerzo positivo) se mide con M8, el espejo de M3: M8 debe ser 0; "
+             "M8′ es el elogio que se da porque las reglas visibles están bien "
+             "aunque haya un error que la cámara no ve.")
     L.append("")
     L.append("## M4 — latencia por etapa (ms)")
     L.append("")
@@ -165,7 +181,7 @@ def informe(condicion: str, resultados: Sequence[ResultadoEpisodio],
         L.append(f"| `{k}` | {v} |")
     L.append("")
     if sin_mensaje:
-        L.append("## Episodios con error inducido que NO produjeron mensaje")
+        L.append("## Episodios con error inducido que NO produjeron corrección")
         L.append("")
         for r in sin_mensaje:
             top = sorted(r.motivos_silencio.items(), key=lambda kv: -kv[1])[:2]
