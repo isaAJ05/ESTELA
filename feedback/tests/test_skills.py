@@ -39,6 +39,18 @@ class TestCargaDeSkills(unittest.TestCase):
                     self.assertIn(fase, skill.fases,
                                   f"{skill.skill_id}:{regla.error_id}:{fase}")
 
+    def test_toda_regla_es_observable_en_la_orientacion_del_ejercicio(self):
+        """Sin esto una regla no podría dispararse nunca en sesión y, como el
+        refuerzo exige comprobar todas las reglas aplicables (ADR-006 §2.9),
+        el ejercicio tampoco podría felicitar nunca."""
+        from feedback.motor.decision import _PLANO_IDEAL_GRADOS, plano_observable
+        for skill in self.skills.values():
+            ideal = _PLANO_IDEAL_GRADOS.get(skill.orientacion_preferida)
+            for regla in skill.reglas:
+                self.assertTrue(
+                    plano_observable(regla, ideal, skill.politica.tolerancia_orientacion_grados),
+                    f"{skill.skill_id}:{regla.error_id} ({regla.plano.value})")
+
     def test_todo_umbral_declara_su_origen(self):
         """Ningún umbral puede pasar como si estuviera justificado."""
         for skill in self.skills.values():

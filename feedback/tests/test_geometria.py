@@ -135,6 +135,18 @@ class TestMedidasADR004(unittest.TestCase):
         self.assertGreater(g.alineacion_cadera(plancha(0.08)), 0.1)     # hundida
         self.assertLess(g.alineacion_cadera(plancha(-0.12)), -0.1)      # elevada
 
+    def test_alineacion_de_plancha_de_perfil_usa_el_lado_visible(self):
+        """De perfil el tobillo lejano queda tapado: la medida se calcula con
+        el lado cercano y su confianza es la de ese lado (ADR-006 §2.1)."""
+        kps = {"left_shoulder": kp(0.5, -0.05, 0.15), "right_shoulder": kp(0.5, -0.05, -0.15, v=0.9),
+               "left_hip": kp(0.0, 0.07, 0.1), "right_hip": kp(0.0, 0.07, -0.1, v=0.9),
+               "left_ankle": kp(-0.9, 0.06, 0.1), "right_ankle": kp(-0.9, 0.06, -0.1, v=0.2),
+               "left_knee": kp(-0.45, 0.06, 0.1), "right_knee": kp(-0.45, 0.06, -0.1, v=0.3)}
+        self.assertEqual(g.lado_mas_visible(kps, g.PARTES_ALINEACION), "left")
+        obs = g.observacion_desde_pose(MuestraPose(t_ms=0, keypoints=kps), "plancha")
+        self.assertGreater(obs.distancias["alineacion_cadera"], 0.1)
+        self.assertEqual(obs.confianza_de("alineacion_cadera"), 1.0)
+
 
 class TestObservacion(unittest.TestCase):
     def test_construye_angulos_y_medios(self):

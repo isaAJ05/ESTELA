@@ -68,12 +68,12 @@
       "medida": {"tipo": "agregado", "fn": "min", "nombre": "codo_medio", "ventana": "repeticion"},
       "condicion": {"op": "<", "umbral": 145},
       "fases": ["abierto"],
-      "plano": "sagital",
+      "plano": "frontal",
       "segmento": "codo",
       "lado": "bilateral",
       "prioridad": 3,
       "severidad": {"moderada": 20, "alta": 40},
-      "umbral_origen": "[?] provisional, sin calibrar",
+      "umbral_origen": "[?] provisional, sin calibrar. Plano frontal, como el ejercicio: EXP-002 E1 mide de frente un error de proyección del codo de 16,2°, por debajo del umbral moderado (20°). Declarada «sagital», no era observable nunca en la vista frontal (ADR-006 §2.9)",
       "mensaje_id": "codos_flexionados"
     }
   ]

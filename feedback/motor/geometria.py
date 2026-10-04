@@ -376,29 +376,48 @@ def abduccion_cadera(kps: Dict[str, Keypoint], lado: str) -> Optional[float]:
     return math.degrees(math.atan2(math.copysign(1.0, fuera) * dx, dy))
 
 
-def alineacion_cadera(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
-    """Altura de la cadera respecto a la recta hombro medio → tobillo medio.
+def lado_mas_visible(kps: Dict[str, Keypoint], partes: Sequence[str]) -> Optional[str]:
+    """`"left"` o `"right"`: el lado cuyos puntos `partes` (p. ej. "hip")
+    tienen mayor visibilidad mínima. None si falta algún punto en los dos."""
+    mejor, mejor_vis = None, -1.0
+    for lado in ("left", "right"):
+        nombres = [f"{lado}_{p}" for p in partes]
+        if any(n not in kps for n in nombres):
+            continue
+        vis = confianza_de_terna(kps, nombres)
+        if vis > mejor_vis:
+            mejor, mejor_vis = lado, vis
+    return mejor
 
-    Distancia vertical con signo de la cadera media a esa recta, dividida por
-    la escala corporal. Positivo = la cadera queda por debajo (hundida);
+
+PARTES_ALINEACION = ("shoulder", "hip", "ankle")
+
+
+def alineacion_cadera(kps: Dict[str, Keypoint], usar_z: bool = True,
+                      lado: Optional[str] = None) -> Optional[float]:
+    """Altura de la cadera respecto a la recta hombro → tobillo, de un lado.
+
+    Distancia vertical con signo de la cadera a esa recta, dividida por la
+    distancia hombro-cadera. Positivo = la cadera queda por debajo (hundida);
     negativo = por encima (elevada). Pensada para la plancha, con el cuerpo
     horizontal: de pie la recta es vertical y la medida no significa nada.
     Plano sagital.
+
+    Se calcula con **un** lado (`lado`, o el más visible si no se indica), no
+    con los puntos medios: de perfil los dos lados se superponen y el tobillo
+    lejano suele quedar tapado. `[F]` En 6 vídeos de perfil su visibilidad
+    mediana fue 0,17–0,71, y exigir los dos tobillos dejaba la medida
+    evaluable en el 0–19 % de los frames en 5 de ellos (ADR-006 §2.1).
     """
-    req = ("left_shoulder", "right_shoulder", "left_hip", "right_hip",
-           "left_ankle", "right_ankle")
-    if any(k not in kps for k in req):
+    lado = lado or lado_mas_visible(kps, PARTES_ALINEACION)
+    if lado is None:
         return None
-    hombro = punto_medio(_coords(kps["left_shoulder"], usar_z),
-                         _coords(kps["right_shoulder"], usar_z))
-    cadera = punto_medio(_coords(kps["left_hip"], usar_z),
-                         _coords(kps["right_hip"], usar_z))
-    tobillo = punto_medio(_coords(kps["left_ankle"], usar_z),
-                          _coords(kps["right_ankle"], usar_z))
+    hombro, cadera, tobillo = (_coords(kps[f"{lado}_{p}"], usar_z)
+                               for p in PARTES_ALINEACION)
     d = _resta(tobillo, hombro)
     largo2 = _punto(d, d)
-    esc = escala_corporal(kps, usar_z)
-    if largo2 < 1e-12 or esc is None:
+    esc = _norma(_resta(hombro, cadera))
+    if largo2 < 1e-12 or esc < 1e-6:
         return None
     k = _punto(_resta(cadera, hombro), d) / largo2
     en_recta_y = hombro[1] + k * d[1]
@@ -520,11 +539,12 @@ def observacion_desde_pose(
         distancias["separacion_pies"] = sep
         confianza["separacion_pies"] = confianza_de_terna(
             kps, ("left_ankle", "right_ankle", "left_hip", "right_hip"))
-    alin = alineacion_cadera(kps, usar_z)
+    lado = lado_mas_visible(kps, PARTES_ALINEACION)
+    alin = alineacion_cadera(kps, usar_z, lado) if lado else None
     if alin is not None:
         distancias["alineacion_cadera"] = alin
         confianza["alineacion_cadera"] = confianza_de_terna(
-            kps, hombros + caderas + ("left_ankle", "right_ankle"))
+            kps, [f"{lado}_{p}" for p in PARTES_ALINEACION])
 
     return Observacion(
         t_ms=muestra.t_ms,
@@ -545,6 +565,6 @@ __all__ = [
     "orientacion_camara", "desviacion_lateral_rodilla", "separacion_pies",
     "rotacion_tronco", "azimut_cadera",
     "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_lateral",
-    "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera",
+    "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera", "lado_mas_visible",
     "confianza_de_terna", "observacion_desde_pose",
 ]

@@ -13,13 +13,13 @@
 | M2 | Aserciones no soportadas | 0.0 % | 114 mensajes |
 | M3 | Sobrecorrección en ejecuciones correctas | 0.0 % | 21 |
 | M5 | Determinismo | 100.0 % | 116 |
-| M7 | Caída a fallback | 0.0 % | 150 mensajes |
+| M7 | Caída a fallback | 0.0 % | 135 mensajes |
 | M8 | Refuerzo indebido: elogio con un error inducido y observable | 0.0 % | 57 |
-| M8′ | Elogio con un error presente pero no observable | 39.5 % | 38 |
+| M8′ | Elogio con un error presente pero no observable | 0.0 % | 38 |
 | — | Elogio en ejecuciones correctas | 100.0 % | 21 |
 | — | Abstención (sin corrección) con medida ocluida | 100.0 % | 19 |
 | — | Abstención (sin corrección) con plano no observable | 100.0 % | 19 |
-| — | Mensajes por minuto (correcciones + elogios) | 3.23 (2.46 + 0.78) | — |
+| — | Mensajes por minuto (correcciones + elogios) | 2.91 (2.46 + 0.45) | — |
 
 **M1\*** no es la M1 de ADR-001 §5: mide coherencia del motor sobre entrada sintética, no exactitud de contenido sobre vídeo real.
 
@@ -29,8 +29,8 @@ M3, M1\* y la abstención cuentan solo **correcciones**. El elogio (refuerzo pos
 
 | Etapa | p50 | p95 | máx | n |
 |---|---|---|---|---|
-| Decisión | 0.0023 | 0.0103 | 0.3410 | 5568 |
-| Verbalización | 0.0736 | 0.1136 | 0.4378 | 150 |
+| Decisión | 0.0066 | 0.0280 | 0.1963 | 5568 |
+| Verbalización | 0.1485 | 0.3177 | 0.5702 | 135 |
 
 Medido en el entorno de desarrollo, no en el hardware del proyecto. No sustituye la medición en el M2 Ultra. No incluye pose, DTW ni TTS.
 
@@ -38,9 +38,9 @@ Medido en el entorno de desarrollo, no en el hardware del proyecto. No sustituye
 
 | Motivo | Veces |
 |---|---|
-| `sin_error` | 4652 |
+| `sin_error` | 4651 |
 | `periodo_refractario` | 357 |
-| `plano_no_observable` | 256 |
+| `plano_no_observable` | 272 |
 | `evidencia_insuficiente` | 105 |
 | `confianza_baja` | 48 |
 

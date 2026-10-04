@@ -25,7 +25,7 @@ que es el peor fallo posible porque es silencioso.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Set, Tuple, Union
 
 from ..contrato import (
     ErrorTipificado, Lado, Observacion, Refuerzo, Severidad, Silencio, Plano,
@@ -134,8 +134,10 @@ class MotorDecision:
         self.contador_abstenciones: Dict[str, int] = {}
         #: estado de la racha de repeticiones limpias (refuerzo positivo)
         self._refuerzo = _EstadoRefuerzo()
-        #: ¿se evaluó alguna regla durante la repetición en curso?
-        self._rep_evaluada = False
+        #: reglas aplicables (por fase) y reglas comprobadas en la repetición
+        #: en curso: el refuerzo exige que coincidan (ADR-006 §2.9)
+        self._rep_aplicables: Set[str] = set()
+        self._rep_comprobadas: Set[str] = set()
         #: ¿se disparó algún candidato durante la repetición en curso?
         self._rep_sucia = False
         #: una racha se acaba de cerrar limpia y toca decidir si se habla
@@ -155,23 +157,30 @@ class MotorDecision:
             self._cierra_repeticion_anterior()
             self._repeticion_actual = obs.repeticion
             self._acum = _AcumuladorRepeticion()
-            self._rep_evaluada = False
+            self._rep_aplicables = set()
+            self._rep_comprobadas = set()
             self._rep_sucia = False
 
     def _cierra_repeticion_anterior(self) -> None:
         """Decide si la repetición que acaba de terminar fue 'limpia'.
 
-        Solo cuenta si al menos una regla pudo evaluarse en algún momento de
-        la repetición: una repetición nunca observada (confianza baja o plano
-        no observable todo el tiempo) no suma ni rompe la racha, porque el
-        motor no sabe nada de ella -- igual que `evaluadas == 0` no se reporta
-        como `sin_error` en `observar()`.
+        - Si alguna regla detectó un error, la racha se rompe.
+        - Solo suma a la racha si **todas** las reglas aplicables en las fases
+          que recorrió la repetición se pudieron comprobar al menos una vez, y
+          ninguna detectó error. Solo se felicita lo que se ha comprobado.
+        - Si alguna regla aplicable no se pudo comprobar (confianza baja o
+          plano no observable), la repetición no suma ni rompe: el motor no
+          sabe si estuvo bien.
+
+        Antes bastaba con que se comprobara **una** regla, y el sistema
+        felicitaba aunque hubiera un error que la cámara no veía (EXP-001 §8.4,
+        M8′ = 39,5 %).
         """
-        if self._repeticion_actual is None or not self._rep_evaluada:
+        if self._repeticion_actual is None or not self._rep_aplicables:
             return
         if self._rep_sucia:
             self._refuerzo.repeticiones_limpias_consecutivas = 0
-        else:
+        elif self._rep_aplicables <= self._rep_comprobadas:
             self._refuerzo.repeticiones_limpias_consecutivas += 1
             self._racha_cerrada_pendiente = True
 
@@ -373,8 +382,10 @@ class MotorDecision:
 
         candidatos, motivos, evaluadas_ids = self._candidatos(obs)
         evaluadas = len(evaluadas_ids)
-        if evaluadas > 0:
-            self._rep_evaluada = True
+        self._rep_aplicables.update(
+            r.error_id for r in self.skill.reglas
+            if not r.fases or obs.fase in r.fases)
+        self._rep_comprobadas.update(evaluadas_ids)
         if candidatos:
             self._rep_sucia = True
         self._actualiza_evidencia(obs, [r.error_id for r, _, _ in candidatos],
@@ -435,7 +446,8 @@ class MotorDecision:
         self._t_ultima_emision_ms = None
         self.contador_abstenciones.clear()
         self._refuerzo = _EstadoRefuerzo()
-        self._rep_evaluada = False
+        self._rep_aplicables = set()
+        self._rep_comprobadas = set()
         self._rep_sucia = False
         self._racha_cerrada_pendiente = False
 

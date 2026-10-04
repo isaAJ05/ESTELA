@@ -223,9 +223,10 @@ class MensajeFeedback:
 class Refuerzo:
     """Mensaje de refuerzo positivo: 'lo estás haciendo bien'.
 
-    Se emite cuando se cierra una racha de `racha` repeticiones consecutivas
-    en las que al menos una regla fue evaluable (el motor sí pudo mirar) y
-    ninguna se disparó. Deliberadamente no nombra segmento ni lado: lo único
+    Se emite cuando se cierra una racha de `racha` repeticiones en las que
+    **todas** las reglas aplicables se pudieron comprobar y ninguna se disparó
+    (ADR-006 §2.9). Una repetición en la que alguna regla no se pudo comprobar
+    no suma a la racha: solo se felicita lo que se ha comprobado. Deliberadamente no nombra segmento ni lado: lo único
     que el motor puede garantizar es "la ejecución reciente no mostró errores
     detectables", nunca "tal articulación concreta estuvo perfecta" -- eso
     sería afirmar más de lo que el sistema observó.

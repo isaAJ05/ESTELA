@@ -19,13 +19,13 @@ SKILLS["sentadilla"] = cargar_skill(
 
 
 def obs(t_ms, rep, fase="descenso", tronco=60.0, conf=1.0, orientacion=90.0,
-        **extra):
+        ejercicio="sentadilla", **extra):
     angulos = {"tronco_inclinacion": tronco}
     angulos.update(extra.pop("angulos", {}))
     confianza = {k: conf for k in angulos}
     confianza.update(extra.pop("confianza", {}))
     return Observacion(
-        t_ms=t_ms, ejercicio_id="sentadilla", angulos=angulos,
+        t_ms=t_ms, ejercicio_id=ejercicio, angulos=angulos,
         confianza=confianza, fase=fase, repeticion=rep,
         orientacion=orientacion, **extra)
 
@@ -193,59 +193,101 @@ class TestAgregados(unittest.TestCase):
         self.assertIsInstance(d, Silencio)  # falta evidencia (1 repeticion)
 
 
+ZANCADA = "zancada_atras_izq"
+
+
+def obs_z(t_ms, rep, **kw):
+    """Observación de la zancada: en «descenso» la única regla aplicable es la
+    del tronco, que de perfil siempre se puede comprobar."""
+    return obs(t_ms, rep, ejercicio=ZANCADA, **kw)
+
+
 class TestRefuerzo(unittest.TestCase):
-    """`sentadilla` tiene politica_refuerzo.activa=true, repeticiones_limpias=3,
-    refractario_ms=15000 (ver skills/sentadilla.json)."""
+    """`zancada_atras_izq` tiene politica_refuerzo.activa=true,
+    repeticiones_limpias=3, refractario_ms=15000. No se usa la sentadilla
+    retirada: sus reglas de valgo son frontales y de perfil nunca se pueden
+    comprobar, así que con ADR-006 §2.9 no felicita nunca (es correcto)."""
 
     def setUp(self):
-        self.motor = MotorDecision(SKILLS["sentadilla"])
+        self.motor = MotorDecision(SKILLS[ZANCADA])
 
     def test_racha_limpia_dispara_refuerzo(self):
         for rep in (1, 2, 3):
-            d = self.motor.observar(obs(rep * 1000, rep, tronco=20.0))
+            d = self.motor.observar(obs_z(rep * 1000, rep, tronco=20.0))
             self.assertIsInstance(d, Silencio)
         # al empezar la repeticion 4 se cierra la racha de 3 limpias.
-        d = self.motor.observar(obs(4000, 4, tronco=20.0))
+        d = self.motor.observar(obs_z(4000, 4, tronco=20.0))
         self.assertIsInstance(d, Refuerzo)
         self.assertEqual(d.racha, 3)
-        self.assertEqual(d.ejercicio_id, "sentadilla")
+        self.assertEqual(d.ejercicio_id, ZANCADA)
 
     def test_una_repeticion_sucia_rompe_la_racha(self):
-        self.motor.observar(obs(1000, 1, tronco=20.0))
-        self.motor.observar(obs(2000, 2, tronco=20.0))
-        self.motor.observar(obs(3000, 3, tronco=60.0))  # error: rompe la racha
-        self.motor.observar(obs(4000, 4, tronco=20.0))
-        self.motor.observar(obs(5000, 5, tronco=20.0))
-        self.motor.observar(obs(6000, 6, tronco=20.0))
-        d = self.motor.observar(obs(7000, 7, tronco=20.0))
+        self.motor.observar(obs_z(1000, 1, tronco=20.0))
+        self.motor.observar(obs_z(2000, 2, tronco=20.0))
+        self.motor.observar(obs_z(3000, 3, tronco=60.0))  # error: rompe la racha
+        self.motor.observar(obs_z(4000, 4, tronco=20.0))
+        self.motor.observar(obs_z(5000, 5, tronco=20.0))
+        self.motor.observar(obs_z(6000, 6, tronco=20.0))
+        d = self.motor.observar(obs_z(7000, 7, tronco=20.0))
         self.assertIsInstance(d, Refuerzo)
         self.assertEqual(d.racha, 3)  # solo cuenta desde la repeticion 4
 
     def test_repeticion_no_evaluable_no_cuenta_ni_rompe(self):
-        self.motor.observar(obs(1000, 1, tronco=20.0))
-        self.motor.observar(obs(2000, 2, tronco=20.0))
+        self.motor.observar(obs_z(1000, 1, tronco=20.0))
+        self.motor.observar(obs_z(2000, 2, tronco=20.0))
         # repeticion 3 totalmente ciega (confianza baja en todo): el motor no
         # pudo ver nada, así que no cuenta como limpia ni rompe la racha.
-        d_ciega = self.motor.observar(obs(2500, 3, tronco=20.0, conf=0.1))
+        d_ciega = self.motor.observar(obs_z(2500, 3, tronco=20.0, conf=0.1))
         self.assertIsInstance(d_ciega, Silencio)
-        d_tras_ciega = self.motor.observar(obs(3000, 4, tronco=20.0))
+        d_tras_ciega = self.motor.observar(obs_z(3000, 4, tronco=20.0))
         self.assertIsInstance(d_tras_ciega, Silencio)  # racha sigue en 2
-        d = self.motor.observar(obs(4000, 5, tronco=20.0))
+        d = self.motor.observar(obs_z(4000, 5, tronco=20.0))
         self.assertIsInstance(d, Refuerzo)
         self.assertEqual(d.racha, 3)
 
     def test_refractario_impide_dos_refuerzos_seguidos(self):
         for rep in range(1, 4):
-            self.motor.observar(obs(rep * 1000, rep, tronco=20.0))
-        d1 = self.motor.observar(obs(4000, 4, tronco=20.0))
+            self.motor.observar(obs_z(rep * 1000, rep, tronco=20.0))
+        d1 = self.motor.observar(obs_z(4000, 4, tronco=20.0))
         self.assertIsInstance(d1, Refuerzo)  # racha=3
 
         d2 = None
         for rep, t in ((5, 5000), (6, 6000), (7, 7000)):
-            d2 = self.motor.observar(obs(t, rep, tronco=20.0))
+            d2 = self.motor.observar(obs_z(t, rep, tronco=20.0))
         # al cerrar la repeticion 6 la racha llega a 6 (multiplo de 3), pero
         # pasaron solo 3000 ms desde el ultimo refuerzo (refractario 15000).
         self.assertIsInstance(d2, Silencio)
+
+    def test_no_felicita_si_una_regla_aplicable_no_se_pudo_comprobar(self):
+        """La rodilla delantera está ocluida en todas las repeticiones: no se
+        corrige (no se ve) y tampoco se felicita (no se ha comprobado)."""
+        def repeticion(rep, conf_rodilla):
+            t = rep * 1000
+            bajada = self.motor.observar(obs_z(t, rep, tronco=10.0))
+            subida = self.motor.observar(Observacion(
+                t_ms=t + 500, ejercicio_id=ZANCADA,
+                angulos={"tronco_inclinacion": 10.0, "rodilla_der": 90.0},
+                confianza={"tronco_inclinacion": 1.0, "rodilla_der": conf_rodilla},
+                fase="ascenso", repeticion=rep, orientacion=90.0))
+            return [bajada, subida]
+        dichos = [d for r in range(1, 9) for d in repeticion(r, 0.2)]
+        self.assertFalse(any(isinstance(d, (Refuerzo, ErrorTipificado)) for d in dichos))
+        # La misma ejecución con la rodilla visible sí se felicita.
+        self.motor = MotorDecision(SKILLS[ZANCADA])
+        dichos = [d for r in range(1, 6) for d in repeticion(r, 1.0)]
+        self.assertTrue(any(isinstance(d, Refuerzo) for d in dichos))
+
+    def test_no_felicita_si_la_orientacion_impide_comprobar_una_regla(self):
+        m = MotorDecision(SKILLS["abduccion_cadera_izq"])
+        dichos = []
+        for rep in range(1, 9):
+            for fase in ("subida", "arriba"):
+                angulos = {"inclinacion_lateral": 0.0, "oblicuidad_pelvis": 0.0}
+                dichos.append(m.observar(Observacion(
+                    t_ms=rep * 1000, ejercicio_id="abduccion_cadera_izq",
+                    angulos=angulos, confianza={k: 1.0 for k in angulos},
+                    fase=fase, repeticion=rep, orientacion=90.0)))
+        self.assertFalse(any(isinstance(d, Refuerzo) for d in dichos))
 
     def test_desactivado_por_defecto_en_un_skill_sin_politica(self):
         # jumping_jacks sí tiene politica_refuerzo propia; comprobamos que un
