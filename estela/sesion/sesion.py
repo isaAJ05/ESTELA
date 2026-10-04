@@ -72,6 +72,7 @@ class EstadoFrame:
     orientacion: Optional[float]
     aviso: Optional[str]
     ultimo_mensaje: Optional[str]
+    sugerencia: Optional[str]          # ejercicio que sugiere la BiLSTM
     landmarks: Optional[np.ndarray]    # (33, 4) de imagen, para dibujar
     latencia_ms: Dict[str, float]
     terminada: bool
@@ -93,12 +94,14 @@ class _Paso:
 class Sesion:
     def __init__(self, rutina: Rutina, catalogo: Mapping[str, Ejercicio],
                  estimador: Estimador, voz: Voz,
-                 verbalizador: Optional[Verbalizador] = None) -> None:
+                 verbalizador: Optional[Verbalizador] = None,
+                 reconocedor: Any = None) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
         self.voz = voz
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
+        self.reconocedor = reconocedor
         self.latencias = Latencias()
         self.frames = 0
         self.frames_sin_persona = 0
@@ -140,6 +143,8 @@ class Sesion:
         self._pasos.append(_Paso(ej, p.repeticiones,
                                  MotorFeedback(ej.skill, self.verbalizador),
                                  ej.nuevo_segmentador()))
+        if self.reconocedor is not None:
+            self.reconocedor.reiniciar()
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -170,7 +175,7 @@ class Sesion:
         self.frames += 1
         p = self.paso_actual
         if p is None:
-            return self._estado(None, None, None, {})
+            return self._estado(None, None, None, {}, None)
         if p.inicio_ms is None:
             p.inicio_ms = t_ms
 
@@ -178,13 +183,20 @@ class Sesion:
         self.latencias.anota("pose", res.latencia_ms)
         lat = {"pose": res.latencia_ms}
 
+        sugerencia = None
+        if self.reconocedor is not None:
+            t0 = time.perf_counter()
+            sugerencia = self.reconocedor.agregar(res.imagen).skill_id
+            lat["reconocimiento"] = (time.perf_counter() - t0) * 1000.0
+            self.latencias.anota("reconocimiento", lat["reconocimiento"])
+
         if res.muestra is None:
             self.frames_sin_persona += 1
             aviso = None
             if (self._ult_persona_ms is None
                     or t_ms - self._ult_persona_ms > SIN_PERSONA_S * 1000):
                 aviso = "No te veo: colócate dentro del encuadre."
-            return self._estado(p, None, aviso, lat)
+            return self._estado(p, None, aviso, lat, sugerencia)
         self._ult_persona_ms = t_ms
 
         skill = p.ejercicio.skill
@@ -211,7 +223,7 @@ class Sesion:
 
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                  or self._revisa_encuadre(seg.senal_valida, t_ms))
-        estado = self._estado(p, res, aviso, lat, obs.orientacion)
+        estado = self._estado(p, res, aviso, lat, sugerencia, obs.orientacion)
 
         if seg.evento == EVENTO_COMPLETA and seg.completadas >= p.objetivo:
             self._avanzar()
@@ -251,11 +263,12 @@ class Sesion:
 
     def _estado(self, p: Optional[_Paso], res: Optional[ResultadoPose],
                 aviso: Optional[str], lat: Dict[str, float],
+                sugerencia: Optional[str],
                 orientacion: Optional[float] = None) -> EstadoFrame:
         if p is None:
             return EstadoFrame("", "", len(self.rutina.pasos), len(self.rutina.pasos),
                                0, 0, 0, "", False, None, None, self._ultimo_mensaje,
-                               None, lat, True)
+                               None, None, lat, True)
         seg = p.seg
         return EstadoFrame(
             ejercicio=p.ejercicio.skill.nombre,
@@ -265,7 +278,7 @@ class Sesion:
             incompletas=seg.incompletas if seg else 0,
             fase=seg.fase if seg else "", persona=res is not None,
             orientacion=orientacion, aviso=aviso,
-            ultimo_mensaje=self._ultimo_mensaje,
+            ultimo_mensaje=self._ultimo_mensaje, sugerencia=sugerencia,
             landmarks=res.imagen if res is not None else None,
             latencia_ms=lat, terminada=False, unidad=p.ejercicio.unidad)
 

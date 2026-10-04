@@ -45,6 +45,8 @@ def _argumentos(argv=None) -> argparse.Namespace:
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="full",
                    help="variante de Pose Landmarker")
     p.add_argument("--voz", choices=("piper", "sistema", "texto"), default="piper")
+    p.add_argument("--auto", action="store_true",
+                   help="activar el reconocedor BiLSTM (consultivo)")
     p.add_argument("--sin-ventana", action="store_true",
                    help="sin interfaz gráfica (pruebas con vídeo)")
     p.add_argument("--guardar-metricas", action="store_true",
@@ -91,6 +93,14 @@ def main(argv=None) -> int:
 
     estimador = EstimadorPose(config.modelo_pose(args.modelo))
 
+    reconocedor = None
+    if args.auto:
+        try:
+            from .reconocimiento.bilstm import ReconocedorBiLSTM
+            reconocedor = ReconocedorBiLSTM(config.BILSTM)
+        except Exception as e:                     # noqa: BLE001
+            log.warning("Reconocedor BiLSTM desactivado: %s", e)
+
     motor_voz = crear_motor(args.voz, buscar_voz_piper(config.VOCES))
     log.info("Voz: %s", motor_voz.nombre)
     voz = ColaVoz(motor_voz)
@@ -104,7 +114,7 @@ def main(argv=None) -> int:
         fuente = FuenteCamara(args.camara)
     espejo = args.video is None
 
-    sesion = Sesion(rutina, catalogo, estimador, voz)
+    sesion = Sesion(rutina, catalogo, estimador, voz, reconocedor=reconocedor)
     ventana = not args.sin_ventana
     if ventana:
         import cv2

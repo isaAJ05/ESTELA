@@ -11,6 +11,7 @@
 | Captura y visualización | OpenCV, Pillow (texto con tildes) |
 | Feedback | Motor determinista + plantillas en español (`feedback/`, solo biblioteca estándar) |
 | Voz | Piper (`piper-tts`), con caída a espeak-ng / `say` o solo texto |
+| Reconocimiento de ejercicio (opcional) | BiLSTM entrenada en `PRUEBAS/`, ejecutada en numpy + h5py (sin TensorFlow) |
 
 ### 1.2 Componentes de la solución
 
@@ -52,11 +53,12 @@ git clone <url-del-repositorio> ESTELA && cd ESTELA
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[voz,dev]"
+pip install -e ".[voz,reconocimiento,dev]"
 ```
 
 Extras opcionales:
 - `voz` instala Piper.
+- `reconocimiento` instala h5py para la BiLSTM.
 - `dev` instala pytest.
 
 #### 3.1.3 Configurar variables de entorno
@@ -79,6 +81,7 @@ Quedan en `modelos/`, que está ignorado por git.
 python -m estela                                   # rutina rutinas/calentamiento_basico.json
 python -m estela --ejercicio zancada_atras_izq --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
+python -m estela --auto                            # + sugerencia BiLSTM (solo reconoce marcha y jumping jacks)
 python -m estela --voz texto                       # sin audio
 python -m estela --modelo lite                     # pose más rápida y menos precisa
 python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas
