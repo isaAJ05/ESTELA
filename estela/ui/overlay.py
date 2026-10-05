@@ -85,6 +85,8 @@ def dibujar(frame: np.ndarray, estado: EstadoFrame, espejo: bool = True,
         if estado.incompletas:
             etiqueta = "pausas" if estado.unidad == "segundos" else "incompletas"
             detalle += f"   {etiqueta}: {estado.incompletas}"
+        if estado.pausada:
+            detalle += "   EN PAUSA"
         textos.append(((t(250), t(70)), detalle, t(26), GRIS))
 
     derecha = []

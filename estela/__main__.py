@@ -60,7 +60,9 @@ def _imprimir_resumen(r: dict) -> None:
                   else " completas, {} incompletas").format(paso["incompletas"])
         print(f"- {paso['skill_id']}: {paso['completadas']}/{paso['objetivo']}"
               f"{hechas}, "
-              f"{len(paso['mensajes'])} correcciones, {paso['duracion_s']} s")
+              f"{len(paso['mensajes'])} correcciones, {paso['duracion_s']} s"
+              + (f" (en pausa {paso['pausas_sesion']} veces, {paso['pausa_s']} s)"
+                 if paso["pausas_sesion"] else ""))
         for m in paso["mensajes"]:
             print(f"    [{m['t_ms'] / 1000:6.1f} s · rep {m['repeticion']}] {m['texto']}")
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")

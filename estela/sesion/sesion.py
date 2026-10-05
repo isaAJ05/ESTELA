@@ -12,6 +12,10 @@ con un estimador falso y reproducirlo con un vídeo.
 Además del feedback de técnica (que decide solo el motor), la sesión emite
 avisos de *operación*: qué ejercicio toca, cómo colocarse y cuándo se
 termina. No son correcciones de movimiento, por eso no pasan por el motor.
+
+Si la usuaria sale del encuadre o deja de hacer el ejercicio, el paso se
+pausa (`pausa.DetectorPausa`): el motor no corrige, el tiempo del paso no
+corre y los contadores se conservan hasta que retoma.
 """
 
 from __future__ import annotations
@@ -32,6 +36,7 @@ from ..conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador
 from ..pose.estimador import ResultadoPose
 from ..voz.cola import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK
 from .metricas import Latencias
+from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
 from .rutina import Ejercicio, Rutina
 
 #: segundos seguidos mal orientada antes de avisar por voz, y separación
@@ -44,6 +49,10 @@ SIN_PERSONA_S = 1.5
 #: del encuadre u ocluidas) antes de pedir que se aleje
 SIN_SENAL_S = 2.0
 AVISO_ENCUADRE = "Aléjate un poco: necesito verte el cuerpo entero."
+AVISO_SIN_PERSONA = "No te veo: colócate dentro del encuadre."
+AVISO_PAUSA = {SIN_PERSONA: "Pausa. No te veo: vuelve al encuadre para seguir.",
+               INACTIVIDAD: "Pausa. Cuando quieras, sigue con el ejercicio."}
+AVISO_REANUDA = "Seguimos."
 
 _IDEAL = {Plano.FRONTAL: 0.0, Plano.SAGITAL: 90.0}
 _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
@@ -76,6 +85,7 @@ class EstadoFrame:
     latencia_ms: Dict[str, float]
     terminada: bool
     unidad: str = "repeticiones"       # o "segundos" en ejercicios isométricos
+    pausada: bool = False
 
 
 @dataclass
@@ -88,6 +98,7 @@ class _Paso:
     fin_ms: Optional[int] = None
     seg: Optional[EstadoSegmento] = None
     mensajes: List[Dict[str, Any]] = field(default_factory=list)
+    pausa: DetectorPausa = field(default_factory=DetectorPausa)
 
 
 class Sesion:
@@ -180,10 +191,14 @@ class Sesion:
 
         if res.muestra is None:
             self.frames_sin_persona += 1
+            p.segmentador.interrumpir()
+            self._anuncia_pausa(p, p.pausa.actualizar(t_ms, persona=False))
             aviso = None
-            if (self._ult_persona_ms is None
+            if p.pausa.pausada:
+                aviso = AVISO_PAUSA[p.pausa.motivo]
+            elif (self._ult_persona_ms is None
                     or t_ms - self._ult_persona_ms > SIN_PERSONA_S * 1000):
-                aviso = "No te veo: colócate dentro del encuadre."
+                aviso = AVISO_SIN_PERSONA
             return self._estado(p, None, aviso, lat)
         self._ult_persona_ms = t_ms
 
@@ -195,10 +210,25 @@ class Sesion:
         p.seg = seg
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
         t2 = time.perf_counter()
+        lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
+
+        # El ejercicio cuenta como empezado desde la primera repetición (o el
+        # primer bloque en posición): antes no se vigila la inactividad.
+        progreso = ((seg.fase, seg.repeticion, seg.completadas, seg.incompletas)
+                    if seg.repeticion > 0 else None)
+        self._anuncia_pausa(p, p.pausa.actualizar(
+            t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion)))
+        if p.pausa.pausada:
+            for etapa in ("geometria", "segmentacion"):
+                self.latencias.anota(etapa, lat[etapa])
+            aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
+                     or AVISO_PAUSA[p.pausa.motivo])
+            return self._estado(p, res, aviso, lat, obs.orientacion)
+
+        t2 = time.perf_counter()
         salida = p.motor.procesar(obs)
         t3 = time.perf_counter()
-        lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000,
-                   motor=(t3 - t2) * 1000)
+        lat["motor"] = (t3 - t2) * 1000
         for etapa in ("geometria", "segmentacion", "motor"):
             self.latencias.anota(etapa, lat[etapa])
 
@@ -219,12 +249,26 @@ class Sesion:
         self.latencias.anota("total", lat["total"])
         return estado
 
-    def _revisa_orientacion(self, skill, orientacion: Optional[float],
-                            t_ms: int) -> Optional[str]:
+    def _anuncia_pausa(self, p: _Paso, evento: Optional[str]) -> None:
+        if evento == EVENTO_PAUSA:
+            self.voz.decir(AVISO_PAUSA[p.pausa.motivo], PRIORIDAD_AVISO)
+        elif evento == EVENTO_REANUDA:
+            p.segmentador.interrumpir()
+            self._mal_orientada_desde = None
+            self._ult_senal_ms = None
+            self.voz.decir(AVISO_REANUDA, PRIORIDAD_AVISO)
+
+    @staticmethod
+    def _orientacion_ok(skill, orientacion: Optional[float]) -> bool:
+        """Sin orientación medible o sin preferencia, no se bloquea nada."""
         ideal = _IDEAL.get(skill.orientacion_preferida)
         if ideal is None or orientacion is None:
-            return None
-        if abs(orientacion - ideal) <= skill.politica.tolerancia_orientacion_grados:
+            return True
+        return abs(orientacion - ideal) <= skill.politica.tolerancia_orientacion_grados
+
+    def _revisa_orientacion(self, skill, orientacion: Optional[float],
+                            t_ms: int) -> Optional[str]:
+        if self._orientacion_ok(skill, orientacion):
             self._mal_orientada_desde = None
             return None
         if self._mal_orientada_desde is None:
@@ -267,7 +311,8 @@ class Sesion:
             orientacion=orientacion, aviso=aviso,
             ultimo_mensaje=self._ultimo_mensaje,
             landmarks=res.imagen if res is not None else None,
-            latencia_ms=lat, terminada=False, unidad=p.ejercicio.unidad)
+            latencia_ms=lat, terminada=False, unidad=p.ejercicio.unidad,
+            pausada=p.pausa.pausada)
 
     # -- resumen ------------------------------------------------------------
 
@@ -276,15 +321,19 @@ class Sesion:
         pasos = []
         for p in self._pasos:
             seg = p.seg
+            fin_ms = p.fin_ms if p.fin_ms is not None else self._t_ms
+            pausa_ms = p.pausa.tiempo_pausado_ms(fin_ms)
             pasos.append({
                 "skill_id": p.ejercicio.skill.skill_id,
                 "objetivo": p.objetivo,
                 "unidad": p.ejercicio.unidad,
                 "completadas": seg.completadas if seg else 0,
                 "incompletas": seg.incompletas if seg else 0,
-                "duracion_s": (round(((p.fin_ms if p.fin_ms is not None else self._t_ms)
-                                      - p.inicio_ms) / 1000.0, 1)
+                # tiempo activo: sin contar las pausas
+                "duracion_s": (round((fin_ms - p.inicio_ms - pausa_ms) / 1000.0, 1)
                                if p.inicio_ms is not None else 0.0),
+                "pausas_sesion": p.pausa.veces,
+                "pausa_s": round(pausa_ms / 1000.0, 1),
                 "mensajes": p.mensajes,
                 "abstenciones": p.motor.abstenciones,
             })
@@ -309,6 +358,8 @@ def frases_de_rutina(rutina: Rutina, catalogo: Mapping[str, Ejercicio],
     frases: Set[str] = {"Rutina terminada. Buen trabajo."}
     frases.update(_COLOCACION.values())
     frases.add(AVISO_ENCUADRE)
+    frases.update(AVISO_PAUSA.values())
+    frases.add(AVISO_REANUDA)
     for paso in rutina.pasos:
         ej = catalogo[paso.skill_id]
         frases.add(Sesion._anuncio(ej, paso.repeticiones))
