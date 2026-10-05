@@ -52,3 +52,30 @@ def test_tiempo_pausado_incluye_la_pausa_en_curso():
     d.actualizar(0, persona=False)
     d.actualizar(1000, persona=False)
     assert d.tiempo_pausado_ms(4000) == 3000
+
+
+def test_sin_senal_valida_no_se_vigila_la_inactividad():
+    d = DetectorPausa(inactividad_s=8)
+    d.actualizar(0, True, progreso=("reposo", 1, 1, 0))
+    for t in range(100, 20000, 100):                # piernas fuera del encuadre
+        assert d.actualizar(t, True, progreso=None) is None
+
+
+def test_pausa_por_inactividad_no_retoma_sin_senal():
+    d = DetectorPausa(inactividad_s=8)
+    d.actualizar(0, True, progreso=("reposo", 1, 1, 0))
+    assert d.actualizar(8000, True, progreso=("reposo", 1, 1, 0)) == EVENTO_PAUSA
+    assert d.actualizar(8100, True, progreso=None) is None
+    assert d.pausada
+
+
+def test_si_sale_del_encuadre_durante_la_inactividad_cambia_el_motivo():
+    d = DetectorPausa(sin_persona_s=5, inactividad_s=8)
+    d.actualizar(0, True, progreso=("reposo", 1, 1, 0))
+    assert d.actualizar(8000, True, progreso=("reposo", 1, 1, 0)) == EVENTO_PAUSA
+    assert d.actualizar(12000, persona=False) is None
+    assert d.motivo == INACTIVIDAD                  # aún no pasan 5 s sin verla
+    assert d.actualizar(13000, persona=False) is None
+    assert d.motivo == SIN_PERSONA and d.veces == 1
+    # al volver bien orientada retoma aunque no se haya movido todavía
+    assert d.actualizar(14000, True, progreso=("reposo", 1, 1, 0)) == EVENTO_REANUDA

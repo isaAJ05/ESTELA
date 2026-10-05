@@ -212,16 +212,18 @@ class Sesion:
         t2 = time.perf_counter()
         lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
 
-        # El ejercicio cuenta como empezado desde la primera repetición (o el
-        # primer bloque en posición): antes no se vigila la inactividad.
+        # La inactividad se vigila desde la primera repetición (o el primer
+        # bloque en posición) y solo con señal válida: sin señal, el problema
+        # es el encuadre y lo avisa `_revisa_encuadre`.
         progreso = ((seg.fase, seg.repeticion, seg.completadas, seg.incompletas)
-                    if seg.repeticion > 0 else None)
+                    if seg.repeticion > 0 and seg.senal_valida else None)
         self._anuncia_pausa(p, p.pausa.actualizar(
             t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion)))
         if p.pausa.pausada:
             for etapa in ("geometria", "segmentacion"):
                 self.latencias.anota(etapa, lat[etapa])
             aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
+                     or self._revisa_encuadre(seg.senal_valida, t_ms)
                      or AVISO_PAUSA[p.pausa.motivo])
             return self._estado(p, res, aviso, lat, obs.orientacion)
 

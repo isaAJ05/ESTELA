@@ -329,6 +329,27 @@ def test_tras_la_pausa_no_retoma_si_vuelve_mal_orientada(catalogo):
     assert (AVISO_REANUDA, PRIORIDAD_AVISO) not in voz.dichas
 
 
+def test_sin_senal_tras_empezar_pide_alejarse_y_no_pausa(catalogo):
+    """Tras una zancada, las piernas quedan fuera del encuadre 12 s: es un
+    problema de encuadre, no inactividad."""
+    class EstimadorPiernasFuera(EstimadorFalso):
+        def estimar(self, frame, t_ms):           # frame < 0: piernas ocultas
+            mundo = esqueleto_perfil(abs(float(frame)), 10.0)
+            if frame < 0:
+                for n in ("knee", "ankle"):
+                    for lado in ("left", "right"):
+                        mundo[IDX[f"{lado}_{n}"], 3] = 0.2
+            return ResultadoPose(muestra_desde_arrays(t_ms, mundo, mundo), mundo, 1.0)
+
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
+               EstimadorPiernasFuera(tronco=10), voz)
+    estados = correr(s, secuencia_zancadas(1) + [-170.0] * 120)
+    assert not any(e.pausada for e in estados)
+    assert estados[-1].aviso == "Aléjate un poco: necesito verte el cuerpo entero."
+    assert not any(t.startswith("Pausa") for t, _ in voz.dichas)
+
+
 def test_la_rutina_por_defecto_carga_los_cinco_ejercicios(catalogo):
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
     ids = [p.skill_id for p in rutina.pasos]

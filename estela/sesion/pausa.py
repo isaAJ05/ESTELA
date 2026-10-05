@@ -11,9 +11,12 @@ Dos motivos:
                  cuanto vuelve la persona con la orientación correcta.
 ``inactividad``  `inactividad_s` con la persona delante pero sin progreso en el
                  ejercicio (ni fase, ni repetición, ni contadores cambian).
-                 Solo se arma cuando el ejercicio ya empezó, para no pausar
-                 mientras la persona se coloca. Se retoma cuando vuelve a haber
-                 progreso con la orientación correcta.
+                 Solo se vigila cuando el ejercicio ya empezó (para no pausar
+                 mientras la persona se coloca) y la señal es válida (si no se
+                 ven las articulaciones, el problema es el encuadre y lo avisa
+                 la sesión). Se retoma cuando vuelve a haber progreso con la
+                 orientación correcta. Si durante esta pausa la persona sale
+                 del encuadre `sin_persona_s`, el motivo pasa a ``sin_persona``.
 
 La quietud de un isométrico no es inactividad: en posición, el segmentador
 suma un segundo cada segundo y eso cuenta como progreso.
@@ -49,8 +52,8 @@ class DetectorPausa:
 
     * `persona`: si el estimador detectó a alguien.
     * `progreso`: algo comparable que cambia cuando la usuaria avanza en el
-      ejercicio (p. ej. fase, repetición y contadores), o None si el
-      ejercicio aún no empezó (no se vigila la inactividad).
+      ejercicio (p. ej. fase, repetición y contadores), o None si no se puede
+      vigilar la inactividad (el ejercicio no empezó o la señal no es válida).
     * `orientacion_ok`: si está colocada como pide el ejercicio.
 
     Devuelve `EVENTO_PAUSA`, `EVENTO_REANUDA` o None.
@@ -101,9 +104,16 @@ class DetectorPausa:
     def _quizas_reanudar(self, t_ms: int, persona: bool,
                          progreso: Optional[Hashable],
                          orientacion_ok: bool) -> Optional[str]:
-        if not persona or not orientacion_ok:
+        if not persona:
+            if (self.motivo == INACTIVIDAD
+                    and t_ms - self._ult_persona_ms >= self.sin_persona_ms):
+                self.motivo = SIN_PERSONA         # misma pausa, otro motivo
             return None
-        if self.motivo == INACTIVIDAD and progreso == self._progreso:
+        self._ult_persona_ms = t_ms
+        if not orientacion_ok:
+            return None
+        if self.motivo == INACTIVIDAD and (progreso is None
+                                           or progreso == self._progreso):
             return None
         self._pausado_ms = self.tiempo_pausado_ms(t_ms)
         self.motivo, self._desde_ms = None, None
