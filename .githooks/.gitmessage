@@ -1,0 +1,35 @@
+# ==========================================================
+# ESTELA - Git Commit
+# ==========================================================
+#
+# Formato:
+#
+# <tipo>(<modulo>): <descripcion>
+#
+# ClickUp Task ID:
+# #TASK_ID
+#
+# Ejemplo:
+# feat(pose): agregar normalizacion de angulos
+#
+# #8abc123
+#
+# Tipos permitidos/recomendados:
+#
+# feat      Nueva funcionalidad
+# fix       Correccion de error
+# refactor  Refactorizacion sin cambio funcional
+# docs      Documentacion
+# test      Pruebas
+# perf      Mejora de rendimiento
+# chore     Mantenimiento/configuracion
+#
+# IMPORTANTE:
+# El ClickUp Task ID es OBLIGATORIO.
+#
+# ==========================================================
+
+feat(scope): descripcion
+
+# ClickUp Task ID:
+# 
