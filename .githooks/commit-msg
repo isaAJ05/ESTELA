@@ -3,32 +3,34 @@
 COMMIT_MSG_FILE="$1"
 COMMIT_MSG=$(cat "$COMMIT_MSG_FILE")
 
-# ClickUp acepta:
-# #task_id
-# CU-task_id
-# custom_task_id
-# #custom_task_id
+# ClickUp Task ID obligatorio.
 #
-# Ejemplos:
-# #1abc2de
-# CU-1abc2de
-# eng-123
-# #eng-123
+# Formatos aceptados:
+#   CU-abc123
+#   #abc123
+#   EST-123
+#
+# El ID debe aparecer como una palabra independiente.
 
-if ! printf '%s\n' "$COMMIT_MSG" | grep -Eq '(^|[[:space:]])(#[A-Za-z0-9][A-Za-z0-9-]*|CU-[A-Za-z0-9][A-Za-z0-9-]*)([[:space:]]|$)'; then
+if ! printf '%s\n' "$COMMIT_MSG" | grep -Eq '(^|[[:space:]])(CU-[A-Za-z0-9][A-Za-z0-9-]*|#[A-Za-z0-9][A-Za-z0-9-]*|[A-Za-z]+-[0-9]+)([[:space:]]|$)'; then
+
     echo ""
-    echo "ERROR: El commit debe incluir un ClickUp Task ID."
+    echo "ERROR: Commit rechazado."
+    echo ""
+    echo "El commit debe incluir un ClickUp Task ID."
     echo ""
     echo "Ejemplos validos:"
-    echo "  #1abc2de"
-    echo "  CU-1abc2de"
-    echo "  #eng-123"
+    echo "  CU-abc123"
+    echo "  #abc123"
+    echo "  EST-123"
     echo ""
-    echo "Ejemplo:"
+    echo "Ejemplo correcto:"
+    echo ""
     echo "  feat(pose): mejorar deteccion de postura"
     echo ""
-    echo "  #eng-123"
+    echo "  CU-abc123"
     echo ""
+
     exit 1
 fi
 
