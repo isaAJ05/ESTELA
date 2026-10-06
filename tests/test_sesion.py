@@ -17,7 +17,8 @@ from estela.pose.landmarks import NOMBRES_MEDIAPIPE, muestra_desde_arrays
 from estela import config
 from estela.sesion.rutina import (RutinaInvalida, cargar_catalogo, cargar_rutina,
                                   rutina_de_un_ejercicio, rutina_desde_dict)
-from estela.sesion.sesion import Sesion, frases_de_rutina
+from estela.sesion.sesion import (AVISO_PAUSA, AVISO_REANUDA, Sesion,
+                                  frases_de_rutina)
 from estela.voz.cola import PRIORIDAD_AVISO
 
 IDX = {n: i for i, n in enumerate(NOMBRES_MEDIAPIPE)}
@@ -173,6 +174,7 @@ def test_frases_precalculables_incluyen_plantillas(catalogo):
     frases = frases_de_rutina(rutina, catalogo)
     assert ("Ahora, zancada atrás estática, pierna izquierda atrás. 5 repeticiones. "
             "Colócate de perfil a la cámara.") in frases
+    assert AVISO_REANUDA in frases and set(AVISO_PAUSA.values()) <= frases
     # Las dos reglas de la zancada: rodilla delantera y tronco.
     assert any("rodilla derecha" in f.lower() for f in frases)
     assert any("tronco" in f.lower() or "pecho" in f.lower() for f in frases)
@@ -251,6 +253,101 @@ def test_plancha_cadera_hundida_se_corrige_tras_dos_bloques(catalogo):
     # bloques de 5 s y repeticiones_evidencia = 2: nunca en el primer bloque
     assert all(m["repeticion"] >= 2 for m in msgs)
     assert any("caderas" in t.lower() for t in voz.correcciones)
+
+
+class EstimadorPlanchaConHuecos(EstimadorPlancha):
+    def estimar(self, frame, t_ms):
+        if math.isnan(float(frame)):
+            return ResultadoPose(None, None, 1.0)
+        return super().estimar(frame, t_ms)
+
+
+def test_plancha_no_suma_el_tiempo_sin_persona(catalogo):
+    """3 s en posición, 3 s sin persona, 3 s en posición: el hueco no cuenta."""
+    s = Sesion(rutina_de_un_ejercicio("plancha", 99, catalogo), catalogo,
+               EstimadorPlanchaConHuecos(), VozFalsa())
+    estados = correr(s, [0.0] * 30 + [float("nan")] * 30 + [0.0] * 30)
+    assert estados[-1].completadas <= 5            # ~2 s + ~3 s, no ~8 s
+
+
+def test_plancha_quieta_en_posicion_no_se_pausa(catalogo):
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio("plancha", 99, catalogo), catalogo,
+               EstimadorPlancha(), voz)
+    estados = correr(s, [0.0] * 200)               # 20 s sin moverse
+    assert not any(e.pausada for e in estados)
+    assert not any(t.startswith("Pausa") for t, _ in voz.dichas)
+
+
+# ---------------------------------------------------------------------------
+# Pausa por inactividad (T22.b): pausar nunca reinicia los contadores
+# ---------------------------------------------------------------------------
+
+def test_salir_y_volver_a_mitad_de_serie_conserva_las_repeticiones(catalogo):
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
+               EstimadorFalso(tronco=10), voz)
+    fuera = [float("nan")] * 60                    # 6 s fuera del encuadre
+    estados = correr(s, secuencia_zancadas(2) + fuera + secuencia_zancadas(3))
+    assert any(e.pausada for e in estados)
+    assert not estados[-1].pausada
+    assert estados[-1].completadas == 5
+    dichas = [t for t, _ in voz.dichas]
+    assert dichas.index(AVISO_PAUSA["sin_persona"]) < dichas.index(AVISO_REANUDA)
+    paso = s.resumen()["pasos"][0]
+    assert paso["pausas_sesion"] == 1 and paso["pausa_s"] > 0
+    total_s = (len(estados) - 1) / 10
+    assert paso["duracion_s"] == round(total_s - paso["pausa_s"], 1)
+
+
+def test_quieta_tras_empezar_se_pausa_y_retoma_al_moverse(catalogo):
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
+               EstimadorFalso(tronco=10), voz)
+    estados = correr(s, secuencia_zancadas(1) + [170.0] * 100 + secuencia_zancadas(2))
+    assert ("Pausa. Cuando quieras, sigue con el ejercicio.", PRIORIDAD_AVISO) in voz.dichas
+    assert (AVISO_REANUDA, PRIORIDAD_AVISO) in voz.dichas
+    assert estados[-1].completadas == 3 and not estados[-1].pausada
+
+
+def test_colocandose_antes_de_empezar_no_se_pausa(catalogo):
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
+               EstimadorFalso(tronco=10), voz)
+    estados = correr(s, [170.0] * 200)             # 20 s de pie, sin empezar
+    assert not any(e.pausada for e in estados)
+
+
+def test_tras_la_pausa_no_retoma_si_vuelve_mal_orientada(catalogo):
+    """Jumping jacks pide frente; el esqueleto sintético vuelve de perfil."""
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 5, catalogo), catalogo,
+               EstimadorFalso(tronco=10), voz)
+    estados = correr(s, [float("nan")] * 60 + [170.0] * 40)
+    assert estados[-1].pausada
+    assert estados[-1].aviso == "Colócate de frente a la cámara."
+    assert (AVISO_REANUDA, PRIORIDAD_AVISO) not in voz.dichas
+
+
+def test_sin_senal_tras_empezar_pide_alejarse_y_no_pausa(catalogo):
+    """Tras una zancada, las piernas quedan fuera del encuadre 12 s: es un
+    problema de encuadre, no inactividad."""
+    class EstimadorPiernasFuera(EstimadorFalso):
+        def estimar(self, frame, t_ms):           # frame < 0: piernas ocultas
+            mundo = esqueleto_perfil(abs(float(frame)), 10.0)
+            if frame < 0:
+                for n in ("knee", "ankle"):
+                    for lado in ("left", "right"):
+                        mundo[IDX[f"{lado}_{n}"], 3] = 0.2
+            return ResultadoPose(muestra_desde_arrays(t_ms, mundo, mundo), mundo, 1.0)
+
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
+               EstimadorPiernasFuera(tronco=10), voz)
+    estados = correr(s, secuencia_zancadas(1) + [-170.0] * 120)
+    assert not any(e.pausada for e in estados)
+    assert estados[-1].aviso == "Aléjate un poco: necesito verte el cuerpo entero."
+    assert not any(t.startswith("Pausa") for t, _ in voz.dichas)
 
 
 def test_la_rutina_por_defecto_carga_los_cinco_ejercicios(catalogo):

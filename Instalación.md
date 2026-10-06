@@ -104,6 +104,7 @@ python -m unittest discover -s feedback/tests -t . # tests del módulo de feedba
 Para una prueba reproducible sin cámara, ejecutar un vídeo del dataset con `--sin-ventana`. El resumen final muestra:
 - repeticiones completas e incompletas
 - correcciones emitidas
+- pausas de la sesión y tiempo en pausa (la duración de cada ejercicio no las incluye)
 - latencia p50/p95 por etapa
 
 ## 6. Solución de problemas frecuentes
@@ -113,6 +114,7 @@ Para una prueba reproducible sin cámara, ejecutar un vídeo del dataset con `--
 | `No existe el modelo de pose …` | No se descargaron los modelos | `python scripts/descargar_modelos.py` |
 | `Voz 'piper' no disponible` | Falta el extra `voz` o la voz | `pip install -e ".[voz]"` y volver a descargar los modelos |
 | El contador no avanza | Orientación distinta de la del ejercicio, o baja visibilidad | Seguir el aviso en pantalla («de perfil» / «de frente») y encuadrar el cuerpo entero |
+| La sesión dice «Pausa» | 5 s fuera del encuadre, u 8 s sin avanzar en un ejercicio ya empezado (`estela/sesion/pausa.py`) | Volver al encuadre con la orientación pedida, o seguir con el ejercicio: retoma solo y conserva las repeticiones |
 | FPS bajos | Pose *full* en una CPU lenta | `--modelo lite` |
 | `mp.solutions` no existe | Scripts antiguos de `PRUEBAS/` | Esos scripts usan la API legacy, que ya no existe en mediapipe 1.x |
 

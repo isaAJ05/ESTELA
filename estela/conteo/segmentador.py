@@ -171,6 +171,11 @@ class Segmentador:
     def reiniciar(self) -> None:  # pragma: no cover
         raise NotImplementedError
 
+    def interrumpir(self) -> None:
+        """Hubo frames que el segmentador no vio (sin persona, sesión en
+        pausa). Los que miden tiempo no deben sumar ese hueco; los demás no
+        necesitan hacer nada. No toca los contadores."""
+
 
 class SegmentadorCiclo(Segmentador):
     def __init__(self, senal: Union[str, Sequence[str]], reposo: float, extremo: float,
@@ -326,6 +331,10 @@ class SegmentadorIsometrico(Segmentador):
         self._acumulado_ms = 0.0
         self._interrupciones = 0
         self._rep = 0
+
+    def interrumpir(self) -> None:
+        self._t_prev = None                     # no se suma el hueco
+        self._cumple_desde = None               # ni se entra con lo no visto
 
     def _estado(self, evento: Optional[str], valida: bool) -> EstadoSegmento:
         return EstadoSegmento(self._dentro if self._en_posicion else self._fuera,
