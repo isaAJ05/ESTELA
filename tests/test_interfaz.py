@@ -153,6 +153,10 @@ def test_resumen_para_la_interfaz(catalogo, rutina):
     assert r["pasos"][0]["completadas"] == 2
     assert r["pasos"][0]["correctas"] is None and r["resumenTexto"] is None
     assert r["duracionTotalS"] == round(sum(p["duracionS"] for p in r["pasos"]), 1)
+    # panel técnico de T29: abstenciones por paso y latencia p50/p95 por etapa
+    assert isinstance(r["pasos"][0]["abstenciones"], dict)
+    assert r["tecnico"]["frames"] == s.frames
+    assert {"p50Ms", "p95Ms", "n"} <= set(r["tecnico"]["latencias"]["pose"])
     texto = json.dumps(r)
     assert "puntos" not in texto and "landmarks" not in texto
 
@@ -186,6 +190,7 @@ def test_flujo_inicio_sesion_resumen(catalogo, rutina):
     e = esperar_fase(orq, RESUMEN)
     assert e["sesion"] is None and e["frame"] is None
     assert e["resumen"]["pasos"][0]["completadas"] == 2
+    assert e["resumen"]["motivoFin"] == "fuente"      # el «vídeo» se acabó
     assert len(resumenes) == 1                  # se imprimió/guardó una vez
     assert creados["fuentes"][0].cerrada and creados["estimadores"][0].cerrado
     json.dumps(e)
@@ -218,6 +223,7 @@ def test_siguiente_y_terminar_desde_la_interfaz(catalogo, rutina):
     orq.terminar()
     fin = esperar_fase(orq, RESUMEN)
     assert not fin["resumen"]["terminada"]
+    assert fin["resumen"]["motivoFin"] == "usuaria"
     assert [p["skillId"] for p in fin["resumen"]["pasos"]] == [ZANCADA, "plancha"]
     assert len(resumenes) == 1
 
@@ -299,3 +305,11 @@ def test_frame_real_se_envia_como_jpeg(catalogo, rutina):
     assert e["sesion"]["puntos"] is None and not e["sesion"]["persona"]
     orq.terminar()
     esperar_fase(orq, RESUMEN)
+
+
+def test_rutina_completa_termina_como_completada(catalogo):
+    rutina = rutina_desde_dict({"pasos": [{"skill_id": ZANCADA, "repeticiones": 1}]}, catalogo)
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(3), bloquear=True)
+    orq.iniciar()
+    fin = esperar_fase(orq, RESUMEN)
+    assert fin["resumen"]["terminada"] and fin["resumen"]["motivoFin"] == "completada"

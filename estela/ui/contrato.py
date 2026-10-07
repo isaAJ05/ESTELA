@@ -137,9 +137,18 @@ def rutina_a_dict(rutina: Rutina, catalogo: Mapping[str, Ejercicio]) -> Dict[str
     return {"nombre": rutina.nombre, "pasos": pasos}
 
 
-def resumen_a_dict(resumen: Mapping[str, Any],
-                   catalogo: Mapping[str, Ejercicio]) -> Dict[str, Any]:
-    """`Sesion.resumen()` → resumen para la pantalla final (solo métricas derivadas)."""
+#: por qué terminó la sesión (lo pone el orquestador)
+FIN_COMPLETADA, FIN_USUARIA, FIN_FUENTE, FIN_CIERRE, FIN_ERROR = (
+    "completada", "usuaria", "fuente", "cierre", "error")
+
+
+def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio],
+                   motivo_fin: Optional[str] = None) -> Dict[str, Any]:
+    """`Sesion.resumen()` → resumen para la pantalla final (solo métricas derivadas).
+
+    `motivo_fin`: completada (la rutina llegó al final), usuaria (pulsó
+    terminar), fuente (el vídeo acabó o la cámara dejó de dar imagen), cierre
+    (se cerró la ventana) o error."""
     pasos = []
     for p in resumen["pasos"]:
         ej = catalogo.get(p["skill_id"])
@@ -158,13 +167,23 @@ def resumen_a_dict(resumen: Mapping[str, Any],
             "mensajes": [{"tMs": m["t_ms"], "texto": m["texto"],
                           "errorId": m["error_id"], "repeticion": m["repeticion"]}
                          for m in p["mensajes"]],
+            # veces que el motor no corrigió, por motivo (panel técnico)
+            "abstenciones": dict(p.get("abstenciones", {})),
         })
     return {
         "rutina": resumen["rutina"],
         "terminada": resumen["terminada"],
+        "motivoFin": motivo_fin,
         "duracionTotalS": round(sum(p["duracionS"] for p in pasos), 1),
         "pasos": pasos,
         "resumenTexto": resumen.get("resumen_texto"),
+        # para el equipo (tecla D en el resumen), no para la usuaria
+        "tecnico": {
+            "frames": resumen.get("frames", 0),
+            "framesSinPersona": resumen.get("frames_sin_persona", 0),
+            "latencias": {etapa: {"p50Ms": v["p50_ms"], "p95Ms": v["p95_ms"], "n": v["n"]}
+                          for etapa, v in resumen.get("latencias", {}).items()},
+        },
     }
 
 
@@ -179,5 +198,6 @@ def info(rutina: Rutina, catalogo: Mapping[str, Ejercicio], espejo: bool) -> Dic
     }
 
 
-__all__ = ["CAPACIDADES", "VERSION", "estado_a_dict", "info", "resumen_a_dict",
+__all__ = ["CAPACIDADES", "VERSION", "FIN_CIERRE", "FIN_COMPLETADA", "FIN_ERROR",
+           "FIN_FUENTE", "FIN_USUARIA", "estado_a_dict", "info", "resumen_a_dict",
            "rutina_a_dict", "tipo_aviso"]

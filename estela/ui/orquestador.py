@@ -200,12 +200,16 @@ class Orquestador:
                         self._verbalizador)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
+        motivo = contrato.FIN_CIERRE
         try:
             while not self._parar.is_set():
                 if self._aplicar_comandos(sesion):
+                    motivo = (contrato.FIN_COMPLETADA if sesion.terminada
+                              else contrato.FIN_USUARIA)
                     break
                 leido = fuente.leer()
                 if leido is None:              # fin del vídeo o cámara perdida
+                    motivo = contrato.FIN_FUENTE
                     break
                 frame, t_ms = leido
                 estado = sesion.procesar(frame, t_ms)
@@ -215,9 +219,11 @@ class Orquestador:
                 t_prev = ahora
                 self._publicar(estado=estado, fps=fps, frame=frame)
                 if sesion.terminada:
+                    motivo = contrato.FIN_COMPLETADA
                     break
         except Exception:
             log.exception("Error en la sesión")
+            motivo = contrato.FIN_ERROR
         finally:
             fuente.cerrar()
             estimador.cerrar()
@@ -229,7 +235,7 @@ class Orquestador:
             except Exception:
                 log.exception("Error al cerrar la sesión")
         self._publicar(fase=RESUMEN, estado=None, frame=None,
-                       resumen=contrato.resumen_a_dict(resumen, self.catalogo))
+                       resumen=contrato.resumen_a_dict(resumen, self.catalogo, motivo))
 
     def _aplicar_comandos(self, sesion: Sesion) -> bool:
         """Aplica los comandos pendientes en el hilo de la sesión (que no es
