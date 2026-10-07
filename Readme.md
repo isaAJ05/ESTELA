@@ -16,17 +16,18 @@ Primera versión del flujo completo: cámara → MediaPipe Pose Landmarker → s
 
 ```bash
 python3 -m venv .venv && source .venv/bin/activate
-pip install -e ".[voz,dev]"
+pip install -e ".[voz,interfaz,dev]"
 python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
 
-python -m estela                              # rutina de calentamiento con la cámara
+python -m estela                              # rutina de calentamiento en la interfaz de escritorio
+python -m estela --interfaz opencv            # ventana simple de OpenCV (pruebas y mediciones)
 python -m estela --ejercicio zancada_atras_izq --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
 pytest                                        # tests de estela/ (sin cámara)
 python -m unittest discover -s feedback/tests -t .   # tests del módulo de feedback
 ```
 
-Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
+Teclas en la interfaz: `n` siguiente ejercicio · `r` reiniciar el ejercicio · `Esc` terminar · `d` depuración. En la ventana de OpenCV: `q` salir · `n` · `r`.
 
 Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con elevación de rodillas, zancada atrás estática y plancha. La abducción y la zancada se hacen en una serie por pierna y tienen un skill por pierna (`abduccion_cadera_izq`/`_der`, `zancada_atras_izq`/`_der`).
 
@@ -34,6 +35,7 @@ Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con ele
 |---|---|
 | `estela/` | Aplicación: captura, pose, segmentación/conteo, sesión, voz, interfaz |
 | `feedback/` | El motor de feedback (único): decisión determinista + verbalizador (ADR-001) y skills de los ejercicios |
+| `interfaz/` | Interfaz de escritorio (React + TypeScript; `dist/` compilado y versionado). Ver [interfaz/README.md](./interfaz/README.md) |
 | `feedback_testing/` | Banco sintético y métricas de EXP-001, EXP-002 |
 | `rutinas/` | Rutinas de calentamiento (JSON) |
 | `tests/` | Tests de la aplicación |

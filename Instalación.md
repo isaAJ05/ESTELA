@@ -9,6 +9,7 @@
 | Lenguaje | Python ≥ 3.10 (validado con 3.14) |
 | Estimación de pose | MediaPipe Pose Landmarker (Tasks API, `mediapipe` ≥ 1.0.1), world landmarks |
 | Captura y visualización | OpenCV, Pillow (texto con tildes) |
+| Interfaz de escritorio | React + TypeScript (Vite) en una ventana pywebview: WKWebView en macOS, WebKitGTK o Qt en Linux |
 | Feedback | Motor determinista + plantillas en español (`feedback/`, solo biblioteca estándar) |
 | Voz | Piper (`piper-tts`), con caída a espeak-ng / `say` o solo texto |
 
@@ -18,10 +19,12 @@
 Cámara (hilo) → último frame → Pose Landmarker → geometría (feedback/motor/geometria.py)
   → segmentador de fases y conteo (estela/conteo) → motor de decisión + plantillas (feedback/)
   → cola de voz (hilo) → Piper
+                     └→ orquestador (estela/ui) → ventana de escritorio (interfaz/)
 ```
 
 - `estela/` es la aplicación, y `feedback/` el módulo de retroalimentación (ADR-001).
 - Los ejercicios se definen en `feedback/skills/*.json` y las rutinas en `rutinas/*.json`.
+- `interfaz/` contiene las pantallas (inicio, sesión y resumen). Su contrato con Python y cómo se conectan están en `interfaz/README.md`.
 
 ## 2. Requisitos previos
 
@@ -31,6 +34,8 @@ Cámara (hilo) → último frame → Pose Landmarker → geometría (feedback/mo
 - Una cámara web, que no es necesaria para las pruebas con vídeo.
 - Audio. En Linux, `sounddevice` necesita PortAudio; si falta, se usa `pw-play`, `paplay` o `aplay`. En macOS se usa `afplay`.
 - Opcional: `espeak-ng`, como voz de respaldo en Linux.
+- Para la ventana de escritorio en Linux: WebKitGTK (`webkit2gtk-4.1`) y PyGObject, o Qt. En macOS no hace falta nada más.
+- Node.js ≥ 20, **solo** para modificar la interfaz. Para ejecutarla no hace falta, porque `interfaz/dist/` está versionado.
 - Conexión a internet **solo** para la instalación y la descarga de modelos. La sesión funciona sin red.
 
 ### 2.2 Variables de entorno
@@ -52,11 +57,12 @@ git clone <url-del-repositorio> ESTELA && cd ESTELA
 ```bash
 python3 -m venv .venv
 source .venv/bin/activate
-pip install -e ".[voz,dev]"
+pip install -e ".[voz,interfaz,dev]"
 ```
 
 Extras opcionales:
 - `voz` instala Piper.
+- `interfaz` instala pywebview, para la ventana de escritorio.
 - `dev` instala pytest.
 
 #### 3.1.3 Configurar variables de entorno
@@ -82,9 +88,22 @@ python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son seg
 python -m estela --voz texto                       # sin audio
 python -m estela --modelo lite                     # pose más rápida y menos precisa
 python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas
+python -m estela --interfaz opencv                 # ventana simple de OpenCV, para pruebas y mediciones
 ```
 
-Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
+Por defecto se abre la interfaz de escritorio, que empieza en la pantalla de inicio. La sesión arranca con **Comenzar sesión**. Al terminar se muestra el resumen, que también se imprime en la consola. Desde el resumen se puede repetir la rutina sin cerrar la ventana.
+
+Teclas en la interfaz: `n` siguiente ejercicio · `r` reiniciar el ejercicio · `Esc` terminar · `d` datos de depuración (FPS y latencia por etapa).
+Teclas en la ventana de OpenCV: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
+
+#### 3.1.6 Modificar la interfaz
+
+```bash
+cd interfaz
+npm install
+npm run dev        # en el navegador con un backend simulado, sin cámara
+npm run build      # recompila interfaz/dist/ (súbelo junto con los cambios de src/)
+```
 
 ### 3.2 Desarrollo con contenedores
 
@@ -99,6 +118,7 @@ No aplica: es un prototipo de escritorio de ejecución local.
 ```bash
 pytest                                             # tests de estela/ (sin cámara ni modelos)
 python -m unittest discover -s feedback/tests -t . # tests del módulo de feedback
+cd interfaz && npm run typecheck                   # tipos de la interfaz
 ```
 
 Para una prueba reproducible sin cámara, ejecutar un vídeo del dataset con `--sin-ventana`. El resumen final muestra:
@@ -116,6 +136,10 @@ Para una prueba reproducible sin cámara, ejecutar un vídeo del dataset con `--
 | El contador no avanza | Orientación distinta de la del ejercicio, o baja visibilidad | Seguir el aviso en pantalla («de perfil» / «de frente») y encuadrar el cuerpo entero |
 | La sesión dice «Pausa» | 5 s fuera del encuadre, u 8 s sin avanzar en un ejercicio ya empezado (`estela/sesion/pausa.py`) | Volver al encuadre con la orientación pedida, o seguir con el ejercicio: retoma solo y conserva las repeticiones |
 | FPS bajos | Pose *full* en una CPU lenta | `--modelo lite` |
+| `Falta pywebview` | No está el extra `interfaz` | `pip install -e ".[interfaz]"`, o usar `--interfaz opencv` |
+| `No existe interfaz/dist/index.html` | La interfaz no está compilada | `cd interfaz && npm install && npm run build` |
+| La ventana no abre en Linux (`GTK cannot be loaded`) | Falta WebKitGTK/PyGObject o Qt | Instalarlos, o usar `--interfaz opencv` |
+| «No se detecta la cámara» en la pantalla de inicio | Cámara desconectada u ocupada por otra aplicación | Liberarla y pulsar **Reintentar** |
 | `mp.solutions` no existe | Scripts antiguos de `PRUEBAS/` | Esos scripts usan la API legacy, que ya no existe en mediapipe 1.x |
 
 ## 7. Mantenimiento y actualización
