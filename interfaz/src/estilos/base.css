@@ -2,12 +2,17 @@
 
 html, body, #raiz { height: 100%; }
 
+/* Escala fluida: todo está en rem y la raíz crece con la ventana, así la
+   interfaz se ve proporcionada de 960×600 a 2560×1440 (se mira desde 3 m).
+   ≈15 px en 1280×800, 16 px en 1440×900, 19 px en 1920×1080, 23 px en 2560×1440. */
+html { font-size: clamp(15px, calc(0.45vw + 0.55vh + 4px), 26px); }
+
 body {
   margin: 0;
   background: var(--color-fondo);
   color: var(--color-texto);
   font-family: var(--fuente);
-  font-size: 16px;
+  font-size: 1rem;
   line-height: 1.5;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
@@ -20,14 +25,14 @@ code { font-family: var(--fuente-mono); font-size: 0.9em; color: var(--color-vio
 button { font: inherit; color: inherit; }
 svg { flex-shrink: 0; }
 
-:focus-visible { outline: 3px solid var(--color-violeta-suave); outline-offset: 3px; }
+:focus-visible { outline: 0.1875rem solid var(--color-violeta-suave); outline-offset: 0.1875rem; }
 
 /* -- marca --------------------------------------------------------------- */
-.marca { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; letter-spacing: -0.06em; }
-.marca-signo { display: grid; place-items: center; width: 24px; height: 24px; border: 2px solid var(--color-violeta-suave); border-radius: 50%; }
-.marca-signo span { width: 8px; height: 8px; border-radius: 50%; background: var(--color-amarillo); box-shadow: 0 0 12px var(--color-amarillo); }
+.marca { display: flex; align-items: center; gap: 0.625rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.06em; }
+.marca-signo { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--color-violeta-suave); border-radius: 50%; }
+.marca-signo span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-amarillo); box-shadow: 0 0 0.75rem var(--color-amarillo); }
 
-.etiqueta { display: block; color: var(--color-texto-sutil); font-size: 12px; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
+.etiqueta { display: block; color: var(--color-texto-sutil); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
 .etiqueta-marca { color: var(--color-violeta-suave); }
 .etiqueta-cuidado { color: var(--color-ambar); }
 
@@ -36,13 +41,13 @@ svg { flex-shrink: 0; }
 
 /* -- botones ------------------------------------------------------------- */
 .boton {
-  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-  min-height: 48px; padding: 0 20px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 3rem; padding: 0 1.25rem;
   border: 1px solid transparent; border-radius: var(--radio-md);
-  font-size: 16px; font-weight: 700; cursor: pointer;
+  font-size: 1rem; font-weight: 700; cursor: pointer;
   transition: transform var(--duracion-corta), background var(--duracion-corta), border-color var(--duracion-corta);
 }
-.boton svg { width: 18px; height: 18px; }
+.boton svg { width: 1.125rem; height: 1.125rem; }
 .boton:hover:not(:disabled) { transform: translateY(-1px); }
 .boton:disabled { cursor: default; opacity: 0.7; }
 .boton-primario { color: var(--color-sobre-violeta); background: var(--color-violeta-suave); box-shadow: var(--sombra-brillo); }
@@ -65,22 +70,22 @@ svg { flex-shrink: 0; }
 }
 
 .chip {
-  display: inline-flex; align-items: center; gap: 6px;
-  padding: 6px 12px; border-radius: var(--radio-pildora);
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.375rem 0.75rem; border-radius: var(--radio-pildora);
   color: var(--color-texto-suave); background: rgba(255, 255, 255, 0.07);
-  font-size: 14px; font-weight: 700;
+  font-size: 0.875rem; font-weight: 700;
 }
 
 /* -- avisos -------------------------------------------------------------- */
 .aviso {
   display: flex; align-items: center; gap: var(--espacio-3);
   padding: var(--espacio-4); border: 1px solid; border-radius: var(--radio-md);
-  backdrop-filter: blur(8px);
+  backdrop-filter: blur(0.5rem);
 }
-.aviso > svg, .aviso > .icono-vista { width: 22px; height: 22px; }
+.aviso > svg, .aviso > .icono-vista { width: 1.375rem; height: 1.375rem; }
 .aviso strong, .aviso span { display: block; }
-.aviso strong { color: var(--color-texto); font-size: 17px; }
-.aviso div > span { margin-top: 2px; color: var(--color-texto-suave); font-size: 15px; }
+.aviso strong { color: var(--color-texto); font-size: 1.0625rem; }
+.aviso div > span { margin-top: 2px; color: var(--color-texto-suave); font-size: 0.9375rem; }
 .aviso .boton { margin-left: auto; }
 .aviso-info { color: var(--color-violeta-suave); border-color: rgba(169, 157, 255, 0.3); background: rgba(40, 33, 80, 0.82); }
 .aviso-cuidado { color: var(--color-ambar); border-color: rgba(244, 163, 64, 0.35); background: rgba(62, 40, 18, 0.85); }
@@ -90,11 +95,11 @@ svg { flex-shrink: 0; }
 .figura { overflow: visible; }
 .figura-cabeza { fill: none; stroke: var(--color-violeta-suave); stroke-width: 4; }
 .figura-linea { fill: none; stroke: var(--color-violeta-suave); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
-.figura-resalte { stroke: var(--color-amarillo); filter: drop-shadow(0 0 5px rgba(255, 201, 77, 0.6)); }
+.figura-resalte { stroke: var(--color-amarillo); filter: drop-shadow(0 0 0.3125rem rgba(255, 201, 77, 0.6)); }
 
 .icono-vista { display: inline-flex; gap: 2px; vertical-align: middle; color: currentColor; }
-.icono-vista i { display: block; width: 6px; height: 12px; border: 1.5px solid currentColor; border-radius: 50%; }
-.icono-vista.perfil i + i { height: 8px; margin-top: 2px; }
+.icono-vista i { display: block; width: 0.375rem; height: 0.75rem; border: 1.5px solid currentColor; border-radius: 50%; }
+.icono-vista.perfil i + i { height: 0.5rem; margin-top: 2px; }
 
 /* -- animaciones ----------------------------------------------------------- */
 .girando { animation: girar 1s linear infinite; }

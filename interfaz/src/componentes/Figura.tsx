@@ -3,15 +3,21 @@ import type { Orientacion } from '../bridge/tipos'
 // Postura clave de cada ejercicio, dibujada con la misma línea y proporciones.
 // Es una ilustración fija de la interfaz; la guía animada a partir de la
 // referencia grabada llega del backend (capacidad «guia»).
+// Un ejercicio nuevo sin figura propia se ve con la figura neutra «de pie»:
+// para darle una, añadir su prefijo aquí y sus trazos en PIERNAS y BRAZOS.
 
-export type Postura = 'jack' | 'abduccion' | 'rodilla' | 'zancada' | 'plancha'
+export type Postura = 'jack' | 'abduccion' | 'rodilla' | 'zancada' | 'plancha' | 'depie'
+
+const PREFIJOS: [string, Postura][] = [
+  ['jumping', 'jack'],
+  ['abduccion', 'abduccion'],
+  ['marcha', 'rodilla'],
+  ['zancada', 'zancada'],
+  ['plancha', 'plancha'],
+]
 
 export function posturaDe(skillId: string): Postura {
-  if (skillId.startsWith('jumping')) return 'jack'
-  if (skillId.startsWith('abduccion')) return 'abduccion'
-  if (skillId.startsWith('marcha')) return 'rodilla'
-  if (skillId.startsWith('plancha')) return 'plancha'
-  return 'zancada'
+  return PREFIJOS.find(([prefijo]) => skillId.startsWith(prefijo))?.[1] ?? 'depie'
 }
 
 const PIERNAS: Record<Postura, string> = {
@@ -20,6 +26,7 @@ const PIERNAS: Record<Postura, string> = {
   abduccion: 'M60 78L26 140 M60 78L96 104L112 78',
   rodilla: 'M60 78L37 140 M60 78L88 103L106 78',
   zancada: 'M60 78L40 112L24 142 M60 78L87 99L105 99',
+  depie: 'M60 78L47 140 M60 78L73 140',
 }
 
 const BRAZOS: Record<Postura, string> = {
@@ -28,6 +35,7 @@ const BRAZOS: Record<Postura, string> = {
   abduccion: 'M60 43L38 65 M60 43L82 65',
   rodilla: 'M60 43L38 65 M60 43L82 65',
   zancada: 'M60 43L38 65 M60 43L82 65',
+  depie: 'M60 43L44 72 M60 43L76 72',
 }
 
 export function Figura({ skillId, tam = 160, resaltar = true }: {
@@ -38,10 +46,11 @@ export function Figura({ skillId, tam = 160, resaltar = true }: {
   const postura = posturaDe(skillId)
   return (
     <svg className={`figura figura-${postura}`} viewBox="0 0 120 160" width={tam * 0.75} height={tam}
+         preserveAspectRatio="xMidYMid meet"
          role="img" aria-label="Postura clave del ejercicio">
       <circle className="figura-cabeza" cx="60" cy="20" r="9" />
       <path className="figura-linea" d={`M60 30V78 ${BRAZOS[postura]}`} />
-      <path className={`figura-linea ${resaltar ? 'figura-resalte' : ''}`} d={PIERNAS[postura]} />
+      <path className={`figura-linea ${resaltar && postura !== 'depie' ? 'figura-resalte' : ''}`} d={PIERNAS[postura]} />
     </svg>
   )
 }

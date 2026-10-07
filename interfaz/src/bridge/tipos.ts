@@ -98,14 +98,26 @@ export interface PasoResumen {
   pausas: number
   pausaS: number
   mensajes: MensajeResumen[]
+  /** veces que el motor no corrigió, por motivo (panel técnico) */
+  abstenciones: Record<string, number>
 }
+
+/** completada · usuaria (pulsó terminar) · fuente (vídeo acabado o cámara perdida) · cierre · error */
+export type MotivoFin = 'completada' | 'usuaria' | 'fuente' | 'cierre' | 'error'
 
 export interface Resumen {
   rutina: string
   terminada: boolean
+  motivoFin: MotivoFin | null
   duracionTotalS: number
   pasos: PasoResumen[]
   resumenTexto: string | null
+  /** para el equipo (tecla D), no para la usuaria */
+  tecnico: {
+    frames: number
+    framesSinPersona: number
+    latencias: Record<string, { p50Ms: number; p95Ms: number; n: number }>
+  }
 }
 
 export interface ErrorApp {

@@ -19,22 +19,22 @@
   --color-peligro: #e98591;
   --color-sobre-violeta: #171329;
 
-  --radio-sm: 10px;
-  --radio-md: 14px;
-  --radio-lg: 22px;
+  --radio-sm: 0.625rem;
+  --radio-md: 0.875rem;
+  --radio-lg: 1.375rem;
   --radio-pildora: 999px;
 
-  --espacio-1: 4px;
-  --espacio-2: 8px;
-  --espacio-3: 12px;
-  --espacio-4: 16px;
-  --espacio-5: 24px;
-  --espacio-6: 32px;
-  --espacio-7: 48px;
-  --espacio-8: 64px;
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-5: 1.5rem;
+  --espacio-6: 2rem;
+  --espacio-7: 3rem;
+  --espacio-8: 4rem;
 
-  --sombra-suave: 0 20px 60px rgba(0, 0, 0, 0.22);
-  --sombra-brillo: 0 0 30px rgba(128, 107, 255, 0.24);
+  --sombra-suave: 0 1.25rem 3.75rem rgba(0, 0, 0, 0.22);
+  --sombra-brillo: 0 0 1.875rem rgba(128, 107, 255, 0.24);
 
   --fuente: 'Manrope Variable', -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
   --fuente-mono: ui-monospace, 'SF Mono', Menlo, monospace;

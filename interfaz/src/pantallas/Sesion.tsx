@@ -169,6 +169,7 @@ function AvisoSesion() {
 function BandaMensaje() {
   const n = useSesion('mensajesEmitidos') ?? 0
   const texto = useSesion('ultimoMensaje')
+  const paso = useSesion('paso')
   const visto = useRef(n)
   const [visible, setVisible] = useState(false)
   useEffect(() => {
@@ -178,6 +179,8 @@ function BandaMensaje() {
     const t = setTimeout(() => setVisible(false), MENSAJE_VISIBLE_MS)
     return () => clearTimeout(t)
   }, [n])
+  // una indicación del ejercicio anterior no se queda en pantalla en el siguiente
+  useEffect(() => { setVisible(false) }, [paso])
   if (!texto) return null
   return (
     <div className={`banda-mensaje ${visible ? 'visible' : ''}`} aria-live="polite" aria-hidden={!visible}>

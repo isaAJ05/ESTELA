@@ -159,8 +159,15 @@ export function bridgeSimulado(): Bridge {
         skillId: h.paso.skillId, nombre: h.paso.nombre, unidad: h.paso.unidad, objetivo: h.paso.objetivo,
         completadas: h.completadas, incompletas: h.incompletas, correctas: null, conError: null,
         duracionS: Math.round(h.duracionS * 10) / 10, pausas: h.pausas, pausaS: h.pausaS, mensajes: h.mensajes,
+        abstenciones: { evidencia_insuficiente: h.completadas > 0 ? 2 : 0 },
       })),
       resumenTexto: null,
+      motivoFin: terminada ? 'completada' : 'usuaria',
+      tecnico: {
+        frames: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 30),
+        framesSinPersona: 120,
+        latencias: { pose: { p50Ms: 18.2, p95Ms: 24.9, n: 4200 }, total: { p50Ms: 19.1, p95Ms: 26.3, n: 4200 } },
+      },
     }
     fase = 'resumen'
     sesion = null

@@ -1,14 +1,21 @@
-import { Check, ChevronDown, Home, LogOut, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
-import { useState } from 'react'
-import type { Bridge, PasoResumen, PasoRutina } from '../bridge/tipos'
-import { Boton, Marca, duracion, plural } from '../componentes/basicos'
+import { AlertTriangle, Check, ChevronDown, Home, LogOut, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
+import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
 import { Figura } from '../componentes/Figura'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
 export function Resumen({ bridge }: { bridge: Bridge }) {
   const resumen = useEstado((s) => s.estado?.resumen ?? null)
   const plan = useEstado((s) => s.info?.rutina.pasos ?? [])
+  const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
   const conTexto = useCapacidad('resumenTexto')
+  const [tecnico, setTecnico] = useState(false)
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'd' && !e.repeat) setTecnico((t) => !t) }
+    window.addEventListener('keydown', tecla)
+    return () => window.removeEventListener('keydown', tecla)
+  }, [])
   if (!resumen) return null
 
   const completos = resumen.pasos.filter((p) => p.completadas >= p.objetivo).length
@@ -30,6 +37,16 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
             <span><strong>{duracion(resumen.duracionTotalS)}</strong> en movimiento</span>
             <span><strong>{completos}</strong> de {plan.length || resumen.pasos.length} ejercicios completos</span>
           </p>
+          {resumen.motivoFin === 'fuente' && fuente === 'camara' && (
+            <Aviso tipo="cuidado" icono={<AlertTriangle />} titulo="La cámara dejó de enviar imagen">
+              Guardamos lo que llevabas. Revisa la conexión antes de repetir.
+            </Aviso>
+          )}
+          {resumen.motivoFin === 'error' && (
+            <Aviso tipo="cuidado" icono={<AlertTriangle />} titulo="La sesión se detuvo por un problema">
+              Guardamos lo que llevabas. Puedes repetir la rutina.
+            </Aviso>
+          )}
           {conTexto && resumen.resumenTexto && (
             <p className="resumen-texto"><Sparkles aria-hidden="true" />{resumen.resumenTexto}</p>
           )}
@@ -40,10 +57,12 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
           </div>
         </div>
 
-        <ol className="tarjeta lista-resumen">
-          {resumen.pasos.map((p, i) => <FilaResumen key={`${p.skillId}-${i}`} paso={p} />)}
-          {pendientes.map((p, i) => <FilaPendiente key={`p-${p.skillId}-${i}`} paso={p} />)}
-        </ol>
+        {tecnico ? <PanelTecnico resumen={resumen} /> : (
+          <ol className="tarjeta lista-resumen">
+            {resumen.pasos.map((p, i) => <FilaResumen key={`${p.skillId}-${i}`} paso={p} />)}
+            {pendientes.map((p, i) => <FilaPendiente key={`p-${p.skillId}-${i}`} paso={p} />)}
+          </ol>
+        )}
       </section>
     </main>
   )
@@ -120,5 +139,37 @@ function FilaPendiente({ paso }: { paso: PasoRutina }) {
         <span className="fila-resumen-icono" />
       </div>
     </li>
+  )
+}
+
+/** Métricas para el equipo (tecla D): abstenciones del motor y latencia por etapa. */
+function PanelTecnico({ resumen }: { resumen: DatosResumen }) {
+  const t = resumen.tecnico
+  return (
+    <section className="tarjeta panel-tecnico" aria-label="Datos técnicos de la sesión">
+      <span className="etiqueta">Datos técnicos · tecla D para volver</span>
+      <p>{t.frames} frames · {t.framesSinPersona} sin persona · fin: {resumen.motivoFin ?? '—'}</p>
+      <table>
+        <thead><tr><th>Etapa</th><th>p50</th><th>p95</th><th>n</th></tr></thead>
+        <tbody>
+          {Object.entries(t.latencias).map(([etapa, v]) => (
+            <tr key={etapa}><td>{etapa}</td><td>{v.p50Ms.toFixed(1)} ms</td><td>{v.p95Ms.toFixed(1)} ms</td><td>{v.n}</td></tr>
+          ))}
+        </tbody>
+      </table>
+      <table>
+        <thead><tr><th>Ejercicio</th><th>Completadas</th><th>Correcciones</th><th>Abstenciones</th></tr></thead>
+        <tbody>
+          {resumen.pasos.map((p, i) => (
+            <tr key={`${p.skillId}-${i}`}>
+              <td>{p.skillId}</td>
+              <td>{p.completadas} / {p.objetivo}</td>
+              <td>{p.mensajes.filter((m) => m.errorId).length}</td>
+              <td>{Object.entries(p.abstenciones).map(([motivo, n]) => `${motivo} ×${n}`).join(', ') || '—'}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </section>
   )
 }

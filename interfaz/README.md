@@ -63,6 +63,24 @@ Para activar una:
 
 En la interfaz no hay que tocar nada. Para buscar en el código dónde se usa una capacidad: `useCapacidad('<nombre>')`.
 
+## Cómo añadir o quitar algo
+
+| Quiero… | Dónde |
+|---|---|
+| Activar una función que el backend ya tiene | `CAPACIDADES` en `estela/ui/contrato.py` (ver la tabla de arriba) |
+| Un dato nuevo por frame (p. ej. un contador) | campo en `EstadoFrame` → `estado_a_dict` en `contrato.py` → `EstadoSesion` en `src/bridge/tipos.ts` → leerlo con `useEstado` donde se muestre |
+| Un dato nuevo del resumen | `Sesion.resumen()` → `resumen_a_dict` → `Resumen` en `tipos.ts` → `pantallas/Resumen.tsx` |
+| Un comando nuevo (p. ej. pausar) | método en `Orquestador` (se aplica en el hilo de la sesión vía `_aplicar_comandos`) → `Api` en `estela/ui/ventana.py` → `Bridge` en `tipos.ts`, `pywebview.ts` y `simulado.ts` |
+| Una fase o pantalla nueva (p. ej. colocación) | constante y transición en `Orquestador` → `Fase` en `tipos.ts` → un `case` en `App.tsx` y un archivo en `pantallas/` |
+| Un ejercicio nuevo | solo su skill y la rutina (como siempre). La interfaz lo muestra con su nombre y orientación; si no tiene figura propia, sale la figura neutra «de pie» (`componentes/Figura.tsx`) |
+| Quitar una función de la vista | ponerla en `False` en `CAPACIDADES`, o quitar el componente de su pantalla |
+
+Antes de subir: `pytest`, `npm run typecheck` y `npm run build`.
+
+## Tamaño de ventana
+
+Todos los tamaños están en `rem` y la raíz crece con la ventana (`estilos/base.css`). Así la interfaz se ve proporcionada de 960×600 (el mínimo de la ventana) a 2560×1440: en una pantalla grande todo crece para leerse desde 3 m. Por debajo de 1100 px de ancho, los botones de la sesión muestran solo el ícono. Para medidas nuevas, usar `rem` y no `px`, salvo en bordes de 1–2 px.
+
 ## Teclas
 
 | Tecla | Acción |
@@ -70,7 +88,7 @@ En la interfaz no hay que tocar nada. Para buscar en el código dónde se usa un
 | `N` | siguiente ejercicio |
 | `R` | reiniciar el ejercicio |
 | `Esc` | terminar (pide confirmación) |
-| `D` | datos de depuración: FPS, latencia por etapa, fase, orientación |
+| `D` | en la sesión: FPS, latencia por etapa, fase y orientación. En el resumen: panel técnico con abstenciones del motor y latencia p50/p95 |
 
 ## Estructura
 
