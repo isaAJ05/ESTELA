@@ -9,6 +9,8 @@ MODELOS = RAIZ / "modelos"
 VOCES = MODELOS / "voces"
 RUTINAS = RAIZ / "rutinas"
 SESIONES = RAIZ / "sesiones"
+#: interfaz de escritorio compilada (interfaz/, `npm run build`)
+INTERFAZ = RAIZ / "interfaz" / "dist"
 
 
 def modelo_pose(variante: str) -> Path:

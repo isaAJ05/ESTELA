@@ -6,7 +6,13 @@ Ejemplos:
     python -m estela --ejercicio plancha --repeticiones 30          # segundos
     python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana
 
-Teclas (con ventana): q/Esc salir · n siguiente ejercicio · r reiniciar ejercicio.
+Por defecto abre la interfaz de escritorio (interfaz/, pywebview). Con
+--interfaz opencv se usa la ventana de OpenCV, más simple, para pruebas y
+mediciones.
+
+Teclas en la interfaz: n siguiente ejercicio · r reiniciar ejercicio ·
+Esc terminar · d datos de depuración.
+Teclas en la ventana de OpenCV: q/Esc salir · n siguiente · r reiniciar.
 """
 
 from __future__ import annotations
@@ -45,6 +51,8 @@ def _argumentos(argv=None) -> argparse.Namespace:
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="full",
                    help="variante de Pose Landmarker")
     p.add_argument("--voz", choices=("piper", "sistema", "texto"), default="piper")
+    p.add_argument("--interfaz", choices=("ventana", "opencv"), default="ventana",
+                   help="interfaz de escritorio (defecto) o ventana de OpenCV")
     p.add_argument("--sin-ventana", action="store_true",
                    help="sin interfaz gráfica (pruebas con vídeo)")
     p.add_argument("--guardar-metricas", action="store_true",
@@ -76,10 +84,9 @@ def main(argv=None) -> int:
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
 
-    from .pose.estimador import EstimadorPose
     from .sesion.rutina import (RutinaInvalida, cargar_catalogo, cargar_rutina,
                                 rutina_de_un_ejercicio)
-    from .sesion.sesion import Sesion, frases_de_rutina
+    from .sesion.sesion import frases_de_rutina
     from .voz.cola import ColaVoz
     from .voz.motores import buscar_voz_piper, crear_motor
 
@@ -91,19 +98,70 @@ def main(argv=None) -> int:
         print(f"Error: {e}", file=sys.stderr)
         return 2
 
-    estimador = EstimadorPose(config.modelo_pose(args.modelo))
+    if not args.sin_ventana and args.interfaz == "ventana":
+        from .ui.ventana import InterfazNoDisponible, comprobar
+        try:
+            comprobar(config.INTERFAZ)
+        except InterfazNoDisponible as e:
+            print(f"Error: {e}", file=sys.stderr)
+            return 2
 
     motor_voz = crear_motor(args.voz, buscar_voz_piper(config.VOCES))
     log.info("Voz: %s", motor_voz.nombre)
     voz = ColaVoz(motor_voz)
     voz.precalentar(frases_de_rutina(rutina, catalogo))
 
+    def cerrar_sesion(resumen: dict) -> None:
+        resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas}
+        _imprimir_resumen(resumen)
+        if args.guardar_metricas:
+            config.SESIONES.mkdir(exist_ok=True)
+            ruta = config.SESIONES / f"{datetime.now():%Y%m%d-%H%M%S}.json"
+            ruta.write_text(json.dumps(resumen, ensure_ascii=False, indent=2),
+                            encoding="utf-8")
+            print(f"Métricas guardadas en {ruta}")
+
+    if args.sin_ventana or args.interfaz == "opencv":
+        return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion)
+    return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion)
+
+
+def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool):
     if args.video:
         from .captura.fuente import FuenteVideo
-        fuente = FuenteVideo(args.video, tiempo_real=not args.sin_ventana)
-    else:
-        from .captura.fuente import FuenteCamara
-        fuente = FuenteCamara(args.camara)
+        return FuenteVideo(args.video, tiempo_real=tiempo_real)
+    from .captura.fuente import FuenteCamara
+    return FuenteCamara(args.camara)
+
+
+def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
+    """Interfaz de escritorio: la sesión corre en un hilo del orquestador y
+    la ventana ocupa el hilo principal."""
+    from .pose.estimador import EstimadorPose
+    from .ui.orquestador import Orquestador
+    from .ui.ventana import abrir
+
+    orquestador = Orquestador(
+        rutina, catalogo,
+        crear_estimador=lambda: EstimadorPose(config.modelo_pose(args.modelo)),
+        abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True),
+        voz=voz, espejo=args.video is None,
+        fuente="video" if args.video else "camara",
+        al_terminar=cerrar_sesion)
+    try:
+        abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
+    finally:
+        orquestador.cerrar()
+        voz.cerrar(esperar=True)
+    return 0
+
+
+def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion) -> int:
+    from .pose.estimador import EstimadorPose
+    from .sesion.sesion import Sesion
+
+    estimador = EstimadorPose(config.modelo_pose(args.modelo))
+    fuente = _abrir_fuente(args, tiempo_real=not args.sin_ventana)
     espejo = args.video is None
 
     sesion = Sesion(rutina, catalogo, estimador, voz)
@@ -152,15 +210,7 @@ def main(argv=None) -> int:
         if ventana:
             cv2.destroyAllWindows()
 
-    resumen = sesion.resumen()
-    resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas}
-    _imprimir_resumen(resumen)
-    if args.guardar_metricas:
-        config.SESIONES.mkdir(exist_ok=True)
-        ruta = config.SESIONES / f"{datetime.now():%Y%m%d-%H%M%S}.json"
-        ruta.write_text(json.dumps(resumen, ensure_ascii=False, indent=2),
-                        encoding="utf-8")
-        print(f"Métricas guardadas en {ruta}")
+    cerrar_sesion(sesion.resumen())
     return 0
 
 

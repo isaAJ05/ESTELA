@@ -86,6 +86,10 @@ class EstadoFrame:
     terminada: bool
     unidad: str = "repeticiones"       # o "segundos" en ejercicios isométricos
     pausada: bool = False
+    motivo_pausa: Optional[str] = None  # pausa.SIN_PERSONA o pausa.INACTIVIDAD
+    #: correcciones y refuerzos emitidos en toda la sesión; cambia cada vez que
+    #: hay un `ultimo_mensaje` nuevo, aunque el texto se repita
+    mensajes_emitidos: int = 0
 
 
 @dataclass
@@ -116,6 +120,7 @@ class Sesion:
         self._pasos: List[_Paso] = []
         self._i = -1
         self._ultimo_mensaje: Optional[str] = None
+        self._mensajes_emitidos = 0
         self._ult_persona_ms: Optional[int] = None
         self._mal_orientada_desde: Optional[int] = None
         self._ult_aviso_orient_ms: Optional[int] = None
@@ -236,6 +241,7 @@ class Sesion:
 
         if isinstance(salida, MensajeFeedback):
             self._ultimo_mensaje = salida.texto
+            self._mensajes_emitidos += 1
             self.voz.decir(salida.texto, PRIORIDAD_FEEDBACK)
             p.mensajes.append({"t_ms": t_ms, "texto": salida.texto,
                                "error_id": salida.error.error_id if salida.error else None,
@@ -301,7 +307,8 @@ class Sesion:
         if p is None:
             return EstadoFrame("", "", len(self.rutina.pasos), len(self.rutina.pasos),
                                0, 0, 0, "", False, None, None, self._ultimo_mensaje,
-                               None, lat, True)
+                               None, lat, True,
+                               mensajes_emitidos=self._mensajes_emitidos)
         seg = p.seg
         return EstadoFrame(
             ejercicio=p.ejercicio.skill.nombre,
@@ -314,7 +321,9 @@ class Sesion:
             ultimo_mensaje=self._ultimo_mensaje,
             landmarks=res.imagen if res is not None else None,
             latencia_ms=lat, terminada=False, unidad=p.ejercicio.unidad,
-            pausada=p.pausa.pausada)
+            pausada=p.pausa.pausada,
+            motivo_pausa=p.pausa.motivo,
+            mensajes_emitidos=self._mensajes_emitidos)
 
     # -- resumen ------------------------------------------------------------
 
