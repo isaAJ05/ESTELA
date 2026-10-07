@@ -1,0 +1,44 @@
+/* Tokens del sistema visual de ESTELA. Los componentes no usan colores sueltos. */
+:root {
+  color-scheme: dark;
+
+  --color-fondo: #0e0d16;
+  --color-superficie: #171522;
+  --color-superficie-elevada: #211d30;
+  --color-borde: #302b40;
+  --color-texto: #f7f4ff;
+  --color-texto-suave: #b7b0c9;
+  /* más claro que en la guía (#716a80) para llegar a contraste AA */
+  --color-texto-sutil: #918aa5;
+  --color-violeta: #806bff;
+  --color-violeta-suave: #a99dff;
+  --color-violeta-profundo: #5140c7;
+  --color-amarillo: #ffc94d;
+  --color-ambar: #f4a340;
+  --color-exito: #70d6a1;
+  --color-peligro: #e98591;
+  --color-sobre-violeta: #171329;
+
+  --radio-sm: 10px;
+  --radio-md: 14px;
+  --radio-lg: 22px;
+  --radio-pildora: 999px;
+
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 24px;
+  --espacio-6: 32px;
+  --espacio-7: 48px;
+  --espacio-8: 64px;
+
+  --sombra-suave: 0 20px 60px rgba(0, 0, 0, 0.22);
+  --sombra-brillo: 0 0 30px rgba(128, 107, 255, 0.24);
+
+  --fuente: 'Manrope Variable', -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  --fuente-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --duracion-corta: 180ms;
+  --duracion-media: 300ms;
+}
