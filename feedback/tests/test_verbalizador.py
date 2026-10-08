@@ -1,22 +1,24 @@
+import itertools
 import unittest
 
-from feedback.contrato import ErrorTipificado, Lado, Severidad
+from feedback.contrato import Direccion, ErrorTipificado, Lado, Severidad
 from feedback.motor.skill import cargar_skills, directorio_skills
 from feedback.verbalizador.plantillas import VerbalizadorPlantillas
 from feedback.verbalizador.validador import (
-    afirmaciones_no_soportadas, lados_mencionados, segmentos_mencionados,
-    validar,
+    afirmaciones_no_soportadas, direcciones_pedidas, lados_mencionados,
+    segmentos_mencionados, validar,
 )
 
 SKILLS = cargar_skills(directorio_skills())
 
 
 def err(error_id="tronco_muy_inclinado", segmento="tronco", lado=Lado.NA,
-        severidad=Severidad.MODERADA, rep=1, mensaje_id=None):
+        severidad=Severidad.MODERADA, rep=1, mensaje_id=None, direccion=None):
     return ErrorTipificado(
         error_id=error_id, segmento=segmento, lado=lado, severidad=severidad,
         fase="descenso", repeticion=rep, ejercicio_id="sentadilla",
-        mensaje_id=mensaje_id if mensaje_id is not None else error_id)
+        mensaje_id=mensaje_id if mensaje_id is not None else error_id,
+        direccion=direccion)
 
 
 class TestValidador(unittest.TestCase):
@@ -67,6 +69,38 @@ class TestValidador(unittest.TestCase):
             afirmaciones_no_soportadas("Endereza el tronco y el cuello.", err()), ())
 
 
+class TestValidadorDireccion(unittest.TestCase):
+    def test_acepta_la_direccion_pedida(self):
+        e = err("profundidad", "rodilla", Lado.BILATERAL,
+                direccion=Direccion.MAS_FLEXION)
+        self.assertTrue(validar("Baja más, flexiona las rodillas.", e))
+
+    def test_rechaza_la_direccion_contraria(self):
+        e = err("profundidad", "rodilla", Lado.BILATERAL,
+                direccion=Direccion.MAS_FLEXION)
+        r = validar("Estira las rodillas.", e)
+        self.assertFalse(r.valido)
+        self.assertEqual(r.motivo, "direccion_contradictoria:menos_flexion")
+
+    def test_la_negacion_invierte_la_direccion(self):
+        e = err("cadera_sube", "cadera", Lado.IZQUIERDO, direccion=Direccion.BAJAR)
+        self.assertTrue(validar("No subas la cadera izquierda.", e))
+        self.assertTrue(validar("Cadera izquierda nivelada, no la subas.", e))
+        self.assertFalse(validar("No bajes la cadera izquierda.", e))
+        self.assertEqual(direcciones_pedidas("No la subas"), (Direccion.BAJAR,))
+
+    def test_describir_el_error_no_es_pedir_la_direccion(self):
+        e = err("cadera_sube", "cadera", Lado.DERECHO, direccion=Direccion.BAJAR)
+        self.assertTrue(validar("Baja la cadera derecha, la estás subiendo.", e))
+        e = err("profundidad", "rodilla", Lado.IZQUIERDO,
+                direccion=Direccion.MAS_FLEXION)
+        self.assertTrue(validar("Baja más, la rodilla izquierda no se flexiona.", e))
+
+    def test_sin_direccion_no_se_comprueba(self):
+        e = err("profundidad", "rodilla", Lado.BILATERAL)
+        self.assertTrue(validar("Estira las rodillas.", e))
+
+
 class TestPlantillas(unittest.TestCase):
     def setUp(self):
         self.v = VerbalizadorPlantillas()
@@ -111,24 +145,27 @@ class TestCoberturaDePlantillas(unittest.TestCase):
         fallos = []
         for skill in SKILLS.values():
             for regla in skill.reglas:
-                for sev in Severidad:
-                    for rep in (1, 2, 3):
-                        e = ErrorTipificado(
-                            error_id=regla.error_id,
-                            mensaje_id=regla.mensaje_id or regla.error_id,
-                            segmento=regla.segmento, lado=regla.lado,
-                            severidad=sev, fase="x", repeticion=rep,
-                            ejercicio_id=skill.skill_id)
-                        m = v.verbalizar(e)
-                        if m.fallback:
-                            fallos.append(
-                                f"{skill.skill_id}/{regla.error_id}/{sev.value}"
-                                f" -> {m.motivo_rechazo}")
-                        r = validar(m.texto, e)
-                        if not r.valido:
-                            fallos.append(
-                                f"{skill.skill_id}/{regla.error_id}/{sev.value}"
-                                f" -> {r.motivo} :: {m.texto}")
+                # Cada dirección que la regla puede emitir, o ninguna: la
+                # plantilla no debe contradecirla.
+                direcciones = list(dict.fromkeys(regla.direcciones.values())) or [None]
+                for sev, rep, direccion in itertools.product(
+                        Severidad, (1, 2, 3), direcciones):
+                    e = ErrorTipificado(
+                        error_id=regla.error_id,
+                        mensaje_id=regla.mensaje_id or regla.error_id,
+                        segmento=regla.segmento, lado=regla.lado,
+                        severidad=sev, fase="x", repeticion=rep,
+                        ejercicio_id=skill.skill_id, direccion=direccion)
+                    m = v.verbalizar(e)
+                    if m.fallback:
+                        fallos.append(
+                            f"{skill.skill_id}/{regla.error_id}/{sev.value}"
+                            f" -> {m.motivo_rechazo}")
+                    r = validar(m.texto, e)
+                    if not r.valido:
+                        fallos.append(
+                            f"{skill.skill_id}/{regla.error_id}/{sev.value}"
+                            f" -> {r.motivo} :: {m.texto}")
         self.assertEqual(fallos, [], "\n".join(fallos))
 
 
