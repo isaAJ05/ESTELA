@@ -54,7 +54,8 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "prioridad": 2,                    // 1 = más importante. ÚNICA dentro del skill
   "severidad": { "moderada": 0.06, "alta": 0.15 },
   "umbral_origen": "[?] provisional, sin calibrar",
-  "mensaje_id": "valgo_rodilla"      // clave en plantillas_es.json; varias reglas pueden compartirla
+  "mensaje_id": "valgo_rodilla",     // clave en plantillas_es.json; varias reglas pueden compartirla
+  "direccion": { … }                 // opcional; ver abajo
 }
 ```
 
@@ -77,6 +78,18 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
 | `dentro_de` | `min`, `max` | el valor está dentro del intervalo |
 
 El **exceso** (cuánto se rebasa el umbral) determina la severidad mediante el bloque `severidad`: `alta` si el exceso la alcanza, si no `moderada`, si no `leve`.
+
+### `direccion` (opcional, ADR-004 §2.5)
+
+Traduce el sentido en que debe moverse **el valor de la medida** a una dirección de movimiento que la usuaria entiende. El motor calcula el sentido a partir de la condición y el valor: `>`/`>=` → `disminuir`, `<`/`<=` → `aumentar`, `fuera_de` según el lado por el que se sale, `dentro_de` sin sentido. Luego busca ese sentido aquí y lo emite en `ErrorTipificado.direccion`; el exceso sale en `magnitud`.
+
+| Clave | Valores |
+|---|---|
+| `aumentar`, `disminuir` | `mas_flexion` \| `menos_flexion` \| `subir` \| `bajar` \| `abrir` \| `cerrar` |
+
+Ejemplo: rodilla de la zancada, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
+
+El validador rechaza un mensaje que pida la dirección opuesta (`direccion_contradictoria`), con el léxico de `verbalizador/validador.py::LEXICO_DIRECCIONES`; «no subas» cuenta como pedir bajar.
 
 ## `segmentacion` (opcional; la usa `estela/`, no el motor)
 

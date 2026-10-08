@@ -46,7 +46,8 @@
       "prioridad": 1,
       "severidad": {"moderada": 20, "alta": 45},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "rango_brazos_insuficiente"
+      "mensaje_id": "rango_brazos_insuficiente",
+      "direccion": {"aumentar": "subir"}
     },
     {
       "error_id": "apertura_pies_insuficiente",
@@ -60,7 +61,8 @@
       "prioridad": 2,
       "severidad": {"moderada": 0.3, "alta": 0.6},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "apertura_insuficiente"
+      "mensaje_id": "apertura_insuficiente",
+      "direccion": {"aumentar": "abrir"}
     },
     {
       "error_id": "codos_flexionados",
@@ -74,7 +76,8 @@
       "prioridad": 3,
       "severidad": {"moderada": 20, "alta": 40},
       "umbral_origen": "[?] provisional, sin calibrar. Plano frontal, como el ejercicio: EXP-002 E1 mide de frente un error de proyección del codo de 16,2°, por debajo del umbral moderado (20°). Declarada «sagital», no era observable nunca en la vista frontal (ADR-006 §2.9)",
-      "mensaje_id": "codos_flexionados"
+      "mensaje_id": "codos_flexionados",
+      "direccion": {"aumentar": "menos_flexion"}
     }
   ]
 }

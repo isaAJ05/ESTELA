@@ -60,7 +60,8 @@
       "prioridad": 2,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "profundidad_rodilla"
+      "mensaje_id": "profundidad_rodilla",
+      "direccion": {"disminuir": "mas_flexion"}
     }
   ]
 }

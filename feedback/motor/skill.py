@@ -14,11 +14,13 @@ import os
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Sequence
 
-from ..contrato import Lado, Plano, SEGMENTOS
+from ..contrato import Direccion, Lado, Plano, SEGMENTOS
 
 OPERADORES = (">", ">=", "<", "<=", "fuera_de", "dentro_de")
 TIPOS_MEDIDA = ("angulo", "desviacion", "distancia", "agregado", "asimetria")
 FUNCIONES_AGREGADO = ("min", "max", "rango", "media")
+#: Sentido en que debe moverse el *valor de la medida* para volver al rango.
+SENTIDOS = ("aumentar", "disminuir")
 
 
 class SkillInvalido(ValueError):
@@ -84,6 +86,23 @@ class Condicion:
             return 0.0
         return 0.0
 
+    def sentido(self, valor: float) -> Optional[str]:
+        """Hacia dónde debe moverse el valor para dejar de cumplir la condición.
+
+        `>` -> «disminuir», `<` -> «aumentar»; `fuera_de` depende del lado por
+        el que se sale. `dentro_de` no tiene sentido único: None.
+        """
+        if self.op in (">", ">="):
+            return "disminuir"
+        if self.op in ("<", "<="):
+            return "aumentar"
+        if self.op == "fuera_de":
+            if valor < self.min:
+                return "aumentar"
+            if valor > self.max:
+                return "disminuir"
+        return None
+
 
 @dataclass(frozen=True)
 class Regla:
@@ -99,6 +118,14 @@ class Regla:
     umbrales_severidad: Dict[str, float] = field(default_factory=dict)
     umbral_origen: str = "[?] provisional, sin calibrar"
     mensaje_id: str = ""
+    #: traducción del sentido de la medida a dirección de movimiento
+    #: (ADR-004 §2.5), p. ej. {"disminuir": MAS_FLEXION} para un ángulo de
+    #: rodilla. Vacío => el error sale sin `direccion`.
+    direcciones: Dict[str, Direccion] = field(default_factory=dict)
+
+    def direccion_de(self, valor: float) -> Optional[Direccion]:
+        sentido = self.condicion.sentido(valor)
+        return self.direcciones.get(sentido) if sentido else None
 
     def severidad_de(self, exceso: float) -> str:
         alta = self.umbrales_severidad.get("alta")
@@ -220,6 +247,18 @@ def _condicion_desde(d: Dict[str, Any]) -> Condicion:
     return Condicion(op=op, umbral=float(d["umbral"]))
 
 
+def _direcciones_desde(d: Dict[str, Any]) -> Dict[str, Direccion]:
+    direcciones: Dict[str, Direccion] = {}
+    for sentido, valor in d.items():
+        if sentido not in SENTIDOS:
+            raise SkillInvalido(f"sentido de direccion desconocido: {sentido}")
+        try:
+            direcciones[sentido] = Direccion(valor)
+        except ValueError:
+            raise SkillInvalido(f"direccion fuera del vocabulario cerrado: {valor}")
+    return direcciones
+
+
 def _regla_desde(d: Dict[str, Any]) -> Regla:
     for campo in ("error_id", "medida", "condicion", "segmento", "lado",
                   "plano", "prioridad"):
@@ -241,6 +280,7 @@ def _regla_desde(d: Dict[str, Any]) -> Regla:
         umbrales_severidad=dict(d.get("severidad", {})),
         umbral_origen=d.get("umbral_origen", "[?] provisional, sin calibrar"),
         mensaje_id=d.get("mensaje_id", d["error_id"]),
+        direcciones=_direcciones_desde(d.get("direccion", {})),
     )
 
 
