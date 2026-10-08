@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import time
 from typing import Dict, List, Optional
 
@@ -103,7 +104,8 @@ class VerbalizadorPlantillas(Verbalizador):
                  .replace("{art}", "la" if fem else "el")
                  .replace("{hacia_lado}", HACIA_LADO_ES.get(error.lado, ""))
                  .replace("{lado}", lado_txt))
-        return " ".join(texto.split())
+        # Un hueco vacío ({lado} sin lado) no debe dejar «rodilla .».
+        return re.sub(r"\s+([.,;:!?])", r"\1", " ".join(texto.split()))
 
     # -- API ----------------------------------------------------------------
 

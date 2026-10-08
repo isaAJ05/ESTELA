@@ -133,6 +133,21 @@ class TestPlantillas(unittest.TestCase):
         m = self.v.verbalizar(e)
         self.assertTrue(m.texto)
         self.assertTrue(validar(m.texto, e))
+        self.assertTrue(m.texto.endswith("cadera."), m.texto)
+
+    def test_el_generico_nombra_el_lado_cuando_el_contrato_lo_trae(self):
+        # El respaldo es el último recurso: si omite el lado, el sistema dice
+        # una frase que su propio validador rechaza (lado_omitido).
+        for segmento, lado, esperado in (
+                ("rodilla", Lado.IZQUIERDO, "izquierda"),
+                ("codo", Lado.DERECHO, "derecho")):
+            for sev in Severidad:
+                e = err(error_id="error_que_no_existe", segmento=segmento,
+                        lado=lado, severidad=sev)
+                m = self.v.verbalizar(e)
+                self.assertIn(esperado, m.texto)
+                self.assertTrue(validar(m.texto, e), m.texto)
+                self.assertFalse(m.fallback, m.motivo_rechazo)
 
 
 class TestCoberturaDePlantillas(unittest.TestCase):
