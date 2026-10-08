@@ -150,10 +150,14 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `tronco_inclinacion` | ángulo | sagital | Tronco respecto a la vertical, sin signo |
 | `inclinacion_lateral` | ángulo | frontal | Tronco hacia los lados, con signo: + = hacia la izquierda de la persona |
 | `oblicuidad_pelvis`, `oblicuidad_hombros` | ángulo | frontal | Línea de caderas / hombros respecto a la horizontal: + = lado izquierdo más alto |
+| `inclinacion_lateral_tronco` | ángulo | frontal | Componente frontal de la inclinación del tronco; + = hacia la izquierda |
+| `inclinacion_pelvis` | ángulo | frontal | Línea entre caderas respecto a la horizontal: + = cadera izquierda más alta |
 | `cabeza_adelantada` | ángulo | sagital | Cuello respecto a la prolongación del tronco, sin signo; 0 = alineada |
 | `abduccion_cadera_izq`, `_der` | ángulo | frontal | Muslo respecto a la vertical en el plano frontal: + = hacia fuera |
+| `alineacion_cuerpo_izq`, `_der` | ángulo | sagital | Ángulo interno hombro–cadera–tobillo para plancha; 180 = cuerpo recto |
 | `rotacion_tronco`, `azimut_cadera` | ángulo | transversal | No observables con una cámara (EXP-002) |
 | `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
+| `longitud_paso` | distancia | sagital | Distancia de tobillos en profundidad, normalizada por escala corporal |
 | `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
 

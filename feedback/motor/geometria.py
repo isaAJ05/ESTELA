@@ -86,6 +86,11 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "cabeza_adelantada": Plano.SAGITAL,
     "abduccion_cadera_izq": Plano.FRONTAL,
     "abduccion_cadera_der": Plano.FRONTAL,
+    "inclinacion_lateral_tronco": Plano.FRONTAL,
+    "inclinacion_pelvis": Plano.FRONTAL,
+    "alineacion_cuerpo_izq": Plano.SAGITAL,
+    "alineacion_cuerpo_der": Plano.SAGITAL,
+    "longitud_paso": Plano.SAGITAL,
     "alineacion_cadera": Plano.SAGITAL,
 }
 
@@ -332,6 +337,19 @@ def inclinacion_lateral(kps: Dict[str, Keypoint], usar_z: bool = True) -> Option
     return math.degrees(math.atan2(_punto(v, u), -v[1]))
 
 
+def inclinacion_lateral_tronco(
+    kps: Dict[str, Keypoint], usar_z: bool = True
+) -> Optional[float]:
+    """Componente frontal de la inclinación del tronco, en grados.
+
+    Es el nombre canónico de :func:`inclinacion_lateral`. La proyección
+    descarta la componente sagital, por lo que una flexión hacia delante no
+    altera esta medida. Positivo = inclinación hacia la izquierda de la
+    persona. Plano frontal.
+    """
+    return inclinacion_lateral(kps, usar_z)
+
+
 def cabeza_adelantada(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
     """Desalineación de la cabeza respecto al tronco, en grados, sin signo.
 
@@ -374,6 +392,17 @@ def abduccion_cadera(kps: Dict[str, Keypoint], lado: str) -> Optional[float]:
     if math.hypot(dx, dy) < 1e-9:
         return None
     return math.degrees(math.atan2(math.copysign(1.0, fuera) * dx, dy))
+
+
+def inclinacion_pelvis(
+    kps: Dict[str, Keypoint], usar_z: bool = True
+) -> Optional[float]:
+    """Ángulo de la línea entre caderas respecto a la horizontal.
+
+    Positivo = la cadera izquierda está más alta que la derecha. Es el nombre
+    canónico de :func:`oblicuidad_pelvis`. Plano frontal.
+    """
+    return oblicuidad_pelvis(kps, usar_z)
 
 
 def lado_mas_visible(kps: Dict[str, Keypoint], partes: Sequence[str]) -> Optional[str]:
@@ -424,6 +453,26 @@ def alineacion_cadera(kps: Dict[str, Keypoint], usar_z: bool = True,
     return (cadera[1] - en_recta_y) / esc
 
 
+def alineacion_cuerpo(
+    kps: Dict[str, Keypoint], lado: str, usar_z: bool = True
+) -> Optional[float]:
+    """Ángulo interno hombro–cadera–tobillo de un lado, en grados.
+
+    En una plancha recta vale 180 grados y disminuye cuando la cadera se
+    hunde o se eleva. Se calcula con los tres puntos del lado indicado y,
+    cuando están disponibles, en tres dimensiones; por ello no depende de la
+    orientación de la cámara. Plano sagital.
+    """
+    if lado not in ("izq", "der"):
+        return None
+    pref = "left" if lado == "izq" else "right"
+    req = tuple(f"{pref}_{parte}" for parte in ("shoulder", "hip", "ankle"))
+    if any(k not in kps for k in req):
+        return None
+    puntos = [_coords(kps[k], usar_z) for k in req]
+    return angulo_entre(puntos[0], puntos[1], puntos[2])
+
+
 def separacion_pies(kps: Dict[str, Keypoint]) -> Optional[float]:
     """Separación de tobillos dividida por la separación de caderas."""
     req = ("left_ankle", "right_ankle", "left_hip", "right_hip")
@@ -434,6 +483,28 @@ def separacion_pies(kps: Dict[str, Keypoint]) -> Optional[float]:
     if dc < 1e-9:
         return None
     return dt / dc
+
+
+def longitud_paso(
+    kps: Dict[str, Keypoint], usar_z: bool = True
+) -> Optional[float]:
+    """Distancia entre tobillos en el eje de avance, normalizada.
+
+    El eje de avance es la profundidad ``z`` del espacio de pose; por eso se
+    requiere profundidad cuando se solicita la medida. La normalización usa
+    ``escala_corporal`` (distancia hombros-caderas). Plano sagital.
+    """
+    if not usar_z or any(k not in kps for k in (
+        "left_ankle", "right_ankle", "left_shoulder", "right_shoulder",
+        "left_hip", "right_hip",
+    )):
+        return None
+    if kps["left_ankle"].z is None or kps["right_ankle"].z is None:
+        return None
+    escala = escala_corporal(kps, usar_z=True)
+    if escala is None:
+        return None
+    return abs(kps["left_ankle"].z - kps["right_ankle"].z) / escala
 
 
 # ---------------------------------------------------------------------------
@@ -513,8 +584,11 @@ def observacion_desde_pose(
     hombros = ("left_shoulder", "right_shoulder")
     nuevas = (
         ("oblicuidad_pelvis", oblicuidad_pelvis(kps, usar_z), caderas),
+        ("inclinacion_pelvis", inclinacion_pelvis(kps, usar_z), caderas),
         ("oblicuidad_hombros", oblicuidad_hombros(kps, usar_z), hombros),
         ("inclinacion_lateral", inclinacion_lateral(kps, usar_z), hombros + caderas),
+        ("inclinacion_lateral_tronco", inclinacion_lateral_tronco(kps, usar_z),
+         hombros + caderas),
         ("cabeza_adelantada", cabeza_adelantada(kps, usar_z),
          hombros + caderas + ("left_ear", "right_ear")),
         ("abduccion_cadera_izq", abduccion_cadera(kps, "izq"),
@@ -526,6 +600,14 @@ def observacion_desde_pose(
         if valor is not None:
             angulos[nombre] = valor
             confianza[nombre] = confianza_de_terna(kps, implicados)
+
+    for lado, pref in (("izq", "left"), ("der", "right")):
+        nombre = f"alineacion_cuerpo_{lado}"
+        valor = alineacion_cuerpo(kps, lado, usar_z)
+        if valor is not None:
+            angulos[nombre] = valor
+            confianza[nombre] = confianza_de_terna(
+                kps, (f"{pref}_shoulder", f"{pref}_hip", f"{pref}_ankle"))
 
     distancias: Dict[str, float] = {}
     for lado, suf in (("izq", "left"), ("der", "right")):
@@ -539,6 +621,12 @@ def observacion_desde_pose(
         distancias["separacion_pies"] = sep
         confianza["separacion_pies"] = confianza_de_terna(
             kps, ("left_ankle", "right_ankle", "left_hip", "right_hip"))
+    paso = longitud_paso(kps, usar_z)
+    if paso is not None:
+        distancias["longitud_paso"] = paso
+        confianza["longitud_paso"] = confianza_de_terna(
+            kps, ("left_ankle", "right_ankle", "left_shoulder",
+                  "right_shoulder", "left_hip", "right_hip"))
     lado = lado_mas_visible(kps, PARTES_ALINEACION)
     alin = alineacion_cadera(kps, usar_z, lado) if lado else None
     if alin is not None:
@@ -564,7 +652,9 @@ __all__ = [
     "angulo_entre", "punto_medio", "escala_corporal", "inclinacion_tronco",
     "orientacion_camara", "desviacion_lateral_rodilla", "separacion_pies",
     "rotacion_tronco", "azimut_cadera",
-    "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_lateral",
-    "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera", "lado_mas_visible",
+    "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_pelvis",
+    "inclinacion_lateral", "inclinacion_lateral_tronco",
+    "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera",
+    "alineacion_cuerpo", "longitud_paso", "lado_mas_visible",
     "confianza_de_terna", "observacion_desde_pose",
 ]
