@@ -3,7 +3,12 @@ import unittest
 
 from feedback.contrato import Direccion, ErrorTipificado, Lado, Severidad
 from feedback.motor.skill import cargar_skills, directorio_skills
-from feedback.verbalizador.plantillas import VerbalizadorPlantillas
+from feedback.verbalizador.llm_local import (
+    VerbalizadorLLMLocal, _descripcion_error,
+)
+from feedback.verbalizador.plantillas import (
+    DIRECCION_ES, VerbalizadorPlantillas,
+)
 from feedback.verbalizador.validador import (
     afirmaciones_no_soportadas, direcciones_pedidas, lados_mencionados,
     segmentos_mencionados, validar,
@@ -99,6 +104,58 @@ class TestValidadorDireccion(unittest.TestCase):
     def test_sin_direccion_no_se_comprueba(self):
         e = err("profundidad", "rodilla", Lado.BILATERAL)
         self.assertTrue(validar("Estira las rodillas.", e))
+
+
+class TestLLMLocalSinServidor(unittest.TestCase):
+    """Lo que se puede comprobar del verbalizador LLM sin modelo: qué se le
+    envía y qué se hace con su respuesta. La calidad del texto que genera solo
+    se mide con un modelo real (EXP-001, T23)."""
+
+    def _error(self, direccion=Direccion.MAS_FLEXION):
+        return ErrorTipificado(
+            error_id="profundidad_insuficiente_der", segmento="rodilla",
+            lado=Lado.DERECHO, severidad=Severidad.ALTA, fase="ascenso",
+            repeticion=1, ejercicio_id="zancada_atras_izq",
+            mensaje_id="profundidad_rodilla", magnitud=30.0,
+            direccion=direccion)
+
+    def _llm_que_responde(self, texto):
+        llm = VerbalizadorLLMLocal()
+        llm._llamar = lambda error: texto
+        return llm
+
+    def test_el_prompt_lleva_la_direccion_y_no_la_magnitud(self):
+        d = _descripcion_error(self._error())
+        self.assertIn("corrección pedida: flexionar más", d)
+        self.assertIn("rodilla derecha", d)
+        self.assertNotIn("30", d)
+
+    def test_sin_direccion_el_prompt_no_la_menciona(self):
+        self.assertNotIn("corrección pedida", _descripcion_error(self._error(None)))
+
+    def test_toda_direccion_tiene_forma_en_espanol_coherente_con_el_validador(self):
+        for direccion in Direccion:
+            self.assertIn(direccion, DIRECCION_ES)
+            self.assertIn(direccion, direcciones_pedidas(DIRECCION_ES[direccion]))
+
+    def test_respuesta_que_contradice_la_direccion_cae_a_plantilla(self):
+        m = self._llm_que_responde("Estira la rodilla derecha.").verbalizar(self._error())
+        self.assertTrue(m.fallback)
+        self.assertEqual(m.motivo_rechazo, "direccion_contradictoria:menos_flexion")
+        self.assertTrue(validar(m.texto, self._error()))
+
+    def test_respuesta_en_la_direccion_pedida_se_acepta(self):
+        m = self._llm_que_responde("Baja más y flexiona la rodilla derecha.").verbalizar(
+            self._error())
+        self.assertFalse(m.fallback)
+        self.assertEqual(m.texto, "Baja más y flexiona la rodilla derecha.")
+
+    def test_servidor_caido_cae_a_plantilla(self):
+        llm = VerbalizadorLLMLocal(url="http://127.0.0.1:9/no-hay-servidor",
+                                   timeout_ms=200)
+        m = llm.verbalizar(self._error())
+        self.assertTrue(m.fallback)
+        self.assertTrue(m.motivo_rechazo.startswith("fallo_backend"))
 
 
 class TestPlantillas(unittest.TestCase):

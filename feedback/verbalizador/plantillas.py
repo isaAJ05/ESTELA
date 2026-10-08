@@ -20,7 +20,9 @@ import re
 import time
 from typing import Dict, List, Optional
 
-from ..contrato import ErrorTipificado, Lado, MensajeFeedback, Refuerzo
+from ..contrato import (
+    Direccion, ErrorTipificado, Lado, MensajeFeedback, Refuerzo,
+)
 from .base import Verbalizador
 from .validador import ResultadoValidacion, validar, validar_generico
 
@@ -50,6 +52,19 @@ LADO_ES: Dict[Lado, Dict[str, str]] = {
 
 #: Dirección hacia un lado, sin concordancia con el segmento: «el tronco se
 #: inclina hacia la izquierda», no «hacia el izquierdo».
+#: Dirección de la corrección en palabras (ADR-004 §2.5), en infinitivo para
+#: describirla sin dictar la frase. Usa los verbos de
+#: `validador.LEXICO_DIRECCIONES`, para que quien la lea la repita en el
+#: mismo sentido.
+DIRECCION_ES: Dict[Direccion, str] = {
+    Direccion.MAS_FLEXION: "flexionar más",
+    Direccion.MENOS_FLEXION: "estirar más",
+    Direccion.SUBIR: "subir",
+    Direccion.BAJAR: "bajar",
+    Direccion.ABRIR: "abrir",
+    Direccion.CERRAR: "cerrar",
+}
+
 HACIA_LADO_ES: Dict[Lado, str] = {
     Lado.IZQUIERDO: "hacia la izquierda",
     Lado.DERECHO: "hacia la derecha",
@@ -176,4 +191,4 @@ class VerbalizadorPlantillas(Verbalizador):
         )
 
 
-__all__ = ["VerbalizadorPlantillas", "SEGMENTO_ES", "LADO_ES"]
+__all__ = ["VerbalizadorPlantillas", "SEGMENTO_ES", "LADO_ES", "DIRECCION_ES"]
