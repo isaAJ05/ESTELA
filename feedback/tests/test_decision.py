@@ -200,8 +200,10 @@ ZANCADA = "zancada_atras_izq"
 
 
 def obs_z(t_ms, rep, **kw):
-    """Observación de la zancada: en «descenso» la única regla aplicable es la
-    del tronco, que de perfil siempre se puede comprobar."""
+    """Observación de la zancada: en «descenso» aplican la regla del tronco y
+    las del paso (ZR-04); se entrega un paso correcto, comprobable de perfil."""
+    kw.setdefault("distancias", {"longitud_paso": 0.9})
+    kw.setdefault("confianza", {}).setdefault("longitud_paso", 1.0)
     return obs(t_ms, rep, ejercicio=ZANCADA, **kw)
 
 
@@ -467,6 +469,123 @@ class TestDireccionYMagnitud(unittest.TestCase):
             self._skill_fuera_de({"aumentar": "girar"})
         with self.assertRaises(SkillInvalido):
             self._skill_fuera_de({"hacia_arriba": "subir"})
+
+
+class TestCatalogoT17(unittest.TestCase):
+    """Reglas del catálogo de errores v2 (T17): pierna visible, precedencia y
+    errores nuevos."""
+
+    _obs = TestSkillsActuales._obs
+    _dos_repeticiones = TestSkillsActuales._dos_repeticiones
+
+    def _zancada(self, m, t, rep, rodillas, paso=0.9, conf_rodillas=None):
+        """Una repetición: un frame de descenso (paso) y uno de ascenso (rodilla).
+        Devuelve la decisión del ascenso; las dos quedan en `self.dichas`."""
+        conf_rodillas = conf_rodillas or {k: 1.0 for k in rodillas}
+        self.dichas = getattr(self, "dichas", [])
+        self.dichas.append(m.observar(Observacion(
+            t_ms=t, ejercicio_id="zancada_atras_izq",
+            angulos={"tronco_inclinacion": 10.0}, distancias={"longitud_paso": paso},
+            confianza={"tronco_inclinacion": 1.0, "longitud_paso": 1.0},
+            fase="descenso", repeticion=rep, orientacion=90.0)))
+        self.dichas.append(m.observar(Observacion(
+            t_ms=t + 500, ejercicio_id="zancada_atras_izq",
+            angulos=dict(rodillas, tronco_inclinacion=10.0),
+            confianza=dict(conf_rodillas, tronco_inclinacion=1.0),
+            fase="ascenso", repeticion=rep, orientacion=90.0)))
+        return self.dichas[-1]
+
+    def test_zancada_corrige_la_rodilla_que_ve_la_camara(self):
+        # La izquierda (trasera en este skill) es la visible y no baja.
+        m = MotorDecision(SKILLS["zancada_atras_izq"])
+        rodillas = {"rodilla_izq": 140.0, "rodilla_der": 140.0}
+        conf = {"rodilla_izq": 0.9, "rodilla_der": 0.3}
+        self._zancada(m, 1000, 1, rodillas, conf_rodillas=conf)
+        d = self._zancada(m, 20000, 2, rodillas, conf_rodillas=conf)
+        self.assertEqual((d.error_id, d.lado), ("profundidad_insuficiente_izq",
+                                                Lado.IZQUIERDO))
+
+    def test_la_pierna_tapada_no_impide_felicitar(self):
+        # Sin `solo_lado_visible`, la rodilla tapada se abstendría en cada
+        # repetición y el ejercicio no podría felicitar nunca (ADR-006 §2.9).
+        m = MotorDecision(SKILLS["zancada_atras_izq"])
+        self.dichas = []
+        for rep in range(1, 6):
+            self._zancada(m, rep * 20000, rep, {"rodilla_izq": 90.0, "rodilla_der": 90.0},
+                          conf_rodillas={"rodilla_izq": 1.0, "rodilla_der": 0.1})
+        self.assertTrue(any(isinstance(d, Refuerzo) for d in self.dichas))
+
+    def test_paso_fuera_de_rango_calla_la_profundidad(self):
+        m = MotorDecision(SKILLS["zancada_atras_izq"])
+        rodillas = {"rodilla_izq": 140.0, "rodilla_der": 140.0}
+        dichos = [self._zancada(m, rep * 20000, rep, rodillas, paso=0.3)
+                  for rep in range(1, 5)]
+        self.assertFalse(any(isinstance(d, ErrorTipificado)
+                             and d.error_id.startswith("profundidad") for d in dichos))
+        self.assertEqual(m._estado_de("profundidad_insuficiente_izq").emisiones, 0)
+
+    def test_paso_corto_pide_alargar_y_largo_acortar(self):
+        for paso, error_id, direccion in ((0.3, "paso_corto", Direccion.ALARGAR),
+                                          (1.5, "paso_largo", Direccion.ACORTAR)):
+            d = self._dos_repeticiones("zancada_atras_izq", fase="descenso",
+                                       orientacion=90.0,
+                                       angulos={"tronco_inclinacion": 10.0},
+                                       distancias={"longitud_paso": paso})
+            self.assertEqual((d.error_id, d.direccion), (error_id, direccion))
+
+    def test_abduccion_insuficiente_calla_si_hubo_compensacion(self):
+        m = MotorDecision(SKILLS["abduccion_cadera_izq"])
+        def repeticion(rep, oblicuidad):
+            t = rep * 20000
+            m.observar(self._obs("abduccion_cadera_izq", t, rep, "arriba",
+                                 angulos={"inclinacion_lateral": 0.0,
+                                          "oblicuidad_pelvis": oblicuidad,
+                                          "abduccion_cadera_izq": 10.0},
+                                 orientacion=0.0))
+            return m.observar(self._obs("abduccion_cadera_izq", t + 500, rep, "bajada",
+                                        angulos={"abduccion_cadera_izq": 10.0},
+                                        orientacion=0.0))
+        # Con la cadera subiendo, el rango insuficiente no se dice.
+        dichos = [repeticion(r, 10.0) for r in range(1, 5)]
+        self.assertFalse(any(isinstance(d, ErrorTipificado)
+                             and d.error_id == "abduccion_insuficiente_izq" for d in dichos))
+        # Sin compensación, sí.
+        m.reiniciar()
+        dichos = [repeticion(r, 0.0) for r in range(1, 5)]
+        self.assertTrue(any(isinstance(d, ErrorTipificado)
+                            and d.error_id == "abduccion_insuficiente_izq" for d in dichos))
+
+    def test_plancha_hombros_adelantados_y_retrasados(self):
+        for valor, error_id, direccion in ((0.4, "hombros_adelantados", Direccion.ATRAS),
+                                           (-0.4, "hombros_retrasados", Direccion.ADELANTE)):
+            d = self._dos_repeticiones("plancha", fase="mantenimiento", orientacion=90.0,
+                                       distancias={"alineacion_cadera": 0.0,
+                                                   "hombro_sobre_codo": valor},
+                                       angulos={"cabeza_adelantada": 5.0})
+            self.assertEqual((d.error_id, d.segmento, d.direccion),
+                             (error_id, "hombro", direccion))
+
+    def test_jumping_jacks_brazos_a_la_horizontal_es_error_y_a_110_no(self):
+        def brazos(hombro):
+            # jumping_jacks pide 3 repeticiones de evidencia
+            m = MotorDecision(SKILLS["jumping_jacks"])
+            for rep in (1, 2, 3):
+                d = m.observar(self._obs("jumping_jacks", rep * 20000, rep, "abierto",
+                                         angulos={"hombro_medio": hombro, "codo_medio": 170.0},
+                                         distancias={"separacion_pies": 2.0},
+                                         orientacion=0.0))
+            return d
+        self.assertEqual(brazos(90.0).error_id, "brazos_no_llegan_arriba")
+        self.assertIsInstance(brazos(110.0), Silencio)
+
+    def test_marcha_la_rodilla_va_antes_que_el_tronco(self):
+        m = MotorDecision(SKILLS["marcha_rodillas"])
+        for rep in (1, 2, 3):   # la marcha pide 3 repeticiones de evidencia
+            d = m.observar(self._obs("marcha_rodillas", rep * 20000, rep, "apoyo_der",
+                                     angulos={"cadera_izq": 140.0, "cadera_der": 170.0,
+                                              "tronco_inclinacion": 40.0},
+                                     orientacion=90.0))
+        self.assertEqual(d.error_id, "rodilla_izq_baja")
 
 
 class TestContratoDeEntrada(unittest.TestCase):

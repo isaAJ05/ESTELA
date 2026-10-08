@@ -127,7 +127,8 @@
       },
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "abduccion_insuficiente",
-      "direccion": {"aumentar": "abrir"}
+      "direccion": {"aumentar": "abrir"},
+      "silenciada_por": ["tronco_inclinado_der", "cadera_izq_sube"]
     }
   ]
 }

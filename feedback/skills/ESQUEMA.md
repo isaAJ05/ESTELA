@@ -15,7 +15,7 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "skill_id": "sentadilla",          // único; debe coincidir con Observacion.ejercicio_id
   "nombre": "Sentadilla",
   "version": "0.1.0",
-  "estado": "candidato",             // candidato | candidato_en_duda | adoptado
+  "estado": "candidato",             // candidato | candidato_en_duda | adoptado | descartado
   "notas": "…",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital", // frontal | sagital | transversal | cualquiera
@@ -55,9 +55,27 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "severidad": { "moderada": 0.06, "alta": 0.15 },
   "umbral_origen": "[?] provisional, sin calibrar",
   "mensaje_id": "valgo_rodilla",     // clave en plantillas_es.json; varias reglas pueden compartirla
-  "direccion": { … }                 // opcional; ver abajo
+  "direccion": { … },                // opcional; ver abajo
+  "solo_lado_visible": false,         // opcional; ver abajo
+  "silenciada_por": []                // opcional; ver abajo
 }
 ```
+
+### `solo_lado_visible` (opcional)
+
+En los ejercicios de perfil la pierna lejana queda tapada (catálogo v2, DEC-013/014). Con `true`, la regla solo se aplica en los frames en que su lado es el que mejor se ve: el motor compara la confianza de la medida (`rodilla_izq`) con la de su espejo (`rodilla_der`), y con empate se aplica. Cuando no se aplica, la regla **no se evalúa ni cuenta como abstención**. Si contara como abstención, el ejercicio no podría felicitar nunca, porque el refuerzo exige comprobar todas las reglas aplicables (ADR-006 §2.9).
+
+Se declara una regla por lado, cada una con `solo_lado_visible`. El cargador exige que la medida termine en `_izq` o `_der` y que coincida con el `lado` de la regla.
+
+Consecuencia aceptada (decisión del 2026-10-08): el ejercicio puede felicitar habiendo comprobado solo el lado visible. En el banco sintético eso lleva M8′ de 0 % a 11,1 % (EXP-001 §8.6).
+
+### `silenciada_por` (opcional)
+
+Lista de `error_id` del mismo skill. Si alguno se disparó en la repetición en curso, esta regla calla el resto de la repetición: ni se evalúa ni acumula evidencia. Sirve para la **precedencia entre errores**:
+- La abducción insuficiente calla si el tronco o la cadera compensaron (catálogo v2, AH-01): no se dice «sube más» a quien ya se inclina para subir más.
+- La profundidad de la zancada calla si el paso está fuera de rango (ZR-04), porque entonces la causa es el paso.
+
+La regla que manda tiene que evaluarse **antes** en la repetición (en una fase anterior o en la misma).
 
 ### `medida`
 
@@ -85,7 +103,7 @@ Traduce el sentido en que debe moverse **el valor de la medida** a una direcció
 
 | Clave | Valores |
 |---|---|
-| `aumentar`, `disminuir` | `mas_flexion` \| `menos_flexion` \| `subir` \| `bajar` \| `abrir` \| `cerrar` |
+| `aumentar`, `disminuir` | `mas_flexion` \| `menos_flexion` \| `subir` \| `bajar` \| `abrir` \| `cerrar` \| `adelante` \| `atras` \| `alargar` \| `acortar` |
 
 Ejemplo: rodilla de la zancada, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
 
@@ -156,12 +174,18 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
 | `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
+| `hombro_sobre_codo` | distancia | sagital | Hombro respecto al codo en horizontal, en escalas de tronco: + = hombro por delante (hacia la cabeza). Plancha sobre antebrazos (PL-03/04); lado más visible |
+| `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (cadera → tobillo del lado más visible). Zancada (ZR-04). `[?]` Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene y el ejercicio no felicita |
 
 ## Reglas de higiene que el cargador impone
 
 - `segmento` debe estar en el vocabulario cerrado (`contrato.SEGMENTOS`). Es lo que permite al validador de salida rechazar mensajes que nombren otra parte del cuerpo.
 - Las **prioridades no pueden repetirse**: con un empate el desempate quedaría indefinido y el motor dejaría de ser determinista.
 - Los `error_id` no pueden repetirse dentro del skill.
+- `estado` debe ser uno de los cuatro valores de la estructura.
+- `solo_lado_visible` exige una medida de un lado (`_izq`/`_der`) cuyo lado coincida con el de la regla.
+- `silenciada_por` solo puede nombrar **otras** reglas del mismo skill.
+- `direccion` solo admite `aumentar`/`disminuir` como claves y valores del vocabulario cerrado.
 
 ## Cómo calibrar un umbral (pendiente)
 

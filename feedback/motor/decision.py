@@ -140,6 +140,8 @@ class MotorDecision:
         self._rep_comprobadas: Set[str] = set()
         #: ¿se disparó algún candidato durante la repetición en curso?
         self._rep_sucia = False
+        #: reglas que se dispararon en la repetición en curso (`silenciada_por`)
+        self._rep_disparadas: Set[str] = set()
         #: una racha se acaba de cerrar limpia y toca decidir si se habla
         self._racha_cerrada_pendiente = False
 
@@ -160,6 +162,7 @@ class MotorDecision:
             self._rep_aplicables = set()
             self._rep_comprobadas = set()
             self._rep_sucia = False
+            self._rep_disparadas = set()
 
     def _cierra_repeticion_anterior(self) -> None:
         """Decide si la repetición que acaba de terminar fue 'limpia'.
@@ -218,6 +221,29 @@ class MotorDecision:
 
     # -- evaluación ---------------------------------------------------------
 
+    def _lado_visible(self, regla: Regla, obs: Observacion) -> bool:
+        """¿Es el lado de la regla el que mejor se ve? (`solo_lado_visible`)
+
+        Se compara la confianza de la medida con la de su espejo en el mismo
+        frame. Empate => se aplica: de frente se ven los dos lados.
+        """
+        if not regla.solo_lado_visible:
+            return True
+        espejo = regla.medida_espejo()
+        return obs.confianza_de(regla.medida.nombre) >= obs.confianza_de(espejo)
+
+    def _silenciada(self, regla: Regla) -> bool:
+        return any(e in self._rep_disparadas for e in regla.silenciada_por)
+
+    def _aplica(self, regla: Regla, obs: Observacion) -> bool:
+        """¿Toca mirar esta regla ahora? Una regla que no aplica no se evalúa,
+        no acumula evidencia y no cuenta para el refuerzo: no es una
+        abstención, es que no corresponde (otra fase, el lado tapado, o la
+        tapa un error de más precedencia)."""
+        if regla.fases and obs.fase not in regla.fases:
+            return False
+        return self._lado_visible(regla, obs) and not self._silenciada(regla)
+
     def _candidatos(self, obs: Observacion
                     ) -> Tuple[List[Tuple[Regla, float, float]], List[str], List[str]]:
         """Devuelve (candidatos, motivos_de_abstencion, reglas_evaluadas).
@@ -233,7 +259,7 @@ class MotorDecision:
         evaluadas: List[str] = []
 
         for regla in self.skill.reglas:
-            if regla.fases and obs.fase not in regla.fases:
+            if not self._aplica(regla, obs):
                 continue
 
             conf = self.confianza_de_medida(regla.medida, obs)
@@ -382,10 +408,15 @@ class MotorDecision:
             return refuerzo
 
         candidatos, motivos, evaluadas_ids = self._candidatos(obs)
+        # Precedencia: lo que se dispara en este frame ya silencia a las
+        # reglas que declaran `silenciada_por`, también en este mismo frame.
+        self._rep_disparadas.update(r.error_id for r, _, _ in candidatos)
+        candidatos = [c for c in candidatos if not self._silenciada(c[0])]
+        evaluadas_ids = [e for e in evaluadas_ids
+                         if not self._silenciada(self.skill.regla_de(e))]
         evaluadas = len(evaluadas_ids)
         self._rep_aplicables.update(
-            r.error_id for r in self.skill.reglas
-            if not r.fases or obs.fase in r.fases)
+            r.error_id for r in self.skill.reglas if self._aplica(r, obs))
         self._rep_comprobadas.update(evaluadas_ids)
         if candidatos:
             self._rep_sucia = True
@@ -454,6 +485,7 @@ class MotorDecision:
         self._rep_aplicables = set()
         self._rep_comprobadas = set()
         self._rep_sucia = False
+        self._rep_disparadas = set()
         self._racha_cerrada_pendiente = False
 
 

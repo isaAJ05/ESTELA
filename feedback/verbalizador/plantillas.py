@@ -63,6 +63,10 @@ DIRECCION_ES: Dict[Direccion, str] = {
     Direccion.BAJAR: "bajar",
     Direccion.ABRIR: "abrir",
     Direccion.CERRAR: "cerrar",
+    Direccion.ADELANTE: "llevar hacia delante",
+    Direccion.ATRAS: "llevar hacia atrás",
+    Direccion.ALARGAR: "alargar",
+    Direccion.ACORTAR: "acortar",
 }
 
 HACIA_LADO_ES: Dict[Lado, str] = {

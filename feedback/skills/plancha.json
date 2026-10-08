@@ -76,10 +76,40 @@
       "plano": "sagital",
       "segmento": "cabeza",
       "lado": "na",
-      "prioridad": 3,
+      "prioridad": 5,
       "severidad": {"moderada": 10, "alta": 20},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "cabeza_desalineada"
+    },
+    {
+      "error_id": "hombros_adelantados",
+      "descripcion": "Los hombros pasan por delante de los codos: el cuerpo se va hacia delante (catálogo v2, PL-03).",
+      "medida": {"tipo": "distancia", "nombre": "hombro_sobre_codo"},
+      "condicion": {"op": ">", "umbral": 0.2},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "hombro",
+      "lado": "na",
+      "prioridad": 3,
+      "severidad": {"moderada": 0.1, "alta": 0.2},
+      "umbral_origen": "[?] provisional, sin calibrar: 0,20 escalas de tronco ≈ 10 cm. El catálogo prevé compararla con la postura media de la referencia (T11)",
+      "mensaje_id": "hombros_adelantados",
+      "direccion": {"disminuir": "atras"}
+    },
+    {
+      "error_id": "hombros_retrasados",
+      "descripcion": "Los hombros quedan por detrás de los codos: los codos están demasiado adelantados (catálogo v2, PL-04; DEC-006 propuesto como error).",
+      "medida": {"tipo": "distancia", "nombre": "hombro_sobre_codo"},
+      "condicion": {"op": "<", "umbral": -0.2},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "hombro",
+      "lado": "na",
+      "prioridad": 4,
+      "severidad": {"moderada": 0.1, "alta": 0.2},
+      "umbral_origen": "[?] provisional, sin calibrar: simétrico de hombros_adelantados",
+      "mensaje_id": "hombros_retrasados",
+      "direccion": {"aumentar": "adelante"}
     }
   ]
 }

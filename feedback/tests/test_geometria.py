@@ -75,6 +75,40 @@ class TestMedidas(unittest.TestCase):
         self.assertAlmostEqual(g.orientacion_camara(c), 90.0, places=6)
 
 
+class TestMedidasT17(unittest.TestCase):
+    """Medidas del catálogo de errores v2 (PL-03/04, ZR-04)."""
+
+    def _plancha(self, hombro_x, mirando_derecha=True):
+        # Cuerpo horizontal de perfil: cadera en x=0, hombro a 0,5 hacia la
+        # cabeza, codo justo debajo del hombro salvo que se desplace.
+        s = 1.0 if mirando_derecha else -1.0
+        lado = {"left_shoulder": kp(s * hombro_x, 0.0), "left_hip": kp(0.0, 0.0),
+                "left_elbow": kp(s * 0.5, 0.3)}
+        return lado
+
+    def test_hombro_sobre_el_codo_es_cero(self):
+        self.assertAlmostEqual(g.hombro_sobre_codo(self._plancha(0.5), lado="left"),
+                               0.0, places=6)
+
+    def test_hombro_adelantado_es_positivo_mire_hacia_donde_mire(self):
+        for derecha in (True, False):
+            v = g.hombro_sobre_codo(self._plancha(0.6, derecha), lado="left")
+            self.assertAlmostEqual(v, 0.1 / 0.6, places=6)
+
+    def test_hombro_retrasado_es_negativo(self):
+        self.assertLess(g.hombro_sobre_codo(self._plancha(0.4), lado="left"), 0.0)
+
+    def test_longitud_paso_en_largos_de_pierna(self):
+        kps = {"left_hip": kp(0.0, 0.0), "right_hip": kp(0.0, 0.0),
+               "left_ankle": kp(-0.4, 1.0), "right_ankle": kp(0.4, 1.0)}
+        largo = math.hypot(0.4, 1.0)
+        self.assertAlmostEqual(g.longitud_paso(kps), 0.8 / largo, places=6)
+
+    def test_longitud_paso_sin_un_tobillo_no_se_calcula(self):
+        kps = {"left_hip": kp(0.0, 0.0), "left_ankle": kp(-0.4, 1.0)}
+        self.assertIsNone(g.longitud_paso(kps))
+
+
 class TestMedidasADR004(unittest.TestCase):
     """Medidas añadidas con los 33 puntos existentes (ADR-006)."""
 

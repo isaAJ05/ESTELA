@@ -53,6 +53,10 @@ class Direccion(str, Enum):
     BAJAR = "bajar"
     ABRIR = "abrir"
     CERRAR = "cerrar"
+    ADELANTE = "adelante"
+    ATRAS = "atras"
+    ALARGAR = "alargar"
+    ACORTAR = "acortar"
 
 
 DIRECCION_OPUESTA: Dict["Direccion", "Direccion"] = {
@@ -62,6 +66,10 @@ DIRECCION_OPUESTA: Dict["Direccion", "Direccion"] = {
     Direccion.BAJAR: Direccion.SUBIR,
     Direccion.ABRIR: Direccion.CERRAR,
     Direccion.CERRAR: Direccion.ABRIR,
+    Direccion.ADELANTE: Direccion.ATRAS,
+    Direccion.ATRAS: Direccion.ADELANTE,
+    Direccion.ALARGAR: Direccion.ACORTAR,
+    Direccion.ACORTAR: Direccion.ALARGAR,
 }
 
 

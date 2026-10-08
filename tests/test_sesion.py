@@ -33,11 +33,15 @@ def esqueleto_perfil(rodilla_grados: float, tronco_grados: float) -> np.ndarray:
     pts[:, 3] = 0.99
     flex = math.radians(180 - rodilla_grados)
     muslo = pierna = 0.45
-    for lado, dz in (("left", 0.1), ("right", -0.1)):
+    # Postura de zancada: la izquierda atrás (s = -1), la derecha delante
+    # (s = +1); así los tobillos quedan separados (longitud_paso ≈ 0,8).
+    for lado, dz, s in (("left", 0.1, -1.0), ("right", -0.1, 1.0)):
         cadera = np.array([0.0, 0.0, dz])
         # el muslo se inclina hacia delante a medida que se flexiona la rodilla
-        rodilla = cadera + [muslo * math.sin(flex / 2), muslo * math.cos(flex / 2), 0]
-        tobillo = rodilla + [-pierna * math.sin(flex / 2), pierna * math.cos(flex / 2), 0]
+        muslo_ang = flex / 2 + s * 0.4
+        rodilla = cadera + [muslo * math.sin(muslo_ang), muslo * math.cos(muslo_ang), 0]
+        tobillo = rodilla + [pierna * math.sin(muslo_ang - flex),
+                             pierna * math.cos(muslo_ang - flex), 0]
         t = math.radians(tronco_grados)
         hombro = cadera + [0.5 * math.sin(t), -0.5 * math.cos(t), 0]
         codo = hombro + [0.0, 0.28, 0]

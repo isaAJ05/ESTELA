@@ -46,7 +46,7 @@
       "plano": "sagital",
       "segmento": "tronco",
       "lado": "na",
-      "prioridad": 1,
+      "prioridad": 3,
       "severidad": {"moderada": 8, "alta": 18},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "tronco_muy_inclinado"
@@ -60,11 +60,12 @@
       "plano": "sagital",
       "segmento": "rodilla",
       "lado": "izquierdo",
-      "prioridad": 2,
+      "prioridad": 1,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "rodilla_baja",
-      "direccion": {"disminuir": "subir"}
+      "direccion": {"disminuir": "subir"},
+      "solo_lado_visible": true
     },
     {
       "error_id": "rodilla_der_baja",
@@ -75,11 +76,12 @@
       "plano": "sagital",
       "segmento": "rodilla",
       "lado": "derecho",
-      "prioridad": 3,
+      "prioridad": 2,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "rodilla_baja",
-      "direccion": {"disminuir": "subir"}
+      "direccion": {"disminuir": "subir"},
+      "solo_lado_visible": true
     }
   ]
 }

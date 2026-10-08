@@ -3,7 +3,7 @@
   "nombre": "Zancada atrás estática, pierna derecha atrás",
   "version": "0.1.0",
   "estado": "candidato",
-  "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás: la rodilla delantera es la izquierda. Mismas notas y mismos umbrales provisionales (ADR-005).",
+  "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás. Mismas reglas, mismas notas y mismos umbrales provisionales (ADR-005).",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",
   "angulos_requeridos": ["rodilla_izq", "rodilla_der", "tronco_inclinacion"],
@@ -50,7 +50,7 @@
     },
     {
       "error_id": "profundidad_insuficiente_izq",
-      "descripcion": "La rodilla delantera (izquierda) no llega a flexionarse lo suficiente en el punto más bajo.",
+      "descripcion": "La rodilla izquierda, si es la que ve la cámara, no llega a flexionarse lo suficiente en el punto más bajo. Delantera o trasera da igual: las dos deberían llegar a ~90° (catálogo v2, ZR-01, DEC-007 y DEC-013).",
       "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"},
       "condicion": {"op": ">", "umbral": 110},
       "fases": ["ascenso"],
@@ -61,7 +61,56 @@
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "profundidad_rodilla",
-      "direccion": {"disminuir": "mas_flexion"}
+      "direccion": {"disminuir": "mas_flexion"},
+      "solo_lado_visible": true,
+      "silenciada_por": ["paso_corto", "paso_largo"]
+    },
+    {
+      "error_id": "profundidad_insuficiente_der",
+      "descripcion": "La rodilla derecha, si es la que ve la cámara, no llega a flexionarse lo suficiente en el punto más bajo. Delantera o trasera da igual: las dos deberían llegar a ~90° (catálogo v2, ZR-01, DEC-007 y DEC-013).",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 110},
+      "fases": ["ascenso"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "derecho",
+      "prioridad": 3,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "profundidad_rodilla",
+      "direccion": {"disminuir": "mas_flexion"},
+      "solo_lado_visible": true,
+      "silenciada_por": ["paso_corto", "paso_largo"]
+    },
+    {
+      "error_id": "paso_corto",
+      "descripcion": "Los pies están demasiado cerca: con un paso corto no se llega a 90° sin adelantar la rodilla (catálogo v2, ZR-04).",
+      "medida": {"tipo": "distancia", "nombre": "longitud_paso"},
+      "condicion": {"op": "<", "umbral": 0.6},
+      "fases": ["descenso", "fondo"],
+      "plano": "sagital",
+      "segmento": "pierna",
+      "lado": "na",
+      "prioridad": 4,
+      "severidad": {"moderada": 0.1, "alta": 0.25},
+      "umbral_origen": "[?] provisional, sin calibrar ni referencia: estimación a ojo, en largos de pierna",
+      "mensaje_id": "paso_corto",
+      "direccion": {"aumentar": "alargar"}
+    },
+    {
+      "error_id": "paso_largo",
+      "descripcion": "Los pies están demasiado separados: con un paso largo no se llega a 90° y se carga la pierna de atrás (catálogo v2, ZR-04).",
+      "medida": {"tipo": "distancia", "nombre": "longitud_paso"},
+      "condicion": {"op": ">", "umbral": 1.2},
+      "fases": ["descenso", "fondo"],
+      "plano": "sagital",
+      "segmento": "pierna",
+      "lado": "na",
+      "prioridad": 5,
+      "severidad": {"moderada": 0.1, "alta": 0.25},
+      "umbral_origen": "[?] provisional, sin calibrar ni referencia: estimación a ojo, en largos de pierna",
+      "mensaje_id": "paso_largo",
+      "direccion": {"disminuir": "acortar"}
     }
   ]
 }
