@@ -157,6 +157,33 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
 
+## Referencias offline
+
+`[R]` El script `scripts/crear_referencia.py` convierte un vídeo de
+referencia en `referencia.json` sin crear un pipeline alternativo: usa
+`EstimadorPose`, `observacion_desde_pose` y el `Segmentador` configurado en el
+skill. Para ejercicios cíclicos agrupa las repeticiones completas, calcula el
+medoide por coste DTW y guarda la media, la desviación estándar y el número de
+observaciones válidas por instante. Los valores con confianza menor que 0,5 se
+guardan como `null`; nunca se rellenan.
+
+Para la plancha (`tipo: "isometrico"`) se calcula la postura media y su sigma
+sobre los frames de la fase `mantenimiento`, sin DTW. En ambos formatos se
+guardan los keypoints 2D normalizados del medoide o de la postura media para
+dibujar la stick figure.
+
+```text
+python scripts/crear_referencia.py --selftest
+python scripts/crear_referencia.py --ejercicio jumping_jacks \
+  --video ruta.mp4 \
+  --salida feedback/skills/referencias/jumping_jacks/referencia.json
+```
+
+El JSON cíclico contiene `angulos.media`, `angulos.sigma`, `angulos.n`,
+`fases`, `keypoints_2d` y `dtw`. El JSON isométrico contiene `postura.media`,
+`postura.sigma`, `postura.n` y `keypoints_2d`. El gráfico de control se revisa
+antes de usar los valores para sustituir umbrales provisionales.
+
 ## Reglas de higiene que el cargador impone
 
 - `segmento` debe estar en el vocabulario cerrado (`contrato.SEGMENTOS`). Es lo que permite al validador de salida rechazar mensajes que nombren otra parte del cuerpo.
