@@ -7,7 +7,7 @@ el de `vision.PoseLandmark` en mediapipe 1.0.1 (verificado con `.name`).
 
 from __future__ import annotations
 
-from typing import Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -35,6 +35,37 @@ CONEXIONES: Tuple[Tuple[int, int], ...] = (
 )
 
 
+#: Articulaciones de cada segmento del contrato (`feedback.contrato.SEGMENTOS`)
+#: como (lado izquierdo, lado derecho) de la persona, que es el `left_*` de
+#: MediaPipe. La interfaz las resalta cuando llega una corrección.
+_PUNTOS_SEGMENTO: Dict[str, Tuple[Tuple[int, ...], Tuple[int, ...]]] = {
+    "hombro": ((11,), (12,)),
+    "codo": ((13,), (14,)),
+    "muneca": ((15,), (16,)),
+    "brazo": ((11, 13, 15), (12, 14, 16)),
+    "cadera": ((23,), (24,)),
+    "rodilla": ((25,), (26,)),
+    "tobillo": ((27,), (28,)),
+    "pie": ((27, 29, 31), (28, 30, 32)),
+    "pierna": ((23, 25, 27), (24, 26, 28)),
+    "tronco": ((11, 23), (12, 24)),
+    "espalda": ((11, 23), (12, 24)),
+    "cuello": ((0, 11), (0, 12)),
+    "cabeza": ((0,), (0,)),
+}
+
+
+def puntos_de_segmento(segmento: str, lado: str) -> List[int]:
+    """Índices de los landmarks de un segmento; ambos lados si el lado es
+    «bilateral» o «na». Lista vacía si el segmento no se conoce."""
+    izq, der = _PUNTOS_SEGMENTO.get(segmento, ((), ()))
+    if lado == "izquierdo":
+        return list(izq)
+    if lado == "derecho":
+        return list(der)
+    return sorted(set(izq) | set(der))
+
+
 def a_array(landmarks: Sequence) -> np.ndarray:
     """Lista de landmarks de mediapipe → array (33, 4) [x, y, z, visibilidad]."""
     return np.array([[p.x, p.y, p.z, p.visibility or 0.0] for p in landmarks],
@@ -60,4 +91,5 @@ def muestra_desde_arrays(t_ms: int, mundo: np.ndarray,
     return MuestraPose(t_ms=t_ms, keypoints=kps, espacio="mundo_m", fuente=fuente)
 
 
-__all__ = ["NOMBRES_MEDIAPIPE", "CONEXIONES", "a_array", "muestra_desde_arrays"]
+__all__ = ["NOMBRES_MEDIAPIPE", "CONEXIONES", "a_array", "muestra_desde_arrays",
+           "puntos_de_segmento"]

@@ -97,6 +97,18 @@
 }
 .banda-mensaje.visible { opacity: 1; transform: translate(-50%, 0); }
 .banda-mensaje svg { width: 1.1em; height: 1.1em; color: var(--color-amarillo); }
+.banda-texto { display: flex; flex-direction: column; gap: var(--espacio-1); }
+.banda-parte {
+  font-size: 0.45em; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--color-amarillo);
+}
+/* el color sigue a la gravedad que decidió el motor; igual que el resalte del esqueleto */
+.banda-mensaje.severidad-moderada { border-color: rgba(244, 163, 64, 0.55); }
+.banda-mensaje.severidad-moderada svg, .banda-mensaje.severidad-moderada .banda-parte { color: var(--color-ambar); }
+.banda-mensaje.severidad-alta { border-color: rgba(233, 133, 145, 0.6); }
+.banda-mensaje.severidad-alta svg, .banda-mensaje.severidad-alta .banda-parte { color: var(--color-peligro); }
+.banda-mensaje.refuerzo { border-color: rgba(112, 214, 161, 0.5); }
+.banda-mensaje.refuerzo svg { color: var(--color-exito); }
 
 .transicion {
   position: absolute; left: 50%; top: 50%;

@@ -1,6 +1,6 @@
-import { Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Square, UserX, Volume2 } from 'lucide-react'
+import { Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Bridge, EstadoSesion, TipoAviso } from '../bridge/tipos'
+import type { Bridge, EstadoSesion, Feedback, TipoAviso } from '../bridge/tipos'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, IconoVista, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
@@ -165,10 +165,22 @@ function AvisoSesion() {
   )
 }
 
+const NOMBRE_SEGMENTO: Record<string, string> = { muneca: 'muñeca' }
+const LADO: Record<string, string> = { izquierdo: 'lado izquierdo', derecho: 'lado derecho' }
+
+/** «Rodilla · lado derecho»: la parte del cuerpo que señala una corrección. */
+function parteDelCuerpo(fb: Feedback): string | null {
+  if (fb.tipo !== 'correccion' || !fb.segmento) return null
+  const nombre = NOMBRE_SEGMENTO[fb.segmento] ?? fb.segmento
+  const lado = fb.lado ? LADO[fb.lado] : undefined
+  return [nombre[0].toUpperCase() + nombre.slice(1), lado].filter(Boolean).join(' · ')
+}
+
 /** La última indicación hablada, mientras suena y un poco después. */
 function BandaMensaje() {
   const n = useSesion('mensajesEmitidos') ?? 0
   const texto = useSesion('ultimoMensaje')
+  const feedback = useSesion('feedback')
   const paso = useSesion('paso')
   const visto = useRef(n)
   const [visible, setVisible] = useState(false)
@@ -182,10 +194,17 @@ function BandaMensaje() {
   // una indicación del ejercicio anterior no se queda en pantalla en el siguiente
   useEffect(() => { setVisible(false) }, [paso])
   if (!texto) return null
+  const refuerzo = feedback?.tipo === 'refuerzo'
+  const parte = feedback ? parteDelCuerpo(feedback) : null
+  const clases = ['banda-mensaje', visible && 'visible', refuerzo && 'refuerzo',
+                  feedback?.severidad && `severidad-${feedback.severidad}`].filter(Boolean).join(' ')
   return (
-    <div className={`banda-mensaje ${visible ? 'visible' : ''}`} aria-live="polite" aria-hidden={!visible}>
-      <Volume2 aria-hidden="true" />
-      <span>{texto}</span>
+    <div className={clases} aria-live="polite" aria-hidden={!visible}>
+      {refuerzo ? <Sparkles aria-hidden="true" /> : <Volume2 aria-hidden="true" />}
+      <span className="banda-texto">
+        {parte && <span className="banda-parte">{parte}</span>}
+        <span>{texto}</span>
+      </span>
     </div>
   )
 }

@@ -1,11 +1,13 @@
 import { useEffect, useRef } from 'react'
-import type { Punto } from '../bridge/tipos'
+import type { Punto, Severidad } from '../bridge/tipos'
 import { alFrame, useEstado } from '../estado/almacen'
 
 const RASTRO = 6               // esqueletos anteriores que dejan estela
 const VISIBLE = 0.5            // visibilidad mínima para dibujar una articulación
 // El frame llega a 640 px: más resolución en el lienzo solo cuesta dibujo.
 const DPR_MAX = 1.5
+// Cuánto dura resaltada la parte del cuerpo de una corrección (igual que la banda del mensaje).
+const RESALTE_MS = 4500
 
 function color(nombre: string, respaldo: string): string {
   return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim() || respaldo
@@ -29,11 +31,19 @@ export function VistaCamara() {
     const linea = color('--color-violeta-suave', '#a99dff')
     const articulacion = color('--color-amarillo', '#ffc94d')
     const fondo = color('--color-superficie', '#171522')
+    const colorSeveridad: Record<Severidad, string> = {
+      leve: articulacion,
+      moderada: color('--color-ambar', '#f4a340'),
+      alta: color('--color-peligro', '#e98591'),
+    }
 
     let imagen: HTMLImageElement | null = null
     let puntos: Punto[] | null = null
     const rastro: Punto[][] = []
     let pendiente = true
+    // articulaciones de la última corrección y hasta cuándo se resaltan
+    let mensajes = -1
+    let resalte: { puntos: Set<number>; color: string; hasta: number } | null = null
     let pedido = 0
     let raf = 0
 
@@ -66,8 +76,43 @@ export function VistaCamara() {
       }
     }
 
+    const resaltar = (pts: Punto[], x0: number, y0: number, w: number, h: number, grosor: number) => {
+      if (!resalte) return
+      if (performance.now() > resalte.hasta) { resalte = null; return }
+      const { puntos: indices, color: tono } = resalte
+      const px = (p: Punto) => x0 + (espejo ? 1 - p[0] : p[0]) * w
+      const py = (p: Punto) => y0 + p[1] * h
+      ctx.strokeStyle = tono
+      ctx.fillStyle = tono
+      for (const [a, b] of conexiones) {
+        const pa = pts[a], pb = pts[b]
+        if (!pa || !pb || !indices.has(a) || !indices.has(b)) continue
+        ctx.globalAlpha = 1
+        ctx.lineWidth = grosor * 1.6
+        ctx.beginPath()
+        ctx.moveTo(px(pa), py(pa))
+        ctx.lineTo(px(pb), py(pb))
+        ctx.stroke()
+      }
+      for (const i of indices) {
+        const p = pts[i]
+        if (!p || p[2] <= VISIBLE) continue
+        ctx.globalAlpha = 0.3
+        ctx.beginPath()
+        ctx.arc(px(p), py(p), grosor * 4, 0, 2 * Math.PI)
+        ctx.fill()
+        ctx.globalAlpha = 1
+        ctx.beginPath()
+        ctx.arc(px(p), py(p), grosor * 2, 0, 2 * Math.PI)
+        ctx.fill()
+      }
+      ctx.globalAlpha = 1
+    }
+
     const dibujar = () => {
       raf = requestAnimationFrame(dibujar)
+      // el resalte se apaga solo aunque no lleguen frames nuevos
+      if (resalte && performance.now() > resalte.hasta) pendiente = true
       if (!pendiente) return
       pendiente = false
       const W = canvas.width, H = canvas.height
@@ -107,12 +152,23 @@ export function VistaCamara() {
         ctx.arc(x0 + (espejo ? 1 - p[0] : p[0]) * w, y0 + p[1] * h, grosor * 1.2, 0, 2 * Math.PI)
         ctx.fill()
       }
+      resaltar(puntos, x0, y0, w, h, grosor)
       ctx.globalAlpha = 1
     }
     raf = requestAnimationFrame(dibujar)
 
     const quitar = alFrame(({ jpeg, sesion }) => {
       const nuevos = sesion?.puntos ?? null
+      const fb = sesion?.feedback ?? null
+      if (sesion && sesion.mensajesEmitidos !== mensajes) {
+        // el primer estado recibido no resalta un mensaje que ya pasó
+        const nuevo = mensajes >= 0
+        mensajes = sesion.mensajesEmitidos
+        resalte = nuevo && fb?.tipo === 'correccion' && fb.puntos.length > 0
+          ? { puntos: new Set(fb.puntos), color: colorSeveridad[fb.severidad ?? 'leve'], hasta: performance.now() + RESALTE_MS }
+          : null
+      }
+      if (!sesion) { mensajes = -1; resalte = null }
       const aplicar = (img: HTMLImageElement | null) => {
         if (puntos && nuevos) {
           rastro.push(puntos)

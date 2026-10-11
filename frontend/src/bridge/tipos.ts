@@ -7,6 +7,8 @@ export type Nivel = 'principiante' | 'avanzado'
 export type Fase = 'inicio' | 'preparando' | 'sesion' | 'resumen' | 'error'
 export type TipoAviso = 'encuadre' | 'sin_persona' | 'orientacion' | 'pausa' | 'otro'
 export type MotivoPausa = 'sin_persona' | 'inactividad'
+export type Lado = 'izquierdo' | 'derecho' | 'bilateral' | 'na'
+export type Severidad = 'leve' | 'moderada' | 'alta'
 
 /** [x, y, visibilidad], x e y normalizados al frame (0..1). */
 export type Punto = [number, number, number]
@@ -45,6 +47,21 @@ export interface Info {
   fuente: 'camara' | 'video'
 }
 
+/**
+ * Última indicación del motor de feedback, ya decidida por el backend.
+ * Un refuerzo («vas bien») no nombra segmento ni lado.
+ */
+export interface Feedback {
+  texto: string
+  tipo: 'correccion' | 'refuerzo'
+  errorId: string | null
+  segmento: string | null
+  lado: Lado | null
+  severidad: Severidad | null
+  /** índices de las articulaciones del segmento, para resaltarlas */
+  puntos: number[]
+}
+
 export interface EstadoSesion {
   ejercicio: string
   ejercicioId: string
@@ -62,6 +79,7 @@ export interface EstadoSesion {
   ultimoMensaje: string | null
   /** cambia con cada mensaje nuevo, aunque el texto se repita */
   mensajesEmitidos: number
+  feedback: Feedback | null
   pausada: boolean
   motivoPausa: MotivoPausa | null
   puntos: Punto[] | null
@@ -82,6 +100,9 @@ export interface MensajeResumen {
   tMs: number
   texto: string
   errorId: string | null
+  segmento: string | null
+  lado: Lado | null
+  severidad: Severidad | null
   repeticion: number
 }
 

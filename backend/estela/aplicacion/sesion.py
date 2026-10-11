@@ -26,7 +26,7 @@ from typing import Any, Dict, List, Mapping, Optional, Set
 
 import numpy as np
 
-from ..dominio.feedback.contrato import ErrorTipificado, MensajeFeedback, Plano, Severidad
+from ..dominio.feedback.contrato import ErrorTipificado, MensajeFeedback, Plano, Severidad, Silencio
 from ..dominio.feedback.motor.geometria import observacion_desde_pose
 from ..dominio.feedback.pipeline import MotorFeedback
 from ..dominio.feedback.verbalizador.base import Verbalizador
@@ -81,6 +81,11 @@ class EstadoFrame:
     #: correcciones y refuerzos emitidos en toda la sesión; cambia cada vez que
     #: hay un `ultimo_mensaje` nuevo, aunque el texto se repita
     mensajes_emitidos: int = 0
+    #: el `ultimo_mensaje` completo: qué error, segmento, lado y severidad
+    #: (None en un refuerzo: `feedback.error` es None)
+    feedback: Optional[MensajeFeedback] = None
+    #: por qué el motor no habló en este frame (`feedback.contrato.MOTIVO_*`)
+    motivo_silencio: Optional[str] = None
 
 
 @dataclass
@@ -111,6 +116,7 @@ class Sesion:
         self._pasos: List[_Paso] = []
         self._i = -1
         self._ultimo_mensaje: Optional[str] = None
+        self._ultimo_feedback: Optional[MensajeFeedback] = None
         self._mensajes_emitidos = 0
         self._ult_persona_ms: Optional[int] = None
         self._mal_orientada_desde: Optional[int] = None
@@ -232,15 +238,21 @@ class Sesion:
 
         if isinstance(salida, MensajeFeedback):
             self._ultimo_mensaje = salida.texto
+            self._ultimo_feedback = salida
             self._mensajes_emitidos += 1
             self.voz.decir(salida.texto, PRIORIDAD_FEEDBACK)
+            err = salida.error
             p.mensajes.append({"t_ms": t_ms, "texto": salida.texto,
-                               "error_id": salida.error.error_id if salida.error else None,
+                               "error_id": err.error_id if err else None,
+                               "segmento": err.segmento if err else None,
+                               "lado": err.lado.value if err else None,
+                               "severidad": err.severidad.value if err else None,
                                "repeticion": seg.repeticion})
 
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                  or self._revisa_encuadre(seg.senal_valida, t_ms))
-        estado = self._estado(p, res, aviso, lat, obs.orientacion)
+        estado = self._estado(p, res, aviso, lat, obs.orientacion,
+                              salida.motivo if isinstance(salida, Silencio) else None)
 
         if seg.evento == EVENTO_COMPLETA and seg.completadas >= p.objetivo:
             self._avanzar()
@@ -294,12 +306,14 @@ class Sesion:
 
     def _estado(self, p: Optional[_Paso], res: Optional[ResultadoPose],
                 aviso: Optional[str], lat: Dict[str, float],
-                orientacion: Optional[float] = None) -> EstadoFrame:
+                orientacion: Optional[float] = None,
+                motivo_silencio: Optional[str] = None) -> EstadoFrame:
         if p is None:
             return EstadoFrame("", "", len(self.rutina.pasos), len(self.rutina.pasos),
                                0, 0, 0, "", False, None, None, self._ultimo_mensaje,
                                None, lat, True,
-                               mensajes_emitidos=self._mensajes_emitidos)
+                               mensajes_emitidos=self._mensajes_emitidos,
+                               feedback=self._ultimo_feedback)
         seg = p.seg
         return EstadoFrame(
             ejercicio=p.ejercicio.skill.nombre,
@@ -314,7 +328,9 @@ class Sesion:
             latencia_ms=lat, terminada=False, unidad=p.ejercicio.unidad,
             pausada=p.pausa.pausada,
             motivo_pausa=p.pausa.motivo,
-            mensajes_emitidos=self._mensajes_emitidos)
+            mensajes_emitidos=self._mensajes_emitidos,
+            feedback=self._ultimo_feedback,
+            motivo_silencio=motivo_silencio)
 
     # -- resumen ------------------------------------------------------------
 

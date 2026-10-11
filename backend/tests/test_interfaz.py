@@ -93,8 +93,8 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert d["rutina"]["pasos"][0]["orientacion"] == "perfil"
     assert d["rutina"]["pasos"][1]["unidad"] == "segundos"
     assert [11, 12] in d["conexiones"]
-    # sin backend todavía: la interfaz no debe mostrarlas
-    assert not any(d["capacidades"].values())
+    # solo las que ya tienen backend; el resto la interfaz no las muestra
+    assert [k for k, v in d["capacidades"].items() if v] == ["motivoSilencio"]
     json.dumps(d)
 
 
@@ -108,7 +108,47 @@ def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
     assert d["depuracion"]["fps"] == 30.0
     for futuro in ("correctas", "conError", "nivel", "guia"):
         assert d[futuro] is None
-    assert d["depuracion"]["motivoSilencio"] is None
+    # el motor sí corrió en este frame: dice por qué no habló
+    assert d["depuracion"]["motivoSilencio"] is not None
+
+
+def test_feedback_tipado_llega_a_la_interfaz(catalogo):
+    """Tronco muy inclinado: la corrección llega con segmento, lado,
+    severidad y las articulaciones que la interfaz resalta."""
+    rutina = rutina_desde_dict({"pasos": [{"skill_id": ZANCADA, "repeticiones": 99}]},
+                               catalogo)
+    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=70), VozFalsa())
+    estados = correr(s, secuencia_zancadas(4))
+    d = contrato.estado_a_dict(estados[-1])
+    json.dumps(d)
+    fb = d["feedback"]
+    assert fb["tipo"] == "correccion" and fb["texto"] == d["ultimoMensaje"]
+    assert fb["segmento"] == "tronco" and fb["severidad"] in ("leve", "moderada", "alta")
+    assert fb["errorId"] and fb["lado"]
+    assert set(fb["puntos"]) <= set(range(33)) and fb["puntos"]
+    # el resumen conserva el segmento de cada indicación
+    r = contrato.resumen_a_dict(s.resumen(), catalogo)
+    assert r["pasos"][0]["mensajes"][0]["segmento"] == "tronco"
+
+
+def test_feedback_sin_mensajes_es_null(catalogo, rutina):
+    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    d = contrato.estado_a_dict(correr(s, secuencia_zancadas(1))[-1])
+    assert d["feedback"] is None
+
+
+def test_refuerzo_no_nombra_segmento():
+    from estela.dominio.feedback.contrato import MensajeFeedback
+    fb = contrato.feedback_a_dict(MensajeFeedback("Vas bien.", None, "plantillas"))
+    assert fb["tipo"] == "refuerzo" and fb["segmento"] is None and fb["puntos"] == []
+
+
+@pytest.mark.parametrize("lado, esperado", [("izquierdo", [25]), ("derecho", [26]),
+                                            ("bilateral", [25, 26]), ("na", [25, 26])])
+def test_puntos_de_segmento_por_lado(lado, esperado):
+    from estela.adaptadores.pose.landmarks import puntos_de_segmento
+    assert puntos_de_segmento("rodilla", lado) == esperado
+    assert puntos_de_segmento("desconocido", lado) == []
 
 
 def test_estado_recoge_un_campo_nuevo_del_backend(catalogo, rutina):
@@ -313,3 +353,9 @@ def test_rutina_completa_termina_como_completada(catalogo):
     orq.iniciar()
     fin = esperar_fase(orq, RESUMEN)
     assert fin["resumen"]["terminada"] and fin["resumen"]["motivoFin"] == "completada"
+
+
+def test_todo_segmento_del_contrato_se_puede_resaltar():
+    from estela.adaptadores.pose.landmarks import puntos_de_segmento
+    from estela.dominio.feedback.contrato import SEGMENTOS
+    assert all(puntos_de_segmento(s, "bilateral") for s in SEGMENTOS)

@@ -7,7 +7,7 @@
 //                       ?escena=resumen|error empieza en esa fase
 
 import type {
-  Bridge, Estado, EstadoSesion, Info, MensajeResumen, PasoRutina, Punto, Resumen,
+  Bridge, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, PasoRutina, Punto, Resumen, Severidad,
 } from './tipos'
 
 const PASOS: PasoRutina[] = [
@@ -25,14 +25,21 @@ const CONEXIONES: [number, number][] = [
   [23, 25], [25, 27], [27, 29], [29, 31], [27, 31], [24, 26], [26, 28], [28, 30], [30, 32], [28, 32],
 ]
 
-const MENSAJES: Record<string, string[]> = {
-  jumping_jacks: ['Sube un poco más los brazos.', '¡Vas muy bien!'],
-  abduccion_cadera_izq: ['Mantén el tronco recto, sin inclinarte.'],
-  abduccion_cadera_der: ['Mantén el tronco recto, sin inclinarte.'],
-  marcha_rodillas: ['Sube un poco más las rodillas.', 'Endereza un poco el tronco.'],
-  zancada_atras_izq: ['Endereza un poco el tronco.', 'Baja un poco más la rodilla.'],
-  zancada_atras_der: ['Endereza un poco el tronco.'],
-  plancha: ['Sube un poco la cadera.'],
+// Mismos índices que `puntos_de_segmento` en backend/estela/adaptadores/pose/landmarks.py
+const correccion = (texto: string, segmento: string, lado: Lado, severidad: Severidad, puntos: number[]): Feedback =>
+  ({ texto, tipo: 'correccion', errorId: `${segmento}_simulado`, segmento, lado, severidad, puntos })
+const refuerzo = (texto: string): Feedback =>
+  ({ texto, tipo: 'refuerzo', errorId: null, segmento: null, lado: null, severidad: null, puntos: [] })
+const TRONCO = [11, 12, 23, 24]
+
+const MENSAJES: Record<string, Feedback[]> = {
+  jumping_jacks: [correccion('Sube un poco más los brazos.', 'brazo', 'bilateral', 'moderada', [11, 12, 13, 14, 15, 16]), refuerzo('¡Vas muy bien!')],
+  abduccion_cadera_izq: [correccion('Mantén el tronco recto, sin inclinarte.', 'tronco', 'na', 'leve', TRONCO)],
+  abduccion_cadera_der: [correccion('Mantén el tronco recto, sin inclinarte.', 'tronco', 'na', 'leve', TRONCO)],
+  marcha_rodillas: [correccion('Sube un poco más las rodillas.', 'rodilla', 'bilateral', 'moderada', [25, 26]), correccion('Endereza un poco el tronco.', 'tronco', 'na', 'alta', TRONCO)],
+  zancada_atras_izq: [correccion('Endereza un poco el tronco.', 'tronco', 'na', 'moderada', TRONCO), correccion('Baja un poco más la rodilla.', 'rodilla', 'derecho', 'leve', [26])],
+  zancada_atras_der: [correccion('Endereza un poco el tronco.', 'tronco', 'na', 'moderada', TRONCO)],
+  plancha: [correccion('Sube un poco la cadera.', 'cadera', 'bilateral', 'alta', [23, 24])],
 }
 
 const SEG_POR_REP = 2.4
@@ -136,6 +143,7 @@ export function bridgeSimulado(): Bridge {
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
   let ultimoMensaje: string | null = null
+  let feedback: Feedback | null = null
   let hechos: PasoHecho[] = []
   let actual: PasoHecho | null = null
   let temporizador: number | undefined
@@ -200,11 +208,13 @@ export function bridgeSimulado(): Bridge {
     if (paso.skillId === 'marcha_rodillas' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
     if (paso.unidad === 'repeticiones' && actual.completadas !== antes && [2, 4].includes(actual.completadas)) {
       const lista = MENSAJES[paso.skillId] ?? []
-      const texto = lista[(actual.completadas / 2 - 1) % Math.max(lista.length, 1)]
-      if (texto) {
-        ultimoMensaje = texto
+      const fb = lista[(actual.completadas / 2 - 1) % Math.max(lista.length, 1)]
+      if (fb) {
+        ultimoMensaje = fb.texto
+        feedback = fb
         mensajesEmitidos++
-        actual.mensajes.push({ tMs: Math.round(reloj * 1000), texto, errorId: texto.startsWith('¡') ? null : 'simulado', repeticion: actual.completadas })
+        actual.mensajes.push({ tMs: Math.round(reloj * 1000), texto: fb.texto, errorId: fb.errorId, segmento: fb.segmento,
+                               lado: fb.lado, severidad: fb.severidad, repeticion: actual.completadas })
       }
     }
     const cambiaOrientacion = i === 0 || PASOS[i - 1].orientacion !== paso.orientacion
@@ -219,11 +229,11 @@ export function bridgeSimulado(): Bridge {
       ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: PASOS.length,
       objetivo: paso.objetivo, unidad: paso.unidad, completadas: actual.completadas, incompletas: actual.incompletas,
       fase: 'simulada', persona: !enPausa, orientacionGrados: paso.orientacion === 'perfil' ? 88 : 4,
-      aviso, avisoTipo, ultimoMensaje, mensajesEmitidos, pausada: enPausa,
+      aviso, avisoTipo, ultimoMensaje, mensajesEmitidos, feedback, pausada: enPausa,
       motivoPausa: enPausa ? 'sin_persona' : null,
       puntos: enPausa ? null : esqueleto(paso.skillId, (activo / SEG_POR_REP) % 1),
       terminada: false, correctas: null, conError: null, nivel: null, guia: null,
-      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 }, motivoSilencio: null },
+      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 }, motivoSilencio: enPausa ? null : 'sin_error' },
     }
     if (actual.completadas >= paso.objetivo) avanzar()
   }
@@ -232,7 +242,7 @@ export function bridgeSimulado(): Bridge {
     if (fase === 'sesion' || fase === 'preparando') return false
     fase = 'preparando'; error = null; resumen = null; sesion = null; publicar()
     await new Promise((r) => setTimeout(r, 700))
-    i = 0; hechos = []; mensajesEmitidos = 0; ultimoMensaje = null
+    i = 0; hechos = []; mensajesEmitidos = 0; ultimoMensaje = null; feedback = null
     empezarPaso()
     fase = 'sesion'
     let t = performance.now()
@@ -257,7 +267,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: false, pausaManual: false, colocacion: false, avisoLuz: false },
+    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false },
     rutina: { nombre: 'Calentamiento básico', pasos: PASOS },
     conexiones: CONEXIONES,
     espejo: true,

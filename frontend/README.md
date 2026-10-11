@@ -35,6 +35,7 @@ backend/estela/adaptadores/interfaz/contrato.py     ── JSON ─────�
 ```
 
 - **Contrato.** `backend/estela/adaptadores/interfaz/contrato.py` traduce el estado de la sesión a JSON y `src/bridge/tipos.ts` lo describe. Si un nombre cambia en un lado, hay que cambiarlo en el otro.
+- **Feedback.** Cada estado trae `feedback`: la última indicación del motor ya tipada (corrección o refuerzo, error, segmento, lado, severidad y `puntos`, los índices de las articulaciones del segmento). La banda del mensaje muestra la parte del cuerpo y el color de la severidad, y `VistaCamara` resalta esas articulaciones en el esqueleto durante 4,5 s. La interfaz no decide nada: todo eso lo decide el motor determinista del backend.
 - **Long polling.** La interfaz pide `estado(desde)` y Python responde cuando hay una versión más nueva. El hilo de la sesión nunca espera a la interfaz. Si la interfaz va más lenta, se salta estados en vez de acumular retraso.
 - **Frame de vídeo.** Viaja como JPEG de 640 px en base64, generado en memoria. No se guarda en ningún lado.
 - **Rendimiento.** `src/estado/almacen.ts` evita re-renderizar React a 30 Hz:
@@ -51,8 +52,9 @@ Algunas partes de la interfaz ya están hechas pero ocultas, porque dependen de 
 | `correctasConError` | correctas y con error |
 | `guia` | movimiento de referencia animado |
 | `resumenTexto` | resumen en lenguaje natural |
-| `motivoSilencio` | motivo de silencio en la capa de depuración |
 | `pausaManual` | botón y tecla de pausa |
+
+`motivoSilencio` (motivo de silencio en la capa de depuración, tecla D) ya está activa.
 
 Cada una se activa en `CAPACIDADES` de `backend/estela/adaptadores/interfaz/contrato.py`. Ahí está también la tabla con el campo que debe mandar el backend y la tarea correspondiente.
 

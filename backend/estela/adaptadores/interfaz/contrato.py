@@ -27,11 +27,19 @@ correctasConError  EstadoFrame.correctas / con_error   T29.a
                    y en cada paso del resumen
 guia               EstadoFrame.guia (33×[x, y, vis])   T14
 resumenTexto       resumen["resumen_texto"]            T27 (LLM rol B)
-motivoSilencio     EstadoFrame.motivo_silencio         modo depuración
+motivoSilencio     EstadoFrame.motivo_silencio         T29 (hecho)
 pausaManual        (comando `pausar`/`reanudar`)       —
 colocacion         (fase previa de colocación)         —
 avisoLuz           (aviso de poca luz)                 —
 =================  ==================================  =====================
+
+Feedback
+--------
+`feedback` lleva la última indicación del motor ya tipada (no solo el texto):
+tipo (corrección o refuerzo), error, segmento, lado, severidad y los índices
+de las articulaciones del segmento (`puntos`), que la interfaz resalta en el
+esqueleto. La interfaz no decide nada: el segmento y el lado los decidió el
+motor determinista.
 """
 
 from __future__ import annotations
@@ -40,9 +48,9 @@ from typing import Any, Dict, List, Mapping, Optional
 
 import numpy as np
 
-from ...dominio.feedback.contrato import Plano
+from ...dominio.feedback.contrato import MensajeFeedback, Plano
 
-from ..pose.landmarks import CONEXIONES
+from ..pose.landmarks import CONEXIONES, puntos_de_segmento
 from ...aplicacion.rutina import Ejercicio, Rutina
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                              _COLOCACION, EstadoFrame)
@@ -54,7 +62,7 @@ CAPACIDADES: Dict[str, bool] = {
     "correctasConError": False,
     "guia": False,
     "resumenTexto": False,
-    "motivoSilencio": False,
+    "motivoSilencio": True,
     "pausaManual": False,
     "colocacion": False,
     "avisoLuz": False,
@@ -86,6 +94,25 @@ def _puntos(lm: Optional[np.ndarray]) -> Optional[List[List[float]]]:
             for p in lm]
 
 
+def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
+    """Último mensaje del motor → indicación tipada para la interfaz."""
+    if m is None:
+        return None
+    err = m.error
+    if err is None:                     # refuerzo: no nombra segmento ni lado
+        return {"texto": m.texto, "tipo": "refuerzo", "errorId": None,
+                "segmento": None, "lado": None, "severidad": None, "puntos": []}
+    return {
+        "texto": m.texto,
+        "tipo": "correccion",
+        "errorId": err.error_id,
+        "segmento": err.segmento,
+        "lado": err.lado.value,
+        "severidad": err.severidad.value,
+        "puntos": puntos_de_segmento(err.segmento, err.lado.value),
+    }
+
+
 def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str, Any]:
     opcional = lambda nombre: getattr(estado, nombre, None)      # noqa: E731
     guia = opcional("guia")
@@ -106,6 +133,7 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "avisoTipo": tipo_aviso(estado.aviso),
         "ultimoMensaje": estado.ultimo_mensaje,
         "mensajesEmitidos": estado.mensajes_emitidos,
+        "feedback": feedback_a_dict(opcional("feedback")),
         "pausada": estado.pausada,
         "motivoPausa": estado.motivo_pausa,
         "puntos": _puntos(estado.landmarks),
@@ -165,7 +193,9 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
             "pausas": p["pausas_sesion"],
             "pausaS": p["pausa_s"],
             "mensajes": [{"tMs": m["t_ms"], "texto": m["texto"],
-                          "errorId": m["error_id"], "repeticion": m["repeticion"]}
+                          "errorId": m["error_id"], "segmento": m.get("segmento"),
+                          "lado": m.get("lado"), "severidad": m.get("severidad"),
+                          "repeticion": m["repeticion"]}
                          for m in p["mensajes"]],
             # veces que el motor no corrigió, por motivo (panel técnico)
             "abstenciones": dict(p.get("abstenciones", {})),
@@ -199,5 +229,5 @@ def info(rutina: Rutina, catalogo: Mapping[str, Ejercicio], espejo: bool) -> Dic
 
 
 __all__ = ["CAPACIDADES", "VERSION", "FIN_CIERRE", "FIN_COMPLETADA", "FIN_ERROR",
-           "FIN_FUENTE", "FIN_USUARIA", "estado_a_dict", "info", "resumen_a_dict",
+           "FIN_FUENTE", "FIN_USUARIA", "estado_a_dict", "feedback_a_dict", "info", "resumen_a_dict",
            "rutina_a_dict", "tipo_aviso"]
