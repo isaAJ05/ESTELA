@@ -49,7 +49,8 @@
       "prioridad": 1,
       "severidad": {"moderada": 0.05, "alta": 0.15},
       "umbral_origen": "[?] provisional, sin calibrar: 0,10 escalas corporales ≈ 5 cm",
-      "mensaje_id": "cadera_hundida"
+      "mensaje_id": "cadera_hundida",
+      "direccion": {"disminuir": "subir"}
     },
     {
       "error_id": "cadera_elevada",
@@ -63,7 +64,8 @@
       "prioridad": 2,
       "severidad": {"moderada": 0.05, "alta": 0.15},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "cadera_elevada"
+      "mensaje_id": "cadera_elevada",
+      "direccion": {"aumentar": "bajar"}
     },
     {
       "error_id": "cabeza_desalineada",

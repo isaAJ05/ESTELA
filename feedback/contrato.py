@@ -40,6 +40,31 @@ class Severidad(str, Enum):
     ALTA = "alta"
 
 
+class Direccion(str, Enum):
+    """Hacia dónde debe ir la corrección, en términos de movimiento (ADR-004 §2.5).
+
+    Vocabulario cerrado: el validador rechaza un mensaje que pida lo contrario
+    (p. ej. «estira» cuando la dirección es `mas_flexion`). Cada valor tiene su
+    opuesto en `DIRECCION_OPUESTA`.
+    """
+    MAS_FLEXION = "mas_flexion"
+    MENOS_FLEXION = "menos_flexion"
+    SUBIR = "subir"
+    BAJAR = "bajar"
+    ABRIR = "abrir"
+    CERRAR = "cerrar"
+
+
+DIRECCION_OPUESTA: Dict["Direccion", "Direccion"] = {
+    Direccion.MAS_FLEXION: Direccion.MENOS_FLEXION,
+    Direccion.MENOS_FLEXION: Direccion.MAS_FLEXION,
+    Direccion.SUBIR: Direccion.BAJAR,
+    Direccion.BAJAR: Direccion.SUBIR,
+    Direccion.ABRIR: Direccion.CERRAR,
+    Direccion.CERRAR: Direccion.ABRIR,
+}
+
+
 class Plano(str, Enum):
     """Plano en el que una medida es observable con una sola cámara."""
     SAGITAL = "sagital"      # visible de perfil
@@ -192,12 +217,16 @@ class ErrorTipificado:
     #: clase de mensaje a usar. Varios `error_id` pueden compartirla
     #: (p. ej. `valgo_rodilla_izq` y `valgo_rodilla_der`). Vacío => `error_id`.
     mensaje_id: str = ""
-    #: magnitud del exceso sobre el umbral, en grados o unidades normalizadas
+    #: cuánto se rebasa el umbral, en las unidades de la medida (grados o
+    #: unidades normalizadas). Siempre >= 0: el sentido va en `direccion`.
     magnitud: float = 0.0
     #: nombre de la medida que disparó la regla, para trazabilidad
     medida: str = ""
     #: confianza de la medida que disparó la regla
     confianza: float = 0.0
+    #: hacia dónde corregir (ADR-004 §2.5). None si la regla no lo declara;
+    #: el verbalizador no debe inventarla.
+    direccion: Optional[Direccion] = None
 
     def __post_init__(self) -> None:
         if self.segmento not in SEGMENTOS:
@@ -269,7 +298,7 @@ MOTIVO_FASE_SILENCIADA = "fase_silenciada"
 
 
 __all__ = [
-    "Lado", "Severidad", "Plano", "SEGMENTOS", "VOCABULARIO_PROHIBIDO",
+    "Lado", "Severidad", "Direccion", "DIRECCION_OPUESTA", "Plano", "SEGMENTOS", "VOCABULARIO_PROHIBIDO",
     "Keypoint", "MuestraPose", "Observacion", "ErrorTipificado",
     "MensajeFeedback", "Refuerzo", "Silencio",
     "MOTIVO_SIN_ERROR", "MOTIVO_CONFIANZA_BAJA", "MOTIVO_PLANO_NO_OBSERVABLE",

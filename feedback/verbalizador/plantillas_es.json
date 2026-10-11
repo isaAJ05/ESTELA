@@ -137,8 +137,8 @@
   },
 
   "_generico": {
-    "leve": ["Corrige un poco la posición {de_art} {segmento}."],
-    "moderada": ["Corrige la posición {de_art} {segmento}."],
-    "alta": ["Revisa la posición {de_art} {segmento}."]
+    "leve": ["Corrige un poco la posición {de_art} {segmento} {lado}."],
+    "moderada": ["Corrige la posición {de_art} {segmento} {lado}."],
+    "alta": ["Revisa la posición {de_art} {segmento} {lado}."]
   }
 }

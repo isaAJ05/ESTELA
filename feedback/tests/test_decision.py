@@ -2,12 +2,15 @@ import os
 import unittest
 
 from feedback.contrato import (
-    ErrorTipificado, Lado, Observacion, Refuerzo, Silencio,
+    Direccion, ErrorTipificado, Lado, Observacion, Refuerzo, Silencio,
     MOTIVO_CONFIANZA_BAJA, MOTIVO_EVIDENCIA_INSUFICIENTE,
     MOTIVO_FASE_SILENCIADA, MOTIVO_PLANO_NO_OBSERVABLE, MOTIVO_REFRACTARIO,
 )
 from feedback.motor.decision import MotorDecision
-from feedback.motor.skill import cargar_skill, cargar_skills, directorio_skills
+from feedback.motor.skill import (
+    Condicion, SkillInvalido, cargar_skill, cargar_skills, directorio_skills,
+    skill_desde_dict,
+)
 
 SKILLS = cargar_skills(directorio_skills())
 #: Los tests de mecánica del motor (abstención, evidencia, prioridad, refuerzo)
@@ -382,6 +385,88 @@ class TestSkillsActuales(unittest.TestCase):
                                    distancias={"alineacion_cadera": 0.0},
                                    angulos={"cabeza_adelantada": 45.0})
         self.assertEqual((d.error_id, d.segmento), ("cabeza_desalineada", "cabeza"))
+
+
+class TestDireccionYMagnitud(unittest.TestCase):
+    """ADR-004 §2.5: el motor dice hacia dónde corregir y cuánto."""
+
+    _obs = TestSkillsActuales._obs
+    _dos_repeticiones = TestSkillsActuales._dos_repeticiones
+
+    def test_zancada_pide_mas_flexion_y_la_magnitud_es_el_exceso(self):
+        d = self._dos_repeticiones("zancada_atras_izq", fase="ascenso",
+                                   orientacion=90.0,
+                                   angulos={"rodilla_der": 140.0,
+                                            "tronco_inclinacion": 10.0})
+        self.assertEqual(d.direccion, Direccion.MAS_FLEXION)
+        self.assertEqual(d.magnitud, 30.0)   # min 140 frente a umbral 110
+
+    def test_plancha_hundida_sube_y_elevada_baja(self):
+        d = self._dos_repeticiones("plancha", fase="mantenimiento", orientacion=90.0,
+                                   distancias={"alineacion_cadera": 0.2})
+        self.assertEqual((d.error_id, d.direccion),
+                         ("cadera_hundida", Direccion.SUBIR))
+        d = self._dos_repeticiones("plancha", fase="mantenimiento", orientacion=90.0,
+                                   distancias={"alineacion_cadera": -0.25})
+        self.assertEqual((d.error_id, d.direccion),
+                         ("cadera_elevada", Direccion.BAJAR))
+
+    def test_cadera_que_sube_pide_bajar_en_los_dos_lados(self):
+        # El signo de la oblicuidad es opuesto en cada lado; la dirección no.
+        for skill_id, oblicuidad in (("abduccion_cadera_izq", 10.0),
+                                     ("abduccion_cadera_der", -10.0)):
+            d = self._dos_repeticiones(
+                skill_id, fase="arriba", orientacion=0.0,
+                angulos={"inclinacion_lateral": 0.0,
+                         "oblicuidad_pelvis": oblicuidad})
+            self.assertEqual(d.direccion, Direccion.BAJAR, skill_id)
+            self.assertEqual(d.magnitud, 4.0)
+
+    def test_regla_sin_direccion_declarada_sale_sin_direccion(self):
+        d = self._dos_repeticiones(
+            "abduccion_cadera_izq", fase="arriba", orientacion=0.0,
+            angulos={"inclinacion_lateral": -15.0, "oblicuidad_pelvis": 0.0})
+        self.assertEqual(d.error_id, "tronco_inclinado_der")
+        self.assertIsNone(d.direccion)
+
+    def test_sentido_de_cada_operador(self):
+        self.assertEqual(Condicion(op=">", umbral=1).sentido(2), "disminuir")
+        self.assertEqual(Condicion(op="<=", umbral=1).sentido(0), "aumentar")
+        fuera = Condicion(op="fuera_de", min=10, max=20)
+        self.assertEqual(fuera.sentido(5), "aumentar")
+        self.assertEqual(fuera.sentido(25), "disminuir")
+        self.assertIsNone(Condicion(op="dentro_de", min=10, max=20).sentido(15))
+
+    def _skill_fuera_de(self, direccion):
+        return skill_desde_dict({
+            "skill_id": "prueba", "nombre": "prueba", "version": "0",
+            "reglas": [{
+                "error_id": "rodilla_fuera", "segmento": "rodilla", "lado": "na",
+                "plano": "cualquiera", "prioridad": 1,
+                "medida": {"tipo": "angulo", "nombre": "rodilla_media"},
+                "condicion": {"op": "fuera_de", "min": 90, "max": 120},
+                "direccion": direccion,
+            }],
+        })
+
+    def test_fuera_de_da_la_direccion_del_lado_por_el_que_se_sale(self):
+        skill = self._skill_fuera_de({"aumentar": "menos_flexion",
+                                      "disminuir": "mas_flexion"})
+        for valor, esperada, magnitud in ((80.0, Direccion.MENOS_FLEXION, 10.0),
+                                          (135.0, Direccion.MAS_FLEXION, 15.0)):
+            m = MotorDecision(skill)
+            for rep in (1, 2):
+                d = m.observar(Observacion(
+                    t_ms=rep * 1000, ejercicio_id="prueba",
+                    angulos={"rodilla_media": valor},
+                    confianza={"rodilla_media": 1.0}, repeticion=rep))
+            self.assertEqual((d.direccion, d.magnitud), (esperada, magnitud))
+
+    def test_skill_con_direccion_invalida_no_carga(self):
+        with self.assertRaises(SkillInvalido):
+            self._skill_fuera_de({"aumentar": "girar"})
+        with self.assertRaises(SkillInvalido):
+            self._skill_fuera_de({"hacia_arriba": "subir"})
 
 
 class TestContratoDeEntrada(unittest.TestCase):

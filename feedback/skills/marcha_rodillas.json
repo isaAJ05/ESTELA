@@ -63,7 +63,8 @@
       "prioridad": 2,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "rodilla_baja"
+      "mensaje_id": "rodilla_baja",
+      "direccion": {"disminuir": "subir"}
     },
     {
       "error_id": "rodilla_der_baja",
@@ -77,7 +78,8 @@
       "prioridad": 3,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "rodilla_baja"
+      "mensaje_id": "rodilla_baja",
+      "direccion": {"disminuir": "subir"}
     }
   ]
 }

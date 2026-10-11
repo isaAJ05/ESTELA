@@ -125,6 +125,30 @@ class TestMedidasADR004(unittest.TestCase):
         self.assertAlmostEqual(g.abduccion_cadera(abierta, "izq"), 30.0, places=4)
         self.assertAlmostEqual(g.abduccion_cadera(abierta, "der"), 0.0, places=6)
 
+    def test_nombres_canonicos_de_inclinaciones(self):
+        c = self._cuerpo(
+            left_hip=kp(-0.1, -0.1), right_hip=kp(0.1, 0.1),
+            left_shoulder=kp(-0.3, -0.5), right_shoulder=kp(0.1, -0.5),
+        )
+        self.assertAlmostEqual(g.inclinacion_pelvis(c), 45.0, places=6)
+        self.assertAlmostEqual(
+            g.inclinacion_lateral_tronco(c), g.inclinacion_lateral(c),
+            places=6)
+
+    def test_alineacion_cuerpo_es_angulo_interno(self):
+        c = self._cuerpo(
+            left_shoulder=kp(1.0, 0.0), left_hip=kp(0.0, 0.0),
+            left_ankle=kp(-1.0, 0.0),
+        )
+        self.assertAlmostEqual(g.alineacion_cuerpo(c, "izq"), 180.0, places=6)
+
+    def test_longitud_paso_normalizada_en_profundidad(self):
+        c = self._cuerpo(
+            left_ankle=kp(-0.1, 1.0, 0.25),
+            right_ankle=kp(0.1, 1.0, -0.25),
+        )
+        self.assertAlmostEqual(g.longitud_paso(c), 1.0, places=6)
+
     def test_alineacion_de_cadera_en_plancha(self):
         def plancha(y_cadera):
             return {"left_shoulder": kp(0.5, -0.05, 0.15), "right_shoulder": kp(0.5, -0.05, -0.15),
@@ -156,10 +180,13 @@ class TestObservacion(unittest.TestCase):
         for nombre in ("rodilla_izq", "rodilla_der", "rodilla_media",
                        "tronco_inclinacion", "oblicuidad_pelvis",
                        "oblicuidad_hombros", "inclinacion_lateral",
+                       "inclinacion_pelvis", "inclinacion_lateral_tronco",
+                       "alineacion_cuerpo_izq", "alineacion_cuerpo_der",
                        "abduccion_cadera_izq", "abduccion_cadera_der"):
             self.assertIn(nombre, obs.angulos, nombre)
             self.assertIn(nombre, g.PLANO_DE_ANGULO, nombre)
         self.assertIn("separacion_pies", obs.distancias)
+        self.assertIn("longitud_paso", obs.distancias)
         self.assertIn("alineacion_cadera", obs.distancias)
 
     def test_cabeza_requiere_orejas(self):

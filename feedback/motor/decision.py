@@ -222,8 +222,9 @@ class MotorDecision:
                     ) -> Tuple[List[Tuple[Regla, float, float]], List[str], List[str]]:
         """Devuelve (candidatos, motivos_de_abstencion, reglas_evaluadas).
 
-        Cada candidato es (regla, exceso, confianza). `reglas_evaluadas` son
-        los `error_id` de las reglas que sí se pudieron comprobar: distingue
+        Cada candidato es (regla, valor, confianza); el exceso y la dirección
+        se derivan del valor. `reglas_evaluadas` son los `error_id` de las
+        reglas que sí se pudieron comprobar: distingue
         «no hay error» de «no pude mirar», que es una distinción que el sistema
         debe poder hacer y reportar.
         """
@@ -252,7 +253,7 @@ class MotorDecision:
 
             evaluadas.append(regla.error_id)
             if regla.condicion.evalua(valor):
-                candidatos.append((regla, regla.condicion.exceso(valor), conf))
+                candidatos.append((regla, valor, conf))
 
         return candidatos, motivos, evaluadas
 
@@ -411,8 +412,11 @@ class MotorDecision:
 
         # Una sola prioridad. Desempate determinista: prioridad, luego mayor
         # exceso, luego error_id alfabético.
-        candidatos.sort(key=lambda c: (c[0].prioridad, -c[1], c[0].error_id))
-        regla, exceso, conf = candidatos[0]
+        candidatos.sort(key=lambda c: (c[0].prioridad,
+                                       -c[0].condicion.exceso(c[1]),
+                                       c[0].error_id))
+        regla, valor, conf = candidatos[0]
+        exceso = regla.condicion.exceso(valor)
 
         motivo = self._puede_hablar(regla, obs)
         if motivo is not None:
@@ -436,6 +440,7 @@ class MotorDecision:
             magnitud=round(exceso, 3),
             medida=regla.medida.clave(),
             confianza=round(conf, 3),
+            direccion=regla.direccion_de(valor),
         )
 
     def reiniciar(self) -> None:

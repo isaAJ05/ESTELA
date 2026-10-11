@@ -36,7 +36,9 @@ from typing import Dict, Optional
 
 from ..contrato import ErrorTipificado, Lado, MensajeFeedback
 from .base import Verbalizador
-from .plantillas import LADO_ES, SEGMENTO_ES, VerbalizadorPlantillas
+from .plantillas import (
+    DIRECCION_ES, LADO_ES, SEGMENTO_ES, VerbalizadorPlantillas,
+)
 from .validador import validar
 
 ESQUEMA_SALIDA: Dict = {
@@ -57,22 +59,35 @@ SISTEMA = (
     "te indica ninguno, no menciones lados.\n"
     "3. No diagnostiques, no hables de lesiones ni de dolor.\n"
     "4. Una sola frase, máximo 12 palabras, en imperativo y en segunda persona.\n"
-    "5. Responde en JSON con la forma {\"mensaje\": \"...\"}."
+    "5. Si se te indica la corrección pedida, pídela en ese sentido y nunca en "
+    "el contrario. Si no se indica, no inventes hacia dónde corregir.\n"
+    "6. Responde en JSON con la forma {\"mensaje\": \"...\"}."
 )
 
 
 def _descripcion_error(error: ErrorTipificado) -> str:
+    """Lo único que el modelo sabe del error.
+
+    Incluye `direccion` (ADR-004 §2.5): el motor ya sabe hacia dónde corregir
+    y el modelo no debe adivinarlo. **No** incluye `magnitud`: es el exceso
+    sobre un umbral sin calibrar `[?]` y el modelo podría convertirlo en una
+    cifra hablada («baja 30 grados») que nada verifica; la severidad ya dice
+    cuánto corregir. Reconsiderar tras EXP-005.
+    """
     info = SEGMENTO_ES.get(error.segmento, {"sg": error.segmento, "genero": "m"})
     lado = ""
     if error.lado in LADO_ES:
         lado = " " + LADO_ES[error.lado][info["genero"]]
-    return (
-        f"ejercicio: {error.ejercicio_id}\n"
-        f"parte del cuerpo: {info['sg']}{lado}\n"
-        f"error detectado: {error.error_id}\n"
-        f"severidad: {error.severidad.value}\n"
-        f"fase del movimiento: {error.fase}"
-    )
+    lineas = [
+        f"ejercicio: {error.ejercicio_id}",
+        f"parte del cuerpo: {info['sg']}{lado}",
+        f"error detectado: {error.error_id}",
+        f"severidad: {error.severidad.value}",
+        f"fase del movimiento: {error.fase}",
+    ]
+    if error.direccion is not None:
+        lineas.append(f"corrección pedida: {DIRECCION_ES[error.direccion]}")
+    return "\n".join(lineas)
 
 
 class VerbalizadorLLMLocal(Verbalizador):

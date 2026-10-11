@@ -98,7 +98,8 @@
         "alta": 8
       },
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "cadera_sube"
+      "mensaje_id": "cadera_sube",
+      "direccion": {"disminuir": "bajar"}
     },
     {
       "error_id": "abduccion_insuficiente_izq",
@@ -125,7 +126,8 @@
         "alta": 15
       },
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "abduccion_insuficiente"
+      "mensaje_id": "abduccion_insuficiente",
+      "direccion": {"aumentar": "abrir"}
     }
   ]
 }

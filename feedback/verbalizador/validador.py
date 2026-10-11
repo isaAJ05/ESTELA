@@ -10,7 +10,8 @@ documentados:
 
 Regla central: un mensaje solo puede nombrar el segmento y el lado que vienen
 en el `ErrorTipificado`. Cualquier otro segmento o lado es rechazo inmediato,
-sin importar lo bien redactado que esté el mensaje.
+sin importar lo bien redactado que esté el mensaje. Si el contrato trae
+`direccion` (ADR-004 §2.5), el mensaje tampoco puede pedir la contraria.
 
 El validador se aplica a **todos** los verbalizadores, incluido el de
 plantillas. Sobre plantillas nunca debería fallar; si falla, hay un error en
@@ -25,7 +26,8 @@ from dataclasses import dataclass
 from typing import Dict, Optional, Sequence, Tuple
 
 from ..contrato import (
-    ErrorTipificado, Lado, SEGMENTOS, VOCABULARIO_PROHIBIDO,
+    DIRECCION_OPUESTA, Direccion, ErrorTipificado, Lado, SEGMENTOS,
+    VOCABULARIO_PROHIBIDO,
 )
 
 #: Formas de superficie en español de cada segmento del vocabulario cerrado.
@@ -50,6 +52,26 @@ LEXICO_LADOS: Dict[Lado, Tuple[str, ...]] = {
     Lado.IZQUIERDO: ("izquierdo", "izquierda", "izquierdos", "izquierdas", "izq"),
     Lado.DERECHO: ("derecho", "derecha", "derechos", "derechas", "der"),
 }
+
+#: Verbos de instrucción que piden cada dirección (ADR-004 §2.5). Solo formas
+#: imperativas e infinitivas: «la estás subiendo» describe el error, no pide
+#: subir, y no debe contar. `[R]` Léxico mínimo, ampliable si un verbalizador
+#: usa otras formas; lo que no esté aquí no se comprueba.
+LEXICO_DIRECCIONES: Dict[Direccion, Tuple[str, ...]] = {
+    Direccion.MAS_FLEXION: ("flexiona", "flexionar", "flexiones",
+                            "dobla", "doblar", "dobles"),
+    Direccion.MENOS_FLEXION: ("estira", "estirar", "estires",
+                              "extiende", "extender", "extiendas"),
+    Direccion.SUBIR: ("sube", "subir", "subas", "eleva", "elevar", "eleves",
+                      "levanta", "levantar", "levantes"),
+    Direccion.BAJAR: ("baja", "bajar", "bajes", "desciende", "descender"),
+    Direccion.ABRIR: ("abre", "abrir", "abras", "separa", "separar", "separes"),
+    Direccion.CERRAR: ("cierra", "cerrar", "cierres", "junta", "juntar",
+                       "juntes"),
+}
+
+#: Pronombres que pueden ir entre «no» y el verbo: «no la subas».
+_CLITICOS = ("la", "las", "lo", "los", "le", "les", "te", "se", "me")
 
 #: Longitud máxima del mensaje. `[R]` Un mensaje hablado durante la ejecución
 #: debe caber en el hueco entre dos repeticiones. El valor es un parámetro de
@@ -95,6 +117,38 @@ def lados_mencionados(texto: str) -> Tuple[Lado, ...]:
     return tuple(encontrados)
 
 
+def _contexto(palabras: Sequence[str], i: int) -> Tuple[bool, bool]:
+    """(negado, descriptivo) para la palabra i.
+
+    Negado: va precedida de «no», con clíticos en medio («no la subas»).
+    Descriptivo: lleva «se» delante («casi no se flexiona»): es tercera
+    persona, describe el error y no pide nada.
+    """
+    j = i - 1
+    descriptivo = False
+    while j >= 0 and palabras[j] in _CLITICOS:
+        descriptivo = descriptivo or palabras[j] == "se"
+        j -= 1
+    return j >= 0 and palabras[j] == "no", descriptivo
+
+
+def direcciones_pedidas(texto: str) -> Tuple[Direccion, ...]:
+    """Direcciones que pide el mensaje. «No subas» cuenta como pedir bajar."""
+    palabras = _palabras(texto)
+    pedidas = []
+    for i, p in enumerate(palabras):
+        for direccion, formas in LEXICO_DIRECCIONES.items():
+            if p in formas:
+                negado, descriptivo = _contexto(palabras, i)
+                if descriptivo:
+                    continue
+                if negado:
+                    direccion = DIRECCION_OPUESTA[direccion]
+                if direccion not in pedidas:
+                    pedidas.append(direccion)
+    return tuple(pedidas)
+
+
 def validar(texto: str, error: ErrorTipificado,
             max_palabras: int = MAX_PALABRAS) -> ResultadoValidacion:
     """Valida un mensaje contra el contrato que lo originó."""
@@ -128,6 +182,12 @@ def validar(texto: str, error: ErrorTipificado,
                 False, f"lado_incorrecto:{','.join(l.value for l in ajenos_lado)}")
         if not lados:
             return ResultadoValidacion(False, "lado_omitido")
+
+    if error.direccion is not None:
+        opuesta = DIRECCION_OPUESTA[error.direccion]
+        if opuesta in direcciones_pedidas(texto):
+            return ResultadoValidacion(
+                False, f"direccion_contradictoria:{opuesta.value}")
 
     return ResultadoValidacion(True)
 
@@ -171,6 +231,7 @@ def afirmaciones_no_soportadas(texto: str, error: ErrorTipificado) -> Tuple[str,
 
 __all__ = [
     "validar", "validar_generico", "ResultadoValidacion", "segmentos_mencionados",
-    "lados_mencionados", "afirmaciones_no_soportadas", "normalizar",
-    "LEXICO_SEGMENTOS", "LEXICO_LADOS", "MAX_PALABRAS",
+    "lados_mencionados", "direcciones_pedidas", "afirmaciones_no_soportadas",
+    "normalizar", "LEXICO_SEGMENTOS", "LEXICO_LADOS", "LEXICO_DIRECCIONES",
+    "MAX_PALABRAS",
 ]
