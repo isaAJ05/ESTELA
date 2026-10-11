@@ -1,6 +1,6 @@
 """Demostración sin cámara ni modelo.
 
-Simula una serie de zancadas atrás estáticas con un error de tronco que
+Simula una serie de marcha con un error de tronco que
 aparece, se corrige y reaparece, e imprime lo que el sistema diría y lo que
 callaría, con el motivo.
 
@@ -16,7 +16,7 @@ from .pipeline import MotorFeedback
 #: inclinación de tronco por repetición: mal, mal, mal, bien, bien, mal, mal, mal
 GUION = [60.0, 62.0, 58.0, 20.0, 18.0, 64.0, 66.0, 61.0]
 FASES = ["arriba", "descenso", "fondo", "ascenso"]
-EJERCICIO = "zancada_atras_izq"
+EJERCICIO = "marcha_rodillas"
 
 
 def main() -> int:

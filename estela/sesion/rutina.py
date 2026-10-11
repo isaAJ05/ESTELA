@@ -31,6 +31,7 @@ class RutinaInvalida(ValueError):
 class Ejercicio:
     skill: Skill
     segmentacion: Optional[Mapping[str, Any]]
+    referencia: Optional[Mapping[str, Any]] = None
 
     @property
     def soportado(self) -> bool:
@@ -59,7 +60,12 @@ def cargar_catalogo(directorio: Optional[Union[str, Path]] = None
             continue
         with open(directorio / nombre, encoding="utf-8") as f:
             d = json.load(f)
-        ej = Ejercicio(skill_desde_dict(d), d.get("segmentacion"))
+        referencia = None
+        ruta_referencia = directorio / "referencias" / d["skill_id"] / "referencia.json"
+        if ruta_referencia.is_file():
+            with open(ruta_referencia, encoding="utf-8") as ref:
+                referencia = json.load(ref)
+        ej = Ejercicio(skill_desde_dict(d), d.get("segmentacion"), referencia)
         if ej.soportado:
             ej.nuevo_segmentador()            # valida la configuración ya
         catalogo[ej.skill.skill_id] = ej

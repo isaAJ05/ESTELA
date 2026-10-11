@@ -25,7 +25,8 @@ include = ["estela*", "feedback*"]
 exclude = ["feedback.tests*"]
 
 [tool.setuptools.package-data]
-feedback = ["skills/*.json", "verbalizador/*.json"]
+feedback = ["skills/*.json", "skills/referencias/*/referencia.json",
+            "verbalizador/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

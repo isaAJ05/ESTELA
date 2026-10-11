@@ -13,11 +13,10 @@ class TestCargaDeSkills(unittest.TestCase):
         cls.skills = cargar_skills(directorio_skills())
 
     def test_son_los_ejercicios_de_adr_004(self):
-        # 5 ejercicios (ADR-005); abducción y zancada, un skill por pierna.
+        # 3 ejercicios (ADR-005); abducción, un skill por pierna.
         self.assertEqual(set(self.skills), {
             "jumping_jacks", "marcha_rodillas", "plancha",
-            "abduccion_cadera_izq", "abduccion_cadera_der",
-            "zancada_atras_izq", "zancada_atras_der"})
+            "abduccion_cadera_izq", "abduccion_cadera_der"})
 
     def test_los_retirados_no_se_cargan_pero_siguen_siendo_validos(self):
         retirados = os.path.join(directorio_skills(), "retirados")

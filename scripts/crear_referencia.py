@@ -45,12 +45,6 @@ MEDIDAS_POR_EJERCICIO: Dict[str, Tuple[str, ...]] = {
     "marcha_rodillas": (
         "cadera_izq", "cadera_der", "tronco_inclinacion",
     ),
-    "zancada_atras_izq": (
-        "rodilla_izq", "rodilla_der", "tronco_inclinacion",
-    ),
-    "zancada_atras_der": (
-        "rodilla_izq", "rodilla_der", "tronco_inclinacion",
-    ),
     "plancha": (
         "tronco_inclinacion", "cabeza_adelantada", "alineacion_cadera",
     ),
