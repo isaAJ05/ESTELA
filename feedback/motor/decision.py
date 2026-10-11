@@ -32,6 +32,7 @@ from ..contrato import (
     MOTIVO_CONFIANZA_BAJA, MOTIVO_DESVANECIMIENTO,
     MOTIVO_EVIDENCIA_INSUFICIENTE, MOTIVO_FASE_SILENCIADA,
     MOTIVO_PLANO_NO_OBSERVABLE, MOTIVO_REFRACTARIO, MOTIVO_SIN_ERROR,
+    MOTIVO_DTW_NO_DISPONIBLE,
 )
 from .skill import Medida, PoliticaRefuerzo, Regla, Skill
 
@@ -234,6 +235,11 @@ class MotorDecision:
 
         for regla in self.skill.reglas:
             if regla.fases and obs.fase not in regla.fases:
+                continue
+            if regla.medida.tipo == "desviacion" and (
+                    obs.coste_dtw is None or
+                    regla.medida.nombre not in obs.angulos_ref):
+                motivos.append(MOTIVO_DTW_NO_DISPONIBLE)
                 continue
 
             conf = self.confianza_de_medida(regla.medida, obs)
@@ -458,5 +464,4 @@ class MotorDecision:
 
 
 __all__ = ["MotorDecision", "Decision", "plano_observable"]
-
 

@@ -6,7 +6,7 @@ ESTELA es un prototipo de entrenador personal inteligente orientado a personas q
 
 Como solución, ESTELA propone una aplicación de escritorio capaz de observar al usuario mediante una cámara, analizar su movimiento y compararlo con una referencia previamente definida. A partir de la estimación de puntos articulares y la comparación temporal del movimiento mediante Dynamic Time Warping (DTW), el sistema identifica desviaciones relevantes y genera retroalimentación visual y hablada en español durante la ejecución. La inferencia se plantea completamente de forma local, evitando la transmisión del video a servicios externos y permitiendo evaluar el desempeño del sistema mediante métricas de precisión y latencia.
 
-El alcance del proyecto se delimita a un prototipo funcional para un solo usuario, validado mediante una rutina de bajo impacto compuesta por cinco ejercicios.  Los ejercicios son: jumping jacks, abducción de cadera de pie, plancha, zancada atrás estática y marcha con elevación de rodillas, elegidos según la estrategia utilizada a la hora de la captura y el feedback. Los ejercicios se definen mediante archivos externos para facilitar la incorporación de nuevas referencias sin modificar la lógica principal del sistema. El proyecto no busca cubrir de manera general todas las disciplinas deportivas ni sustituir la orientación de profesionales de la actividad física, sino demostrar la viabilidad técnica de integrar percepción del movimiento, comparación, interpretación y retroalimentación en tiempo real dentro de una arquitectura de ejecución local.
+El alcance del proyecto se delimita a un prototipo funcional para un solo usuario, validado mediante una rutina de bajo impacto compuesta por cuatro ejercicios. Los ejercicios son: jumping jacks, abducción de cadera de pie, plancha y marcha con elevación de rodillas, elegidos según la estrategia utilizada a la hora de la captura y el feedback. Los ejercicios se definen mediante archivos externos para facilitar la incorporación de nuevas referencias sin modificar la lógica principal del sistema. El proyecto no busca cubrir de manera general todas las disciplinas deportivas ni sustituir la orientación de profesionales de la actividad física, sino demostrar la viabilidad técnica de integrar percepción del movimiento, comparación, interpretación y retroalimentación en tiempo real dentro de una arquitectura de ejecución local.
 
 El principal valor de ESTELA se encuentra en explorar una alternativa de acompañamiento accesible y orientada a la privacidad, mientras se estudia experimentalmente la precisión y latencia necesarias para proporcionar retroalimentación útil durante la práctica de actividad física.
 
@@ -20,7 +20,7 @@ pip install -e ".[voz,dev]"
 python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
 
 python -m estela                              # rutina de calentamiento con la cámara
-python -m estela --ejercicio zancada_atras_izq --repeticiones 8
+python -m estela --ejercicio marcha_rodillas --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
 pytest                                        # tests de estela/ (sin cámara)
 python -m unittest discover -s feedback/tests -t .   # tests del módulo de feedback
@@ -28,7 +28,7 @@ python -m unittest discover -s feedback/tests -t .   # tests del módulo de feed
 
 Teclas: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.
 
-Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con elevación de rodillas, zancada atrás estática y plancha. La abducción y la zancada se hacen en una serie por pierna y tienen un skill por pierna (`abduccion_cadera_izq`/`_der`, `zancada_atras_izq`/`_der`).
+Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con elevación de rodillas y plancha. La abducción se hace en una serie por pierna y tiene un skill por pierna (`abduccion_cadera_izq`/`_der`).
 
 | Carpeta | Contenido |
 |---|---|

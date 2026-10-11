@@ -6,7 +6,7 @@ El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archiv
 
 Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla como banco de pruebas, pero no forman parte del catálogo.
 
-Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `marcha_rodillas`, `zancada_atras_izq` + `zancada_atras_der` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
+Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `marcha_rodillas` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
 
 ## Estructura
 
@@ -87,7 +87,7 @@ Traduce el sentido en que debe moverse **el valor de la medida** a una direcció
 |---|---|
 | `aumentar`, `disminuir` | `mas_flexion` \| `menos_flexion` \| `subir` \| `bajar` \| `abrir` \| `cerrar` |
 
-Ejemplo: rodilla de la zancada, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
+Ejemplo: una rodilla, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
 
 El validador rechaza un mensaje que pida la dirección opuesta (`direccion_contradictoria`), con el léxico de `verbalizador/validador.py::LEXICO_DIRECCIONES`; «no subas» cuenta como pedir bajar.
 
@@ -138,7 +138,7 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
 - La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
 - En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
 - En `isometrico`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
-- Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción, zancada y plancha no tienen vídeo de referencia.
+- Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción y plancha no tienen vídeo de referencia.
 
 ## Medidas disponibles
 

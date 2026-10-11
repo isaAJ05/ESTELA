@@ -165,8 +165,7 @@ def test_skills_del_repositorio_cargan_su_segmentacion():
     catalogo = cargar_catalogo()
     assert {k for k, e in catalogo.items() if e.soportado} == set(catalogo)
     assert set(catalogo) == {"jumping_jacks", "marcha_rodillas", "plancha",
-                             "abduccion_cadera_izq", "abduccion_cadera_der",
-                             "zancada_atras_izq", "zancada_atras_der"}
+                             "abduccion_cadera_izq", "abduccion_cadera_der"}
     for e in catalogo.values():
         e.nuevo_segmentador()
     assert catalogo["plancha"].unidad == "segundos"
