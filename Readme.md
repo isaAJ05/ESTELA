@@ -15,6 +15,7 @@ El principal valor de ESTELA se encuentra en explorar una alternativa de acompa�
 Primera versión del flujo completo: cámara → MediaPipe Pose Landmarker → segmentación y conteo de repeticiones → motor de feedback determinista → voz local en español. La instalación detallada está en [Instalación.md](./Instalación.md).
 
 ```bash
+cd backend
 python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[voz,interfaz,dev]"
 python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
@@ -23,8 +24,7 @@ python -m estela                              # rutina de calentamiento en la in
 python -m estela --interfaz opencv            # ventana simple de OpenCV (pruebas y mediciones)
 python -m estela --ejercicio zancada_atras_izq --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
-pytest                                        # tests de estela/ (sin cámara)
-python -m unittest discover -s feedback/tests -t .   # tests del módulo de feedback
+pytest                                        # todos los tests del backend (sin cámara)
 ```
 
 Teclas en la interfaz: `n` siguiente ejercicio · `r` reiniciar el ejercicio · `Esc` terminar · `d` depuración. En la ventana de OpenCV: `q` salir · `n` · `r`.
@@ -33,12 +33,13 @@ Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con ele
 
 | Carpeta | Contenido |
 |---|---|
-| `estela/` | Aplicación: captura, pose, segmentación/conteo, sesión, voz, interfaz |
-| `feedback/` | El motor de feedback (único): decisión determinista + verbalizador (ADR-001) y skills de los ejercicios |
-| `interfaz/` | Interfaz de escritorio (React + TypeScript; `dist/` compilado y versionado). Ver [interfaz/README.md](./interfaz/README.md) |
-| `feedback_testing/` | Banco sintético y métricas de EXP-001, EXP-002 |
-| `rutinas/` | Rutinas de calentamiento (JSON) |
-| `tests/` | Tests de la aplicación |
+| `backend/` | Todo el Python. Arquitectura por capas en [backend/README.md](./backend/README.md) |
+| `backend/estela/dominio/` | Núcleo sin dependencias externas: motor de feedback (`feedback/`: decisión determinista + verbalizador, ADR-001, y skills de los ejercicios) y conteo de repeticiones (`conteo/`) |
+| `backend/estela/aplicacion/` | Sesión en tiempo real, rutinas, pausas y los puertos (interfaces) que necesita |
+| `backend/estela/adaptadores/` | Cámara, pose (MediaPipe), voz y la conexión con la interfaz (pywebview) |
+| `backend/feedback_testing/` | Banco sintético y métricas de EXP-001, EXP-002 |
+| `backend/rutinas/` · `backend/tests/` | Rutinas de calentamiento (JSON) · tests |
+| `frontend/` | Interfaz de escritorio (React + TypeScript; `dist/` compilado y versionado). Ver [frontend/README.md](./frontend/README.md) |
 | `PRUEBAS/` | Prototipos históricos (incluida la BiLSTM retirada), dataset de vídeos y arnés de EXP-008 |
 
 Decisiones de esta versión: `docs/decisiones/ADR-003-aplicacion-v1.md` (en el espacio de trabajo del proyecto).

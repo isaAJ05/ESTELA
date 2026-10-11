@@ -77,16 +77,17 @@ Nombra un módulo concreto del repositorio:
 
 | Módulo | Responsabilidad |
 |--------|-----------------|
-| `estela/captura` | Adquisición de fotogramas de la cámara y transporte |
-| `estela/pose` | Estimación de pose y landmarks |
-| `estela/conteo` | Segmentación de repeticiones y conteo |
-| `estela/sesion` | Orquestación de la sesión, rutina y métricas |
-| `estela/voz` | Cola de voz y motores de TTS |
-| `estela/ui` | Overlay y guía visual |
-| `feedback/motor` | Detección determinista: geometría, decisión, carga de skills |
-| `feedback/verbalizador` | Conversión de un error ya tipado en lenguaje natural |
-| `feedback/contrato` | Contrato de entrada/salida del módulo de feedback (ver ADR-002) |
-| `feedback/skills` | Definiciones JSON por ejercicio y su esquema |
+| `adaptadores/captura` | Adquisición de fotogramas de la cámara y transporte |
+| `adaptadores/pose` | Estimación de pose y landmarks |
+| `dominio/conteo` | Segmentación de repeticiones y conteo |
+| `aplicacion` | Sesión, rutina, pausas, métricas y puertos |
+| `adaptadores/voz` | Cola de voz y motores de TTS |
+| `adaptadores/interfaz` | Conexión con el frontend (contrato JSON, orquestador, ventana) y overlay OpenCV |
+| `frontend` | Interfaz de escritorio (React + TypeScript) |
+| `dominio/feedback/motor` | Detección determinista: geometría, decisión, carga de skills |
+| `dominio/feedback/verbalizador` | Conversión de un error ya tipado en lenguaje natural |
+| `dominio/feedback/contrato` | Contrato de entrada/salida del módulo de feedback (ver ADR-002) |
+| `dominio/feedback/skills` | Definiciones JSON por ejercicio y su esquema |
 | `rutinas` | Definición de rutinas |
 | `modelos` | Artefactos de modelos (pose, voces) |
 | `scripts` | Utilidades y herramientas de autoría offline |
@@ -173,10 +174,10 @@ Aquí es donde aportas valor. Cuestiona activamente si la card tiene el tamaño 
 Piensa en las capas del sistema al estimar:
 
 - **Skill del ejercicio** (JSON + esquema) — suele ser pequeño, pero cambiar el esquema afecta a los cinco ejercicios.
-- **Motor determinista** (`feedback/motor`) — mediano; cuidado con las reglas que interactúan entre sí.
+- **Motor determinista** (`dominio/feedback/motor`) — mediano; cuidado con las reglas que interactúan entre sí.
 - **Verbalización** — pequeño si es plantilla, grande si toca el LLM local: hay que respetar el contrato de salida y el *fallback* determinista.
-- **Percepción** (`estela/pose`, `estela/captura`) — alto riesgo de latencia; casi siempre arrastra medición.
-- **Contrato** (`feedback/contrato`) — pequeño en código, pero se propaga a todo lo que lo consume; fácil de subestimar.
+- **Percepción** (`adaptadores/pose`, `adaptadores/captura`) — alto riesgo de latencia; casi siempre arrastra medición.
+- **Contrato** (`dominio/feedback/contrato`) — pequeño en código, pero se propaga a todo lo que lo consume; fácil de subestimar.
 - **Concurrencia / sesión** — difícil de probar; considera si la card necesita una card de pruebas asociada.
 
 Dos preguntas que debes hacerte siempre:
@@ -381,7 +382,7 @@ Tras la aprobación del borrador (con o sin ediciones):
 ## Actualizar cards existentes
 
 1. Busca u obtén la tarea y muestra su estado actual
-2. Explica claramente qué va a cambiar: "Voy a mover 'feedback/motor - La regla de rodilla no se silencia entre repeticiones' de **In development** a **In review**. ¿Confirmas?"
+2. Explica claramente qué va a cambiar: "Voy a mover 'dominio/feedback/motor - La regla de rodilla no se silencia entre repeticiones' de **In development** a **In review**. ¿Confirmas?"
 3. Procede solo tras la confirmación
 4. Aplica los cambios con `clickup_update_task`
 
@@ -408,8 +409,8 @@ Cuando una card de experimento o investigación llega a **Ready for main**, recu
 ### Título
 
 - Formato: `Módulo - Descripción corta`, con el prefijo `EXP - ` o `INV - ` para experimentos e investigación
-- El módulo es el del repositorio (`feedback/motor`, `estela/voz`, `estela/pose`…)
-- Bien: `estela/voz - La cola no descarta avisos obsoletos tras una pausa larga`
+- El módulo es el del repositorio (`dominio/feedback/motor`, `adaptadores/voz`, `adaptadores/pose`…)
+- Bien: `adaptadores/voz - La cola no descarta avisos obsoletos tras una pausa larga`
 - Bien: `EXP - ¿MediaPipe o RTMPose en el hardware del proyecto?`
 - Mal: `Arreglar bug`, `Voz`, `Tarea de Natalia`
 
@@ -434,7 +435,7 @@ Bien:
 - `[ ] Con el episodio sintético 'rodilla_baja_01', el motor emite exactamente un aviso de rodilla por repetición`
 - `[ ] La latencia p95 por fotograma de la etapa de pose se mantiene por debajo del presupuesto medido en EXP-00X`
 - `[ ] Si Piper falla al inicializar, la sesión continúa con la voz del sistema y registra el fallback`
-- `[ ] El JSON de los cinco ejercicios valida contra feedback/skills/ESQUEMA.md`
+- `[ ] El JSON de los cinco ejercicios valida contra dominio/feedback/skills/ESQUEMA.md`
 
 Mal:
 
@@ -475,9 +476,9 @@ Cuando detectes una oportunidad, dilo:
 - **Durante discusiones de implementación**: "Esto que estamos construyendo, ¿creo una card para que quede trackeado?"
 - **Cuando el alcance crece**: "Esto se está saliendo de lo que describía la card original. ¿Creo una card de seguimiento?"
 - **Cuando falta medición**: "Esta card asume que el cambio no afecta la latencia. ¿Creo una card de experimento para medirlo?"
-- **Cuando falta cobertura**: "`feedback/motor` tiene la regla nueva pero no hay episodio sintético que la cubra. ¿Card para añadirlo?"
+- **Cuando falta cobertura**: "`dominio/feedback/motor` tiene la regla nueva pero no hay episodio sintético que la cubra. ¿Card para añadirlo?"
 - **Cuando una decisión queda implícita**: "Esta card fija de facto el motor de TTS. ¿Eso debería ser un ADR?"
-- **Cuando aparece una dependencia**: "Esto no puede empezar hasta que el contrato de `feedback/contrato` esté cerrado. ¿Anoto la dependencia?"
+- **Cuando aparece una dependencia**: "Esto no puede empezar hasta que el contrato de `dominio/feedback/contrato` esté cerrado. ¿Anoto la dependencia?"
 
 ## Tono
 
