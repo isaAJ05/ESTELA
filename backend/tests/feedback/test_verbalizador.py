@@ -3,7 +3,7 @@ import unittest
 
 from estela.dominio.feedback.contrato import Direccion, ErrorTipificado, Lado, Severidad
 from estela.dominio.feedback.motor.skill import cargar_skills, directorio_skills
-from estela.dominio.feedback.verbalizador.llm_local import (
+from estela.adaptadores.llm.llm_local import (
     VerbalizadorLLMLocal, _descripcion_error,
 )
 from estela.dominio.feedback.verbalizador.plantillas import (

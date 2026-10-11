@@ -35,10 +35,11 @@ adaptadores  ──►  aplicacion  ──►  dominio
 | **Adaptadores** | `estela/adaptadores/captura/` | Cámara y vídeo (OpenCV) | todo |
 | | `estela/adaptadores/pose/` | MediaPipe Pose Landmarker | todo |
 | | `estela/adaptadores/voz/` | Cola de voz y motores TTS (Piper, voz del sistema) | todo |
+| | `estela/adaptadores/llm/` | Verbalizador con LLM local (`llama-server` por HTTP); opcional, solo lo usa EXP-001 | todo |
 | | `estela/adaptadores/interfaz/` | Conexión con el frontend: `contrato.py` (JSON), `orquestador.py` (hilo de la sesión), `ventana.py` (pywebview) y `overlay.py` (ventana OpenCV) | todo |
 | **Arranque** | `estela/__main__.py` | Crea los adaptadores y se los pasa a la sesión | todo |
 
-`tests/test_arquitectura.py` comprueba estas reglas: si el dominio o la aplicación importan un adaptador o una librería de cámara, pose, voz o ventana, el test falla.
+`tests/test_arquitectura.py` comprueba estas reglas: si el dominio o la aplicación importan un adaptador o una librería de cámara, pose, voz, ventana o red, el test falla.
 
 **Por qué así.** El dominio y la sesión se prueban sin cámara ni modelos, porque los tests les pasan estimadores y voces falsos. Cambiar MediaPipe por otro modelo de pose, o la voz por otra, solo toca un adaptador.
 

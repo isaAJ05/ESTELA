@@ -33,7 +33,7 @@ Observacion (ángulos + confianza + fase + orientación)
         ├────────────────────────────┐
         ▼                            ▼
  VerbalizadorPlantillas      VerbalizadorLLMLocal   (intercambiables)
- (verbalizador/plantillas)   (verbalizador/llm_local)
+ (verbalizador/plantillas)   (adaptadores/llm/llm_local)
         │                            │
         │                      validador.py  ── rechaza → cae a plantilla
         └──────────────┬─────────────┘
@@ -83,7 +83,7 @@ Las tres decisiones que sostienen el diseño:
 | `motor/decision.py` | El motor determinista. |
 | `verbalizador/plantillas.py` + `plantillas_es.json` | Condición A y *fallback* del sistema. |
 | `verbalizador/validador.py` | Rechaza mensajes que nombren un segmento o un lado distinto del contrato, que usen vocabulario médico o que sean demasiado largos. |
-| `verbalizador/llm_local.py` | Condición F/F′. **Escrito pero no probado contra ningún modelo.** |
+| `estela/adaptadores/llm/llm_local.py` | Condición F/F′ (fuera del dominio porque habla por HTTP con `llama-server`). **Escrito pero no probado contra ningún modelo.** |
 | `skills/*.json` | Un archivo por ejercicio. Añadir un ejercicio es añadir un archivo. |
 | `backend/tests/feedback/` | Pruebas del módulo, sin dependencias externas. |
 

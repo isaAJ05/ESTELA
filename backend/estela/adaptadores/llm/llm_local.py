@@ -24,6 +24,10 @@ Diseño (ADR-001, §4.3):
   `[?]` El presupuesto de latencia (`timeout_ms`) es un parámetro de diseño
   sin respaldo empírico todavía: hay que fijarlo con la medición de
   `llama-bench` en el M2 Ultra del proyecto (ADR-001, §5).
+
+Es un adaptador, no dominio: habla por HTTP con un servidor externo
+(`llama-server`). Cumple la interfaz `Verbalizador` del dominio y reutiliza
+sus plantillas y su validador.
 """
 
 from __future__ import annotations
@@ -34,12 +38,12 @@ import urllib.error
 import urllib.request
 from typing import Dict, Optional
 
-from ..contrato import ErrorTipificado, Lado, MensajeFeedback
-from .base import Verbalizador
-from .plantillas import (
+from ...dominio.feedback.contrato import ErrorTipificado, Lado, MensajeFeedback
+from ...dominio.feedback.verbalizador.base import Verbalizador
+from ...dominio.feedback.verbalizador.plantillas import (
     DIRECCION_ES, LADO_ES, SEGMENTO_ES, VerbalizadorPlantillas,
 )
-from .validador import validar
+from ...dominio.feedback.verbalizador.validador import validar
 
 ESQUEMA_SALIDA: Dict = {
     "type": "object",

@@ -1,7 +1,7 @@
 """Regla de dependencias entre capas:  dominio ← aplicacion ← adaptadores.
 
 - `dominio` (feedback, conteo) no importa nada de las otras capas ni
-  librerías de cámara, pose, voz o ventana.
+  librerías de cámara, pose, voz, ventana o red.
 - `aplicacion` (sesión, rutina, puertos) solo importa `dominio`.
 - `adaptadores` pueden importar ambas. `__main__` lo conecta todo.
 
@@ -14,7 +14,9 @@ from pathlib import Path
 import pytest
 
 PAQUETE = Path(__file__).resolve().parent.parent / "estela"
-INFRAESTRUCTURA = {"cv2", "mediapipe", "webview", "piper", "sounddevice", "PIL"}
+#: cámara, pose, ventana, voz y red (p. ej. el servidor del LLM)
+INFRAESTRUCTURA = {"cv2", "mediapipe", "webview", "piper", "sounddevice", "PIL",
+                   "urllib.request", "http", "socket", "requests"}
 PROHIBIDO = {
     "dominio": {"estela.aplicacion", "estela.adaptadores"} | INFRAESTRUCTURA,
     "aplicacion": {"estela.adaptadores"} | INFRAESTRUCTURA,
