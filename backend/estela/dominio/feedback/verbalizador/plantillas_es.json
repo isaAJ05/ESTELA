@@ -126,6 +126,30 @@
     "alta": ["Coloca la {segmento} en línea, ni caída ni levantada."]
   },
 
+  "hombros_adelantados": {
+    "leve": ["Lleva los {segmento_pl} un poco hacia atrás."],
+    "moderada": ["Lleva los {segmento_pl} hacia atrás, sobre el apoyo."],
+    "alta": ["Lleva bien los {segmento_pl} hacia atrás, sobre el apoyo."]
+  },
+
+  "hombros_retrasados": {
+    "leve": ["Lleva los {segmento_pl} un poco hacia delante."],
+    "moderada": ["Adelanta los {segmento_pl}, justo sobre el apoyo."],
+    "alta": ["Lleva bien los {segmento_pl} hacia delante, sobre el apoyo."]
+  },
+
+  "paso_corto": {
+    "leve": ["Haz el paso un poco más largo."],
+    "moderada": ["Alarga el paso antes de bajar."],
+    "alta": ["Alarga bastante el paso antes de bajar."]
+  },
+
+  "paso_largo": {
+    "leve": ["Haz el paso un poco más corto."],
+    "moderada": ["Acorta el paso antes de bajar."],
+    "alta": ["Acorta bastante el paso antes de bajar."]
+  },
+
   "_refuerzo": {
     "general": [
       "Vas muy bien, sigue así.",

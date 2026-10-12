@@ -26,7 +26,8 @@ dev = ["pytest>=8"]
 include = ["estela*"]
 
 [tool.setuptools.package-data]
-"estela.dominio.feedback" = ["skills/*.json", "skills/retirados/*.json", "verbalizador/*.json"]
+"estela.dominio.feedback" = ["skills/*.json", "skills/retirados/*.json",
+                             "skills/referencias/*/referencia.json", "verbalizador/*.json"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests", "feedback_testing/tests"]

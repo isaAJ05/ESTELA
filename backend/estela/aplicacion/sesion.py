@@ -3,6 +3,7 @@
 Por frame:
 
     ResultadoPose ─► observacion_desde_pose ─► Segmentador (fase, repetición)
+                 ─► AlineadorDTW (referencia; desactivable con `sin_dtw`)
                  ─► MotorFeedback (decisión determinista + plantilla) ─► voz
 
 `Sesion` no sabe nada de cámaras ni de ventanas: recibe `(frame, t_ms)` y
@@ -33,6 +34,7 @@ from ..dominio.feedback.verbalizador.base import Verbalizador
 from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 
 from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador
+from .dtw import AlineadorDTW
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
 from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
@@ -99,17 +101,20 @@ class _Paso:
     seg: Optional[EstadoSegmento] = None
     mensajes: List[Dict[str, Any]] = field(default_factory=list)
     pausa: DetectorPausa = field(default_factory=DetectorPausa)
+    alineador: Optional[AlineadorDTW] = None
 
 
 class Sesion:
     def __init__(self, rutina: Rutina, catalogo: Mapping[str, Ejercicio],
                  estimador: Estimador, voz: Voz,
-                 verbalizador: Optional[Verbalizador] = None) -> None:
+                 verbalizador: Optional[Verbalizador] = None,
+                 sin_dtw: bool = False) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
         self.voz = voz
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
+        self.sin_dtw = sin_dtw
         self.latencias = Latencias()
         self.frames = 0
         self.frames_sin_persona = 0
@@ -152,7 +157,8 @@ class Sesion:
         ej = self.catalogo[p.skill_id]
         self._pasos.append(_Paso(ej, p.repeticiones,
                                  MotorFeedback(ej.skill, self.verbalizador),
-                                 ej.nuevo_segmentador()))
+                                 ej.nuevo_segmentador(),
+                                 alineador=None if self.sin_dtw else AlineadorDTW(ej.referencia)))
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -174,6 +180,8 @@ class Sesion:
             p.motor.reiniciar()
             p.segmentador.reiniciar()
             p.seg = None
+            if p.alineador is not None:
+                p.alineador.reiniciar()
 
     # -- bucle --------------------------------------------------------------
 
@@ -213,6 +221,13 @@ class Sesion:
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
         t2 = time.perf_counter()
         lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
+        if p.alineador is not None:
+            t_dtw = time.perf_counter()
+            dtw = p.alineador.actualizar(obs)
+            if dtw is not None:
+                obs = replace(obs, angulos_ref=dtw.angulos_ref,
+                              progreso=dtw.progreso, coste_dtw=dtw.coste)
+            lat["dtw"] = (time.perf_counter() - t_dtw) * 1000
 
         # La inactividad se vigila desde la primera repetición (o el primer
         # bloque en posición) y solo con señal válida: sin señal, el problema
@@ -222,7 +237,9 @@ class Sesion:
         self._anuncia_pausa(p, p.pausa.actualizar(
             t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion)))
         if p.pausa.pausada:
-            for etapa in ("geometria", "segmentacion"):
+            for etapa in ("geometria", "segmentacion", "dtw"):
+                if etapa not in lat:
+                    continue
                 self.latencias.anota(etapa, lat[etapa])
             aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                      or self._revisa_encuadre(seg.senal_valida, t_ms)
@@ -233,7 +250,9 @@ class Sesion:
         salida = p.motor.procesar(obs)
         t3 = time.perf_counter()
         lat["motor"] = (t3 - t2) * 1000
-        for etapa in ("geometria", "segmentacion", "motor"):
+        for etapa in ("geometria", "segmentacion", "dtw", "motor"):
+            if etapa not in lat:
+                continue
             self.latencias.anota(etapa, lat[etapa])
 
         if isinstance(salida, MensajeFeedback):

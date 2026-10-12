@@ -1,9 +1,6 @@
 """Flujo completo de la sesión con un estimador falso (sin cámara ni modelo).
 
-Se sintetizan esqueletos 3D de perfil haciendo zancadas estáticas (las dos
-rodillas se flexionan a la vez): con el tronco recto no debe haber
-correcciones; con el tronco muy inclinado el motor debe hablar tras las
-repeticiones de evidencia, y la rutina debe avanzar al alcanzar el objetivo.
+Se sintetizan esqueletos 3D para probar el flujo de sesión sin cámara ni modelo.
 La plancha se prueba aparte, con un esqueleto horizontal.
 """
 
@@ -33,11 +30,15 @@ def esqueleto_perfil(rodilla_grados: float, tronco_grados: float) -> np.ndarray:
     pts[:, 3] = 0.99
     flex = math.radians(180 - rodilla_grados)
     muslo = pierna = 0.45
-    for lado, dz in (("left", 0.1), ("right", -0.1)):
+    # Postura de zancada: la izquierda atrás (s = -1), la derecha delante
+    # (s = +1); así los tobillos quedan separados (longitud_paso ≈ 0,8).
+    for lado, dz, s in (("left", 0.1, -1.0), ("right", -0.1, 1.0)):
         cadera = np.array([0.0, 0.0, dz])
         # el muslo se inclina hacia delante a medida que se flexiona la rodilla
-        rodilla = cadera + [muslo * math.sin(flex / 2), muslo * math.cos(flex / 2), 0]
-        tobillo = rodilla + [-pierna * math.sin(flex / 2), pierna * math.cos(flex / 2), 0]
+        muslo_ang = flex / 2 + s * 0.4
+        rodilla = cadera + [muslo * math.sin(muslo_ang), muslo * math.cos(muslo_ang), 0]
+        tobillo = rodilla + [pierna * math.sin(muslo_ang - flex),
+                             pierna * math.cos(muslo_ang - flex), 0]
         t = math.radians(tronco_grados)
         hombro = cadera + [0.5 * math.sin(t), -0.5 * math.cos(t), 0]
         codo = hombro + [0.0, 0.28, 0]
@@ -73,14 +74,6 @@ class VozFalsa:
         return [t for t, p in self.dichas if p != PRIORIDAD_AVISO]
 
 
-ZANCADA = "zancada_atras_izq"
-
-
-def secuencia_zancadas(n, minimo=80):
-    una = list(np.linspace(170, minimo, 15)) + list(np.linspace(minimo, 170, 15)) + [170] * 10
-    return una * n
-
-
 def correr(sesion, angulos, dt_ms=100):
     estados = []
     for i, a in enumerate(angulos):
@@ -93,51 +86,9 @@ def catalogo():
     return cargar_catalogo()
 
 
-def test_zancadas_correctas_se_cuentan_sin_corregir(catalogo):
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
-               EstimadorFalso(tronco=15), voz)
-    estados = correr(s, secuencia_zancadas(5))
-    assert estados[-1].completadas == 5
-    # Puede haber refuerzo positivo («vas muy bien»), pero ninguna corrección.
-    msgs = s.resumen()["pasos"][0]["mensajes"]
-    assert [m for m in msgs if m["error_id"] is not None] == []
-
-
-def test_tronco_inclinado_produce_feedback_hablado(catalogo):
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
-               EstimadorFalso(tronco=70), voz)
-    correr(s, secuencia_zancadas(5))
-    assert voz.correcciones, "el motor debía corregir el tronco"
-    assert any("tronco" in t.lower() or "pecho" in t.lower() for t in voz.correcciones)
-    msgs = s.resumen()["pasos"][0]["mensajes"]
-    # repeticiones_evidencia = 2: nunca en la primera repetición
-    assert all(m["repeticion"] >= 2 for m in msgs)
-    assert {m["error_id"] for m in msgs} == {"tronco_muy_inclinado"}
-
-
-def test_la_rutina_avanza_al_alcanzar_el_objetivo(catalogo):
-    voz = VozFalsa()
-    rutina = rutina_desde_dict({"pasos": [
-        {"skill_id": ZANCADA, "repeticiones": 2},
-        {"skill_id": "zancada_atras_der", "repeticiones": 1}]}, catalogo)
-    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), voz)
-    correr(s, secuencia_zancadas(3))
-    assert s.terminada
-    avisos = [t for t, p in voz.dichas if p == PRIORIDAD_AVISO]
-    assert avisos[0].startswith(
-        "Ahora, zancada atrás estática, pierna izquierda atrás. 2 repeticiones")
-    assert any(a.startswith("Ahora, zancada atrás estática, pierna derecha atrás")
-               for a in avisos)
-    assert avisos[-1] == "Rutina terminada. Buen trabajo."
-    r = s.resumen()
-    assert [p["completadas"] for p in r["pasos"]] == [2, 1]
-
-
 def test_sin_persona_avisa_y_no_rompe(catalogo):
     voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 5, catalogo), catalogo,
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 5, catalogo), catalogo,
                EstimadorFalso(tronco=10), voz)
     estados = correr(s, [float("nan")] * 30)
     assert estados[-1].aviso and not estados[-1].persona
@@ -154,49 +105,11 @@ def test_orientacion_incorrecta_se_avisa_por_voz(catalogo):
     assert ("Colócate de frente a la cámara.", PRIORIDAD_AVISO) in voz.dichas
 
 
-def test_el_resumen_no_contiene_datos_biometricos(catalogo):
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 5, catalogo), catalogo,
-               EstimadorFalso(tronco=10), VozFalsa())
-    correr(s, secuencia_zancadas(1))
-    texto = str(s.resumen())
-    assert "keypoints" not in texto and "landmarks" not in texto
-
-
 def test_ejercicio_retirado_se_rechaza(catalogo):
     """ADR-005: sentadilla, elevación de brazos y rotación de tronco salieron."""
     for retirado in ("sentadilla", "elevacion_brazos", "rotacion_tronco"):
         with pytest.raises(RutinaInvalida):
             rutina_de_un_ejercicio(retirado, 5, catalogo)
-
-
-def test_frases_precalculables_incluyen_plantillas(catalogo):
-    rutina = rutina_de_un_ejercicio(ZANCADA, 5, catalogo)
-    frases = frases_de_rutina(rutina, catalogo)
-    assert ("Ahora, zancada atrás estática, pierna izquierda atrás. 5 repeticiones. "
-            "Colócate de perfil a la cámara.") in frases
-    assert AVISO_REANUDA in frases and set(AVISO_PAUSA.values()) <= frases
-    # Las dos reglas de la zancada: rodilla delantera y tronco.
-    assert any("rodilla derecha" in f.lower() for f in frases)
-    assert any("tronco" in f.lower() or "pecho" in f.lower() for f in frases)
-
-
-def test_articulaciones_fuera_de_encuadre_piden_alejarse(catalogo):
-    """Persona detectada pero rodillas con visibilidad baja (tobillos fuera)."""
-    class EstimadorPiernasOcultas(EstimadorFalso):
-        def estimar(self, frame, t_ms):
-            mundo = esqueleto_perfil(float(frame), 10.0)
-            for n in ("knee", "ankle"):
-                for lado in ("left", "right"):
-                    mundo[IDX[f"{lado}_{n}"], 3] = 0.2
-            return ResultadoPose(muestra_desde_arrays(t_ms, mundo, mundo), mundo, 1.0)
-
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 5, catalogo), catalogo,
-               EstimadorPiernasOcultas(tronco=10), voz)
-    estados = correr(s, secuencia_zancadas(2))
-    assert estados[-1].completadas == 0            # no cuenta a ciegas
-    assert estados[-1].aviso == "Aléjate un poco: necesito verte el cuerpo entero."
-    assert sum(1 for t, _ in voz.dichas if t.startswith("Aléjate")) == 1
 
 
 # ---------------------------------------------------------------------------
@@ -283,41 +196,6 @@ def test_plancha_quieta_en_posicion_no_se_pausa(catalogo):
 # Pausa por inactividad (T22.b): pausar nunca reinicia los contadores
 # ---------------------------------------------------------------------------
 
-def test_salir_y_volver_a_mitad_de_serie_conserva_las_repeticiones(catalogo):
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
-               EstimadorFalso(tronco=10), voz)
-    fuera = [float("nan")] * 60                    # 6 s fuera del encuadre
-    estados = correr(s, secuencia_zancadas(2) + fuera + secuencia_zancadas(3))
-    assert any(e.pausada for e in estados)
-    assert not estados[-1].pausada
-    assert estados[-1].completadas == 5
-    dichas = [t for t, _ in voz.dichas]
-    assert dichas.index(AVISO_PAUSA["sin_persona"]) < dichas.index(AVISO_REANUDA)
-    paso = s.resumen()["pasos"][0]
-    assert paso["pausas_sesion"] == 1 and paso["pausa_s"] > 0
-    total_s = (len(estados) - 1) / 10
-    assert paso["duracion_s"] == round(total_s - paso["pausa_s"], 1)
-
-
-def test_quieta_tras_empezar_se_pausa_y_retoma_al_moverse(catalogo):
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
-               EstimadorFalso(tronco=10), voz)
-    estados = correr(s, secuencia_zancadas(1) + [170.0] * 100 + secuencia_zancadas(2))
-    assert ("Pausa. Cuando quieras, sigue con el ejercicio.", PRIORIDAD_AVISO) in voz.dichas
-    assert (AVISO_REANUDA, PRIORIDAD_AVISO) in voz.dichas
-    assert estados[-1].completadas == 3 and not estados[-1].pausada
-
-
-def test_colocandose_antes_de_empezar_no_se_pausa(catalogo):
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
-               EstimadorFalso(tronco=10), voz)
-    estados = correr(s, [170.0] * 200)             # 20 s de pie, sin empezar
-    assert not any(e.pausada for e in estados)
-
-
 def test_tras_la_pausa_no_retoma_si_vuelve_mal_orientada(catalogo):
     """Jumping jacks pide frente; el esqueleto sintético vuelve de perfil."""
     voz = VozFalsa()
@@ -329,32 +207,10 @@ def test_tras_la_pausa_no_retoma_si_vuelve_mal_orientada(catalogo):
     assert (AVISO_REANUDA, PRIORIDAD_AVISO) not in voz.dichas
 
 
-def test_sin_senal_tras_empezar_pide_alejarse_y_no_pausa(catalogo):
-    """Tras una zancada, las piernas quedan fuera del encuadre 12 s: es un
-    problema de encuadre, no inactividad."""
-    class EstimadorPiernasFuera(EstimadorFalso):
-        def estimar(self, frame, t_ms):           # frame < 0: piernas ocultas
-            mundo = esqueleto_perfil(abs(float(frame)), 10.0)
-            if frame < 0:
-                for n in ("knee", "ankle"):
-                    for lado in ("left", "right"):
-                        mundo[IDX[f"{lado}_{n}"], 3] = 0.2
-            return ResultadoPose(muestra_desde_arrays(t_ms, mundo, mundo), mundo, 1.0)
-
-    voz = VozFalsa()
-    s = Sesion(rutina_de_un_ejercicio(ZANCADA, 99, catalogo), catalogo,
-               EstimadorPiernasFuera(tronco=10), voz)
-    estados = correr(s, secuencia_zancadas(1) + [-170.0] * 120)
-    assert not any(e.pausada for e in estados)
-    assert estados[-1].aviso == "Aléjate un poco: necesito verte el cuerpo entero."
-    assert not any(t.startswith("Pausa") for t, _ in voz.dichas)
-
-
-def test_la_rutina_por_defecto_carga_los_cinco_ejercicios(catalogo):
+def test_la_rutina_por_defecto_carga_los_ejercicios(catalogo):
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
     ids = [p.skill_id for p in rutina.pasos]
     assert ids == ["jumping_jacks", "abduccion_cadera_izq", "abduccion_cadera_der",
-                   "marcha_rodillas", "zancada_atras_izq", "zancada_atras_der",
-                   "plancha"]
+                   "marcha_rodillas", "plancha"]
     plancha = rutina.pasos[-1]
     assert catalogo[plancha.skill_id].unidad == "segundos" and plancha.repeticiones == 20

@@ -67,7 +67,7 @@ class Orquestador:
                  abrir_fuente: Callable[[], Fuente], voz: Any, *,
                  espejo: bool, fuente: str = "camara",
                  al_terminar: Optional[Callable[[Dict[str, Any]], None]] = None,
-                 verbalizador: Any = None) -> None:
+                 verbalizador: Any = None, sin_dtw: bool = False) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`."""
@@ -80,6 +80,7 @@ class Orquestador:
         self._fuente = fuente
         self._al_terminar = al_terminar
         self._verbalizador = verbalizador
+        self._sin_dtw = sin_dtw
 
         self._cv = threading.Condition()
         self._version = 0
@@ -188,7 +189,7 @@ class Orquestador:
             return
 
         sesion = Sesion(self.rutina, self.catalogo, estimador, self._voz,
-                        self._verbalizador)
+                        self._verbalizador, sin_dtw=self._sin_dtw)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
         motivo = contrato.FIN_CIERRE

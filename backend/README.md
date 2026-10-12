@@ -30,7 +30,7 @@ adaptadores  ──►  aplicacion  ──►  dominio
 |---|---|---|---|
 | **Dominio** | `estela/dominio/feedback/` | Contrato de datos, geometría, motor de decisión determinista, verbalizador, skills de los ejercicios | solo la biblioteca estándar |
 | | `estela/dominio/conteo/` | Segmentador de fases y conteo de repeticiones | dominio |
-| **Aplicación** | `estela/aplicacion/` | `Sesion` (bucle por frame), rutinas, pausas, métricas de latencia | dominio, numpy |
+| **Aplicación** | `estela/aplicacion/` | `Sesion` (bucle por frame), rutinas, pausas, métricas de latencia, alineador DTW contra la referencia del skill (`dtw.py`) | dominio, numpy |
 | | `estela/aplicacion/puertos.py` | Interfaces que la sesión necesita: `Estimador`, `Voz`, `Fuente`, `ResultadoPose` | dominio |
 | **Adaptadores** | `estela/adaptadores/captura/` | Cámara y vídeo (OpenCV) | todo |
 | | `estela/adaptadores/pose/` | MediaPipe Pose Landmarker | todo |
@@ -50,5 +50,5 @@ adaptadores  ──►  aplicacion  ──►  dominio
 | `tests/` | Tests de la aplicación (`tests/feedback/`: del módulo de feedback) |
 | `feedback_testing/` | Banco sintético y métricas de EXP-001 y EXP-002 |
 | `rutinas/` | Rutinas de calentamiento (JSON) |
-| `scripts/` | Descarga de modelos |
+| `scripts/` | Descarga de modelos; `crear_referencia.py` genera la referencia de un ejercicio a partir de un vídeo (`estela/dominio/feedback/skills/referencias/`) |
 | `modelos/`, `sesiones/` | Modelos descargados y métricas guardadas (ignorados por git) |

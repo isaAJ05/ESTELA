@@ -53,6 +53,10 @@ class Direccion(str, Enum):
     BAJAR = "bajar"
     ABRIR = "abrir"
     CERRAR = "cerrar"
+    ADELANTE = "adelante"
+    ATRAS = "atras"
+    ALARGAR = "alargar"
+    ACORTAR = "acortar"
 
 
 DIRECCION_OPUESTA: Dict["Direccion", "Direccion"] = {
@@ -62,6 +66,10 @@ DIRECCION_OPUESTA: Dict["Direccion", "Direccion"] = {
     Direccion.BAJAR: Direccion.SUBIR,
     Direccion.ABRIR: Direccion.CERRAR,
     Direccion.CERRAR: Direccion.ABRIR,
+    Direccion.ADELANTE: Direccion.ATRAS,
+    Direccion.ATRAS: Direccion.ADELANTE,
+    Direccion.ALARGAR: Direccion.ACORTAR,
+    Direccion.ACORTAR: Direccion.ALARGAR,
 }
 
 
@@ -295,6 +303,7 @@ MOTIVO_REFRACTARIO = "periodo_refractario"
 MOTIVO_EVIDENCIA_INSUFICIENTE = "evidencia_insuficiente"
 MOTIVO_DESVANECIMIENTO = "desvanecimiento"
 MOTIVO_FASE_SILENCIADA = "fase_silenciada"
+MOTIVO_DTW_NO_DISPONIBLE = "dtw_no_disponible"
 
 
 __all__ = [
@@ -304,4 +313,5 @@ __all__ = [
     "MOTIVO_SIN_ERROR", "MOTIVO_CONFIANZA_BAJA", "MOTIVO_PLANO_NO_OBSERVABLE",
     "MOTIVO_REFRACTARIO", "MOTIVO_EVIDENCIA_INSUFICIENTE",
     "MOTIVO_DESVANECIMIENTO", "MOTIVO_FASE_SILENCIADA",
+    "MOTIVO_DTW_NO_DISPONIBLE",
 ]

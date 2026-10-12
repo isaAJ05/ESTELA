@@ -10,7 +10,7 @@ tocar código.
 Tres tipos:
 
 ``ciclo``  Una señal que va de un valor de *reposo* a un *extremo* y vuelve
-           (rodillas en la zancada, separación de pies en jumping jacks).
+           (rodillas en la marcha, separación de pies en jumping jacks).
            Cuatro fases: reposo → ida → extremo → vuelta.
 
 ``alternante``  Dos señales, una por lado, cada una con su propio ciclo

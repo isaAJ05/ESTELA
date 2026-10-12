@@ -115,7 +115,7 @@ class TestLLMLocalSinServidor(unittest.TestCase):
         return ErrorTipificado(
             error_id="profundidad_insuficiente_der", segmento="rodilla",
             lado=Lado.DERECHO, severidad=Severidad.ALTA, fase="ascenso",
-            repeticion=1, ejercicio_id="zancada_atras_izq",
+            repeticion=1, ejercicio_id="marcha_rodillas",
             mensaje_id="profundidad_rodilla", magnitud=30.0,
             direccion=direccion)
 

@@ -3,26 +3,40 @@
 El orquestador se prueba con la misma fuente sintética que `test_sesion`:
 el «frame» lleva el ángulo de rodilla y el estimador falso construye el
 esqueleto. Así se recorre el flujo inicio → sesión → resumen sin cámara.
+
+Como banco de pruebas se usa la zancada atrás, retirada del catálogo (ADR-005
+§6, PR #8) pero todavía válida en `retirados/`, igual que en `test_decision`:
+el esqueleto sintético de perfil es una zancada y estos tests prueban el
+contrato y el orquestador, no el conjunto de ejercicios.
 """
 
 import json
 import time
+from pathlib import Path
 
 import numpy as np
 import pytest
 
 from estela.aplicacion.rutina import cargar_catalogo, rutina_desde_dict
+from estela.dominio.feedback.motor.skill import directorio_skills
 from estela.aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                                   Sesion)
 from estela.adaptadores.interfaz import contrato
 from estela.adaptadores.interfaz.orquestador import ERROR, INICIO, RESUMEN, SESION, Orquestador
-from tests.test_sesion import (ZANCADA, EstimadorFalso, VozFalsa, correr,
-                               secuencia_zancadas)
+from tests.test_sesion import EstimadorFalso, VozFalsa, correr
+
+ZANCADA = "zancada_atras_izq"
+
+
+def secuencia_zancadas(n, minimo=80):
+    una = list(np.linspace(170, minimo, 15)) + list(np.linspace(minimo, 170, 15)) + [170] * 10
+    return una * n
 
 
 @pytest.fixture(scope="module")
 def catalogo():
-    return cargar_catalogo()
+    retirados = cargar_catalogo(Path(directorio_skills()) / "retirados")
+    return {**cargar_catalogo(), ZANCADA: retirados[ZANCADA]}
 
 
 @pytest.fixture

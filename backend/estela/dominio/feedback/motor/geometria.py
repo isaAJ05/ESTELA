@@ -90,8 +90,10 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "inclinacion_pelvis": Plano.FRONTAL,
     "alineacion_cuerpo_izq": Plano.SAGITAL,
     "alineacion_cuerpo_der": Plano.SAGITAL,
-    "longitud_paso": Plano.SAGITAL,
     "alineacion_cadera": Plano.SAGITAL,
+    # T17: medidas del catálogo de errores v2 (PL-03/04, ZR-04).
+    "hombro_sobre_codo": Plano.SAGITAL,
+    "longitud_paso": Plano.SAGITAL,
 }
 
 
@@ -453,6 +455,62 @@ def alineacion_cadera(kps: Dict[str, Keypoint], usar_z: bool = True,
     return (cadera[1] - en_recta_y) / esc
 
 
+PARTES_HOMBRO_CODO = ("shoulder", "elbow", "hip")
+
+
+def hombro_sobre_codo(kps: Dict[str, Keypoint], usar_z: bool = True,
+                      lado: Optional[str] = None) -> Optional[float]:
+    """Desplazamiento horizontal del hombro respecto al codo, de un lado.
+
+    Diferencia horizontal hombro − codo, con signo hacia la cabeza, dividida
+    por la distancia hombro-cadera. Positivo = el hombro queda por delante del
+    codo (hacia la cabeza); negativo = por detrás. 0 = hombro sobre el codo,
+    la pauta de la plancha sobre antebrazos (catálogo v2, PL-03/04). Plano
+    sagital, con el cuerpo horizontal.
+
+    «Hacia la cabeza» se toma de la cadera al hombro del mismo lado, así que no
+    depende de hacia qué lado de la imagen mire la persona. Un lado, el más
+    visible, por la misma razón que `alineacion_cadera`.
+
+    `[?]` La variante de plancha con manos (DEC-005) usaría la muñeca en lugar
+    del codo: sería otra medida, `hombro_sobre_muneca`, y no existe todavía.
+    """
+    lado = lado or lado_mas_visible(kps, PARTES_HOMBRO_CODO)
+    if lado is None:
+        return None
+    hombro, codo, cadera = (kps[f"{lado}_{p}"] for p in PARTES_HOMBRO_CODO)
+    hacia_cabeza = hombro.x - cadera.x
+    esc = _norma(_resta(_coords(hombro, usar_z), _coords(cadera, usar_z)))
+    if abs(hacia_cabeza) < 1e-9 or esc < 1e-6:
+        return None
+    signo = 1.0 if hacia_cabeza > 0 else -1.0
+    return signo * (hombro.x - codo.x) / esc
+
+
+def longitud_paso(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Distancia horizontal entre tobillos dividida por el largo de la pierna.
+
+    Para la zancada estática de perfil (catálogo v2, ZR-04): los pies no se
+    mueven en toda la repetición, así que la medida vale en cualquier fase. El
+    largo de la pierna es cadera → tobillo del lado más visible.
+
+    `[?]` Necesita los **dos** tobillos. De perfil el lejano puede quedar
+    tapado (ADR-006 §2.1 lo midió en la plancha); en la zancada las piernas
+    están separadas y es posible que se vea mejor, pero no está medido.
+    """
+    req = ("left_ankle", "right_ankle")
+    if any(k not in kps for k in req):
+        return None
+    lado = lado_mas_visible(kps, ("hip", "ankle"))
+    if lado is None:
+        return None
+    pierna = _norma(_resta(_coords(kps[f"{lado}_hip"], usar_z),
+                           _coords(kps[f"{lado}_ankle"], usar_z)))
+    if pierna < 1e-6:
+        return None
+    return abs(kps["left_ankle"].x - kps["right_ankle"].x) / pierna
+
+
 def alineacion_cuerpo(
     kps: Dict[str, Keypoint], lado: str, usar_z: bool = True
 ) -> Optional[float]:
@@ -484,27 +542,6 @@ def separacion_pies(kps: Dict[str, Keypoint]) -> Optional[float]:
         return None
     return dt / dc
 
-
-def longitud_paso(
-    kps: Dict[str, Keypoint], usar_z: bool = True
-) -> Optional[float]:
-    """Distancia entre tobillos en el eje de avance, normalizada.
-
-    El eje de avance es la profundidad ``z`` del espacio de pose; por eso se
-    requiere profundidad cuando se solicita la medida. La normalización usa
-    ``escala_corporal`` (distancia hombros-caderas). Plano sagital.
-    """
-    if not usar_z or any(k not in kps for k in (
-        "left_ankle", "right_ankle", "left_shoulder", "right_shoulder",
-        "left_hip", "right_hip",
-    )):
-        return None
-    if kps["left_ankle"].z is None or kps["right_ankle"].z is None:
-        return None
-    escala = escala_corporal(kps, usar_z=True)
-    if escala is None:
-        return None
-    return abs(kps["left_ankle"].z - kps["right_ankle"].z) / escala
 
 
 # ---------------------------------------------------------------------------
@@ -621,18 +658,23 @@ def observacion_desde_pose(
         distancias["separacion_pies"] = sep
         confianza["separacion_pies"] = confianza_de_terna(
             kps, ("left_ankle", "right_ankle", "left_hip", "right_hip"))
-    paso = longitud_paso(kps, usar_z)
-    if paso is not None:
-        distancias["longitud_paso"] = paso
-        confianza["longitud_paso"] = confianza_de_terna(
-            kps, ("left_ankle", "right_ankle", "left_shoulder",
-                  "right_shoulder", "left_hip", "right_hip"))
     lado = lado_mas_visible(kps, PARTES_ALINEACION)
     alin = alineacion_cadera(kps, usar_z, lado) if lado else None
     if alin is not None:
         distancias["alineacion_cadera"] = alin
         confianza["alineacion_cadera"] = confianza_de_terna(
             kps, [f"{lado}_{p}" for p in PARTES_ALINEACION])
+    lado = lado_mas_visible(kps, PARTES_HOMBRO_CODO)
+    hsc = hombro_sobre_codo(kps, usar_z, lado) if lado else None
+    if hsc is not None:
+        distancias["hombro_sobre_codo"] = hsc
+        confianza["hombro_sobre_codo"] = confianza_de_terna(
+            kps, [f"{lado}_{p}" for p in PARTES_HOMBRO_CODO])
+    paso = longitud_paso(kps, usar_z)
+    if paso is not None:
+        distancias["longitud_paso"] = paso
+        confianza["longitud_paso"] = confianza_de_terna(
+            kps, ("left_ankle", "right_ankle", "left_hip", "right_hip"))
 
     return Observacion(
         t_ms=muestra.t_ms,
@@ -655,6 +697,6 @@ __all__ = [
     "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_pelvis",
     "inclinacion_lateral", "inclinacion_lateral_tronco",
     "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera",
-    "alineacion_cuerpo", "longitud_paso", "lado_mas_visible",
+    "alineacion_cuerpo", "hombro_sobre_codo", "longitud_paso", "lado_mas_visible",
     "confianza_de_terna", "observacion_desde_pose",
 ]

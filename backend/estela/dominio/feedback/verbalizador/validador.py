@@ -68,6 +68,15 @@ LEXICO_DIRECCIONES: Dict[Direccion, Tuple[str, ...]] = {
     Direccion.ABRIR: ("abre", "abrir", "abras", "separa", "separar", "separes"),
     Direccion.CERRAR: ("cierra", "cerrar", "cierres", "junta", "juntar",
                        "juntes"),
+    # Aquí la dirección suele ir en el adverbio («lleva los hombros hacia
+    # atrás»), no en el verbo, así que el léxico incluye los adverbios. Una
+    # plantilla no debe describir el error con el adverbio contrario («se te
+    # van hacia delante»): contaría como pedirlo.
+    Direccion.ADELANTE: ("adelante", "delante", "adelanta", "adelantar",
+                         "adelantes"),
+    Direccion.ATRAS: ("atras", "detras", "retrasa", "retrasar", "retrases"),
+    Direccion.ALARGAR: ("alarga", "alargar", "alargues", "largo", "larga"),
+    Direccion.ACORTAR: ("acorta", "acortar", "acortes", "corto", "corta"),
 }
 
 #: Pronombres que pueden ir entre «no» y el verbo: «no la subas».
