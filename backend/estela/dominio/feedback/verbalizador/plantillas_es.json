@@ -3,6 +3,7 @@
     "idioma": "es",
     "version": "0.1.0",
     "nota": "Condición A de EXP-001. Cada mensaje de error menciona un único segmento, el del contrato. Las variantes existen para reducir la repetitividad sin romper el determinismo: la variante se elige por el índice de repetición, no al azar. Excepción: '_refuerzo' no nace de un ErrorTipificado y no menciona segmento ni lado a propósito (ver contrato.Refuerzo).",
+    "revision_licenciada": "2026-10-11: rango_brazos_insuficiente, codos_flexionados, apertura_insuficiente, rodilla_baja, abduccion_insuficiente y tronco_muy_inclinado reescritas siguiendo «Propuesta de corrección ESTELA» (amplitud condicionada a comodidad, control y estabilidad; codos sin bloquear). Falta que ella valide la redacción final.",
     "revision_pendiente": "[?] Redacción no revisada por la licenciada en educación física ni por el entrenador. Antes de usar con usuarias reales debe validarse que la instrucción es correcta y accionable."
   },
 
@@ -15,7 +16,7 @@
   "tronco_muy_inclinado": {
     "leve": ["Endereza un poco el {segmento}.", "Sube un poco el pecho."],
     "moderada": ["Endereza el {segmento}, pecho arriba.", "Mantén el {segmento} más vertical."],
-    "alta": ["Endereza bien el {segmento}, te estás yendo hacia delante."]
+    "alta": ["Endereza bien el {segmento}, sin irte hacia delante ni hacia atrás."]
   },
 
   "valgo_rodilla": {
@@ -37,9 +38,9 @@
   },
 
   "rango_brazos_insuficiente": {
-    "leve": ["Sube un poco más los {segmento_pl}."],
-    "moderada": ["Sube más los {segmento_pl}.", "Te falta recorrido, eleva más los {segmento_pl}."],
-    "alta": ["Sube mucho más los {segmento_pl}, te estás quedando corta."]
+    "leve": ["Sube un poco más los {segmento_pl}, hasta donde te resulte cómodo."],
+    "moderada": ["Sube más los {segmento_pl}, hasta donde te resulte cómodo.", "Eleva un poco más los {segmento_pl}, sin forzar."],
+    "alta": ["Intenta subir bastante más los {segmento_pl}, sin forzar."]
   },
 
   "brazo_bajo": {
@@ -55,21 +56,21 @@
   },
 
   "codos_flexionados": {
-    "leve": ["Estira un poco más los {segmento_pl}."],
-    "moderada": ["Estira los {segmento_pl}.", "Mantén los {segmento_pl} extendidos."],
-    "alta": ["Estira bien los {segmento_pl}, los tienes muy doblados."]
+    "leve": ["Estira un poco más los {segmento_pl}, sin bloquearlos."],
+    "moderada": ["Extiende los {segmento_pl}, sin bloquearlos.", "Estira más los {segmento_pl}, sin llegar a bloquearlos."],
+    "alta": ["Estira bastante más los {segmento_pl}, sin bloquearlos."]
   },
 
   "apertura_insuficiente": {
-    "leve": ["Abre un poco más los {segmento_pl} al saltar."],
-    "moderada": ["Abre más los {segmento_pl} en cada salto."],
-    "alta": ["Abre mucho más los {segmento_pl}, casi no te separas."]
+    "leve": ["Abre un poco más los {segmento_pl}, con control."],
+    "moderada": ["Abre más los {segmento_pl} en cada salto, sin perder el control."],
+    "alta": ["Separa bastante más los {segmento_pl}, manteniendo el control."]
   },
 
   "rodilla_baja": {
-    "leve": ["Sube un poco más la {segmento} {lado}."],
-    "moderada": ["Sube más la {segmento} {lado}.", "Eleva más la {segmento} {lado} en cada paso."],
-    "alta": ["Sube bien la {segmento} {lado}, apenas la estás levantando."]
+    "leve": ["Sube un poco más la {segmento} {lado}, si mantienes el equilibrio."],
+    "moderada": ["Eleva más la {segmento} {lado}, sin perder el equilibrio.", "Sube un poco más la {segmento} {lado} en cada paso, con control."],
+    "alta": ["Intenta subir bastante más la {segmento} {lado}, con equilibrio."]
   },
 
   "rotacion_insuficiente": {
@@ -97,9 +98,9 @@
   },
 
   "abduccion_insuficiente": {
-    "leve": ["Sube un poco más la {segmento} {lado} hacia el lado."],
-    "moderada": ["Abre más la {segmento} {lado} hacia el lado."],
-    "alta": ["Sube bien la {segmento} {lado}, casi no la separas."]
+    "leve": ["Lleva la {segmento} {lado} un poco más hacia el lado, con control."],
+    "moderada": ["Abre más la {segmento} {lado} hacia el lado, sin perder estabilidad."],
+    "alta": ["Separa bastante más la {segmento} {lado}, solo si te mantienes estable."]
   },
 
   "profundidad_rodilla": {

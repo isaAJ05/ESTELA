@@ -35,9 +35,9 @@
   "segmentacion": {
     "tipo": "ciclo",
     "senal": "angulos.abduccion_cadera_der",
-    "reposo": 12,
-    "extremo": 25,
-    "margen_retorno": 5,
+    "reposo": 10,
+    "extremo": 16,
+    "margen_retorno": 4,
     "fases": [
       "abajo",
       "subida",
@@ -45,7 +45,7 @@
       "bajada"
     ],
     "suavizado": 3,
-    "umbral_origen": "[?] provisional, sin vídeo de referencia: 0-5° de pie, 25° como mínimo de una elevación lateral."
+    "umbral_origen": "[?] provisional, sin vídeo de referencia: 0-5° de pie, 25° como mínimo de una elevación lateral. Cambiado 2026-10-11: reposo 12→10, extremo 25→16 y margen 5→4, alineado con el umbral de abducción_insuficiente tras la revisión de la licenciada. [?] Vigilar conteos falsos por ruido cerca del reposo."
   },
   "reglas": [
     {
@@ -112,7 +112,7 @@
       },
       "condicion": {
         "op": "<",
-        "umbral": 25
+        "umbral": 16
       },
       "fases": [
         "bajada"
@@ -125,7 +125,7 @@
         "moderada": 8,
         "alta": 15
       },
-      "umbral_origen": "[?] provisional, sin calibrar",
+      "umbral_origen": "[?] provisional, sin calibrar. 16° = el extremo de la segmentación: una repetición cuenta si y solo si no se corrige su amplitud. Antes 25° (casi el techo recomendado de ~30°, DEC-011). Calla si el tronco o la cadera compensaron (silenciada_por). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "abduccion_insuficiente",
       "direccion": {"aumentar": "abrir"},
       "silenciada_por": ["tronco_inclinado_izq", "cadera_der_sube"]
