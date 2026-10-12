@@ -77,7 +77,7 @@ Quedan en `modelos/`, que está ignorado por git.
 
 ```bash
 python -m estela                                   # rutina rutinas/calentamiento_basico.json
-python -m estela --ejercicio zancada_atras_izq --repeticiones 8
+python -m estela --ejercicio marcha_rodillas --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
 python -m estela --voz texto                       # sin audio
 python -m estela --modelo lite                     # pose más rápida y menos precisa

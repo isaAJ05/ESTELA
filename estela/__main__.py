@@ -2,7 +2,7 @@
 
 Ejemplos:
      
-    python -m estela --ejercicio zancada_atras_izq --repeticiones 8
+    python -m estela --ejercicio marcha_rodillas --repeticiones 8
     python -m estela --ejercicio plancha --repeticiones 30          # segundos
     python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana
 
@@ -47,6 +47,8 @@ def _argumentos(argv=None) -> argparse.Namespace:
     p.add_argument("--voz", choices=("piper", "sistema", "texto"), default="piper")
     p.add_argument("--sin-ventana", action="store_true",
                    help="sin interfaz gráfica (pruebas con vídeo)")
+    p.add_argument("--sin-dtw", action="store_true",
+                   help="desactivar la comparación con la referencia DTW")
     p.add_argument("--guardar-metricas", action="store_true",
                    help="guardar el resumen (solo métricas derivadas) en sesiones/")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -106,7 +108,7 @@ def main(argv=None) -> int:
         fuente = FuenteCamara(args.camara)
     espejo = args.video is None
 
-    sesion = Sesion(rutina, catalogo, estimador, voz)
+    sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw)
     ventana = not args.sin_ventana
     if ventana:
         import cv2

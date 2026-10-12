@@ -2,7 +2,7 @@
   "skill_id": "zancada_atras_izq",
   "nombre": "Zancada atrás estática, pierna izquierda atrás",
   "version": "0.1.0",
-  "estado": "candidato",
+  "estado": "descartado",
   "notas": "Zancada estática (los pies no se mueven: se baja y se sube) con la pierna izquierda atrás, de perfil a la cámara (ADR-005). Hay un skill por pierna para poder anunciar qué pierna va atrás: es un ejercicio en la rutina y dos archivos aquí. La profundidad se mide en la rodilla que ve la cámara, delantera o trasera (DEC-013), y no se corrige si el paso está fuera de rango, porque entonces la causa es el paso (ZR-04). La gemela es zancada_atras_der.json. TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",

@@ -2,7 +2,7 @@
   "skill_id": "zancada_atras_der",
   "nombre": "Zancada atrás estática, pierna derecha atrás",
   "version": "0.1.0",
-  "estado": "candidato",
+  "estado": "descartado",
   "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás. Mismas reglas, mismas notas y mismos umbrales provisionales (ADR-005).",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",

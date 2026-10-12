@@ -19,6 +19,10 @@ SKILLS = cargar_skills(directorio_skills())
 #: catálogo; las reglas de los ejercicios actuales se prueban en TestSkillsActuales.
 SKILLS["sentadilla"] = cargar_skill(
     os.path.join(directorio_skills(), "retirados", "sentadilla.json"))
+#: La zancada salió del catálogo (PR #8) y su skill vive en `retirados/`; el
+#: test de refuerzo la sigue usando por su `politica_refuerzo`.
+SKILLS["zancada_atras_izq"] = cargar_skill(
+    os.path.join(directorio_skills(), "retirados", "zancada_atras_izq.json"))
 
 
 def obs(t_ms, rep, fase="descenso", tronco=60.0, conf=1.0, orientacion=90.0,
@@ -361,15 +365,6 @@ class TestSkillsActuales(unittest.TestCase):
         self.assertIsInstance(d, Silencio)
         self.assertEqual(d.motivo, MOTIVO_PLANO_NO_OBSERVABLE)
 
-    def test_zancada_mide_la_rodilla_delantera(self):
-        for skill_id, rodilla, lado in (("zancada_atras_izq", "rodilla_der", Lado.DERECHO),
-                                        ("zancada_atras_der", "rodilla_izq", Lado.IZQUIERDO)):
-            d = self._dos_repeticiones(skill_id, fase="ascenso", orientacion=90.0,
-                                       angulos={rodilla: 140.0, "tronco_inclinacion": 10.0})
-            self.assertIsInstance(d, ErrorTipificado, skill_id)
-            self.assertEqual(d.lado, lado)
-            self.assertTrue(d.error_id.startswith("profundidad_insuficiente"))
-
     def test_plancha_cadera_hundida_solo_en_mantenimiento(self):
         d = self._dos_repeticiones("plancha", fase="mantenimiento", orientacion=90.0,
                                    distancias={"alineacion_cadera": 0.2},
@@ -394,14 +389,6 @@ class TestDireccionYMagnitud(unittest.TestCase):
 
     _obs = TestSkillsActuales._obs
     _dos_repeticiones = TestSkillsActuales._dos_repeticiones
-
-    def test_zancada_pide_mas_flexion_y_la_magnitud_es_el_exceso(self):
-        d = self._dos_repeticiones("zancada_atras_izq", fase="ascenso",
-                                   orientacion=90.0,
-                                   angulos={"rodilla_der": 140.0,
-                                            "tronco_inclinacion": 10.0})
-        self.assertEqual(d.direccion, Direccion.MAS_FLEXION)
-        self.assertEqual(d.magnitud, 30.0)   # min 140 frente a umbral 110
 
     def test_plancha_hundida_sube_y_elevada_baja(self):
         d = self._dos_repeticiones("plancha", fase="mantenimiento", orientacion=90.0,

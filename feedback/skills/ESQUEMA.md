@@ -4,9 +4,9 @@ Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un 
 
 El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archivo mal formado no se carga a medias.
 
-Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla como banco de pruebas, pero no forman parte del catálogo.
+Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco) y la zancada atrás, que salió después (PR #8), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla y la zancada como banco de pruebas, pero no forman parte del catálogo.
 
-Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `marcha_rodillas`, `zancada_atras_izq` + `zancada_atras_der` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
+Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `marcha_rodillas` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
 
 ## Estructura
 
@@ -73,7 +73,7 @@ Consecuencia aceptada (decisión del 2026-10-08): el ejercicio puede felicitar h
 
 Lista de `error_id` del mismo skill. Si alguno se disparó en la repetición en curso, esta regla calla el resto de la repetición: ni se evalúa ni acumula evidencia. Sirve para la **precedencia entre errores**:
 - La abducción insuficiente calla si el tronco o la cadera compensaron (catálogo v2, AH-01): no se dice «sube más» a quien ya se inclina para subir más.
-- La profundidad de la zancada calla si el paso está fuera de rango (ZR-04), porque entonces la causa es el paso.
+- La profundidad de la zancada (retirada) calla si el paso está fuera de rango (ZR-04), porque entonces la causa es el paso.
 
 La regla que manda tiene que evaluarse **antes** en la repetición (en una fase anterior o en la misma).
 
@@ -105,7 +105,7 @@ Traduce el sentido en que debe moverse **el valor de la medida** a una direcció
 |---|---|
 | `aumentar`, `disminuir` | `mas_flexion` \| `menos_flexion` \| `subir` \| `bajar` \| `abrir` \| `cerrar` \| `adelante` \| `atras` \| `alargar` \| `acortar` |
 
-Ejemplo: rodilla de la zancada, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
+Ejemplo: una rodilla, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
 
 El validador rechaza un mensaje que pida la dirección opuesta (`direccion_contradictoria`), con el léxico de `verbalizador/validador.py::LEXICO_DIRECCIONES`; «no subas» cuenta como pedir bajar.
 
@@ -156,7 +156,7 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
 - La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
 - En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
 - En `isometrico`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
-- Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción, zancada y plancha no tienen vídeo de referencia.
+- Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción y plancha no tienen vídeo de referencia.
 
 ## Medidas disponibles
 
@@ -168,14 +168,45 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `tronco_inclinacion` | ángulo | sagital | Tronco respecto a la vertical, sin signo |
 | `inclinacion_lateral` | ángulo | frontal | Tronco hacia los lados, con signo: + = hacia la izquierda de la persona |
 | `oblicuidad_pelvis`, `oblicuidad_hombros` | ángulo | frontal | Línea de caderas / hombros respecto a la horizontal: + = lado izquierdo más alto |
+| `inclinacion_lateral_tronco` | ángulo | frontal | Componente frontal de la inclinación del tronco; + = hacia la izquierda |
+| `inclinacion_pelvis` | ángulo | frontal | Línea entre caderas respecto a la horizontal: + = cadera izquierda más alta |
 | `cabeza_adelantada` | ángulo | sagital | Cuello respecto a la prolongación del tronco, sin signo; 0 = alineada |
 | `abduccion_cadera_izq`, `_der` | ángulo | frontal | Muslo respecto a la vertical en el plano frontal: + = hacia fuera |
+| `alineacion_cuerpo_izq`, `_der` | ángulo | sagital | Ángulo interno hombro–cadera–tobillo para plancha; 180 = cuerpo recto |
 | `rotacion_tronco`, `azimut_cadera` | ángulo | transversal | No observables con una cámara (EXP-002) |
 | `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
+| `longitud_paso` | distancia | sagital | Distancia de tobillos en profundidad, normalizada por escala corporal |
 | `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
 | `hombro_sobre_codo` | distancia | sagital | Hombro respecto al codo en horizontal, en escalas de tronco: + = hombro por delante (hacia la cabeza). Plancha sobre antebrazos (PL-03/04); lado más visible |
-| `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (cadera → tobillo del lado más visible). Zancada (ZR-04). `[?]` Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene y el ejercicio no felicita |
+| `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (cadera → tobillo del lado más visible). Zancada retirada (ZR-04). `[?]` Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene y el ejercicio no felicita |
+
+## Referencias offline
+
+`[R]` El script `scripts/crear_referencia.py` convierte un vídeo de
+referencia en `referencia.json` sin crear un pipeline alternativo: usa
+`EstimadorPose`, `observacion_desde_pose` y el `Segmentador` configurado en el
+skill. Para ejercicios cíclicos agrupa las repeticiones completas, calcula el
+medoide por coste DTW y guarda la media, la desviación estándar y el número de
+observaciones válidas por instante. Los valores con confianza menor que 0,5 se
+guardan como `null`; nunca se rellenan.
+
+Para la plancha (`tipo: "isometrico"`) se calcula la postura media y su sigma
+sobre los frames de la fase `mantenimiento`, sin DTW. En ambos formatos se
+guardan los keypoints 2D normalizados del medoide o de la postura media para
+dibujar la stick figure.
+
+```text
+python scripts/crear_referencia.py --selftest
+python scripts/crear_referencia.py --ejercicio jumping_jacks \
+  --video ruta.mp4 \
+  --salida feedback/skills/referencias/jumping_jacks/referencia.json
+```
+
+El JSON cíclico contiene `angulos.media`, `angulos.sigma`, `angulos.n`,
+`fases`, `keypoints_2d` y `dtw`. El JSON isométrico contiene `postura.media`,
+`postura.sigma`, `postura.n` y `keypoints_2d`. El gráfico de control se revisa
+antes de usar los valores para sustituir umbrales provisionales.
 
 ## Reglas de higiene que el cargador impone
 
