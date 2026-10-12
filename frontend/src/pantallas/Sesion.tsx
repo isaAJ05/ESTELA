@@ -1,4 +1,4 @@
-import { Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, EstadoSesion, Feedback, TipoAviso } from '../bridge/tipos'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
@@ -21,6 +21,13 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   const pausada = useSesion('pausada')
   const [confirmar, setConfirmar] = useState(false)
   const [depurar, setDepurar] = useState(false)
+  const [angulos, setAngulos] = useState(() => {
+    try { return localStorage.getItem('estela.angulos') === '1' } catch { return false }
+  })
+  const alternarAngulos = () => setAngulos((a) => {
+    try { localStorage.setItem('estela.angulos', a ? '0' : '1') } catch { /* sin almacenamiento */ }
+    return !a
+  })
 
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -31,6 +38,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
       else if (k === 'n') void bridge.siguiente()
       else if (k === 'r') void bridge.reiniciar()
       else if (k === 'd') setDepurar((d) => !d)
+      else if (k === 'a') alternarAngulos()
       else if (k === ' ' && pausaManual) { e.preventDefault(); void (pausada ? bridge.reanudar() : bridge.pausar()) }
     }
     window.addEventListener('keydown', tecla)
@@ -39,10 +47,11 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
 
   return (
     <main className="pantalla pantalla-sesion">
-      <BarraSuperior bridge={bridge} alTerminar={() => setConfirmar(true)} />
+      <BarraSuperior bridge={bridge} alTerminar={() => setConfirmar(true)}
+                     angulos={angulos} alternarAngulos={alternarAngulos} />
       <div className="sesion-cuerpo">
         <section className="escenario">
-          <VistaCamara />
+          <VistaCamara mostrarAngulos={angulos} />
           {hayDatos ? <>
             <AvisoSesion />
             <BandaMensaje />
@@ -63,7 +72,9 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   )
 }
 
-function BarraSuperior({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void }) {
+function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
+  bridge: Bridge; alTerminar: () => void; angulos: boolean; alternarAngulos: () => void
+}) {
   const paso = useSesion('paso') ?? 1
   const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.info?.rutina.pasos.length ?? 0)
   const pausaManual = useCapacidad('pausaManual')
@@ -82,6 +93,10 @@ function BarraSuperior({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () 
             {pausada ? <Play /> : <Pause />}
           </Boton>
         )}
+        <Boton variante={angulos ? 'primario' : 'suave'} onClick={alternarAngulos} atajo="A"
+               title="Mostrar u ocultar los ángulos (A)" aria-label="Mostrar ángulos" aria-pressed={angulos}>
+          <DraftingCompass /><span className="solo-ancho">Ángulos</span>
+        </Boton>
         <Boton variante="suave" onClick={() => void bridge.reiniciar()} atajo="R"
                title="Reiniciar este ejercicio (R)" aria-label="Reiniciar este ejercicio">
           <RotateCcw /><span className="solo-ancho">Reiniciar</span>

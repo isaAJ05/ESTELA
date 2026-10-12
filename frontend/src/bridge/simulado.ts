@@ -27,9 +27,9 @@ const CONEXIONES: [number, number][] = [
 
 // Mismos índices que `puntos_de_segmento` en backend/estela/adaptadores/pose/landmarks.py
 const correccion = (texto: string, segmento: string, lado: Lado, severidad: Severidad, puntos: number[]): Feedback =>
-  ({ texto, tipo: 'correccion', errorId: `${segmento}_simulado`, segmento, lado, severidad, puntos })
+  ({ texto, tipo: 'correccion', errorId: `${segmento}_simulado`, segmento, lado, severidad, puntos, angulos: [], magnitud: null, direccion: null })
 const refuerzo = (texto: string): Feedback =>
-  ({ texto, tipo: 'refuerzo', errorId: null, segmento: null, lado: null, severidad: null, puntos: [] })
+  ({ texto, tipo: 'refuerzo', errorId: null, segmento: null, lado: null, severidad: null, puntos: [], angulos: [], magnitud: null, direccion: null })
 const TRONCO = [11, 12, 23, 24]
 
 const MENSAJES: Record<string, Feedback[]> = {
