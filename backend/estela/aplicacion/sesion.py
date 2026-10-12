@@ -17,6 +17,12 @@ termina. No son correcciones de movimiento, por eso no pasan por el motor.
 Si la usuaria sale del encuadre o deja de hacer el ejercicio, el paso se
 pausa (`pausa.DetectorPausa`): el motor no corrige, el tiempo del paso no
 corre y los contadores se conservan hasta que retoma.
+
+Con `registrar=True` la sesión guarda en memoria un registro por frame
+(`Sesion.registro`) para las métricas del Informe 2: marca de tiempo, motivo
+de silencio, latencias, mensaje y reglas disparadas. Incluye las medidas de la
+observación (ángulos y distancias) para el jitter y la réplica del DTW; no
+guarda imágenes ni landmarks, y el arnés no escribe las medidas a disco.
 """
 
 from __future__ import annotations
@@ -190,7 +196,8 @@ class Sesion:
     def __init__(self, rutina: Rutina, catalogo: Mapping[str, Ejercicio],
                  estimador: Estimador, voz: Voz,
                  verbalizador: Optional[Verbalizador] = None,
-                 sin_dtw: bool = False, reconocer: bool = True) -> None:
+                 sin_dtw: bool = False, reconocer: bool = True,
+                 registrar: bool = False) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
@@ -198,6 +205,9 @@ class Sesion:
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
         self.sin_dtw = sin_dtw
         self.reconocer = reconocer
+        self.registrar = registrar
+        #: un dict por frame (solo con `registrar`); ver `_registra`
+        self.registro: List[Dict[str, Any]] = []
         self.latencias = Latencias()
         self.frames = 0
         self.frames_sin_persona = 0
@@ -300,6 +310,7 @@ class Sesion:
             elif (self._ult_persona_ms is None
                     or t_ms - self._ult_persona_ms > SIN_PERSONA_S * 1000):
                 aviso = AVISO_SIN_PERSONA
+            self._registra(p, t_ms, lat)
             return self._estado(p, None, aviso, lat)
         self._ult_persona_ms = t_ms
 
@@ -313,6 +324,7 @@ class Sesion:
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
         t2 = time.perf_counter()
         lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
+        dtw = None
         if p.alineador is not None:
             t_dtw = time.perf_counter()
             dtw = p.alineador.actualizar(obs)
@@ -344,6 +356,7 @@ class Sesion:
             aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                      or self._revisa_encuadre(seg.senal_valida, t_ms)
                      or AVISO_PAUSA[p.pausa.motivo])
+            self._registra(p, t_ms, lat, obs=obs, seg=seg, dtw=dtw)
             return self._estado(p, res, aviso, lat, obs.orientacion,
                                angulos=obs.angulos)
 
@@ -351,7 +364,13 @@ class Sesion:
         salida = p.motor.procesar(obs)
         t3 = time.perf_counter()
         lat["motor"] = (t3 - t2) * 1000
-        for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento", "motor"):
+        # El pipeline ya separa decisión (motor determinista) y verbalización
+        # (plantilla o LLM); la verbalización solo existe si hubo mensaje.
+        lat["decision"] = p.motor.ultimos_tiempos.decision_ms
+        if isinstance(salida, MensajeFeedback):
+            lat["verbalizacion"] = p.motor.ultimos_tiempos.verbalizacion_ms
+        for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento",
+                      "motor", "decision", "verbalizacion"):
             if etapa not in lat:
                 continue
             self.latencias.anota(etapa, lat[etapa])
@@ -381,7 +400,48 @@ class Sesion:
             self._avanzar()
         lat["total"] = (time.perf_counter() - t_ini) * 1000
         self.latencias.anota("total", lat["total"])
+        self._registra(p, t_ms, lat, obs=obs, seg=seg, dtw=dtw, salida=salida)
         return estado
+
+    def _registra(self, p: _Paso, t_ms: int, lat: Dict[str, float],
+                  obs=None, seg: Optional[EstadoSegmento] = None, dtw=None,
+                  salida=None) -> None:
+        """Una entrada de `registro` por frame. Sin persona: `persona` False.
+        En pausa: `pausada` True y el motor no se llamó (`evaluado` False)."""
+        if not self.registrar:
+            return
+        mensaje = None
+        if isinstance(salida, MensajeFeedback):
+            err = salida.error
+            mensaje = {"texto": salida.texto, "refuerzo": err is None,
+                       "error_id": err.error_id if err else None,
+                       "segmento": err.segmento if err else None,
+                       "lado": err.lado.value if err else None,
+                       "severidad": err.severidad.value if err else None,
+                       "fallback": salida.fallback}
+        self.registro.append({
+            "t_ms": t_ms,
+            "skill_id": p.ejercicio.skill.skill_id,
+            "persona": obs is not None,
+            "pausada": p.pausa.pausada,
+            "motivo_pausa": p.pausa.motivo,
+            "evaluado": salida is not None,
+            "motivo_silencio": salida.motivo if isinstance(salida, Silencio) else None,
+            "mensaje": mensaje,
+            "disparadas": list(p.motor.decision.disparadas) if salida is not None else [],
+            "repeticion": seg.repeticion if seg else None,
+            "fase": seg.fase if seg else None,
+            "senal_valida": seg.senal_valida if seg else None,
+            "completadas": seg.completadas if seg else None,
+            "dtw": ({"progreso": dtw.progreso, "coste": dtw.coste}
+                    if dtw is not None else None),
+            "lat": dict(lat),
+            # solo en memoria: el arnés no las escribe a disco
+            "medidas": ({"angulos": dict(obs.angulos),
+                         "distancias": dict(obs.distancias),
+                         "confianza": dict(obs.confianza)}
+                        if obs is not None else None),
+        })
 
     def _anuncia_pausa(self, p: _Paso, evento: Optional[str],
                        callar_reanudacion: bool = False) -> None:

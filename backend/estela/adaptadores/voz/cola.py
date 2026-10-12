@@ -5,6 +5,10 @@ espera, la más reciente la sustituye (un feedback de hace 3 s ya no sirve).
 Los avisos de la aplicación (cambio de ejercicio, fin de rutina) tienen más
 prioridad que las correcciones y no los pisa una corrección.
 Silenciada (ajuste de la interfaz), descarta todo lo que se le pide.
+
+`registro` guarda, por frase, cuándo se encoló, cuándo empezó a sonar y si
+se descartó (marcas de `time.perf_counter()`, en segundos). Con él el arnés
+del Informe 2 mide la latencia detección → inicio de voz.
 """
 
 from __future__ import annotations
@@ -13,7 +17,7 @@ import logging
 import threading
 import time
 from dataclasses import dataclass
-from typing import Iterable, List, Optional
+from typing import Any, Dict, Iterable, List, Optional
 
 from ...aplicacion.puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK
 
@@ -26,6 +30,8 @@ class Locucion:
     texto: str
     prioridad: int
     t_encolado: float
+    #: posición de la frase en `ColaVoz.registro`
+    indice: int = -1
 
 
 class ColaVoz:
@@ -39,6 +45,10 @@ class ColaVoz:
         self.descartadas = 0
         #: (texto, segundos entre encolar y empezar a sonar)
         self.historial: List[tuple] = []
+        #: una entrada por llamada a `decir`: texto, prioridad, t_encolado,
+        #: t_inicio (empieza `hablar`), t_inicio_audio (empieza a sonar, si
+        #: el motor lo sabe; si no, = t_inicio), t_fin y descartada
+        self.registro: List[Dict[str, Any]] = []
         self._hilo = threading.Thread(target=self._bucle, name="estela-voz",
                                       daemon=True)
         self._hilo.start()
@@ -48,13 +58,22 @@ class ColaVoz:
         with self._cv:
             if self._cerrada or self._silenciada:
                 return False
+            ahora = time.perf_counter()
+            entrada = {"texto": texto, "prioridad": prioridad,
+                       "t_encolado": ahora, "t_inicio": None,
+                       "t_inicio_audio": None, "t_fin": None,
+                       "descartada": False}
+            self.registro.append(entrada)
             p = self._pendiente
             if p is not None and p.prioridad > prioridad:
                 self.descartadas += 1
+                entrada["descartada"] = True
                 return False
             if p is not None:
                 self.descartadas += 1
-            self._pendiente = Locucion(texto, prioridad, time.perf_counter())
+                self.registro[p.indice]["descartada"] = True
+            self._pendiente = Locucion(texto, prioridad, ahora,
+                                       len(self.registro) - 1)
             self._cv.notify()
             return True
 
@@ -62,7 +81,8 @@ class ColaVoz:
         """Deja de hablar (lo que ya suena termina) o vuelve a hablar."""
         with self._cv:
             self._silenciada = silenciada
-            if silenciada:
+            if silenciada and self._pendiente is not None:
+                self.registro[self._pendiente.indice]["descartada"] = True
                 self._pendiente = None
 
     @property
@@ -97,13 +117,20 @@ class ColaVoz:
                     return
                 loc, self._pendiente = self._pendiente, None
                 self._hablando = True
+            entrada = self.registro[loc.indice]
             try:
-                self.historial.append((loc.texto,
-                                       time.perf_counter() - loc.t_encolado))
+                t_inicio = time.perf_counter()
+                entrada["t_inicio"] = t_inicio
+                self.historial.append((loc.texto, t_inicio - loc.t_encolado))
                 self.motor.hablar(loc.texto)
+                audio = getattr(self.motor, "ultimo_inicio_audio", None)
+                # un valor anterior a t_inicio es de la frase previa
+                entrada["t_inicio_audio"] = (audio if audio is not None
+                                             and audio >= t_inicio else t_inicio)
             except Exception:                     # noqa: BLE001
                 log.exception("fallo al hablar: %r", loc.texto)
             finally:
+                entrada["t_fin"] = time.perf_counter()
                 with self._cv:
                     self._hablando = False
 
