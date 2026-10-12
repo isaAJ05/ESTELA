@@ -1,8 +1,7 @@
 import { useEffect, useRef } from 'react'
-import type { Punto, Severidad } from '../bridge/tipos'
+import type { EstadoSesion, Punto, Severidad } from '../bridge/tipos'
 import { alFrame, useEstado } from '../estado/almacen'
 
-const RASTRO = 6               // esqueletos anteriores que dejan estela
 const VISIBLE = 0.5            // visibilidad mínima para dibujar una articulación
 // El frame llega a 640 px: más resolución en el lienzo solo cuesta dibujo.
 const DPR_MAX = 1.5
@@ -17,8 +16,29 @@ function color(nombre: string, respaldo: string): string {
  * Frame de la cámara con el esqueleto encima. No pasa por React: se suscribe
  * a los frames del almacén y dibuja en requestAnimationFrame, siempre el último.
  */
-export function VistaCamara() {
+// Nombres legibles de los ángulos importantes que no están en una articulación.
+const NOMBRE_ANGULO: Record<string, string> = {
+  tronco_inclinacion: 'Tronco',
+  inclinacion_lateral: 'Inclinación lateral',
+  oblicuidad_pelvis: 'Pelvis',
+  abduccion_cadera_izq: 'Abducción cadera izq.',
+  abduccion_cadera_der: 'Abducción cadera der.',
+  cabeza_adelantada: 'Cabeza',
+}
+
+// Hacia dónde corregir (`Direccion` del backend), en corto para la etiqueta.
+const FLECHA: Record<string, string> = {
+  mas_flexion: 'dobla más', menos_flexion: 'estira', subir: 'sube', bajar: 'baja',
+  abrir: 'abre', cerrar: 'cierra', adelante: 'adelante', atras: 'atrás',
+  alargar: 'alarga', acortar: 'acorta',
+}
+
+export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boolean }) {
   const lienzo = useRef<HTMLCanvasElement>(null)
+  // en una ref para que activar o quitar los ángulos no reinicie el lienzo
+  const verAngulos = useRef(mostrarAngulos)
+  const repintar = useRef<() => void>(() => {})
+  useEffect(() => { verAngulos.current = mostrarAngulos; repintar.current() }, [mostrarAngulos])
   const conexiones = useEstado((s) => s.info?.conexiones ?? null)
   const espejo = useEstado((s) => s.info?.espejo ?? true)
 
@@ -27,7 +47,6 @@ export function VistaCamara() {
     if (!canvas || !conexiones) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const reducido = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     const linea = color('--color-violeta-suave', '#a99dff')
     const articulacion = color('--color-amarillo', '#ffc94d')
     const fondo = color('--color-superficie', '#171522')
@@ -39,11 +58,12 @@ export function VistaCamara() {
 
     let imagen: HTMLImageElement | null = null
     let puntos: Punto[] | null = null
-    const rastro: Punto[][] = []
+    let angulos: EstadoSesion['angulos'] = null
     let pendiente = true
+    repintar.current = () => { pendiente = true }
     // articulaciones de la última corrección y hasta cuándo se resaltan
     let mensajes = -1
-    let resalte: { puntos: Set<number>; color: string; hasta: number } | null = null
+    let resalte: { puntos: Set<number>; color: string; hasta: number; angulos: Set<string>; detalle: string } | null = null
     let pedido = 0
     let raf = 0
 
@@ -109,6 +129,59 @@ export function VistaCamara() {
       ctx.globalAlpha = 1
     }
 
+    // ángulo junto a cada articulación: los importantes del ejercicio, grandes
+    // y en amarillo; el resto, pequeños y tenues. Los importantes que no están
+    // en una articulación (tronco, pelvis…) van en una lista en una esquina.
+    // Mientras dura una corrección, el ángulo que no se cumple va en el color
+    // de la gravedad, con un círculo y cuánto falta/sobra.
+    const fallo = (nombre: string) =>
+      resalte && performance.now() <= resalte.hasta && resalte.angulos.has(nombre) ? resalte : null
+    const etiquetas = (pts: Punto[], x0: number, y0: number, w: number, h: number) => {
+      if (!angulos) return
+      // con los ángulos ocultos, solo se señala el que no se cumple
+      const todos = verAngulos.current
+      const base = Math.max(11, Math.round(h / 40))
+      ctx.textBaseline = 'middle'
+      ctx.lineJoin = 'round'
+      ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)'
+      const texto = (t: string, x: number, y: number, tam: number, tono: string, alfa: number) => {
+        ctx.globalAlpha = alfa
+        ctx.font = `${tam > base ? 700 : 500} ${tam}px system-ui, sans-serif`
+        ctx.lineWidth = Math.max(3, tam / 4)
+        ctx.strokeText(t, x, y)
+        ctx.fillStyle = tono
+        ctx.fillText(t, x, y)
+      }
+      for (const a of angulos.articulaciones) {
+        const p = pts[a.indice]
+        if (!p || p[2] <= VISIBLE) continue
+        const f = fallo(a.nombre)
+        if (!f && !todos) continue
+        const tam = f ? Math.round(base * 1.8) : a.importante ? Math.round(base * 1.5) : base
+        const x = x0 + (espejo ? 1 - p[0] : p[0]) * w, y = y0 + p[1] * h
+        if (f) {
+          ctx.globalAlpha = 1
+          ctx.strokeStyle = f.color
+          ctx.lineWidth = Math.max(2, tam / 6)
+          ctx.beginPath()
+          ctx.arc(x, y, tam * 0.9, 0, 2 * Math.PI)
+          ctx.stroke()
+          ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)'
+        }
+        texto(`${a.grados}°${f ? f.detalle : ''}`, x + tam * (f ? 1.1 : 0.6), y,
+              tam, f ? f.color : a.importante ? articulacion : '#ffffff', f || a.importante ? 1 : 0.6)
+      }
+      const tam = Math.round(base * 1.3)
+      const otros = angulos.otros.filter((a) => todos || fallo(a.nombre))
+      otros.forEach((a, k) => {
+        const f = fallo(a.nombre)
+        texto(`${NOMBRE_ANGULO[a.nombre] ?? a.nombre} ${a.grados}°${f ? f.detalle : ''}`,
+              x0 + tam * 0.6, y0 + h - tam * (1 + 1.4 * (otros.length - 1 - k)),
+              f ? Math.round(tam * 1.15) : tam, f ? f.color : articulacion, 1)
+      })
+      ctx.globalAlpha = 1
+    }
+
     const dibujar = () => {
       raf = requestAnimationFrame(dibujar)
       // el resalte se apaga solo aunque no lleguen frames nuevos
@@ -136,9 +209,6 @@ export function VistaCamara() {
       }
       if (!puntos) return
       const grosor = Math.max(3, h / 140)
-      if (!reducido) {
-        rastro.forEach((viejo, k) => esqueleto(viejo, x0, y0, w, h, 0.07 * (k + 1), grosor * 0.8))
-      }
       // brillo: un trazo ancho y translúcido debajo (shadowBlur es caro sin GPU)
       esqueleto(puntos, x0, y0, w, h, 0.22, grosor * 3)
       esqueleto(puntos, x0, y0, w, h, 1, grosor)
@@ -153,6 +223,7 @@ export function VistaCamara() {
         ctx.fill()
       }
       resaltar(puntos, x0, y0, w, h, grosor)
+      etiquetas(puntos, x0, y0, w, h)
       ctx.globalAlpha = 1
     }
     raf = requestAnimationFrame(dibujar)
@@ -165,17 +236,19 @@ export function VistaCamara() {
         const nuevo = mensajes >= 0
         mensajes = sesion.mensajesEmitidos
         resalte = nuevo && fb?.tipo === 'correccion' && fb.puntos.length > 0
-          ? { puntos: new Set(fb.puntos), color: colorSeveridad[fb.severidad ?? 'leve'], hasta: performance.now() + RESALTE_MS }
+          ? {
+              puntos: new Set(fb.puntos), color: colorSeveridad[fb.severidad ?? 'leve'],
+              hasta: performance.now() + RESALTE_MS, angulos: new Set(fb.angulos ?? []),
+              detalle: [fb.magnitud ? `${Math.round(fb.magnitud)}° fuera` : '', fb.direccion ? FLECHA[fb.direccion] ?? '' : '']
+                .filter(Boolean).map((t) => ` · ${t}`).join(''),
+            }
           : null
       }
       if (!sesion) { mensajes = -1; resalte = null }
       const aplicar = (img: HTMLImageElement | null) => {
-        if (puntos && nuevos) {
-          rastro.push(puntos)
-          if (rastro.length > RASTRO) rastro.shift()
-        } else if (!nuevos) rastro.length = 0
         imagen = img
         puntos = nuevos
+        angulos = sesion?.angulos ?? null
         pendiente = true
       }
       if (!jpeg) return aplicar(null)
@@ -189,6 +262,7 @@ export function VistaCamara() {
       quitar()
       observador.disconnect()
       cancelAnimationFrame(raf)
+      repintar.current = () => {}
     }
   }, [conexiones, espejo])
 

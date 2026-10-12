@@ -44,13 +44,14 @@ motor determinista.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Dict, List, Mapping, Optional, Sequence
 
 import numpy as np
 
 from ...dominio.feedback.contrato import MensajeFeedback, Plano
 
-from ..pose.landmarks import CONEXIONES, puntos_de_segmento
+from ...dominio.feedback.motor.geometria import ANGULOS_MEDIOS, ANGULOS_TERNA
+from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
 from ...aplicacion.rutina import Ejercicio, Rutina
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                              _COLOCACION, EstadoFrame)
@@ -94,6 +95,21 @@ def _puntos(lm: Optional[np.ndarray]) -> Optional[List[List[float]]]:
             for p in lm]
 
 
+def _angulos_de_medida(clave: str) -> List[str]:
+    """Nombres de los ángulos de una medida (`Medida.clave()`): «angulo:x»,
+    «min(x)@repeticion» o «asimetria(x,y)». Un ángulo bilateral («_medio»)
+    se expande a sus dos lados, que es lo que se dibuja en las articulaciones."""
+    if "(" in clave:
+        nombres = clave[clave.index("(") + 1:clave.index(")")].split(",")
+    else:
+        nombres = [clave.split(":", 1)[-1]]
+    salida: List[str] = []
+    for n in nombres:
+        salida.append(n)
+        salida.extend(ANGULOS_MEDIOS.get(n, ()))
+    return salida
+
+
 def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
     """Último mensaje del motor → indicación tipada para la interfaz."""
     if m is None:
@@ -101,7 +117,8 @@ def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
     err = m.error
     if err is None:                     # refuerzo: no nombra segmento ni lado
         return {"texto": m.texto, "tipo": "refuerzo", "errorId": None,
-                "segmento": None, "lado": None, "severidad": None, "puntos": []}
+                "segmento": None, "lado": None, "severidad": None, "puntos": [],
+                "angulos": [], "magnitud": None, "direccion": None}
     return {
         "texto": m.texto,
         "tipo": "correccion",
@@ -110,7 +127,39 @@ def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
         "lado": err.lado.value,
         "severidad": err.severidad.value,
         "puntos": puntos_de_segmento(err.segmento, err.lado.value),
+        # qué medida disparó la regla y cuánto se pasó del umbral, para
+        # señalar en pantalla el ángulo que no se cumple
+        "angulos": _angulos_de_medida(err.medida),
+        "magnitud": round(err.magnitud, 1),
+        "direccion": err.direccion.value if err.direccion else None,
     }
+
+
+def _angulos(angulos: Optional[Mapping[str, float]],
+             importantes: Sequence[str] = ()) -> Optional[Dict[str, Any]]:
+    """Ángulos del frame para mostrarlos sobre el esqueleto.
+
+    `articulaciones` lleva el índice del vértice (dónde dibujar) y si es uno de
+    los ángulos que importan en el ejercicio; un ángulo bilateral («_medio»)
+    marca los dos lados. `otros` son los ángulos importantes que no están en
+    una articulación (tronco, pelvis…) y se muestran aparte.
+    """
+    if not angulos:
+        return None
+    marcados = set(importantes)
+    for nombre, lados in ANGULOS_MEDIOS.items():
+        if nombre in marcados:
+            marcados.update(lados)
+    articulaciones = []
+    for nombre, (_, vertice, _) in ANGULOS_TERNA.items():
+        if nombre in angulos:
+            articulaciones.append({"nombre": nombre,
+                                   "indice": NOMBRES_MEDIAPIPE.index(vertice),
+                                   "grados": round(angulos[nombre]),
+                                   "importante": nombre in marcados})
+    otros = [{"nombre": n, "grados": round(angulos[n])} for n in importantes
+             if n in angulos and n not in ANGULOS_TERNA and n not in ANGULOS_MEDIOS]
+    return {"articulaciones": articulaciones, "otros": otros}
 
 
 def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str, Any]:
@@ -137,6 +186,7 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "pausada": estado.pausada,
         "motivoPausa": estado.motivo_pausa,
         "puntos": _puntos(estado.landmarks),
+        "angulos": _angulos(opcional("angulos"), opcional("angulos_importantes") or ()),
         "terminada": estado.terminada,
         # aún sin backend (ver CAPACIDADES): llegan null
         "correctas": opcional("correctas"),

@@ -60,6 +60,11 @@ export interface Feedback {
   severidad: Severidad | null
   /** índices de las articulaciones del segmento, para resaltarlas */
   puntos: number[]
+  /** ángulos de la medida que disparó la corrección (para señalarlos) */
+  angulos: string[]
+  /** cuánto se pasó del umbral, en grados o unidades de la medida */
+  magnitud: number | null
+  direccion: string | null
 }
 
 export interface EstadoSesion {
@@ -83,6 +88,13 @@ export interface EstadoSesion {
   pausada: boolean
   motivoPausa: MotivoPausa | null
   puntos: Punto[] | null
+  /** ángulos medidos en el frame (los mismos que usa el motor), para mostrarlos */
+  angulos?: {
+    /** importante: es uno de los ángulos que cuentan en este ejercicio */
+    articulaciones: { nombre: string; indice: number; grados: number; importante: boolean }[]
+    /** ángulos importantes que no están en una articulación (tronco, pelvis…) */
+    otros: { nombre: string; grados: number }[]
+  } | null
   terminada: boolean
   // Aún sin backend: llegan null (ver Capacidades).
   correctas: number | null

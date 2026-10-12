@@ -23,7 +23,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, List, Mapping, Optional, Set
+from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
 
 import numpy as np
 
@@ -88,6 +88,11 @@ class EstadoFrame:
     feedback: Optional[MensajeFeedback] = None
     #: por qué el motor no habló en este frame (`feedback.contrato.MOTIVO_*`)
     motivo_silencio: Optional[str] = None
+    #: ángulos medidos en este frame (grados), los mismos que usa el motor;
+    #: solo para mostrarlos en la interfaz
+    angulos: Optional[Dict[str, float]] = None
+    #: los ángulos que importan en este ejercicio (`angulos_requeridos` de la skill)
+    angulos_importantes: Tuple[str, ...] = ()
 
 
 @dataclass
@@ -244,7 +249,8 @@ class Sesion:
             aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                      or self._revisa_encuadre(seg.senal_valida, t_ms)
                      or AVISO_PAUSA[p.pausa.motivo])
-            return self._estado(p, res, aviso, lat, obs.orientacion)
+            return self._estado(p, res, aviso, lat, obs.orientacion,
+                               angulos=obs.angulos)
 
         t2 = time.perf_counter()
         salida = p.motor.procesar(obs)
@@ -271,7 +277,8 @@ class Sesion:
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                  or self._revisa_encuadre(seg.senal_valida, t_ms))
         estado = self._estado(p, res, aviso, lat, obs.orientacion,
-                              salida.motivo if isinstance(salida, Silencio) else None)
+                              salida.motivo if isinstance(salida, Silencio) else None,
+                              angulos=obs.angulos)
 
         if seg.evento == EVENTO_COMPLETA and seg.completadas >= p.objetivo:
             self._avanzar()
@@ -326,7 +333,8 @@ class Sesion:
     def _estado(self, p: Optional[_Paso], res: Optional[ResultadoPose],
                 aviso: Optional[str], lat: Dict[str, float],
                 orientacion: Optional[float] = None,
-                motivo_silencio: Optional[str] = None) -> EstadoFrame:
+                motivo_silencio: Optional[str] = None,
+                angulos: Optional[Dict[str, float]] = None) -> EstadoFrame:
         if p is None:
             return EstadoFrame("", "", len(self.rutina.pasos), len(self.rutina.pasos),
                                0, 0, 0, "", False, None, None, self._ultimo_mensaje,
@@ -349,7 +357,9 @@ class Sesion:
             motivo_pausa=p.pausa.motivo,
             mensajes_emitidos=self._mensajes_emitidos,
             feedback=self._ultimo_feedback,
-            motivo_silencio=motivo_silencio)
+            motivo_silencio=motivo_silencio,
+            angulos=dict(angulos) if angulos else None,
+            angulos_importantes=tuple(p.ejercicio.skill.angulos_requeridos))
 
     # -- resumen ------------------------------------------------------------
 

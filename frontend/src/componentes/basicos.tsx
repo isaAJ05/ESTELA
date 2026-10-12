@@ -17,6 +17,7 @@ export function Boton({ children, variante = 'primario', onClick, disabled, ataj
   atajo?: string
   'aria-label'?: string
   title?: string
+  'aria-pressed'?: boolean
 }) {
   return (
     <button className={`boton boton-${variante}`} onClick={onClick} disabled={disabled}
