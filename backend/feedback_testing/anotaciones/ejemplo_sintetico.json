@@ -1,0 +1,24 @@
+{
+  "formato": "estela-anotacion-v1",
+  "video": "ejemplo_sintetico.mp4",
+  "ejercicio_id": "jumping_jacks",
+  "anotadora": "A1",
+  "bloque": null,
+  "fecha": "2026-10-12",
+  "notas": "EJEMPLO SINTÉTICO: no corresponde a ningún vídeo ni a ninguna persona. Muestra el formato con los cuatro bloques de EXP-009 en un mismo archivo.",
+  "tramo_ms": [0, 26000],
+  "repeticiones": [
+    {"t_ini_ms": 0,     "t_fin_ms": 1500,  "bloque": 1, "errores": []},
+    {"t_ini_ms": 1500,  "t_fin_ms": 3000,  "bloque": 1, "errores": []},
+    {"t_ini_ms": 3000,  "t_fin_ms": 4500,  "bloque": 1, "errores": []},
+    {"t_ini_ms": 6000,  "t_fin_ms": 7600,  "bloque": 2, "errores": []},
+    {"t_ini_ms": 7600,  "t_fin_ms": 9200,  "bloque": 2, "errores": []},
+    {"t_ini_ms": 9200,  "t_fin_ms": 10800, "bloque": 2, "errores": []},
+    {"t_ini_ms": 12000, "t_fin_ms": 13500, "bloque": 3, "errores": ["brazos_no_llegan_arriba"]},
+    {"t_ini_ms": 13500, "t_fin_ms": 15000, "bloque": 3, "errores": ["brazos_no_llegan_arriba"]},
+    {"t_ini_ms": 15000, "t_fin_ms": 16500, "bloque": 3, "errores": ["brazos_no_llegan_arriba", "apertura_pies_insuficiente"]},
+    {"t_ini_ms": 18000, "t_fin_ms": 19500, "bloque": 4, "errores": [{"error_id": "codos_flexionados", "segmento": "codo", "lado": "bilateral"}]},
+    {"t_ini_ms": 19500, "t_fin_ms": 21000, "bloque": 4, "errores": ["codos_flexionados"]},
+    {"t_ini_ms": 21000, "t_fin_ms": 22500, "bloque": 4, "errores": ["codos_flexionados"]}
+  ]
+}
