@@ -9,7 +9,7 @@ import math
 import numpy as np
 import pytest
 
-from estela.adaptadores.pose.estimador import ResultadoPose
+from estela.aplicacion.puertos import ResultadoPose
 from estela.adaptadores.pose.landmarks import NOMBRES_MEDIAPIPE, muestra_desde_arrays
 from estela import config
 from estela.aplicacion.rutina import (RutinaInvalida, cargar_catalogo, cargar_rutina,

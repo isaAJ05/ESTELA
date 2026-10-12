@@ -145,6 +145,10 @@ class MotorDecision:
         self._rep_disparadas: Set[str] = set()
         #: una racha se acaba de cerrar limpia y toca decidir si se habla
         self._racha_cerrada_pendiente = False
+        #: diagnóstico: `error_id` de las reglas que se dispararon en la última
+        #: observación, antes de la política de silencio (detección cruda para
+        #: las métricas del Informe 2). No interviene en ninguna decisión.
+        self.disparadas: Tuple[str, ...] = ()
 
     # -- utilidades internas ------------------------------------------------
 
@@ -401,6 +405,7 @@ class MotorDecision:
                 f"observación de '{obs.ejercicio_id}' entregada al motor de "
                 f"'{self.skill.skill_id}'")
 
+        self.disparadas = ()
         self._rota_repeticion(obs)
         self._anota(obs)
 
@@ -418,6 +423,7 @@ class MotorDecision:
         # reglas que declaran `silenciada_por`, también en este mismo frame.
         self._rep_disparadas.update(r.error_id for r, _, _ in candidatos)
         candidatos = [c for c in candidatos if not self._silenciada(c[0])]
+        self.disparadas = tuple(r.error_id for r, _, _ in candidatos)
         evaluadas_ids = [e for e in evaluadas_ids
                          if not self._silenciada(self.skill.regla_de(e))]
         evaluadas = len(evaluadas_ids)
@@ -493,6 +499,7 @@ class MotorDecision:
         self._rep_sucia = False
         self._rep_disparadas = set()
         self._racha_cerrada_pendiente = False
+        self.disparadas = ()
 
 
 __all__ = ["MotorDecision", "Decision", "plano_observable"]
