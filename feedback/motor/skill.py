@@ -21,6 +21,10 @@ TIPOS_MEDIDA = ("angulo", "desviacion", "distancia", "agregado", "asimetria")
 FUNCIONES_AGREGADO = ("min", "max", "rango", "media")
 #: Sentido en que debe moverse el *valor de la medida* para volver al rango.
 SENTIDOS = ("aumentar", "disminuir")
+#: `descartado` = fuera del conjunto de ejercicios (ADR-005); vive en `retirados/`.
+ESTADOS = ("candidato", "candidato_en_duda", "adoptado", "descartado")
+#: Sufijos de lado en los nombres de medida, y su lado en el contrato.
+SUFIJOS_LADO = {"_izq": Lado.IZQUIERDO, "_der": Lado.DERECHO}
 
 
 class SkillInvalido(ValueError):
@@ -122,6 +126,21 @@ class Regla:
     #: (ADR-004 §2.5), p. ej. {"disminuir": MAS_FLEXION} para un ángulo de
     #: rodilla. Vacío => el error sale sin `direccion`.
     direcciones: Dict[str, Direccion] = field(default_factory=dict)
+    #: la regla solo se aplica si su lado es el que mejor ve la cámara
+    #: (catálogo v2, DEC-013): en los ejercicios de perfil la pierna lejana
+    #: queda tapada y no se evalúa, ni cuenta como abstención.
+    solo_lado_visible: bool = False
+    #: si alguna de estas reglas se disparó en la repetición en curso, esta
+    #: calla el resto de la repetición (precedencia entre errores).
+    silenciada_por: Sequence[str] = ()
+
+    def medida_espejo(self) -> Optional[str]:
+        """La misma medida del otro lado: `rodilla_izq` <-> `rodilla_der`."""
+        nombre = self.medida.nombre
+        for suf, otro in (("_izq", "_der"), ("_der", "_izq")):
+            if nombre.endswith(suf):
+                return nombre[: -len(suf)] + otro
+        return None
 
     def direccion_de(self, valor: float) -> Optional[Direccion]:
         sentido = self.condicion.sentido(valor)
@@ -260,6 +279,21 @@ def _direcciones_desde(d: Dict[str, Any]) -> Dict[str, Direccion]:
 
 
 def _regla_desde(d: Dict[str, Any]) -> Regla:
+    regla = _regla_sin_validar(d)
+    if regla.solo_lado_visible:
+        sufijo = next((s for s in SUFIJOS_LADO if regla.medida.nombre.endswith(s)), None)
+        if regla.medida.tipo not in ("angulo", "distancia", "agregado") or sufijo is None:
+            raise SkillInvalido(
+                f"{regla.error_id}: solo_lado_visible necesita una medida de un "
+                f"lado (nombre terminado en _izq o _der)")
+        if SUFIJOS_LADO[sufijo] != regla.lado:
+            raise SkillInvalido(
+                f"{regla.error_id}: el lado de la regla no coincide con el de "
+                f"su medida ({regla.medida.nombre})")
+    return regla
+
+
+def _regla_sin_validar(d: Dict[str, Any]) -> Regla:
     for campo in ("error_id", "medida", "condicion", "segmento", "lado",
                   "plano", "prioridad"):
         if campo not in d:
@@ -281,6 +315,8 @@ def _regla_desde(d: Dict[str, Any]) -> Regla:
         umbral_origen=d.get("umbral_origen", "[?] provisional, sin calibrar"),
         mensaje_id=d.get("mensaje_id", d["error_id"]),
         direcciones=_direcciones_desde(d.get("direccion", {})),
+        solo_lado_visible=bool(d.get("solo_lado_visible", False)),
+        silenciada_por=tuple(d.get("silenciada_por", ())),
     )
 
 
@@ -292,6 +328,14 @@ def skill_desde_dict(d: Dict[str, Any]) -> Skill:
     ids = [r.error_id for r in reglas]
     if len(ids) != len(set(ids)):
         raise SkillInvalido("error_id duplicado dentro del skill")
+    for r in reglas:
+        for otra in r.silenciada_por:
+            if otra not in ids or otra == r.error_id:
+                raise SkillInvalido(
+                    f"{r.error_id}: silenciada_por '{otra}' no es otra regla del skill")
+    estado = d.get("estado", "candidato")
+    if estado not in ESTADOS:
+        raise SkillInvalido(f"estado desconocido: {estado}")
     prioridades = [r.prioridad for r in reglas]
     if len(prioridades) != len(set(prioridades)):
         raise SkillInvalido(
@@ -320,7 +364,7 @@ def skill_desde_dict(d: Dict[str, Any]) -> Skill:
         skill_id=d["skill_id"],
         nombre=d["nombre"],
         version=d["version"],
-        estado=d.get("estado", "candidato"),
+        estado=estado,
         fases=tuple(d.get("fases", ())),
         reglas=tuple(reglas),
         politica=politica,

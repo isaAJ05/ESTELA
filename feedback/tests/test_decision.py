@@ -13,12 +13,16 @@ from feedback.motor.skill import (
 )
 
 SKILLS = cargar_skills(directorio_skills())
-#: Los tests de mecÃƒÆ’Ã‚Â¡nica del motor (abstenciÃƒÆ’Ã‚Â³n, evidencia, prioridad, refuerzo)
+#: Los tests de mecánica del motor (abstención, evidencia, prioridad, refuerzo)
 #: usan como banco de pruebas el skill retirado de sentadilla (ADR-005): sus
-#: reglas cubren todos esos casos y sus umbrales quedan fijos. No estÃƒÆ’Ã‚Â¡ en el
-#: catÃƒÆ’Ã‚Â¡logo; las reglas de los ejercicios actuales se prueban en TestSkillsActuales.
+#: reglas cubren todos esos casos y sus umbrales quedan fijos. No está en el
+#: catálogo; las reglas de los ejercicios actuales se prueban en TestSkillsActuales.
 SKILLS["sentadilla"] = cargar_skill(
     os.path.join(directorio_skills(), "retirados", "sentadilla.json"))
+#: La zancada salió del catálogo (PR #8) y su skill vive en `retirados/`; el
+#: test de refuerzo la sigue usando por su `politica_refuerzo`.
+SKILLS["zancada_atras_izq"] = cargar_skill(
+    os.path.join(directorio_skills(), "retirados", "zancada_atras_izq.json"))
 
 
 def obs(t_ms, rep, fase="descenso", tronco=60.0, conf=1.0, orientacion=90.0,
@@ -103,7 +107,7 @@ class TestEvidenciaYSilencio(unittest.TestCase):
 
     def test_regla_de_un_lado_en_ejercicio_alterno_acumula_evidencia(self):
         """En la marcha, la regla de la rodilla izquierda solo se comprueba en
-        las repeticiones de esa pierna (1, 3, 5ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¦). Antes la cadena se rompÃƒÆ’Ã‚Â­a
+        las repeticiones de esa pierna (1, 3, 5…). Antes la cadena se rompía
         siempre y la regla no hablaba nunca."""
         m = MotorDecision(SKILLS["marcha_rodillas"])
         dichos = []
@@ -118,14 +122,14 @@ class TestEvidenciaYSilencio(unittest.TestCase):
                 fase="apoyo_der" if izq else "apoyo_izq", repeticion=rep))
             if isinstance(d, ErrorTipificado):
                 dichos.append((rep, d.error_id, d.lado))
-        # repeticiones_evidencia = 3: la tercera elevaciÃƒÆ’Ã‚Â³n izquierda es la 5.
+        # repeticiones_evidencia = 3: la tercera elevación izquierda es la 5.
         self.assertEqual(dichos[0], (5, "rodilla_izq_baja", Lado.IZQUIERDO))
 
     def test_desvanecimiento_corta_tras_max_emisiones(self):
         m = MotorDecision(SKILLS["sentadilla"])
         emitidos = 0
         for rep in range(1, 200):
-            d = m.observar(obs(rep * 60000, rep))   # separaciÃƒÆ’Ã‚Â³n amplia
+            d = m.observar(obs(rep * 60000, rep))   # separación amplia
             if isinstance(d, ErrorTipificado):
                 emitidos += 1
         self.assertEqual(
@@ -196,8 +200,122 @@ class TestAgregados(unittest.TestCase):
         self.assertIsInstance(d, Silencio)  # falta evidencia (1 repeticion)
 
 
+ZANCADA = "zancada_atras_izq"
+
+
+def obs_z(t_ms, rep, **kw):
+    """Observación de la zancada: en «descenso» aplican la regla del tronco y
+    las del paso (ZR-04); se entrega un paso correcto, comprobable de perfil."""
+    kw.setdefault("distancias", {"longitud_paso": 0.9})
+    kw.setdefault("confianza", {}).setdefault("longitud_paso", 1.0)
+    return obs(t_ms, rep, ejercicio=ZANCADA, **kw)
+
+
+class TestRefuerzo(unittest.TestCase):
+    """`zancada_atras_izq` tiene politica_refuerzo.activa=true,
+    repeticiones_limpias=3, refractario_ms=15000. No se usa la sentadilla
+    retirada: sus reglas de valgo son frontales y de perfil nunca se pueden
+    comprobar, así que con ADR-006 §2.9 no felicita nunca (es correcto)."""
+
+    def setUp(self):
+        self.motor = MotorDecision(SKILLS[ZANCADA])
+
+    def test_racha_limpia_dispara_refuerzo(self):
+        for rep in (1, 2, 3):
+            d = self.motor.observar(obs_z(rep * 1000, rep, tronco=20.0))
+            self.assertIsInstance(d, Silencio)
+        # al empezar la repeticion 4 se cierra la racha de 3 limpias.
+        d = self.motor.observar(obs_z(4000, 4, tronco=20.0))
+        self.assertIsInstance(d, Refuerzo)
+        self.assertEqual(d.racha, 3)
+        self.assertEqual(d.ejercicio_id, ZANCADA)
+
+    def test_una_repeticion_sucia_rompe_la_racha(self):
+        self.motor.observar(obs_z(1000, 1, tronco=20.0))
+        self.motor.observar(obs_z(2000, 2, tronco=20.0))
+        self.motor.observar(obs_z(3000, 3, tronco=60.0))  # error: rompe la racha
+        self.motor.observar(obs_z(4000, 4, tronco=20.0))
+        self.motor.observar(obs_z(5000, 5, tronco=20.0))
+        self.motor.observar(obs_z(6000, 6, tronco=20.0))
+        d = self.motor.observar(obs_z(7000, 7, tronco=20.0))
+        self.assertIsInstance(d, Refuerzo)
+        self.assertEqual(d.racha, 3)  # solo cuenta desde la repeticion 4
+
+    def test_repeticion_no_evaluable_no_cuenta_ni_rompe(self):
+        self.motor.observar(obs_z(1000, 1, tronco=20.0))
+        self.motor.observar(obs_z(2000, 2, tronco=20.0))
+        # repeticion 3 totalmente ciega (confianza baja en todo): el motor no
+        # pudo ver nada, así que no cuenta como limpia ni rompe la racha.
+        d_ciega = self.motor.observar(obs_z(2500, 3, tronco=20.0, conf=0.1))
+        self.assertIsInstance(d_ciega, Silencio)
+        d_tras_ciega = self.motor.observar(obs_z(3000, 4, tronco=20.0))
+        self.assertIsInstance(d_tras_ciega, Silencio)  # racha sigue en 2
+        d = self.motor.observar(obs_z(4000, 5, tronco=20.0))
+        self.assertIsInstance(d, Refuerzo)
+        self.assertEqual(d.racha, 3)
+
+    def test_refractario_impide_dos_refuerzos_seguidos(self):
+        for rep in range(1, 4):
+            self.motor.observar(obs_z(rep * 1000, rep, tronco=20.0))
+        d1 = self.motor.observar(obs_z(4000, 4, tronco=20.0))
+        self.assertIsInstance(d1, Refuerzo)  # racha=3
+
+        d2 = None
+        for rep, t in ((5, 5000), (6, 6000), (7, 7000)):
+            d2 = self.motor.observar(obs_z(t, rep, tronco=20.0))
+        # al cerrar la repeticion 6 la racha llega a 6 (multiplo de 3), pero
+        # pasaron solo 3000 ms desde el ultimo refuerzo (refractario 15000).
+        self.assertIsInstance(d2, Silencio)
+
+    def test_no_felicita_si_una_regla_aplicable_no_se_pudo_comprobar(self):
+        """La rodilla delantera está ocluida en todas las repeticiones: no se
+        corrige (no se ve) y tampoco se felicita (no se ha comprobado)."""
+        def repeticion(rep, conf_rodilla):
+            t = rep * 1000
+            bajada = self.motor.observar(obs_z(t, rep, tronco=10.0))
+            subida = self.motor.observar(Observacion(
+                t_ms=t + 500, ejercicio_id=ZANCADA,
+                angulos={"tronco_inclinacion": 10.0, "rodilla_der": 90.0},
+                confianza={"tronco_inclinacion": 1.0, "rodilla_der": conf_rodilla},
+                fase="ascenso", repeticion=rep, orientacion=90.0))
+            return [bajada, subida]
+        dichos = [d for r in range(1, 9) for d in repeticion(r, 0.2)]
+        self.assertFalse(any(isinstance(d, (Refuerzo, ErrorTipificado)) for d in dichos))
+        # La misma ejecución con la rodilla visible sí se felicita.
+        self.motor = MotorDecision(SKILLS[ZANCADA])
+        dichos = [d for r in range(1, 6) for d in repeticion(r, 1.0)]
+        self.assertTrue(any(isinstance(d, Refuerzo) for d in dichos))
+
+    def test_no_felicita_si_la_orientacion_impide_comprobar_una_regla(self):
+        m = MotorDecision(SKILLS["abduccion_cadera_izq"])
+        dichos = []
+        for rep in range(1, 9):
+            for fase in ("subida", "arriba"):
+                angulos = {"inclinacion_lateral": 0.0, "oblicuidad_pelvis": 0.0}
+                dichos.append(m.observar(Observacion(
+                    t_ms=rep * 1000, ejercicio_id="abduccion_cadera_izq",
+                    angulos=angulos, confianza={k: 1.0 for k in angulos},
+                    fase=fase, repeticion=rep, orientacion=90.0)))
+        self.assertFalse(any(isinstance(d, Refuerzo) for d in dichos))
+
+    def test_desactivado_por_defecto_en_un_skill_sin_politica(self):
+        # jumping_jacks sí tiene politica_refuerzo propia; comprobamos que un
+        # skill cargado desde un dict sin la clave queda con activa=False.
+        from feedback.motor.skill import skill_desde_dict
+        base = {
+            "skill_id": "x", "nombre": "x", "version": "0.1.0",
+            "reglas": [{
+                "error_id": "e", "medida": {"tipo": "angulo", "nombre": "a"},
+                "condicion": {"op": ">", "umbral": 1}, "segmento": "tronco",
+                "lado": "na", "plano": "cualquiera", "prioridad": 1,
+            }],
+        }
+        skill = skill_desde_dict(base)
+        self.assertFalse(skill.politica_refuerzo.activa)
+
+
 class TestSkillsActuales(unittest.TestCase):
-    """Reglas de los ejercicios de ADR-005 con observaciones mÃƒÆ’Ã‚Â­nimas."""
+    """Reglas de los ejercicios de ADR-005 con observaciones mínimas."""
 
     def _obs(self, skill_id, t, rep, fase, angulos=None, distancias=None,
              orientacion=None):
@@ -233,8 +351,8 @@ class TestSkillsActuales(unittest.TestCase):
             "abduccion_cadera_izq", fase="arriba", orientacion=0.0,
             angulos={"inclinacion_lateral": 0.0, "oblicuidad_pelvis": 10.0})
         self.assertEqual((d.error_id, d.lado), ("cadera_izq_sube", Lado.IZQUIERDO))
-        # En la serie de la pierna derecha, que la izquierda quede mÃƒÆ’Ã‚Â¡s alta no
-        # es Ãƒâ€šÃ‚Â«subir la cadera derechaÃƒâ€šÃ‚Â».
+        # En la serie de la pierna derecha, que la izquierda quede más alta no
+        # es «subir la cadera derecha».
         d = self._dos_repeticiones(
             "abduccion_cadera_der", fase="arriba", orientacion=0.0,
             angulos={"inclinacion_lateral": 0.0, "oblicuidad_pelvis": 10.0})
@@ -267,7 +385,7 @@ class TestSkillsActuales(unittest.TestCase):
 
 
 class TestDireccionYMagnitud(unittest.TestCase):
-    """ADR-004 Ãƒâ€šÃ‚Â§2.5: el motor dice hacia dÃƒÆ’Ã‚Â³nde corregir y cuÃƒÆ’Ã‚Â¡nto."""
+    """ADR-004 §2.5: el motor dice hacia dónde corregir y cuánto."""
 
     _obs = TestSkillsActuales._obs
     _dos_repeticiones = TestSkillsActuales._dos_repeticiones
@@ -283,7 +401,7 @@ class TestDireccionYMagnitud(unittest.TestCase):
                          ("cadera_elevada", Direccion.BAJAR))
 
     def test_cadera_que_sube_pide_bajar_en_los_dos_lados(self):
-        # El signo de la oblicuidad es opuesto en cada lado; la direcciÃƒÆ’Ã‚Â³n no.
+        # El signo de la oblicuidad es opuesto en cada lado; la dirección no.
         for skill_id, oblicuidad in (("abduccion_cadera_izq", 10.0),
                                      ("abduccion_cadera_der", -10.0)):
             d = self._dos_repeticiones(
@@ -338,6 +456,123 @@ class TestDireccionYMagnitud(unittest.TestCase):
             self._skill_fuera_de({"aumentar": "girar"})
         with self.assertRaises(SkillInvalido):
             self._skill_fuera_de({"hacia_arriba": "subir"})
+
+
+class TestCatalogoT17(unittest.TestCase):
+    """Reglas del catálogo de errores v2 (T17): pierna visible, precedencia y
+    errores nuevos."""
+
+    _obs = TestSkillsActuales._obs
+    _dos_repeticiones = TestSkillsActuales._dos_repeticiones
+
+    def _zancada(self, m, t, rep, rodillas, paso=0.9, conf_rodillas=None):
+        """Una repetición: un frame de descenso (paso) y uno de ascenso (rodilla).
+        Devuelve la decisión del ascenso; las dos quedan en `self.dichas`."""
+        conf_rodillas = conf_rodillas or {k: 1.0 for k in rodillas}
+        self.dichas = getattr(self, "dichas", [])
+        self.dichas.append(m.observar(Observacion(
+            t_ms=t, ejercicio_id="zancada_atras_izq",
+            angulos={"tronco_inclinacion": 10.0}, distancias={"longitud_paso": paso},
+            confianza={"tronco_inclinacion": 1.0, "longitud_paso": 1.0},
+            fase="descenso", repeticion=rep, orientacion=90.0)))
+        self.dichas.append(m.observar(Observacion(
+            t_ms=t + 500, ejercicio_id="zancada_atras_izq",
+            angulos=dict(rodillas, tronco_inclinacion=10.0),
+            confianza=dict(conf_rodillas, tronco_inclinacion=1.0),
+            fase="ascenso", repeticion=rep, orientacion=90.0)))
+        return self.dichas[-1]
+
+    def test_zancada_corrige_la_rodilla_que_ve_la_camara(self):
+        # La izquierda (trasera en este skill) es la visible y no baja.
+        m = MotorDecision(SKILLS["zancada_atras_izq"])
+        rodillas = {"rodilla_izq": 140.0, "rodilla_der": 140.0}
+        conf = {"rodilla_izq": 0.9, "rodilla_der": 0.3}
+        self._zancada(m, 1000, 1, rodillas, conf_rodillas=conf)
+        d = self._zancada(m, 20000, 2, rodillas, conf_rodillas=conf)
+        self.assertEqual((d.error_id, d.lado), ("profundidad_insuficiente_izq",
+                                                Lado.IZQUIERDO))
+
+    def test_la_pierna_tapada_no_impide_felicitar(self):
+        # Sin `solo_lado_visible`, la rodilla tapada se abstendría en cada
+        # repetición y el ejercicio no podría felicitar nunca (ADR-006 §2.9).
+        m = MotorDecision(SKILLS["zancada_atras_izq"])
+        self.dichas = []
+        for rep in range(1, 6):
+            self._zancada(m, rep * 20000, rep, {"rodilla_izq": 90.0, "rodilla_der": 90.0},
+                          conf_rodillas={"rodilla_izq": 1.0, "rodilla_der": 0.1})
+        self.assertTrue(any(isinstance(d, Refuerzo) for d in self.dichas))
+
+    def test_paso_fuera_de_rango_calla_la_profundidad(self):
+        m = MotorDecision(SKILLS["zancada_atras_izq"])
+        rodillas = {"rodilla_izq": 140.0, "rodilla_der": 140.0}
+        dichos = [self._zancada(m, rep * 20000, rep, rodillas, paso=0.3)
+                  for rep in range(1, 5)]
+        self.assertFalse(any(isinstance(d, ErrorTipificado)
+                             and d.error_id.startswith("profundidad") for d in dichos))
+        self.assertEqual(m._estado_de("profundidad_insuficiente_izq").emisiones, 0)
+
+    def test_paso_corto_pide_alargar_y_largo_acortar(self):
+        for paso, error_id, direccion in ((0.3, "paso_corto", Direccion.ALARGAR),
+                                          (1.5, "paso_largo", Direccion.ACORTAR)):
+            d = self._dos_repeticiones("zancada_atras_izq", fase="descenso",
+                                       orientacion=90.0,
+                                       angulos={"tronco_inclinacion": 10.0},
+                                       distancias={"longitud_paso": paso})
+            self.assertEqual((d.error_id, d.direccion), (error_id, direccion))
+
+    def test_abduccion_insuficiente_calla_si_hubo_compensacion(self):
+        m = MotorDecision(SKILLS["abduccion_cadera_izq"])
+        def repeticion(rep, oblicuidad):
+            t = rep * 20000
+            m.observar(self._obs("abduccion_cadera_izq", t, rep, "arriba",
+                                 angulos={"inclinacion_lateral": 0.0,
+                                          "oblicuidad_pelvis": oblicuidad,
+                                          "abduccion_cadera_izq": 10.0},
+                                 orientacion=0.0))
+            return m.observar(self._obs("abduccion_cadera_izq", t + 500, rep, "bajada",
+                                        angulos={"abduccion_cadera_izq": 10.0},
+                                        orientacion=0.0))
+        # Con la cadera subiendo, el rango insuficiente no se dice.
+        dichos = [repeticion(r, 10.0) for r in range(1, 5)]
+        self.assertFalse(any(isinstance(d, ErrorTipificado)
+                             and d.error_id == "abduccion_insuficiente_izq" for d in dichos))
+        # Sin compensación, sí.
+        m.reiniciar()
+        dichos = [repeticion(r, 0.0) for r in range(1, 5)]
+        self.assertTrue(any(isinstance(d, ErrorTipificado)
+                            and d.error_id == "abduccion_insuficiente_izq" for d in dichos))
+
+    def test_plancha_hombros_adelantados_y_retrasados(self):
+        for valor, error_id, direccion in ((0.4, "hombros_adelantados", Direccion.ATRAS),
+                                           (-0.4, "hombros_retrasados", Direccion.ADELANTE)):
+            d = self._dos_repeticiones("plancha", fase="mantenimiento", orientacion=90.0,
+                                       distancias={"alineacion_cadera": 0.0,
+                                                   "hombro_sobre_codo": valor},
+                                       angulos={"cabeza_adelantada": 5.0})
+            self.assertEqual((d.error_id, d.segmento, d.direccion),
+                             (error_id, "hombro", direccion))
+
+    def test_jumping_jacks_brazos_a_la_horizontal_es_error_y_a_110_no(self):
+        def brazos(hombro):
+            # jumping_jacks pide 3 repeticiones de evidencia
+            m = MotorDecision(SKILLS["jumping_jacks"])
+            for rep in (1, 2, 3):
+                d = m.observar(self._obs("jumping_jacks", rep * 20000, rep, "abierto",
+                                         angulos={"hombro_medio": hombro, "codo_medio": 170.0},
+                                         distancias={"separacion_pies": 2.0},
+                                         orientacion=0.0))
+            return d
+        self.assertEqual(brazos(90.0).error_id, "brazos_no_llegan_arriba")
+        self.assertIsInstance(brazos(110.0), Silencio)
+
+    def test_marcha_la_rodilla_va_antes_que_el_tronco(self):
+        m = MotorDecision(SKILLS["marcha_rodillas"])
+        for rep in (1, 2, 3):   # la marcha pide 3 repeticiones de evidencia
+            d = m.observar(self._obs("marcha_rodillas", rep * 20000, rep, "apoyo_der",
+                                     angulos={"cadera_izq": 140.0, "cadera_der": 170.0,
+                                              "tronco_inclinacion": 40.0},
+                                     orientacion=90.0))
+        self.assertEqual(d.error_id, "rodilla_izq_baja")
 
 
 class TestContratoDeEntrada(unittest.TestCase):

@@ -21,7 +21,8 @@ class TestCargaDeSkills(unittest.TestCase):
     def test_los_retirados_no_se_cargan_pero_siguen_siendo_validos(self):
         retirados = os.path.join(directorio_skills(), "retirados")
         viejos = cargar_skills(retirados)
-        self.assertEqual(set(viejos), {"sentadilla", "elevacion_brazos", "rotacion_tronco"})
+        self.assertEqual(set(viejos), {"sentadilla", "elevacion_brazos", "rotacion_tronco",
+                                       "zancada_atras_izq", "zancada_atras_der"})
         self.assertFalse(set(viejos) & set(self.skills))
         self.assertEqual({s.estado for s in viejos.values()}, {"descartado"})
 
@@ -90,6 +91,32 @@ class TestValidacionDelEsquema(unittest.TestCase):
         d["reglas"][0]["condicion"] = {"op": "~=", "umbral": 1}
         with self.assertRaises(SkillInvalido):
             skill_desde_dict(d)
+
+    def test_rechaza_estado_desconocido(self):
+        with self.assertRaises(SkillInvalido):
+            skill_desde_dict(self._base(estado="retirado"))
+        self.assertEqual(skill_desde_dict(self._base(estado="descartado")).estado,
+                         "descartado")
+
+    def test_solo_lado_visible_exige_una_medida_de_un_lado(self):
+        d = self._base()
+        d["reglas"][0]["solo_lado_visible"] = True   # medida «k», sin lado
+        with self.assertRaises(SkillInvalido):
+            skill_desde_dict(d)
+
+    def test_solo_lado_visible_exige_que_el_lado_coincida(self):
+        d = self._base()
+        d["reglas"][0].update(medida={"tipo": "angulo", "nombre": "rodilla_izq"},
+                              lado="derecho", solo_lado_visible=True)
+        with self.assertRaises(SkillInvalido):
+            skill_desde_dict(d)
+
+    def test_silenciada_por_debe_nombrar_otra_regla(self):
+        for otra in ("no_existe", "e1"):
+            d = self._base()
+            d["reglas"][0]["silenciada_por"] = [otra]
+            with self.assertRaises(SkillInvalido):
+                skill_desde_dict(d)
 
     def test_rechaza_asimetria_con_un_solo_nombre(self):
         d = self._base()
