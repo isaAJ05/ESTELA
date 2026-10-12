@@ -17,3 +17,5 @@ node_modules/
 
 # Datos locales del Informe 2: anotaciones y vídeos de personas (Ley 1581/2012)
 backend/datos_locales/
+# Datos crudos del Informe 2 (~8 MB, se regeneran con pytest -m metricas -s)
+backend/feedback_testing/resultados/INFORME2-metricas.json
