@@ -91,7 +91,8 @@ export interface EstadoSesion {
   /** ángulos medidos en el frame (los mismos que usa el motor), para mostrarlos */
   angulos?: {
     /** importante: es uno de los ángulos que cuentan en este ejercicio */
-    articulaciones: { nombre: string; indice: number; grados: number; importante: boolean }[]
+    /** indices: dónde dibujarlo; se usa el más visible (p. ej. la oreja que se ve de perfil) */
+    articulaciones: { nombre: string; indices: number[]; grados: number; importante: boolean }[]
     /** ángulos importantes que no están en una articulación (tronco, pelvis…) */
     otros: { nombre: string; grados: number }[]
   } | null

@@ -84,6 +84,7 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "oblicuidad_hombros": Plano.FRONTAL,
     "inclinacion_lateral": Plano.FRONTAL,
     "cabeza_adelantada": Plano.SAGITAL,
+    "cabeza_mirada": Plano.SAGITAL,
     "abduccion_cadera_izq": Plano.FRONTAL,
     "abduccion_cadera_der": Plano.FRONTAL,
     "inclinacion_lateral_tronco": Plano.FRONTAL,
@@ -374,6 +375,44 @@ def cabeza_adelantada(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional
     return None if ang is None else 180.0 - ang
 
 
+def cabeza_mirada(kps: Dict[str, Keypoint]) -> Optional[float]:
+    """Hacia dónde apunta la cara respecto al tronco, en grados, con signo.
+
+    Ángulo entre el eje del tronco (cadera media → hombro medio) y el vector
+    oreja media → nariz, menos 90°. 0 = la cara mira perpendicular al tronco:
+    al suelo en plancha, al frente de pie. Positivo = mira hacia la cabeza
+    (en plancha, hacia delante o arriba: extensión cervical); negativo = mira
+    hacia los pies (flexión cervical).
+
+    Complementa a :func:`cabeza_adelantada`, que no tiene signo y solo usa las
+    orejas: esta usa la nariz, así que distingue mirar arriba de mirar a los
+    pies. Solo (x, y): es una medida sagital para vista de perfil y la z es la
+    componente menos fiable.
+
+    `[?]` La nariz está algo por delante y por debajo de la oreja, así que la
+    posición neutra no da exactamente 0; el desfase hay que medirlo con la
+    referencia antes de fijar umbrales.
+    """
+    req = ("left_shoulder", "right_shoulder", "left_hip", "right_hip",
+           "left_ear", "right_ear", "nose")
+    if any(k not in kps for k in req):
+        return None
+    hombro = punto_medio(_coords(kps["left_shoulder"], False),
+                         _coords(kps["right_shoulder"], False))
+    cadera = punto_medio(_coords(kps["left_hip"], False),
+                         _coords(kps["right_hip"], False))
+    oreja = punto_medio(_coords(kps["left_ear"], False),
+                        _coords(kps["right_ear"], False))
+    nariz = _coords(kps["nose"], False)
+    tronco = _resta(hombro, cadera)
+    cara = _resta(nariz, oreja)
+    nt, nc = _norma(tronco), _norma(cara)
+    if nt < 1e-9 or nc < 1e-9:
+        return None
+    cos = max(-1.0, min(1.0, _punto(tronco, cara) / (nt * nc)))
+    return 90.0 - math.degrees(math.acos(cos))
+
+
 def abduccion_cadera(kps: Dict[str, Keypoint], lado: str) -> Optional[float]:
     """Separación lateral del muslo respecto a la vertical, en grados.
 
@@ -628,6 +667,8 @@ def observacion_desde_pose(
          hombros + caderas),
         ("cabeza_adelantada", cabeza_adelantada(kps, usar_z),
          hombros + caderas + ("left_ear", "right_ear")),
+        ("cabeza_mirada", cabeza_mirada(kps),
+         hombros + caderas + ("left_ear", "right_ear", "nose")),
         ("abduccion_cadera_izq", abduccion_cadera(kps, "izq"),
          ("left_hip", "left_knee", "right_hip")),
         ("abduccion_cadera_der", abduccion_cadera(kps, "der"),
@@ -696,7 +737,7 @@ __all__ = [
     "rotacion_tronco", "azimut_cadera",
     "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_pelvis",
     "inclinacion_lateral", "inclinacion_lateral_tronco",
-    "cabeza_adelantada", "abduccion_cadera", "alineacion_cadera",
+    "cabeza_adelantada", "cabeza_mirada", "abduccion_cadera", "alineacion_cadera",
     "alineacion_cuerpo", "hombro_sobre_codo", "longitud_paso", "lado_mas_visible",
     "confianza_de_terna", "observacion_desde_pose",
 ]

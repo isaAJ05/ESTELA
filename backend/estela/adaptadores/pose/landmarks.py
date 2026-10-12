@@ -25,9 +25,11 @@ NOMBRES_MEDIAPIPE: Tuple[str, ...] = (
     "left_foot_index", "right_foot_index",
 )
 
-#: Conexiones del esqueleto para dibujar (subconjunto de POSE_CONNECTIONS
-#: sin la cara, que no aporta nada en este dominio).
+#: Conexiones del esqueleto para dibujar (subconjunto de POSE_CONNECTIONS).
+#: De la cara solo se dibuja cuello (hombro → oreja) y cabeza (oreja → nariz):
+#: lo necesario para ver hacia dónde mira, p. ej. en la plancha.
 CONEXIONES: Tuple[Tuple[int, int], ...] = (
+    (11, 7), (12, 8), (7, 0), (8, 0),
     (11, 12), (11, 13), (13, 15), (12, 14), (14, 16),
     (11, 23), (12, 24), (23, 24),
     (23, 25), (25, 27), (27, 29), (29, 31), (27, 31),

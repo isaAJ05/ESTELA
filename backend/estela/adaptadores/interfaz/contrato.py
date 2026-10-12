@@ -44,7 +44,7 @@ motor determinista.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -135,6 +135,14 @@ def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
     }
 
 
+#: Medidas que no son la terna de una articulación pero sí tienen un sitio en
+#: el cuerpo donde mostrarlas: se dibujan en el más visible de esos puntos.
+_UBICACION: Dict[str, Tuple[int, ...]] = {
+    "cabeza_adelantada": (7, 8),        # cuello: en la oreja
+    "cabeza_mirada": (0,),              # hacia dónde mira: en la nariz
+}
+
+
 def _angulos(angulos: Optional[Mapping[str, float]],
              importantes: Sequence[str] = ()) -> Optional[Dict[str, Any]]:
     """Ángulos del frame para mostrarlos sobre el esqueleto.
@@ -154,11 +162,17 @@ def _angulos(angulos: Optional[Mapping[str, float]],
     for nombre, (_, vertice, _) in ANGULOS_TERNA.items():
         if nombre in angulos:
             articulaciones.append({"nombre": nombre,
-                                   "indice": NOMBRES_MEDIAPIPE.index(vertice),
+                                   "indices": [NOMBRES_MEDIAPIPE.index(vertice)],
+                                   "grados": round(angulos[nombre]),
+                                   "importante": nombre in marcados})
+    for nombre, indices in _UBICACION.items():
+        if nombre in angulos:
+            articulaciones.append({"nombre": nombre, "indices": list(indices),
                                    "grados": round(angulos[nombre]),
                                    "importante": nombre in marcados})
     otros = [{"nombre": n, "grados": round(angulos[n])} for n in importantes
-             if n in angulos and n not in ANGULOS_TERNA and n not in ANGULOS_MEDIOS]
+             if n in angulos and n not in ANGULOS_TERNA and n not in ANGULOS_MEDIOS
+             and n not in _UBICACION]
     return {"articulaciones": articulaciones, "otros": otros}
 
 
