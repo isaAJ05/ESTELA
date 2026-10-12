@@ -1,0 +1,110 @@
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body, #raiz { height: 100%; }
+
+/* Escala fluida: todo está en rem y la raíz crece con la ventana, así la
+   interfaz se ve proporcionada de 960×600 a 2560×1440 (se mira desde 3 m).
+   ≈15 px en 1280×800, 16 px en 1440×900, 19 px en 1920×1080, 23 px en 2560×1440. */
+html { font-size: clamp(15px, calc(0.45vw + 0.55vh + 4px), 26px); }
+
+body {
+  margin: 0;
+  background: var(--color-fondo);
+  color: var(--color-texto);
+  font-family: var(--fuente);
+  font-size: 1rem;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+}
+
+h1, h2, h3 { margin: 0; font-weight: 650; letter-spacing: -0.04em; line-height: 1.05; }
+p { margin: 0; }
+code { font-family: var(--fuente-mono); font-size: 0.9em; color: var(--color-violeta-suave); }
+button { font: inherit; color: inherit; }
+svg { flex-shrink: 0; }
+
+:focus-visible { outline: 0.1875rem solid var(--color-violeta-suave); outline-offset: 0.1875rem; }
+
+/* -- marca --------------------------------------------------------------- */
+.marca { display: flex; align-items: center; gap: 0.625rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.06em; }
+.marca-signo { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--color-violeta-suave); border-radius: 50%; }
+.marca-signo span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-amarillo); box-shadow: 0 0 0.75rem var(--color-amarillo); }
+
+.etiqueta { display: block; color: var(--color-texto-sutil); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
+.etiqueta-marca { color: var(--color-violeta-suave); }
+.etiqueta-cuidado { color: var(--color-ambar); }
+
+.texto-exito { color: var(--color-exito); }
+.texto-cuidado { color: var(--color-ambar); }
+
+/* -- botones ------------------------------------------------------------- */
+.boton {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  min-height: 3rem; padding: 0 1.25rem;
+  border: 1px solid transparent; border-radius: var(--radio-md);
+  font-size: 1rem; font-weight: 700; cursor: pointer;
+  transition: transform var(--duracion-corta), background var(--duracion-corta), border-color var(--duracion-corta);
+}
+.boton svg { width: 1.125rem; height: 1.125rem; }
+.boton:hover:not(:disabled) { transform: translateY(-1px); }
+.boton:disabled { cursor: default; opacity: 0.7; }
+.boton-primario { color: var(--color-sobre-violeta); background: var(--color-violeta-suave); box-shadow: var(--sombra-brillo); }
+.boton-primario:hover:not(:disabled) { background: #b9afff; }
+.boton-secundario { color: var(--color-texto); background: var(--color-superficie-elevada); border-color: var(--color-borde); }
+.boton-secundario:hover:not(:disabled) { border-color: var(--color-violeta); }
+.boton-suave { color: var(--color-violeta-suave); background: rgba(128, 107, 255, 0.11); }
+.boton-suave:hover:not(:disabled) { background: rgba(128, 107, 255, 0.2); }
+.boton-peligro { color: var(--color-peligro); background: rgba(233, 133, 145, 0.1); border-color: rgba(233, 133, 145, 0.3); }
+
+.acciones { display: flex; flex-wrap: wrap; align-items: center; gap: var(--espacio-3); }
+
+/* -- superficies --------------------------------------------------------- */
+.tarjeta {
+  padding: var(--espacio-5);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  background: linear-gradient(145deg, rgba(33, 29, 48, 0.92), rgba(23, 21, 34, 0.92));
+  box-shadow: var(--sombra-suave);
+}
+
+.chip {
+  display: inline-flex; align-items: center; gap: 0.375rem;
+  padding: 0.375rem 0.75rem; border-radius: var(--radio-pildora);
+  color: var(--color-texto-suave); background: rgba(255, 255, 255, 0.07);
+  font-size: 0.875rem; font-weight: 700;
+}
+
+/* -- avisos -------------------------------------------------------------- */
+.aviso {
+  display: flex; align-items: center; gap: var(--espacio-3);
+  padding: var(--espacio-4); border: 1px solid; border-radius: var(--radio-md);
+  backdrop-filter: blur(0.5rem);
+}
+.aviso > svg, .aviso > .icono-vista { width: 1.375rem; height: 1.375rem; }
+.aviso strong, .aviso span { display: block; }
+.aviso strong { color: var(--color-texto); font-size: 1.0625rem; }
+.aviso div > span { margin-top: 2px; color: var(--color-texto-suave); font-size: 0.9375rem; }
+.aviso .boton { margin-left: auto; }
+.aviso-info { color: var(--color-violeta-suave); border-color: rgba(169, 157, 255, 0.3); background: rgba(40, 33, 80, 0.82); }
+.aviso-cuidado { color: var(--color-ambar); border-color: rgba(244, 163, 64, 0.35); background: rgba(62, 40, 18, 0.85); }
+.aviso-bloqueo { color: var(--color-peligro); border-color: rgba(233, 133, 145, 0.3); background: rgba(233, 133, 145, 0.08); }
+
+/* -- figura e íconos ------------------------------------------------------- */
+.figura { overflow: visible; }
+.figura-cabeza { fill: none; stroke: var(--color-violeta-suave); stroke-width: 4; }
+.figura-linea { fill: none; stroke: var(--color-violeta-suave); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.figura-resalte { stroke: var(--color-amarillo); filter: drop-shadow(0 0 0.3125rem rgba(255, 201, 77, 0.6)); }
+
+.icono-vista { display: inline-flex; gap: 2px; vertical-align: middle; color: currentColor; }
+.icono-vista i { display: block; width: 0.375rem; height: 0.75rem; border: 1.5px solid currentColor; border-radius: 50%; }
+.icono-vista.perfil i + i { height: 0.5rem; margin-top: 2px; }
+
+/* -- animaciones ----------------------------------------------------------- */
+.girando { animation: girar 1s linear infinite; }
+@keyframes girar { to { transform: rotate(360deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
+}

@@ -9,3 +9,8 @@ modelos/
 
 # Métricas de sesión (derivadas, pueden contener datos de una persona)
 sesiones/
+.pytest_cache/
+
+# Node (frontend/; también restos de la antigua carpeta interfaz/)
+node_modules/
+*.tsbuildinfo
