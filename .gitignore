@@ -14,3 +14,6 @@ sesiones/
 # Node (frontend/; también restos de la antigua carpeta interfaz/)
 node_modules/
 *.tsbuildinfo
+
+# Datos locales del Informe 2: anotaciones y vídeos de personas (Ley 1581/2012)
+backend/datos_locales/
