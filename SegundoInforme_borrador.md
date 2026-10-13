@@ -635,8 +635,6 @@ sequenceDiagram
 
 La elección del stack prioriza tres propiedades: que todo se ejecute en el equipo, que cada etapa pueda medirse por separado, y que las dependencias pesadas queden confinadas en adaptadores sustituibles. Por eso no hay frameworks de aprendizaje profundo en el núcleo: el único modelo neuronal en el camino crítico es el estimador de pose, y su latencia es la que el presupuesto debe absorber.
 
-Respecto al Informe 1 se descartaron tres tecnologías con evidencia: Kokoro como motor de voz, por su soporte limitado de español [18]; SpinePose para puntos adicionales del tronco, porque sus puntos virtuales no aportan información nueva sobre la curvatura de la espalda y añadían 19 ms de p50 por fotograma (EXP-008); y TensorFlow para la BiLSTM de reconocimiento, que se retiró junto con el reconocimiento automático.
-
 ### 11.2 Componentes implementados
 
 | Componente | Estado | Evidencia |
@@ -661,11 +659,14 @@ El repositorio contiene 237 pruebas automatizadas que pasan en el entorno de des
 
 ### 11.3 Integraciones realizadas
 
-ESTELA no se integra con servicios externos, bases de datos ni sistemas de autenticación: es una restricción de diseño, no una carencia. Las integraciones realizadas son locales y se limitan a cuatro fronteras. La primera es con **MediaPipe** mediante su Tasks API, encapsulada en un adaptador que traduce sus 33 puntos a los nombres anatómicos del contrato. La segunda es con **Piper**, al que la cola de voz pide al inicio de la sesión todas las frases que la rutina puede llegar a decir, para que en vivo solo se reproduzca audio ya sintetizado.
+La arquitectura de **ESTELA** no contempla integraciones con servicios en la nube, bases de datos remotas ni sistemas de autenticación centralizada. Esta decisión constituye una restricción de diseño explícita para garantizar la privacidad de los datos biométricos (Ley 1581 de 2012) y eliminar la latencia de red, en lugar de una limitación del prototipo.
 
-La tercera es entre **Python y la interfaz**. pywebview publica un objeto con los métodos `info`, `estado`, `iniciar`, `siguiente`, `reiniciar`, `terminar`, `volver_al_inicio` y `salir`, y la interfaz los invoca desde JavaScript. El contrato JSON está definido en un solo módulo y declara qué capacidades están activas; las que el backend aún no ofrece (nivel, correctas/con error, guía animada, resumen en lenguaje natural) existen en la interfaz pero permanecen ocultas hasta que su capacidad se active.
+En su lugar, el sistema articula sus componentes mediante cuatro fronteras de integración estrictamente locales dentro del propio dispositivo:
 
-La cuarta, opcional, es con un **servidor local de modelo de lenguaje** (`llama-server`) por HTTP en el propio equipo, con gramática de salida restringida y caída a plantilla ante cualquier fallo. Ninguna de estas integraciones transmite imágenes ni puntos articulares fuera del proceso, salvo el JPEG en memoria que la ventana local dibuja.
+1. **Integración con la biblioteca de percepción (MediaPipe Tasks API):** Encapsulada dentro de un adaptador dedicado de la capa de infraestructura, el cual traduce y normaliza los 33 puntos articulares de MediaPipe hacia la nomenclatura anatómica canónica definida en el contrato geométrico del sistema.
+2. **Integración con el motor de síntesis de voz (Piper TTS):** Coordinada a través del gestor de la cola de voz, el cual solicita a Piper la pre-síntesis local de las instrucciones operacionales y de corrección al iniciar la sesión. Esto garantiza la reproducción inmediata de audio sin introducir latencia de generación durante la práctica.
+3. **Integración entre la capa de aplicación Python y la interfaz gráfica (pywebview):** Comunicación bidireccional en el dispositivo entre la lógica del backend y la interfaz nativa en React/TypeScript. *pywebview* expone una API con métodos explícitos (info, estado, iniciar, siguiente, reiniciar, terminar, volver_al_inicio y salir) invocados desde JavaScript. Las capacidades activas se gestionan de forma dinámica mediante un contrato de datos estructurado en JSON.
+4. **Integración opcional con el servidor de lenguaje local (llama-server):** Comunicación mediante peticiones HTTP locales con un proceso de inferencia en segundo plano. La integración incluye restricciones de gramática en la salida y un mecanismo de caída a plantilla (*fallback*) en caso de indisponibilidad o retraso en la generación.
 
 ### 11.4 Pendientes para la entrega final
 
