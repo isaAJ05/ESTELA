@@ -498,45 +498,6 @@ Las rutas de la columna «Capa / ubicación» son relativas a `backend/estela/<c
 
 El diagrama de arquitectura muestra las dos fases y las tres capas:
 
-```mermaid
-flowchart LR
-  subgraph OFF["Fase offline (una vez por ejercicio)"]
-    V["Video de referencia"] --> CR["crear_referencia.py<br>pose + DTW entre repeticiones + medoide"]
-    CR --> REF[("referencia.json<br>media, σ, fases, puntos 2D")]
-    SK[("skill.json<br>reglas, umbrales, orientación,<br>política de silencio")]
-  end
-  subgraph APP["Proceso ESTELA (equipo local)"]
-    subgraph AD["Adaptadores"]
-      CAM["Fuente de cámara<br>(hilo, último fotograma)"]
-      MP["MediaPipe Pose Landmarker"]
-      VOZ["Cola de voz (hilo) + Piper"]
-      UI["Orquestador + pywebview"]
-      LLM["Verbalizador LLM<br>(opcional, llama-server local)"]
-    end
-    subgraph AP["Aplicación"]
-      SES["Sesión / rutina / pausas"]
-      DTW["Alineador DTW"]
-      MET["Latencias y métricas"]
-    end
-    subgraph DO["Dominio (solo biblioteca estándar)"]
-      GEO["Geometría + confianza"]
-      SEG["Segmentador"]
-      MOT["Motor de decisión"]
-      VER["Verbalizador por plantillas + validador"]
-    end
-  end
-  FE["Frontend React<br>(inicio, sesión, resumen)"]
-  REF --> DTW
-  SK --> SEG
-  SK --> MOT
-  CAM --> SES
-  SES --> MP
-  SES --> GEO --> SEG --> DTW --> MOT --> VER
-  LLM -. "contrato ErrorTipificado" .- MOT
-  SES --> VOZ
-  SES --> MET
-  SES --> UI --> FE
-```
 <img width="1796" height="1298" alt="image" src="https://github.com/user-attachments/assets/3adf49d0-0504-4676-b0b6-16af96fb8685" />
 
 
@@ -548,79 +509,20 @@ Las dependencias van siempre hacia el dominio: los adaptadores conocen a la apli
 
 El acoplamiento más fuerte que queda es el que existe entre las *skills* y la geometría: una regla solo puede usar medidas que la geometría sabe calcular, y añadir una medida nueva es un cambio del contrato, no de configuración. El cargador de *skills* lo verifica al arrancar y falla de forma ruidosa si una regla nombra una medida o un segmento desconocidos.
 
-```mermaid
-flowchart TB
-  F["Fuente<br>(frame, t_ms)"] -->|"ndarray BGR"| E["Estimador<br>ResultadoPose: 33 puntos imagen + mundo, visibilidad, latencia"]
-  E -->|"ResultadoPose"| G["Geometría<br>Observacion: ángulos, distancias, confianza, planos, orientación"]
-  G -->|"Observacion"| S["Segmentador<br>+ fase, repetición"]
-  S -->|"Observacion"| D["Alineador DTW<br>+ angulos_ref, progreso, coste_dtw"]
-  D -->|"Observacion"| M["Motor de decisión"]
-  M -->|"Silencio(motivo)"| ST["EstadoFrame"]
-  M -->|"ErrorTipificado / Refuerzo"| VB["Verbalizador<br>plantillas | LLM + validador"]
-  VB -->|"MensajeFeedback(texto, error)"| ST
-  VB -->|"texto"| Q["Cola de voz → Piper"]
-  ST -->|"JSON (contrato.py)"| UI["Interfaz React"]
-  ST -->|"latencias, motivos"| R["Resumen de sesión<br>(solo métricas)"]
-```
+<img width="1272" height="1230" alt="image" src="https://github.com/user-attachments/assets/534a365c-8ea6-4a32-8e4a-e4560bec23bd" />
+
 
 ### 10.4 Comportamiento
 
 La secuencia principal es el procesamiento de un fotograma. La sesión pide la pose, calcula las medidas, actualiza el segmentador y, si hay referencia, el alineador; si la persona está en pausa (fuera del encuadre o inactiva), el motor no corrige; en otro caso, el motor decide y, si emite un mensaje, lo encola para la voz sin esperar a que se pronuncie. El diagrama siguiente muestra ese ciclo y la entrega asíncrona de la voz.
 
-```mermaid
-sequenceDiagram
-  participant C as Cámara (hilo)
-  participant S as Sesión (hilo)
-  participant P as MediaPipe
-  participant G as Geometría + segmentador
-  participant D as DTW
-  participant M as Motor + verbalizador
-  participant V as Cola de voz (hilo)
-  participant U as Interfaz
-  C->>S: último fotograma (los viejos se descartan)
-  S->>P: estimar(frame, t)
-  P-->>S: ResultadoPose
-  S->>G: medidas con confianza, fase, repetición
-  G-->>S: Observacion
-  S->>D: alinear repetición en curso
-  D-->>S: angulos_ref, progreso, coste
-  S->>M: procesar(Observacion)
-  alt confianza baja o plano no observable
-    M-->>S: Silencio(motivo)
-  else error confirmado y política de silencio lo permite
-    M-->>S: MensajeFeedback(texto, ErrorTipificado)
-    S->>V: decir(texto) (no bloquea)
-    V-->>V: Piper reproduce la frase ya sintetizada
-  end
-  U->>S: estado(desde) (sondeo largo)
-  S-->>U: EstadoFrame más reciente
-```
+<img width="1518" height="1497" alt="image" src="https://github.com/user-attachments/assets/bd94977e-538f-444b-84be-5e4b257fae99" />
+
 
 La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, que solo se activa en EXP-001. Su comportamiento ante fallos define la tolerancia del sistema: el motor ya decidió el error, el modelo solo redacta, y cualquier salida inválida o tardía cae a la plantilla.
 
-```mermaid
-sequenceDiagram
-  participant M as Motor de decisión
-  participant L as Verbalizador LLM
-  participant H as llama-server (local)
-  participant Val as Validador
-  participant T as Plantillas
-  M->>L: ErrorTipificado (error, segmento, lado, severidad, dirección)
-  L->>H: petición con gramática / esquema restringido
-  alt responde dentro del presupuesto
-    H-->>L: texto
-    L->>Val: validar(texto, ErrorTipificado)
-    alt segmento y lado coinciden, sin vocabulario clínico, longitud válida
-      Val-->>M: MensajeFeedback(texto LLM)
-    else rechazado
-      Val->>T: caída a plantilla
-      T-->>M: MensajeFeedback(texto plantilla)
-    end
-  else error o tiempo agotado
-    L->>T: caída a plantilla
-    T-->>M: MensajeFeedback(texto plantilla)
-  end
-```
+<img width="1514" height="826" alt="image" src="https://github.com/user-attachments/assets/f7845025-5f6b-41fc-a2ce-9ecea4e3ffae" />
+
 
 **Eficiencia y cuellos de botella.** El flujo no tiene pasos redundantes: cada fotograma se estima una sola vez, y la conversión a JSON y la compresión de la imagen para la interfaz ocurren en el hilo de la interfaz, no en el de la sesión. Las mediciones preliminares (sección 14.3) identifican tres cuellos de botella. El primero es la estimación de pose, que domina el tiempo por fotograma: en un portátil de bajo consumo, MediaPipe *full* midió 28,7 ms de p95 a ritmo real y 35,0 ms procesando sin pausa, al límite del objetivo de 33 ms, por lo que la medición en el equipo final es decisiva (EXP-004). El segundo es el DTW: la implementación actual recalcula el alineamiento de todo el prefijo de la repetición en cada fotograma, con un costo de unos 0,31 ms por fotograma de prefijo que crece sin límite cuando el segmentador no cierra la repetición; es la causa de los fotogramas descartados y de la deriva observada, y EXP-010 lo compara con una banda de Sakoe-Chiba [15]. El tercero está en la voz: la síntesis no limita, porque las frases se sintetizan al arrancar (factor de tiempo real 0,085), pero la cola tiene un solo hueco y no interrumpe la frase en curso, de modo que una corrección que llega durante el anuncio del ejercicio espera varios segundos.
 
