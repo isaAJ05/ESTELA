@@ -229,5 +229,32 @@ class TestObservacion(unittest.TestCase):
         self.assertEqual(obs.confianza_de("rodilla_izq"), 0.0)
 
 
+class TestCabezaMirada(unittest.TestCase):
+    """Plancha de perfil: cabeza a la derecha, tronco horizontal (y crece hacia abajo)."""
+
+    def _plancha(self, nariz):
+        return {
+            "left_shoulder": kp(0.6, 0.5), "right_shoulder": kp(0.6, 0.5),
+            "left_hip": kp(0.2, 0.5), "right_hip": kp(0.2, 0.5),
+            "left_ear": kp(0.7, 0.5), "right_ear": kp(0.7, 0.5),
+            "nose": nariz,
+        }
+
+    def test_mirando_al_suelo_es_cero(self):
+        self.assertAlmostEqual(g.cabeza_mirada(self._plancha(kp(0.7, 0.55))), 0.0, places=6)
+
+    def test_mirando_hacia_delante_es_positivo(self):
+        self.assertAlmostEqual(g.cabeza_mirada(self._plancha(kp(0.75, 0.5))), 90.0, places=6)
+        self.assertGreater(g.cabeza_mirada(self._plancha(kp(0.74, 0.54))), 30.0)
+
+    def test_mirando_a_los_pies_es_negativo(self):
+        self.assertLess(g.cabeza_mirada(self._plancha(kp(0.66, 0.54))), -30.0)
+
+    def test_sin_nariz_no_hay_medida(self):
+        c = self._plancha(kp(0.7, 0.55))
+        del c["nose"]
+        self.assertIsNone(g.cabeza_mirada(c))
+
+
 if __name__ == "__main__":
     unittest.main()

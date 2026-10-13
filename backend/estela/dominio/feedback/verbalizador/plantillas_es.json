@@ -67,6 +67,18 @@
     "alta": ["Separa bastante más los {segmento_pl}, manteniendo el control."]
   },
 
+  "rodilla_extendida_marcha": {
+    "leve": ["Dobla un poco más la {segmento} {lado} al subirla."],
+    "moderada": ["Dobla la {segmento} {lado} al subirla, no la lleves estirada.", "Flexiona la {segmento} {lado} en cada paso."],
+    "alta": ["Dobla bien la {segmento} {lado}, la estás subiendo estirada."]
+  },
+
+  "rodilla_flexionada_plancha": {
+    "leve": ["Estira un poco más la {segmento} {lado}."],
+    "moderada": ["Estira la {segmento} {lado}, cuerpo en línea recta.", "Extiende la {segmento} {lado}, sin doblarla."],
+    "alta": ["Estira bien la {segmento} {lado}, la tienes muy doblada."]
+  },
+
   "rodilla_baja": {
     "leve": ["Sube un poco más la {segmento} {lado}, si mantienes el equilibrio."],
     "moderada": ["Eleva más la {segmento} {lado}, sin perder el equilibrio.", "Sube un poco más la {segmento} {lado} en cada paso, con control."],

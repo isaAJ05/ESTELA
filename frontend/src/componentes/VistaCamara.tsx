@@ -153,7 +153,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
         ctx.fillText(t, x, y)
       }
       for (const a of angulos.articulaciones) {
-        const p = pts[a.indice]
+        const p = a.indices.map((i) => pts[i]).filter(Boolean).sort((u, v) => v[2] - u[2])[0]
         if (!p || p[2] <= VISIBLE) continue
         const f = fallo(a.nombre)
         if (!f && !todos) continue

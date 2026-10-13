@@ -44,7 +44,7 @@ motor determinista.
 
 from __future__ import annotations
 
-from typing import Any, Dict, List, Mapping, Optional, Sequence
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
@@ -110,6 +110,16 @@ def _angulos_de_medida(clave: str) -> List[str]:
     return salida
 
 
+#: Medidas en distancia que no tienen grados propios: en pantalla se señala el
+#: ángulo que mejor las representa (EXP-009). Plancha: la cadera, con la línea
+#: hombro–cadera–tobillo (180° = recta); los hombros, con el ángulo
+#: cadera–hombro–codo (≈ 90° con el hombro sobre el codo).
+_ANGULO_EQUIVALENTE: Dict[str, Tuple[str, ...]] = {
+    "alineacion_cadera": ("alineacion_cuerpo_izq", "alineacion_cuerpo_der"),
+    "hombro_sobre_codo": ("hombro_izq", "hombro_der"),
+}
+
+
 def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
     """Último mensaje del motor → indicación tipada para la interfaz."""
     if m is None:
@@ -119,6 +129,12 @@ def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
         return {"texto": m.texto, "tipo": "refuerzo", "errorId": None,
                 "segmento": None, "lado": None, "severidad": None, "puntos": [],
                 "angulos": [], "magnitud": None, "direccion": None}
+    angulos = _angulos_de_medida(err.medida)
+    magnitud: Optional[float] = round(err.magnitud, 1)
+    equivalentes = [a for n in angulos for a in _ANGULO_EQUIVALENTE.get(n, ())]
+    if equivalentes:
+        # la magnitud está en escalas corporales, no en grados: no se muestra
+        angulos, magnitud = equivalentes, None
     return {
         "texto": m.texto,
         "tipo": "correccion",
@@ -129,10 +145,20 @@ def feedback_a_dict(m: Optional[MensajeFeedback]) -> Optional[Dict[str, Any]]:
         "puntos": puntos_de_segmento(err.segmento, err.lado.value),
         # qué medida disparó la regla y cuánto se pasó del umbral, para
         # señalar en pantalla el ángulo que no se cumple
-        "angulos": _angulos_de_medida(err.medida),
-        "magnitud": round(err.magnitud, 1),
+        "angulos": angulos,
+        "magnitud": magnitud,
         "direccion": err.direccion.value if err.direccion else None,
     }
+
+
+#: Medidas que no son la terna de una articulación pero sí tienen un sitio en
+#: el cuerpo donde mostrarlas: se dibujan en el más visible de esos puntos.
+_UBICACION: Dict[str, Tuple[int, ...]] = {
+    "cabeza_adelantada": (7, 8),        # cuello: en la oreja
+    "cabeza_mirada": (0,),              # hacia dónde mira: en la nariz
+    "alineacion_cuerpo_izq": (23,),     # línea hombro–cadera–tobillo: en la cadera
+    "alineacion_cuerpo_der": (24,),
+}
 
 
 def _angulos(angulos: Optional[Mapping[str, float]],
@@ -154,11 +180,17 @@ def _angulos(angulos: Optional[Mapping[str, float]],
     for nombre, (_, vertice, _) in ANGULOS_TERNA.items():
         if nombre in angulos:
             articulaciones.append({"nombre": nombre,
-                                   "indice": NOMBRES_MEDIAPIPE.index(vertice),
+                                   "indices": [NOMBRES_MEDIAPIPE.index(vertice)],
+                                   "grados": round(angulos[nombre]),
+                                   "importante": nombre in marcados})
+    for nombre, indices in _UBICACION.items():
+        if nombre in angulos:
+            articulaciones.append({"nombre": nombre, "indices": list(indices),
                                    "grados": round(angulos[nombre]),
                                    "importante": nombre in marcados})
     otros = [{"nombre": n, "grados": round(angulos[n])} for n in importantes
-             if n in angulos and n not in ANGULOS_TERNA and n not in ANGULOS_MEDIOS]
+             if n in angulos and n not in ANGULOS_TERNA and n not in ANGULOS_MEDIOS
+             and n not in _UBICACION]
     return {"articulaciones": articulaciones, "otros": otros}
 
 

@@ -88,6 +88,7 @@ def main(argv=None) -> int:
 
     from .aplicacion.rutina import (RutinaInvalida, cargar_catalogo, cargar_rutina,
                                 rutina_de_un_ejercicio)
+    from .aplicacion.registro import escribir_csv
     from .aplicacion.sesion import frases_de_rutina
     from .adaptadores.voz.cola import ColaVoz
     from .adaptadores.voz.motores import buscar_voz_piper, crear_motor
@@ -122,6 +123,9 @@ def main(argv=None) -> int:
             ruta.write_text(json.dumps(resumen, ensure_ascii=False, indent=2),
                             encoding="utf-8")
             print(f"Métricas guardadas en {ruta}")
+            ruta_csv = ruta.with_name(ruta.stem + "-repeticiones.csv")
+            escribir_csv(resumen["pasos"], ruta_csv)
+            print(f"Repeticiones guardadas en {ruta_csv}")
 
     if args.sin_ventana or args.interfaz == "opencv":
         return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion)

@@ -156,6 +156,8 @@ El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce.
 - La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
 - En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
 - En `isometrico`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
+- `requiere` (opcional, solo `ciclo`): lista de condiciones `{senal, min y/o max}` sobre **otras** señales que tienen que cumplirse al menos en un frame de la repetición para que cuente. Si no, la repetición es incompleta, pero pasa igual por la fase de vuelta y las reglas pueden decir qué faltó. Jumping jacks lo usa para la coordinación: la repetición la marcan los brazos y solo cuenta si los pies también se abrieron (EXP-009).
+- `movimiento_equivocado` (opcional): `{senal, min y/o max, aviso}`. Si en la fase de reposo la señal se cumple durante 1 s, la sesión dice `aviso`. Es un aviso de operación, como el de colocarse de frente; no es una corrección y no pasa por el motor. La abducción lo usa para «Ahora toca la pierna izquierda» cuando se sube la otra (EXP-009).
 - Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción y plancha no tienen vídeo de referencia.
 
 ## Medidas disponibles
@@ -165,6 +167,7 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | Medida | Tipo | Plano | Qué es |
 |---|---|---|---|
 | `codo_*`, `hombro_*`, `cadera_*`, `rodilla_*` (`_izq`, `_der`, `_media`/`_medio`) | ángulo | sagital (hombro: frontal) | Ángulo articular de la terna; 180 = extendido |
+| `tobillo_izq`, `_der` | ángulo | sagital | Rodilla–tobillo–punta del pie. Sin regla todavía (EXP-009) |
 | `tronco_inclinacion` | ángulo | sagital | Tronco respecto a la vertical, sin signo |
 | `inclinacion_lateral` | ángulo | frontal | Tronco hacia los lados, con signo: + = hacia la izquierda de la persona |
 | `oblicuidad_pelvis`, `oblicuidad_hombros` | ángulo | frontal | Línea de caderas / hombros respecto a la horizontal: + = lado izquierdo más alto |
@@ -175,6 +178,7 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `alineacion_cuerpo_izq`, `_der` | ángulo | sagital | Ángulo interno hombro–cadera–tobillo para plancha; 180 = cuerpo recto |
 | `rotacion_tronco`, `azimut_cadera` | ángulo | transversal | No observables con una cámara (EXP-002) |
 | `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
+| `separacion_pies_hombros` | distancia | frontal | Separación de tobillos / anchura de hombros; 1 = pies al ancho de los hombros (jumping jacks, EXP-009) |
 | `longitud_paso` | distancia | sagital | Distancia de tobillos en profundidad, normalizada por escala corporal |
 | `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |

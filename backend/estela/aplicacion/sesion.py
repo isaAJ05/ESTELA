@@ -33,11 +33,12 @@ from ..dominio.feedback.pipeline import MotorFeedback
 from ..dominio.feedback.verbalizador.base import Verbalizador
 from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 
-from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador
+from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador, leer_senal
 from .dtw import AlineadorDTW
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
 from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
+from .registro import RegistroRepeticiones
 from .rutina import Ejercicio, Rutina
 
 #: segundos seguidos mal orientada antes de avisar por voz, y separación
@@ -54,6 +55,8 @@ AVISO_SIN_PERSONA = "No te veo: colócate dentro del encuadre."
 AVISO_PAUSA = {SIN_PERSONA: "Pausa. No te veo: vuelve al encuadre para seguir.",
                INACTIVIDAD: "Pausa. Cuando quieras, sigue con el ejercicio."}
 AVISO_REANUDA = "Seguimos."
+#: milisegundos sosteniendo el movimiento equivocado antes de avisar
+MOVIMIENTO_EQUIVOCADO_MS = 1000
 
 _IDEAL = {Plano.FRONTAL: 0.0, Plano.SAGITAL: 90.0}
 _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
@@ -107,6 +110,9 @@ class _Paso:
     mensajes: List[Dict[str, Any]] = field(default_factory=list)
     pausa: DetectorPausa = field(default_factory=DetectorPausa)
     alineador: Optional[AlineadorDTW] = None
+    registro: Optional[RegistroRepeticiones] = None
+    equivocado_desde: Optional[int] = None
+    ult_aviso_equivocado_ms: Optional[int] = None
 
 
 class Sesion:
@@ -152,6 +158,8 @@ class Sesion:
         actual = self.paso_actual
         if actual is not None:
             actual.fin_ms = self._t_ms
+            if actual.registro is not None:
+                actual.registro.cerrar(self._t_ms)
             self.voz.decir(f"Muy bien, terminaste {actual.ejercicio.skill.nombre.lower()}.",
                            PRIORIDAD_AVISO)
         self._i += 1
@@ -163,7 +171,8 @@ class Sesion:
         self._pasos.append(_Paso(ej, p.repeticiones,
                                  MotorFeedback(ej.skill, self.verbalizador),
                                  ej.nuevo_segmentador(),
-                                 alineador=None if self.sin_dtw else AlineadorDTW(ej.referencia)))
+                                 alineador=None if self.sin_dtw else AlineadorDTW(ej.referencia),
+                                 registro=RegistroRepeticiones(ej)))
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -233,6 +242,8 @@ class Sesion:
                 obs = replace(obs, angulos_ref=dtw.angulos_ref,
                               progreso=dtw.progreso, coste_dtw=dtw.coste)
             lat["dtw"] = (time.perf_counter() - t_dtw) * 1000
+        if p.registro is not None:
+            p.registro.actualizar(obs, seg)
 
         # La inactividad se vigila desde la primera repetición (o el primer
         # bloque en posición) y solo con señal válida: sin señal, el problema
@@ -275,7 +286,8 @@ class Sesion:
                                "repeticion": seg.repeticion})
 
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
-                 or self._revisa_encuadre(seg.senal_valida, t_ms))
+                 or self._revisa_encuadre(seg.senal_valida, t_ms)
+                 or self._revisa_movimiento_equivocado(p, obs, seg, t_ms))
         estado = self._estado(p, res, aviso, lat, obs.orientacion,
                               salida.motivo if isinstance(salida, Silencio) else None,
                               angulos=obs.angulos)
@@ -317,6 +329,35 @@ class Sesion:
             self._ult_aviso_orient_ms = t_ms
             self.voz.decir(texto, PRIORIDAD_AVISO)
         return texto
+
+    def _revisa_movimiento_equivocado(self, p: _Paso, obs, seg: EstadoSegmento,
+                                      t_ms: int) -> Optional[str]:
+        """Aviso de operación, no corrección de técnica: la usuaria hace otro
+        movimiento (p. ej. sube la pierna derecha cuando toca la izquierda).
+
+        Se configura en la segmentación del skill con `movimiento_equivocado`
+        ({senal, min y/o max, aviso}) y solo se mira mientras el ejercicio está
+        en reposo, sostenido `MOVIMIENTO_EQUIVOCADO_MS`. EXP-009.
+        """
+        conf = (p.ejercicio.segmentacion or {}).get("movimiento_equivocado")
+        fases = (p.ejercicio.segmentacion or {}).get("fases") or ()
+        if not conf or not fases or seg.fase != fases[0]:
+            p.equivocado_desde = None
+            return None
+        v = leer_senal(obs, conf["senal"], 0.5)
+        if v is None or not ((conf.get("min") is None or v >= conf["min"])
+                             and (conf.get("max") is None or v <= conf["max"])):
+            p.equivocado_desde = None
+            return None
+        if p.equivocado_desde is None:
+            p.equivocado_desde = t_ms
+        if t_ms - p.equivocado_desde < MOVIMIENTO_EQUIVOCADO_MS:
+            return None
+        if (p.ult_aviso_equivocado_ms is None
+                or t_ms - p.ult_aviso_equivocado_ms >= ORIENTACION_REPETIR_S * 1000):
+            p.ult_aviso_equivocado_ms = t_ms
+            self.voz.decir(conf["aviso"], PRIORIDAD_AVISO)
+        return conf["aviso"]
 
     def _revisa_encuadre(self, senal_valida: bool, t_ms: int) -> Optional[str]:
         if senal_valida or self._ult_senal_ms is None:
@@ -363,6 +404,12 @@ class Sesion:
 
     # -- resumen ------------------------------------------------------------
 
+    def _filas(self, p: _Paso) -> List[Dict[str, Any]]:
+        if p.registro is None:
+            return []
+        p.registro.cerrar(p.fin_ms if p.fin_ms is not None else self._t_ms)
+        return list(p.registro.filas)
+
     def resumen(self) -> Dict[str, Any]:
 
         pasos = []
@@ -383,6 +430,7 @@ class Sesion:
                 "pausa_s": round(pausa_ms / 1000.0, 1),
                 "mensajes": p.mensajes,
                 "abstenciones": p.motor.abstenciones,
+                "repeticiones": self._filas(p),
             })
         return {
             "rutina": self.rutina.nombre,
@@ -411,6 +459,9 @@ def frases_de_rutina(rutina: Rutina, catalogo: Mapping[str, Ejercicio],
         ej = catalogo[paso.skill_id]
         frases.add(Sesion._anuncio(ej, paso.repeticiones))
         frases.add(f"Muy bien, terminaste {ej.skill.nombre.lower()}.")
+        equivocado = (ej.segmentacion or {}).get("movimiento_equivocado")
+        if equivocado:
+            frases.add(equivocado["aviso"])
         for regla in ej.skill.reglas:
             for sev in Severidad:
                 for rep in range(3):          # las plantillas tienen ≤ 3 variantes
