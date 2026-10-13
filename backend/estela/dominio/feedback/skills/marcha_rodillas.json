@@ -1,12 +1,12 @@
 {
   "skill_id": "marcha_rodillas",
   "nombre": "Marcha con elevación de rodillas",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "estado": "candidato",
-  "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json.",
+  "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json. EXP-009 (2026-10-12): nueva regla de rodilla estirada al subir y tobillos visibles en pantalla; el tobillo no tiene regla (talón levantado y pie colgando necesitan talón y punta del pie, ruidosos de perfil; sin datos de error).",
   "fases": ["apoyo_izq", "apoyo_der", "transicion"],
   "orientacion_preferida": "sagital",
-  "angulos_requeridos": ["cadera_izq", "cadera_der", "tronco_inclinacion"],
+  "angulos_requeridos": ["cadera_izq", "cadera_der", "rodilla_izq", "rodilla_der", "tobillo_izq", "tobillo_der", "tronco_inclinacion"],
   "politica_silencio": {
     "refractario_ms": 4000,
     "refractario_mismo_error_ms": 10000,
@@ -41,14 +41,14 @@
       "error_id": "tronco_muy_inclinado",
       "descripcion": "El tronco se inclina hacia atrás o hacia delante al elevar la rodilla.",
       "medida": {"tipo": "angulo", "nombre": "tronco_inclinacion"},
-      "condicion": {"op": ">", "umbral": 20},
+      "condicion": {"op": ">", "umbral": 15},
       "fases": ["apoyo_izq", "apoyo_der"],
       "plano": "sagital",
       "segmento": "tronco",
       "lado": "na",
       "prioridad": 3,
       "severidad": {"moderada": 8, "alta": 18},
-      "umbral_origen": "[?] provisional, sin calibrar",
+      "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): antes 20; [F] en 2 vídeos correctos el tronco va a 2–12° de la vertical, y en la prueba con cámara no corrigió la inclinación",
       "mensaje_id": "tronco_muy_inclinado"
     },
     {
@@ -82,6 +82,8 @@
       "mensaje_id": "rodilla_baja",
       "direccion": {"disminuir": "subir"},
       "solo_lado_visible": true
-    }
+    },
+    {"error_id": "rodilla_izq_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_der"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 4, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true},
+    {"error_id": "rodilla_der_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_izq"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 5, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true}
   ]
 }

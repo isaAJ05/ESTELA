@@ -373,3 +373,16 @@ def test_todo_segmento_del_contrato_se_puede_resaltar():
     from estela.adaptadores.pose.landmarks import puntos_de_segmento
     from estela.dominio.feedback.contrato import SEGMENTOS
     assert all(puntos_de_segmento(s, "bilateral") for s in SEGMENTOS)
+
+
+def test_error_en_distancia_senala_un_angulo_sin_grados_falsos():
+    """EXP-009: la cadera de la plancha se mide en distancia; en pantalla se
+    señala la línea hombro–cadera–tobillo y no se muestran «0° fuera»."""
+    from estela.dominio.feedback.contrato import (
+        ErrorTipificado, Lado, MensajeFeedback, Severidad)
+    err = ErrorTipificado("cadera_hundida", "cadera", Lado.BILATERAL, Severidad.LEVE,
+                          "mantenimiento", 2, "plancha", magnitud=0.04,
+                          medida="distancia:alineacion_cadera")
+    fb = contrato.feedback_a_dict(MensajeFeedback("Sube la cadera.", err, "plantillas"))
+    assert fb["angulos"] == ["alineacion_cuerpo_izq", "alineacion_cuerpo_der"]
+    assert fb["magnitud"] is None

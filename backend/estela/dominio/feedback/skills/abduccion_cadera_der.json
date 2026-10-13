@@ -45,6 +45,7 @@
       "bajada"
     ],
     "suavizado": 3,
+    "movimiento_equivocado": {"senal": "angulos.abduccion_cadera_izq", "min": 16, "aviso": "Ahora toca la pierna derecha."},
     "umbral_origen": "[?] provisional, sin vídeo de referencia: 0-5° de pie, 25° como mínimo de una elevación lateral. Cambiado 2026-10-11: reposo 12→10, extremo 25→16 y margen 5→4, alineado con el umbral de abducción_insuficiente tras la revisión de la licenciada. [?] Vigilar conteos falsos por ruido cerca del reposo."
   },
   "reglas": [

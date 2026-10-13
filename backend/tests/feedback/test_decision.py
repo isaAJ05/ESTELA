@@ -557,13 +557,34 @@ class TestCatalogoT17(unittest.TestCase):
             # jumping_jacks pide 3 repeticiones de evidencia
             m = MotorDecision(SKILLS["jumping_jacks"])
             for rep in (1, 2, 3):
-                d = m.observar(self._obs("jumping_jacks", rep * 20000, rep, "abierto",
+                # EXP-009: la amplitud se juzga en «cierre», con el máximo de
+                # la repetición ya visto
+                d = m.observar(self._obs("jumping_jacks", rep * 20000, rep, "cierre",
                                          angulos={"hombro_medio": hombro, "codo_medio": 170.0},
-                                         distancias={"separacion_pies": 2.0},
+                                         distancias={"separacion_pies_hombros": 1.5},
                                          orientacion=0.0))
             return d
         self.assertEqual(brazos(90.0).error_id, "brazos_no_llegan_arriba")
         self.assertIsInstance(brazos(110.0), Silencio)
+
+    def test_jumping_jacks_pies_por_debajo_del_ancho_de_hombros(self):
+        m = MotorDecision(SKILLS["jumping_jacks"])
+        for rep in (1, 2, 3):
+            d = m.observar(self._obs("jumping_jacks", rep * 20000, rep, "cierre",
+                                     angulos={"hombro_medio": 150.0, "codo_medio": 170.0},
+                                     distancias={"separacion_pies_hombros": 0.5},
+                                     orientacion=0.0))
+        self.assertEqual(d.error_id, "apertura_pies_insuficiente")
+
+    def test_marcha_corrige_la_rodilla_que_sube_estirada(self):
+        m = MotorDecision(SKILLS["marcha_rodillas"])
+        for rep in (1, 2, 3):
+            d = m.observar(self._obs("marcha_rodillas", rep * 20000, rep, "apoyo_der",
+                                     angulos={"cadera_izq": 100.0, "cadera_der": 170.0,
+                                              "rodilla_izq": 165.0, "rodilla_der": 175.0,
+                                              "tronco_inclinacion": 5.0},
+                                     orientacion=90.0))
+        self.assertEqual(d.error_id, "rodilla_izq_extendida")
 
     def test_marcha_la_rodilla_va_antes_que_el_tronco(self):
         m = MotorDecision(SKILLS["marcha_rodillas"])

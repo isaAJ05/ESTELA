@@ -193,11 +193,11 @@
     {
       "fase": "transicion",
       "inicio": 0,
-      "fin": 2
+      "fin": 1
     },
     {
       "fase": "apoyo_der",
-      "inicio": 3,
+      "inicio": 2,
       "fin": 8
     },
     {

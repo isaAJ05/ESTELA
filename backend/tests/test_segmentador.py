@@ -255,3 +255,25 @@ def test_isometrico_desde_dict_valida_la_configuracion():
         segmentador_desde_dict({**d, "condiciones": []})
     with pytest.raises(SegmentacionInvalida):
         segmentador_desde_dict({**d, "fases": ["a", "b", "c"]})
+
+
+def test_requiere_coordinacion_brazos_y_piernas():
+    """EXP-009: en jumping jacks la repetición la marcan los brazos y solo
+    cuenta si los pies también se abrieron."""
+    def seg():
+        return SegmentadorCiclo("angulos.hombro_medio", reposo=45, extremo=100,
+                                fases=("cerrado", "apertura", "abierto", "cierre"),
+                                margen_retorno=15, suavizado=1,
+                                requiere=[CondicionPostura("distancias.separacion_pies_hombros", min=0.9)])
+    brazos = [20, 60, 120, 150, 120, 60, 20]
+    s = seg()
+    for b in brazos:          # solo brazos: los pies no se abren
+        e = s.actualizar(obs(0, angulos={"hombro_medio": b},
+                             distancias={"separacion_pies_hombros": 0.4}))
+    assert (e.completadas, e.incompletas) == (0, 1)
+    s = seg()
+    for b in brazos:          # brazos y pies
+        pies = 1.5 if b >= 100 else 0.4
+        e = s.actualizar(obs(0, angulos={"hombro_medio": b},
+                             distancias={"separacion_pies_hombros": pies}))
+    assert (e.completadas, e.incompletas) == (1, 0)

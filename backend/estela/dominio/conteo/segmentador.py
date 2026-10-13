@@ -31,6 +31,12 @@ Decisiones de diseño:
   «baja más». Solo cuenta en el contador si alcanzó el extremo.
 * Histéresis por umbrales + margen de retorno + media móvil corta, para que
   el ruido del estimador no genere repeticiones fantasma.
+* ``requiere`` (opcional, ``ciclo``): condiciones sobre **otras** señales que
+  deben cumplirse al menos una vez durante la repetición para que cuente.
+  Sirve para la coordinación (EXP-009, JJ-09): en jumping jacks la
+  repetición la marcan los brazos y solo cuenta si los pies también se
+  abrieron. Si no se cumplen, la repetición es incompleta: pasa igualmente
+  por la fase de vuelta y el motor puede decir qué faltó.
 
 `[?]` Los umbrales son provisionales. Se fijaron mirando las señales 3D de un
 vídeo por ejercicio de PRUEBAS/DATASET, no con un protocolo de calibración.
@@ -180,18 +186,33 @@ class Segmentador:
 class SegmentadorCiclo(Segmentador):
     def __init__(self, senal: Union[str, Sequence[str]], reposo: float, extremo: float,
                  fases: Tuple[str, str, str, str], margen_retorno: float,
-                 suavizado: int = 3, confianza_minima: float = 0.5) -> None:
+                 suavizado: int = 3, confianza_minima: float = 0.5,
+                 requiere: Sequence["CondicionPostura"] = ()) -> None:
         if len(fases) != 4:
             raise SegmentacionInvalida("un ciclo necesita 4 fases")
         self.senal = senal
         self.confianza_minima = confianza_minima
+        self.requiere = tuple(requiere)
         self._fases = dict(zip((REPOSO, IDA, EXTREMO, VUELTA), fases))
         self._ciclo = Ciclo(reposo, extremo, margen_retorno, suavizado)
         self._rep = self._completadas = self._incompletas = 0
+        self._cumplidas = [False] * len(self.requiere)
+
+    def _anota_requisitos(self, obs: Observacion) -> None:
+        for i, c in enumerate(self.requiere):
+            if not self._cumplidas[i]:
+                v = leer_senal(obs, c.senal, self.confianza_minima)
+                self._cumplidas[i] = v is not None and c.cumple(v)
 
     def actualizar(self, obs: Observacion) -> EstadoSegmento:
         valor = leer_senal(obs, self.senal, self.confianza_minima)
         evento = None if valor is None else self._ciclo.paso(valor)
+        if evento == EVENTO_INICIO:
+            self._cumplidas = [False] * len(self.requiere)
+        if self._ciclo.estado != REPOSO or evento is not None:
+            self._anota_requisitos(obs)
+        if evento == EVENTO_COMPLETA and not all(self._cumplidas):
+            evento = EVENTO_INCOMPLETA
         if evento == EVENTO_INICIO:
             self._rep += 1
         elif evento == EVENTO_COMPLETA:
@@ -400,16 +421,8 @@ def segmentador_desde_dict(d: Mapping[str, Any],
         if len(fases) != 2:
             raise SegmentacionInvalida("isometrico necesita 2 fases (fuera, en posición)")
         _valida_fases(fases, fases_skill)
-        condiciones = []
-        for c in d.get("condiciones", ()):
-            if "senal" not in c or ("min" not in c and "max" not in c):
-                raise SegmentacionInvalida("cada condición necesita 'senal' y 'min' o 'max'")
-            condiciones.append(CondicionPostura(
-                c["senal"],
-                float(c["min"]) if "min" in c else None,
-                float(c["max"]) if "max" in c else None))
         return SegmentadorIsometrico(
-            condiciones, fases,
+            _condiciones(d.get("condiciones", ())), fases,
             entrada_ms=int(d.get("entrada_ms", 1000)),
             salida_ms=int(d.get("salida_ms", 1500)),
             bloque_s=float(d.get("bloque_s", 5.0)),
@@ -423,7 +436,9 @@ def segmentador_desde_dict(d: Mapping[str, Any],
     if tipo == "ciclo":
         fases = tuple(d.get("fases", ()))
         _valida_fases(fases, fases_skill)
-        return SegmentadorCiclo(senal=d["senal"], fases=fases, **comunes)
+        return SegmentadorCiclo(senal=d["senal"], fases=fases,
+                                requiere=_condiciones(d.get("requiere", ())),
+                                **comunes)
     if tipo == "alternante":
         fases = (d.get("fase_izq_arriba"), d.get("fase_der_arriba"),
                  d.get("fase_transicion"))
@@ -433,6 +448,18 @@ def segmentador_desde_dict(d: Mapping[str, Any],
             fase_izq_arriba=fases[0], fase_der_arriba=fases[1],
             fase_transicion=fases[2], **comunes)
     raise SegmentacionInvalida(f"tipo de segmentacion desconocido: {tipo}")
+
+
+def _condiciones(lista: Sequence[Mapping[str, Any]]) -> Tuple[CondicionPostura, ...]:
+    condiciones = []
+    for c in lista:
+        if "senal" not in c or ("min" not in c and "max" not in c):
+            raise SegmentacionInvalida("cada condición necesita 'senal' y 'min' o 'max'")
+        condiciones.append(CondicionPostura(
+            c["senal"],
+            float(c["min"]) if "min" in c else None,
+            float(c["max"]) if "max" in c else None))
+    return tuple(condiciones)
 
 
 def _valida_fases(fases: Tuple[Any, ...], fases_skill: Tuple[str, ...]) -> None:

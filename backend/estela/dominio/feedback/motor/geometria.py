@@ -45,6 +45,11 @@ ANGULOS_TERNA: Dict[str, Tuple[str, str, str]] = {
     "cadera_der": ("right_shoulder", "right_hip", "right_knee"),
     "rodilla_izq": ("left_hip", "left_knee", "left_ankle"),
     "rodilla_der": ("right_hip", "right_knee", "right_ankle"),
+    # Tobillo: rodilla–tobillo–punta del pie. EXP-009: mostrarlo en plancha y
+    # marcha. `[F]` En vídeos correctos de perfil vale ~105° en la plancha y
+    # ~105–140° en la marcha; sin regla todavía (sin datos de error).
+    "tobillo_izq": ("left_knee", "left_ankle", "left_foot_index"),
+    "tobillo_der": ("right_knee", "right_ankle", "right_foot_index"),
 }
 
 #: Ángulos bilaterales derivados: media de los dos lados. Existen para que una
@@ -72,10 +77,13 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "rodilla_izq": Plano.SAGITAL,
     "rodilla_der": Plano.SAGITAL,
     "rodilla_media": Plano.SAGITAL,
+    "tobillo_izq": Plano.SAGITAL,
+    "tobillo_der": Plano.SAGITAL,
     "tronco_inclinacion": Plano.SAGITAL,
     "valgo_rodilla_izq": Plano.FRONTAL,
     "valgo_rodilla_der": Plano.FRONTAL,
     "separacion_pies": Plano.FRONTAL,
+    "separacion_pies_hombros": Plano.FRONTAL,
     "rotacion_tronco": Plano.TRANSVERSAL,
     "azimut_cadera": Plano.TRANSVERSAL,
     # ADR-006: medidas con los 33 puntos que no se usaban (EXP-008, brazo A0+).
@@ -582,6 +590,26 @@ def separacion_pies(kps: Dict[str, Keypoint]) -> Optional[float]:
     return dt / dc
 
 
+def separacion_pies_hombros(kps: Dict[str, Keypoint]) -> Optional[float]:
+    """Separación de tobillos dividida por la anchura de hombros.
+
+    Expresa directamente la pauta de jumping jacks «pies un poco más allá del
+    ancho de los hombros» (catálogo v2, JJ-05/07): 1,0 = pies a la anchura de
+    los hombros. `[F]` En tres vídeos correctos (EXP-009): ~0,35 con los pies
+    juntos y 1,5–2,7 abiertos. Los hombros separan más que las caderas de
+    MediaPipe, así que el cociente es menos sensible al ruido del denominador
+    que `separacion_pies`.
+    """
+    req = ("left_ankle", "right_ankle", "left_shoulder", "right_shoulder")
+    if any(k not in kps for k in req):
+        return None
+    dt = abs(kps["left_ankle"].x - kps["right_ankle"].x)
+    dh = abs(kps["left_shoulder"].x - kps["right_shoulder"].x)
+    if dh < 1e-9:
+        return None
+    return dt / dh
+
+
 
 # ---------------------------------------------------------------------------
 # Confianza
@@ -699,6 +727,11 @@ def observacion_desde_pose(
         distancias["separacion_pies"] = sep
         confianza["separacion_pies"] = confianza_de_terna(
             kps, ("left_ankle", "right_ankle", "left_hip", "right_hip"))
+    seph = separacion_pies_hombros(kps)
+    if seph is not None:
+        distancias["separacion_pies_hombros"] = seph
+        confianza["separacion_pies_hombros"] = confianza_de_terna(
+            kps, ("left_ankle", "right_ankle", "left_shoulder", "right_shoulder"))
     lado = lado_mas_visible(kps, PARTES_ALINEACION)
     alin = alineacion_cadera(kps, usar_z, lado) if lado else None
     if alin is not None:
@@ -734,6 +767,7 @@ __all__ = [
     "ANGULOS_TERNA", "ANGULOS_MEDIOS", "PLANO_DE_ANGULO", "KP_REQUERIDOS",
     "angulo_entre", "punto_medio", "escala_corporal", "inclinacion_tronco",
     "orientacion_camara", "desviacion_lateral_rodilla", "separacion_pies",
+    "separacion_pies_hombros",
     "rotacion_tronco", "azimut_cadera",
     "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_pelvis",
     "inclinacion_lateral", "inclinacion_lateral_tronco",
