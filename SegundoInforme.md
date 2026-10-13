@@ -535,6 +535,8 @@ flowchart LR
   SES --> MET
   SES --> UI --> FE
 ```
+<img width="1796" height="1298" alt="image" src="https://github.com/user-attachments/assets/3adf49d0-0504-4676-b0b6-16af96fb8685" />
+
 
 ### 10.3 Interacción entre módulos
 
