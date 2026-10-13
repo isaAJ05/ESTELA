@@ -519,14 +519,18 @@ El principal acoplamiento residual identificado se encuentra entre las *skills* 
 
 ### 10.4 Comportamiento
 
-La secuencia principal es el procesamiento de un fotograma. La sesión pide la pose, calcula las medidas, actualiza el segmentador y, si hay referencia, el alineador; si la persona está en pausa (fuera del encuadre o inactiva), el motor no corrige; en otro caso, el motor decide y, si emite un mensaje, lo encola para la voz sin esperar a que se pronuncie. El diagrama siguiente muestra ese ciclo y la entrega asíncrona de la voz.
+La secuencia principal es el procesamiento de un fotograma. La sesión pide la pose, calcula las medidas, actualiza el segmentador y, si hay referencia, el alineador; si la persona está en pausa (fuera del encuadre o inactiva), el motor no corrige; en otro caso, el motor decide y, si emite un mensaje, lo encola para la voz sin esperar a que se pronuncie. El diagrama siguiente muestra ese ciclo, con las ramas en que no hay persona o la sesión está en pausa, y el envío de la frase a la cola de voz.
+
 
 <img width="1463" height="1396" alt="image" src="https://github.com/user-attachments/assets/8f53e847-dfe1-453f-bab7-152ae581e3af" />
 
-La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, que solo se activa en EXP-001. Su comportamiento ante fallos define la tolerancia del sistema: el motor ya decidió el error, el modelo solo redacta, y cualquier salida inválida o tardía cae a la plantilla.
+**Flujo de un fotograma.** Diagrama de secuencia de la fase en vivo que muestra el orden de las llamadas, qué hilo ejecuta cada parte, dónde se descartan fotogramas y en qué casos no se invoca al motor de feedback (cuando no hay persona o la sesión está en pausa).
 
-<img width="1514" height="826" alt="image" src="https://github.com/user-attachments/assets/f7845025-5f6b-41fc-a2ce-9ecea4e3ffae" />
+La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, que hoy solo se activa en EXP-001. Su comportamiento ante fallos define la tolerancia del sistema: el motor ya decidió el error y el modelo solo redacta. En la condición F, con salida restringida por esquema y validador, cualquier salida inválida o tardía cae a la plantilla; en la condición F′, el control de EXP-001 sin esquema ni validador, solo caen a la plantilla los fallos de conexión, de tiempo o de formato. El presupuesto de tiempo es un parámetro de diseño que aún no cuenta con respaldo empírico.
 
+<img width="725" height="739" alt="image" src="https://github.com/user-attachments/assets/55f1865f-5dec-40ee-acc5-e60e3ff6f656" />
+
+**Verbalizador con modelo de lenguaje y caída a plantilla.** Diagrama de secuencia que distingue la condición F (con validación) de la condición F′ (sin validación) y muestra las dos causas de caída a la plantilla: la salida rechazada por el validador y el fallo de conexión, de tiempo o de formato.
 
 **Eficiencia y cuellos de botella.** El flujo no tiene pasos redundantes: cada fotograma se estima una sola vez, y la conversión a JSON y la compresión de la imagen para la interfaz ocurren en el hilo de la interfaz, no en el de la sesión. Las mediciones preliminares (sección 14.3) identifican tres cuellos de botella. El primero es la estimación de pose, que domina el tiempo por fotograma: en un portátil de bajo consumo, MediaPipe *full* midió 28,7 ms de p95 a ritmo real y 35,0 ms procesando sin pausa, al límite del objetivo de 33 ms, por lo que la medición en el equipo final es decisiva (EXP-004). El segundo es el DTW: la implementación actual recalcula el alineamiento de todo el prefijo de la repetición en cada fotograma, con un costo de unos 0,31 ms por fotograma de prefijo que crece sin límite cuando el segmentador no cierra la repetición; es la causa de los fotogramas descartados y de la deriva observada, y EXP-010 lo compara con una banda de Sakoe-Chiba [15]. El tercero está en la voz: la síntesis no limita, porque las frases se sintetizan al arrancar (factor de tiempo real 0,085), pero la cola tiene un solo hueco y no interrumpe la frase en curso, de modo que una corrección que llega durante el anuncio del ejercicio espera varios segundos.
 
