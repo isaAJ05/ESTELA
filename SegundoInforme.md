@@ -519,8 +519,7 @@ El principal acoplamiento residual identificado se encuentra entre las *skills* 
 
 La secuencia principal es el procesamiento de un fotograma. La sesión pide la pose, calcula las medidas, actualiza el segmentador y, si hay referencia, el alineador; si la persona está en pausa (fuera del encuadre o inactiva), el motor no corrige; en otro caso, el motor decide y, si emite un mensaje, lo encola para la voz sin esperar a que se pronuncie. El diagrama siguiente muestra ese ciclo y la entrega asíncrona de la voz.
 
-<img width="1518" height="1497" alt="image" src="https://github.com/user-attachments/assets/bd94977e-538f-444b-84be-5e4b257fae99" />
-
+<img width="1463" height="1396" alt="image" src="https://github.com/user-attachments/assets/8f53e847-dfe1-453f-bab7-152ae581e3af" />
 
 La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, que solo se activa en EXP-001. Su comportamiento ante fallos define la tolerancia del sistema: el motor ya decidió el error, el modelo solo redacta, y cualquier salida inválida o tardía cae a la plantilla.
 
