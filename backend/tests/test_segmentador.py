@@ -277,3 +277,49 @@ def test_requiere_coordinacion_brazos_y_piernas():
         e = s.actualizar(obs(0, angulos={"hombro_medio": b},
                              distancias={"separacion_pies_hombros": pies}))
     assert (e.completadas, e.incompletas) == (1, 0)
+
+
+# ---------------------------------------------------------------------------
+# Repeticiones cortas: el frame que las cierra se evalúa (EXP-009, ronda 2)
+# ---------------------------------------------------------------------------
+
+def _dichas(skill_id, frames):
+    """Segmentador y motor del catálogo, como en la sesión: errores emitidos."""
+    from dataclasses import replace
+    from estela.dominio.feedback.contrato import ErrorTipificado
+    from estela.dominio.feedback.motor.decision import MotorDecision
+    ej = cargar_catalogo()[skill_id]
+    seg, motor, dichas = ej.nuevo_segmentador(), MotorDecision(ej.skill), []
+    for i, (angulos, distancias) in enumerate(frames):
+        o = Observacion(t_ms=i * 33, ejercicio_id=skill_id, angulos=angulos,
+                        distancias=distancias, orientacion=90.0 if skill_id == "marcha_rodillas" else 0.0,
+                        confianza={k: 1.0 for k in list(angulos) + list(distancias)})
+        s = seg.actualizar(o)
+        d = motor.observar(replace(o, fase=s.fase, repeticion=s.repeticion))
+        if isinstance(d, ErrorTipificado):
+            dichas.append(d.error_id)
+    return dichas
+
+
+def test_ciclo_corto_cierra_en_la_vuelta():
+    # pico a menos de margen_retorno del reposo: antes no pasaba por la vuelta
+    estados = correr(seg_sentadilla(), [170, 150, 148, 150, 170])
+    assert estados[-2].evento is None and estados[-1].evento == EVENTO_INCOMPLETA
+    assert estados[-1].fase == "ascenso"
+
+
+def test_jj_brazos_a_media_altura_se_corrigen():
+    frames = []
+    for _ in range(4):   # brazos hasta ~60°, pies abiertos
+        for h in rampa(20, 60, 8) + rampa(60, 20, 8) + [20] * 4:
+            frames.append(({"hombro_medio": h, "codo_medio": 160.0}, {"separacion_pies_hombros": 1.5}))
+    assert "brazos_no_llegan_arriba" in _dichas("jumping_jacks", frames)
+
+
+def test_marcha_pierna_estirada_dice_dobla_la_rodilla():
+    frames = []
+    for _ in range(4):   # la cadera solo llega a ~142° y la rodilla no se dobla
+        for c in rampa(172, 142, 10) + rampa(142, 172, 10) + [172] * 6:
+            frames.append(({"cadera_izq": c, "cadera_der": 172.0, "rodilla_izq": 172.0,
+                            "rodilla_der": 175.0, "tronco_inclinacion": 4.0}, {}))
+    assert _dichas("marcha_rodillas", frames)[0] == "rodilla_izq_extendida"

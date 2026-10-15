@@ -3,7 +3,7 @@
   "nombre": "Marcha con elevación de rodillas",
   "version": "0.2.0",
   "estado": "candidato",
-  "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json. EXP-009 (2026-10-12): nueva regla de rodilla estirada al subir y tobillos visibles en pantalla; el tobillo no tiene regla (talón levantado y pie colgando necesitan talón y punta del pie, ruidosos de perfil; sin datos de error).",
+  "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json. EXP-009 (2026-10-12): nueva regla de rodilla estirada al subir y tobillos visibles en pantalla; la rodilla estirada tiene prioridad sobre la rodilla baja (subir la pierna estirada también deja la rodilla baja, y la corrección útil es «dobla la rodilla»); el tobillo no tiene regla (talón levantado y pie colgando necesitan talón y punta del pie, ruidosos de perfil; sin datos de error).",
   "fases": ["apoyo_izq", "apoyo_der", "transicion"],
   "orientacion_preferida": "sagital",
   "angulos_requeridos": ["cadera_izq", "cadera_der", "rodilla_izq", "rodilla_der", "tobillo_izq", "tobillo_der", "tronco_inclinacion"],
@@ -46,7 +46,7 @@
       "plano": "sagital",
       "segmento": "tronco",
       "lado": "na",
-      "prioridad": 3,
+      "prioridad": 5,
       "severidad": {"moderada": 8, "alta": 18},
       "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): antes 20; [F] en 2 vídeos correctos el tronco va a 2–12° de la vertical, y en la prueba con cámara no corrigió la inclinación",
       "mensaje_id": "tronco_muy_inclinado"
@@ -60,7 +60,7 @@
       "plano": "sagital",
       "segmento": "rodilla",
       "lado": "izquierdo",
-      "prioridad": 1,
+      "prioridad": 3,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en calentamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "rodilla_baja",
@@ -76,14 +76,14 @@
       "plano": "sagital",
       "segmento": "rodilla",
       "lado": "derecho",
-      "prioridad": 2,
+      "prioridad": 4,
       "severidad": {"moderada": 15, "alta": 30},
       "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en calentamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "rodilla_baja",
       "direccion": {"disminuir": "subir"},
       "solo_lado_visible": true
     },
-    {"error_id": "rodilla_izq_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_der"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 4, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true},
-    {"error_id": "rodilla_der_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_izq"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 5, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true}
+    {"error_id": "rodilla_izq_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_der"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 1, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true},
+    {"error_id": "rodilla_der_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_izq"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 2, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true}
   ]
 }

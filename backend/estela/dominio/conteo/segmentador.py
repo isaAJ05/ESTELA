@@ -28,7 +28,10 @@ Decisiones de diseño:
   (p. ej. `profundidad_insuficiente` en `ascenso`) ven el mínimo real.
 * Una repetición **incompleta** (no llega al extremo pero se da la vuelta)
   también pasa por la fase de vuelta: sin eso el motor jamás podría decir
-  «baja más». Solo cuenta en el contador si alcanzó el extremo.
+  «baja más». Solo cuenta en el contador si alcanzó el extremo. Como mínimo,
+  el frame que cierra la repetición se etiqueta como vuelta (en el
+  alternante, como la fase de «pierna arriba»), aunque el pico quedara a
+  menos de `margen_retorno` del reposo.
 * Histéresis por umbrales + margen de retorno + media móvil corta, para que
   el ruido del estimador no genere repeticiones fantasma.
 * ``requiere`` (opcional, ``ciclo``): condiciones sobre **otras** señales que
@@ -219,7 +222,11 @@ class SegmentadorCiclo(Segmentador):
             self._completadas += 1
         elif evento == EVENTO_INCOMPLETA:
             self._incompletas += 1
-        return EstadoSegmento(self._fases[self._ciclo.estado], self._rep,
+        # El frame que cierra la repetición se etiqueta como vuelta: una
+        # repetición corta (pico a menos de `margen_retorno` del reposo) nunca
+        # pasaba por la vuelta y sus reglas no se evaluaban (EXP-009).
+        estado = VUELTA if evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA) else self._ciclo.estado
+        return EstadoSegmento(self._fases[estado], self._rep,
                               self._completadas, self._incompletas, evento,
                               senal_valida=valor is not None)
 
@@ -254,6 +261,7 @@ class SegmentadorAlternante(Segmentador):
 
     def actualizar(self, obs: Observacion) -> EstadoSegmento:
         evento_final: Optional[str] = None
+        lado_evento = ""
         validas = 0
         for lado in ("izq", "der"):
             if self._activo not in (None, lado):
@@ -274,10 +282,15 @@ class SegmentadorAlternante(Segmentador):
                     self._incompletas += 1
             if evento is not None:
                 evento_final = evento
+                lado_evento = lado
                 break
 
         fase = self._transicion
-        if self._activo is not None:
+        if evento_final in (EVENTO_COMPLETA, EVENTO_INCOMPLETA):
+            # Igual que en el ciclo: la pierna que baja sin haber llegado al
+            # extremo (p. ej. subida con la rodilla estirada) también se evalúa.
+            fase = self._fase_arriba[lado_evento]
+        elif self._activo is not None:
             ciclo = self._ciclos[self._activo]
             if ciclo.estado in (EXTREMO, VUELTA):
                 fase = self._fase_arriba[self._activo]

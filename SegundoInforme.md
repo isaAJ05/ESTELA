@@ -378,7 +378,7 @@ El desarrollo del proyecto se rige por un marco de **prototipado iterativo condu
 | 1 · hasta 18 sep. | Contrato de entrada del módulo (ADR-002); motor determinista y plantillas; banco sintético | EXP-001 (piloto sintético, condición plantillas); EXP-002 (observabilidad monocular) | Abstención por confianza y por plano antes de detectar; se decide estudiar una sola cámara con orientación por ejercicio (IC-001) |
 | 2 · 23–24 sep. | Aplicación v1: cámara → pose → geometría → segmentación → motor → voz (ADR-003) | Latencia de pose en x86 (≈ 40 ms p50, ≈ 50 ms p95 con el modelo *full*) | El presupuesto de 33 ms de p95 no se cumple en portátil; se fija como objetivo a verificar en la Mac |
 | 3 · 3–5 oct. | Conjunto de ejercicios con una cámara (ADR-005); referencia con DTW y papel del LLM (ADR-004); motor único, retiro de la BiLSTM y política de refuerzo (ADR-006) | Re-ejecución de EXP-001; EXP-008 (puntos de tronco con SpinePose) | Se corrige un defecto del arnés que inflaba la sobrecorrección al 80 %; se descarta SpinePose; se felicita solo lo comprobado (M8′ de 39,5 % a 0 %) |
-| 4 · 6–11 oct. | Catálogo de errores v2 enviado a la licenciada; *skills* nuevas; script de referencias offline; DTW integrado y desactivable; interfaz de escritorio; arquitectura en capas (ADR-007) | EXP-001 con el catálogo v2 (156 episodios); revisión de la licenciada | Umbrales de amplitud relajados a un piso permisivo (EXP-009); la zancada se retira por falta de referencia (enmienda de ADR-005) |
+| 4 · 6–11 oct. | Catálogo de errores v2 enviado a la licenciada; *skills* nuevas; script de referencias offline; DTW integrado y desactivable; interfaz de escritorio; arquitectura en capas (ADR-007) | EXP-001 con el catálogo v2 (156 episodios; con el catálogo actual de cuatro ejercicios, 120); revisión de la licenciada | Umbrales de amplitud relajados a un piso permisivo (EXP-009); la zancada se retira por falta de referencia (enmienda de ADR-005) |
 | 5 · desde 12 oct. | Métricas de validación instrumentadas y este informe | Ejecución del arnés de métricas sobre videos disponibles (sección 14) | Pendiente: sesiones anotadas con cinco participantes y medición en la Mac |
 
 ### 7.3 Validaciones y ajustes
@@ -462,29 +462,40 @@ Toda la arquitectura privilegia este tipo de manejo controlado de errores por en
 
 ### 10.1 Descripción general de la arquitectura
 
-ESTELA es una **aplicación de escritorio monolítica de ejecución local**: un único proceso de Python que contiene toda la lógica, con una interfaz web (React) servida dentro de una ventana nativa mediante pywebview. No hay arquitectura cliente-servidor, ni servicios en la nube, ni base de datos: el único «servidor» posible es un proceso local de modelo de lenguaje (`llama-server`) al que se accede por HTTP en `127.0.0.1`, y es opcional. Esta forma responde directamente a las restricciones de la sección 3.2 —inferencia local, un único usuario, sin almacenamiento de video— y a la evaluación de la sección 9, donde la carga relevante no son usuarios concurrentes sino el flujo continuo de fotogramas compitiendo por el mismo procesador.
+ESTELA es una **aplicación de escritorio monolítica de ejecución local, organizada por capas y basada en principios de puertos y adaptadores** (*Ports and Adapters*). La lógica principal se ejecuta en Python, mientras que la interfaz, desarrollada en React, se integra en una ventana nativa mediante pywebview. La aplicación no utiliza una arquitectura cliente-servidor propia, servicios en la nube ni una base de datos. pywebview utiliza un servidor HTTP local en `127.0.0.1` para servir la interfaz, mientras que `llama-server` constituye un proceso externo opcional para la generación de retroalimentación mediante un modelo de lenguaje. Esta organización responde a las restricciones de la sección 3.2 —un único usuario, procesamiento local y ausencia de almacenamiento permanente de video— y a las características de la carga de trabajo descritas en la sección 9, centrada en el procesamiento continuo de fotogramas y no en la gestión de usuarios concurrentes. El sistema utiliza Python por su ecosistema de herramientas para visión por computador, procesamiento numérico y audio local, lo que facilita la integración de tecnologías como MediaPipe y NumPy. Además, MediaPipe realiza la estimación de pose mediante componentes nativos, por lo que esta etapa no depende exclusivamente de la ejecución de código Python.
 
-El enfoque general es una **cadena de etapas separadas por contratos de datos**, organizada en dos fases. En la fase *offline*, que se ejecuta una vez por ejercicio, un script procesa un video de referencia, extrae las series de ángulos de cada repetición, las alinea entre sí con DTW y elige como referencia la repetición más representativa (el medoide), con su media y su desviación por instante; en la plancha, que es isométrica, guarda la postura media. En la fase *en vivo*, cada fotograma recorre percepción, medida, segmentación, comparación, decisión y comunicación. El código se organiza en tres capas con una regla de dependencias estricta (ADR-007): el **dominio** (geometría, segmentación, motor de decisión, verbalizador y *skills*) solo usa la biblioteca estándar de Python; la **aplicación** (sesión, rutina, pausas, DTW y métricas) puede usar numpy; y los **adaptadores** (cámara, MediaPipe, voz, ventana y modelo de lenguaje) son lo único que toca librerías externas. Una prueba automatizada falla si el dominio o la aplicación importan un adaptador o una librería de cámara, pose, voz, ventana o red.
+En su dimensión estructural, el sistema se divide en tres capas con responsabilidades diferenciadas. El **dominio** contiene la geometría, la segmentación, el motor de decisión, el verbalizador y las *skills*, y utiliza únicamente la biblioteca estándar de Python. La capa de **aplicación** coordina las sesiones, las rutinas, las pausas, la comparación mediante *Dynamic Time Warping* (DTW) y las métricas, y puede utilizar NumPy. Por último, la capa de **adaptadores** integra las tecnologías externas, como la cámara, MediaPipe, la síntesis de voz, la interfaz y el modelo de lenguaje. Las dependencias entre estas capas siguen una regla estricta, documentada en el ADR-007 y respaldada por una prueba automatizada que impide que el dominio y la aplicación importen adaptadores o librerías de cámara, pose, voz, ventana y red. Los puertos permiten desacoplar la lógica central de las implementaciones tecnológicas, facilitando su sustitución y la realización de pruebas con componentes simulados.
 
-La relación con la evaluación de alternativas es directa. MediaPipe se encapsula en un adaptador que implementa el puerto `Estimador`, de modo que cambiar de estimador no toca el dominio. El verbalizador se inyecta en el motor, que es el punto exacto que manipula EXP-001 para comparar plantillas con un modelo de lenguaje. Y el alineador DTW es desactivable en ejecución (`--sin-dtw`), lo que permite comparar reglas absolutas y relativas a la referencia con las mismas secuencias.
+En su dimensión operativa, ESTELA funciona como un pipeline local de procesamiento en tiempo real. La captura proporciona el fotograma más reciente y descarta los anteriores que hayan quedado pendientes de procesamiento. Sobre cada fotograma se encadenan la estimación de pose, el cálculo de medidas, la segmentación del movimiento, la comparación con la referencia, la toma de decisiones y la comunicación de la retroalimentación. La captura y la síntesis de voz se ejecutan en hilos propios para evitar bloquear el flujo principal de análisis. Las etapas intercambian estructuras de datos explícitas, lo que permite delimitar sus responsabilidades y evaluar su comportamiento individualmente.
+
+El funcionamiento de ESTELA se complementa con una fase de preparación *offline*, ejecutada previamente para cada ejercicio. Un script procesa el video de referencia, extrae las secuencias de ángulos de las repeticiones y las alinea mediante DTW. A partir de estas secuencias, selecciona el medoide —la repetición más representativa del conjunto— y calcula estadísticas de referencia por instante. Para la plancha, debido a su carácter isométrico, se utiliza la postura media. Aunque este proceso ya cuenta con una implementación, la generación de la guía visual mediante figuras esquemáticas (*stick figures*) continúa pendiente.
+
+La arquitectura permite sustituir o configurar determinados componentes sin modificar toda la lógica del sistema. Por ejemplo, MediaPipe se integra mediante el puerto `Estimador`, lo que permite cambiar el estimador de pose sin alterar el dominio. Asimismo, el verbalizador se inyecta en el motor de feedback (`MotorFeedback`), que une la decisión con la verbalización, lo que permite comparar, mediante EXP-001, el uso de plantillas predeterminadas con la generación de mensajes asistida por un modelo de lenguaje. Este último recibe un error previamente tipificado y propone su formulación verbal, pero no determina qué error ocurrió ni cuándo debe emitirse una indicación. Si falla o supera el presupuesto de ejecución establecido, el sistema puede recurrir a las plantillas. Hoy este verbalizador está implementado como adaptador y lo utiliza el banco de EXP-001, pero la aplicación (`python -m estela`) todavía no lo activa: su conexión al arranque queda como pendiente para la entrega final y condicionada a que EXP-001 confirme los criterios acordados (sección 11.4). Por su parte, el alineador DTW puede desactivarse mediante el parámetro `--sin-dtw`, lo que permite comparar reglas absolutas y relativas a la referencia sobre las mismas secuencias.
+
+En conjunto, la arquitectura combina una separación estructural por capas y adaptadores con un pipeline de análisis del movimiento en tiempo real. La evaluación tecnológica de la sección 9 aporta el contexto para comprender los componentes seleccionados, mientras que el ADR-007 documenta las consideraciones y alternativas arquitectónicas examinadas. El objetivo es mantener una solución local, modular y reproducible, con una complejidad acorde con las necesidades del proyecto.
 
 ### 10.2 Componentes del sistema
 
 | Componente | Capa / ubicación | Responsabilidad | Requerimientos |
 | --- | --- | --- | --- |
 | Fuente de video | Adaptador `captura/` | Leer la cámara en un hilo propio y entregar solo el último fotograma (o un archivo de video con marcas de tiempo, para pruebas reproducibles) | RF-02, RNF-01 |
-| Estimador de pose | Adaptador `pose/` | MediaPipe Pose Landmarker (*lite*, *full* o *heavy*): 33 puntos de imagen y de mundo con visibilidad | RF-03, RNF-01 |
+| Estimador de pose | Adaptador `pose/` | MediaPipe Pose Landmarker (*lite*, *full* o *heavy*): 33 puntos de imagen y de mundo con visibilidad; `landmarks.py` traduce esos puntos y entrega a la interfaz los de cada segmento corporal | RF-03, RNF-01 |
 | Geometría | Dominio `feedback/motor/geometria.py` | Convertir puntos en ángulos y distancias normalizadas con nombre canónico, plano anatómico y confianza = mínimo de la visibilidad; estimar la orientación | RF-03, RF-07 |
 | Segmentador | Dominio `conteo/` | Fase, repetición y conteo: ciclo, alternante o isométrico (bloques de tiempo) | RF-04 |
-| Alineador DTW | Aplicación `dtw.py` | Alinear la repetición en curso con la referencia y añadir el ángulo de referencia, el progreso y el coste | RF-05 |
+| Alineador DTW | Aplicación `dtw.py` | Alinear la repetición en curso con la referencia y añadir el ángulo de referencia, el coste y el progreso (hoy el progreso sale siempre 1,0; véase la sección 11.2) | RF-05 |
 | Motor de decisión | Dominio `feedback/motor/decision.py` | Abstención por confianza y plano, evaluación de reglas, evidencia, prioridad única, política de silencio y refuerzo | RF-06, RF-07, RF-08, RF-14, RNF-04, RNF-07 |
+| Motor de feedback | Dominio `feedback/pipeline.py` | Una instancia por ejercicio: recibe la observación, la pasa al motor de decisión y, si hay error o refuerzo, al verbalizador inyectado; devuelve el mensaje o el silencio y los tiempos de decisión y de verbalización | RF-06, RF-09 |
 | Verbalizador y validador | Dominio `feedback/verbalizador/` | Plantillas en español por error y severidad; validador que rechaza segmento o lado distintos, vocabulario clínico o exceso de longitud | RF-09, RNF-04 |
-| Verbalizador con LLM (opcional) | Adaptador `llm/` | Redactar un error ya tipado mediante `llama-server` con salida restringida; cae a plantilla si falla | EXP-001, RNF-06 |
-| Cola y motor de voz | Adaptador `voz/` | Hilo propio; un solo hueco pendiente (la frase nueva sustituye a la vieja; los avisos tienen prioridad); Piper con frases sintetizadas al inicio; respaldo a voz del sistema o texto | RF-10, RNF-02, RNF-06 |
+| Verbalizador con LLM (opcional) | Adaptador `llm/` | Redactar un error ya tipado mediante `llama-server` con salida restringida; cae a plantilla si falla. Se inyecta por el mismo punto que las plantillas, pero `python -m estela` aún no lo activa: hoy lo usa el banco de EXP-001, y su conexión al arranque queda pendiente para la entrega final (sección 11.4) | EXP-001, RNF-06 |
+| Cola y motor de voz | Adaptador `voz/` | Hilo propio; un solo hueco pendiente (la frase nueva sustituye a la vieja; hoy los avisos de la aplicación tienen prioridad sobre las correcciones, y la sección 11.4 prevé invertirlo); Piper con frases sintetizadas al inicio; respaldo a voz del sistema o texto | RF-10, RNF-02, RNF-06 |
 | Sesión y rutina | Aplicación `sesion.py`, `rutina.py`, `pausa.py` | Orquestar el bucle por fotograma, avanzar la rutina, detectar pausas y avisos de operación, medir latencias y resumir la sesión | RF-01, RF-11, RF-15 |
-| Orquestador e interfaz | Adaptador `interfaz/` + `frontend/` | Ejecutar la sesión en un hilo, traducir su estado a JSON y mostrarlo en las pantallas de inicio, sesión y resumen | RF-12, RF-13 |
-| *Skills* y referencias | Archivos JSON | Todo el conocimiento del ejercicio: fases, orientación, reglas, umbrales con su origen, política de silencio, segmentación y referencia | RNF-08 |
-| Creador de referencias | `scripts/crear_referencia.py` (offline) | Construir la referencia de un ejercicio a partir de un video | RF-05, RF-13 |
+| Registro por repetición | Aplicación `registro.py` | Anotar, por repetición o bloque de segundos, si contó y el mínimo y el máximo de las medidas que importan al ejercicio, para revisar a mano por qué el sistema contó o corrigió; con `--guardar-metricas` se escribe como CSV, sin video ni puntos articulares | EXP-009, RF-15 |
+| Orquestador e interfaz | Adaptador `interfaz/` + `frontend/` | Ejecutar la sesión en un hilo, traducir su estado a JSON y mostrarlo en las pantallas de inicio, sesión y resumen; `overlay.py` ofrece una ventana simple de OpenCV como alternativa | RF-12 (RF-13 pendiente) |
+| Arranque | `__main__.py`, `config.py` | Leer las opciones de la línea de comandos, crear los adaptadores (voz, estimador, fuente, interfaz) y entregárselos a la sesión; escribir el resumen y el registro al terminar | RF-15 |
+| *Skills* y referencias | Archivos JSON en `dominio/feedback/skills/` (las referencias, en `skills/referencias/`) | Todo el conocimiento del ejercicio: fases, orientación, reglas, umbrales con su origen, política de silencio, segmentación y referencia | RNF-08 |
+| Creador de referencias | `scripts/crear_referencia.py` (offline) | Construir la referencia de un ejercicio a partir de un video, reutilizando el estimador, la geometría y el segmentador; guarda también los puntos 2D para la guía visual, aún sin conectar a la interfaz | RF-05 (RF-13 pendiente) |
+
+Las rutas de la columna «Capa / ubicación» son relativas a `backend/estela/<capa>/`, salvo el creador de referencias, que está en `backend/scripts/`.
 
 El diagrama de arquitectura muestra las dos fases y las tres capas:
 
@@ -530,16 +541,18 @@ flowchart LR
 
 ### 10.3 Interacción entre módulos
 
-Los módulos se comunican mediante **estructuras de datos inmutables** que actúan como contratos. El estimador devuelve un `ResultadoPose` (puntos de imagen y de mundo con visibilidad, y su latencia). La geometría produce una `Observacion` con ángulos y distancias por nombre canónico, su confianza, su plano y la orientación estimada. El segmentador y el alineador DTW la enriquecen con la fase, la repetición, el ángulo de referencia, el progreso y el coste de alineamiento. El motor responde con un `MensajeFeedback` —que contiene un `ErrorTipificado` con error, segmento, lado, severidad, fase, repetición, dirección y magnitud, o un refuerzo— o con un `Silencio` con su motivo. El verbalizador recibe el `ErrorTipificado` y nada más: no accede a ángulos ni a imágenes. La sesión resume cada fotograma en un `EstadoFrame`, que el orquestador traduce a JSON para la interfaz.
+Los módulos de ESTELA intercambian **estructuras de datos explícitas que definen los contratos entre etapas**. El estimador produce un `ResultadoPose`, que contiene los puntos de imagen y de mundo, su visibilidad y la latencia de estimación. A partir de la muestra de pose contenida en este resultado, el módulo de geometría genera una `Observacion` con los ángulos, las distancias, la confianza de cada medida y la orientación estimada del sujeto; el plano en que cada medida es observable lo declara cada regla de la *skill*. El segmentador y el alineador DTW complementan esta información con la fase del movimiento, la repetición y, cuando aplica, los ángulos de referencia, el progreso y el coste de alineamiento. El motor de decisión utiliza la información resultante para emitir un `ErrorTipificado`, un `Refuerzo` o un `Silencio` que identifica el motivo por el cual no debe emitirse una indicación. `MotorFeedback` coordina el paso del motor de decisión al verbalizador. El verbalizador recibe únicamente el error tipificado (o el refuerzo), sin acceso directo a los ángulos ni a las imágenes, y lo convierte en un `MensajeFeedback` con el texto de la retroalimentación. Por su parte, la sesión consolida la información de cada fotograma en un `EstadoFrame`, que el orquestador serializa como JSON para comunicarla a la interfaz. La sesión orquesta este recorrido: invoca cada módulo y entrega la observación enriquecida al siguiente, y los módulos del dominio no se conocen entre sí.
 
-Las dependencias van siempre hacia el dominio: los adaptadores conocen a la aplicación y al dominio, y nunca al revés; la aplicación declara las interfaces que necesita (`Estimador`, `Voz`, `Fuente`) en un módulo de puertos. El acoplamiento entre etapas es por tanto de **datos**, no de implementación: el motor de decisión puede probarse con observaciones sintéticas, la sesión con un estimador y una voz falsos, y la interfaz en el navegador con un backend simulado. Hay tres puntos de concurrencia, todos diseñados para que el bucle de percepción nunca espere: la cámara deja solo el último fotograma, la cola de voz tiene un único hueco pendiente, y la interfaz pide el estado más reciente por sondeo largo (*long polling*), de modo que si dibuja más lento que la cámara se salta estados en lugar de acumular retraso.
+Las dependencias entre módulos siguen los principios de puertos y adaptadores: el dominio no depende de las tecnologías externas, mientras que la aplicación declara las interfaces que necesita, como `Estimador`, `Voz` y `Fuente`, mediante un módulo de puertos. Los adaptadores implementan estas interfaces y conectan el sistema con la cámara, la síntesis de voz, la interfaz y los demás componentes externos. De este modo, el acoplamiento entre las etapas se establece principalmente mediante contratos de datos, en lugar de depender directamente de las implementaciones concretas. Esta separación facilita las pruebas aisladas: el motor de decisión puede evaluarse con observaciones sintéticas, la sesión con implementaciones simuladas del estimador y la voz, y la interfaz con un backend simulado.
 
-El acoplamiento más fuerte que queda es el que existe entre las *skills* y la geometría: una regla solo puede usar medidas que la geometría sabe calcular, y añadir una medida nueva es un cambio del contrato, no de configuración. El cargador de *skills* lo verifica al arrancar y falla de forma ruidosa si una regla nombra una medida o un segmento desconocidos.
+La concurrencia se organiza para evitar que la captura, la síntesis de voz o la actualización de la interfaz bloqueen innecesariamente el procesamiento del movimiento. Para ello, la cámara conserva el fotograma más reciente y descarta los anteriores que estén pendientes; la cola de voz limita a un elemento el contenido pendiente; y la interfaz consulta el estado mediante sondeo largo (*long polling*). Cuando la interfaz no puede actualizarse al mismo ritmo que la captura, se prioriza la información reciente en lugar de acumular estados atrasados. Estas políticas favorecen la actualidad de la información, aunque no garantizan por sí solas el cumplimiento de un objetivo específico de latencia.
+
+El principal acoplamiento residual identificado se encuentra entre las *skills* y el módulo de geometría. Las reglas de una *skill* solo pueden utilizar las medidas que la geometría tiene implementadas y expone mediante su contrato. Por tanto, incorporar una medida nueva requiere ampliar la implementación geométrica y el conjunto de medidas disponibles, además de actualizar las reglas que necesiten utilizarla. El cargador de *skills* valida al iniciar la aplicación el vocabulario cerrado de segmentos, operadores, tipos de medida y direcciones, y genera un error explícito cuando encuentra valores desconocidos. La comprobación de que el nombre de cada medida exista en la geometría queda como punto por analizar: hoy una regla con una medida inexistente no falla al cargar, sino que se abstiene durante la ejecución.
 
 ```mermaid
 flowchart TB
   F["Fuente<br>(frame, t_ms)"] -->|"ndarray BGR"| E["Estimador<br>ResultadoPose: 33 puntos imagen + mundo, visibilidad, latencia"]
-  E -->|"ResultadoPose"| G["Geometría<br>Observacion: ángulos, distancias, confianza, planos, orientación"]
+  E -->|"ResultadoPose"| G["Geometría<br>Observacion: ángulos, distancias, confianza, orientación"]
   G -->|"Observacion"| S["Segmentador<br>+ fase, repetición"]
   S -->|"Observacion"| D["Alineador DTW<br>+ angulos_ref, progreso, coste_dtw"]
   D -->|"Observacion"| M["Motor de decisión"]
@@ -551,68 +564,28 @@ flowchart TB
   ST -->|"latencias, motivos"| R["Resumen de sesión<br>(solo métricas)"]
 ```
 
+<!-- Cuando se exporte la figura: reemplazar el bloque mermaid de arriba por
+     diagramas/modulos.wsd (módulos). -->
+
+**Diagrama de módulos.** Diagrama de paquetes UML de los módulos de `backend/estela`. Cada flecha punteada indica que el módulo de origen importa al de destino, y su etiqueta es el dato que cruza esa frontera. Todas las flechas apuntan hacia el dominio. Se omite la flecha de cada módulo hacia `feedback.contrato`, que todos importan. El módulo `captura` no tiene flecha hacia los puertos porque cumple la interfaz `Fuente` por estructura (`typing.Protocol`), sin importarla. El acoplamiento entre las *skills* y la geometría tampoco aparece, porque se establece por los nombres de las medidas y no mediante importaciones.
+
 ### 10.4 Comportamiento
 
-La secuencia principal es el procesamiento de un fotograma. La sesión pide la pose, calcula las medidas, actualiza el segmentador y, si hay referencia, el alineador; si la persona está en pausa (fuera del encuadre o inactiva), el motor no corrige; en otro caso, el motor decide y, si emite un mensaje, lo encola para la voz sin esperar a que se pronuncie. El diagrama siguiente muestra ese ciclo y la entrega asíncrona de la voz.
+La secuencia principal es el procesamiento de un fotograma. La sesión pide la pose, calcula las medidas, actualiza el segmentador y, si hay referencia, el alineador; si la persona está en pausa (fuera del encuadre o inactiva), el motor no corrige; en otro caso, el motor decide y, si emite un mensaje, lo encola para la voz sin esperar a que se pronuncie. El diagrama siguiente muestra ese ciclo, con las ramas en que no hay persona o la sesión está en pausa, y el envío de la frase a la cola de voz.
 
-```mermaid
-sequenceDiagram
-  participant C as Cámara (hilo)
-  participant S as Sesión (hilo)
-  participant P as MediaPipe
-  participant G as Geometría + segmentador
-  participant D as DTW
-  participant M as Motor + verbalizador
-  participant V as Cola de voz (hilo)
-  participant U as Interfaz
-  C->>S: último fotograma (los viejos se descartan)
-  S->>P: estimar(frame, t)
-  P-->>S: ResultadoPose
-  S->>G: medidas con confianza, fase, repetición
-  G-->>S: Observacion
-  S->>D: alinear repetición en curso
-  D-->>S: angulos_ref, progreso, coste
-  S->>M: procesar(Observacion)
-  alt confianza baja o plano no observable
-    M-->>S: Silencio(motivo)
-  else error confirmado y política de silencio lo permite
-    M-->>S: MensajeFeedback(texto, ErrorTipificado)
-    S->>V: decir(texto) (no bloquea)
-    V-->>V: Piper reproduce la frase ya sintetizada
-  end
-  U->>S: estado(desde) (sondeo largo)
-  S-->>U: EstadoFrame más reciente
-```
+<!-- INSERTAR FIGURA: diagramas/flujo-por-fotograma.wsd -->
 
-La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, que solo se activa en EXP-001. Su comportamiento ante fallos define la tolerancia del sistema: el motor ya decidió el error, el modelo solo redacta, y cualquier salida inválida o tardía cae a la plantilla.
+**Flujo de un fotograma.** Diagrama de secuencia de la fase en vivo que muestra el orden de las llamadas, qué hilo ejecuta cada parte, dónde se descartan fotogramas y en qué casos no se invoca al motor de feedback (cuando no hay persona o la sesión está en pausa).
 
-```mermaid
-sequenceDiagram
-  participant M as Motor de decisión
-  participant L as Verbalizador LLM
-  participant H as llama-server (local)
-  participant Val as Validador
-  participant T as Plantillas
-  M->>L: ErrorTipificado (error, segmento, lado, severidad, dirección)
-  L->>H: petición con gramática / esquema restringido
-  alt responde dentro del presupuesto
-    H-->>L: texto
-    L->>Val: validar(texto, ErrorTipificado)
-    alt segmento y lado coinciden, sin vocabulario clínico, longitud válida
-      Val-->>M: MensajeFeedback(texto LLM)
-    else rechazado
-      Val->>T: caída a plantilla
-      T-->>M: MensajeFeedback(texto plantilla)
-    end
-  else error o tiempo agotado
-    L->>T: caída a plantilla
-    T-->>M: MensajeFeedback(texto plantilla)
-  end
-```
+La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, que hoy solo se activa en EXP-001. Su comportamiento ante fallos define la tolerancia del sistema: el motor ya decidió el error y el modelo solo redacta. En la condición F, con salida restringida por esquema y validador, cualquier salida inválida o tardía cae a la plantilla; en la condición F′, el control de EXP-001 sin esquema ni validador, solo caen a la plantilla los fallos de conexión, de tiempo o de formato. El presupuesto de tiempo es un parámetro de diseño que aún no cuenta con respaldo empírico.
+
+<!-- INSERTAR FIGURA: diagramas/fallback-llm.wsd -->
+
+**Verbalizador con modelo de lenguaje y caída a plantilla.** Diagrama de secuencia que distingue la condición F (con validación) de la condición F′ (sin validación) y muestra las dos causas de caída a la plantilla: la salida rechazada por el validador y el fallo de conexión, de tiempo o de formato.
 
 **Eficiencia y cuellos de botella.** El flujo no tiene pasos redundantes: cada fotograma se estima una sola vez, y la conversión a JSON y la compresión de la imagen para la interfaz ocurren en el hilo de la interfaz, no en el de la sesión. Las mediciones preliminares (sección 14.3) identifican tres cuellos de botella. El primero es la estimación de pose, que domina el tiempo por fotograma: en un portátil de bajo consumo, MediaPipe *full* midió 28,7 ms de p95 a ritmo real y 35,0 ms procesando sin pausa, al límite del objetivo de 33 ms, por lo que la medición en el equipo final es decisiva (EXP-004). El segundo es el DTW: la implementación actual recalcula el alineamiento de todo el prefijo de la repetición en cada fotograma, con un costo de unos 0,31 ms por fotograma de prefijo que crece sin límite cuando el segmentador no cierra la repetición; es la causa de los fotogramas descartados y de la deriva observada, y EXP-010 lo compara con una banda de Sakoe-Chiba [15]. El tercero está en la voz: la síntesis no limita, porque las frases se sintetizan al arrancar (factor de tiempo real 0,085), pero la cola tiene un solo hueco y no interrumpe la frase en curso, de modo que una corrección que llega durante el anuncio del ejercicio espera varios segundos.
 
-**Desacoplamiento.** La interacción refleja un buen desacoplamiento en tres pruebas concretas: el motor se valida sin cámara con un banco sintético de 156 episodios; la sesión completa se prueba con un estimador y una voz falsos; y la interfaz se desarrolla con un backend simulado. La política de descarte en los tres puntos de concurrencia evita que un componente lento acumule retraso en otro, a costa de saltarse fotogramas o mensajes viejos, que el sistema contabiliza (fotogramas descartados, frases descartadas) para que ese costo sea visible en las métricas.
+**Desacoplamiento.** La interacción refleja un buen desacoplamiento en tres pruebas concretas: el motor se valida sin cámara con un banco sintético de 120 episodios; la sesión completa se prueba con un estimador y una voz falsos; y la interfaz se desarrolla con un backend simulado. La política de descarte en los tres puntos de concurrencia evita que un componente lento acumule retraso en otro, a costa de saltarse fotogramas o mensajes viejos, que el sistema contabiliza (fotogramas descartados, frases descartadas) para que ese costo sea visible en las métricas.
 
 ## 11. Implementación y avance actual
 
@@ -638,21 +611,21 @@ La elección del stack prioriza tres propiedades: que todo se ejecute en el equi
 | --- | --- | --- |
 | Captura de cámara y de video | Completo | Pruebas de fuente; reproducción determinista de videos |
 | Estimador MediaPipe (*lite*, *full*, *heavy*) | Completo | Adaptador con latencia por fotograma |
-| Geometría: 31 medidas canónicas con plano y confianza, y orientación del sujeto | Completo | 31 pruebas de geometría |
-| Segmentador: ciclo, alternante e isométrico | Completo | 21 pruebas |
+| Geometría: 31 medidas canónicas con plano y confianza, y orientación del sujeto | Completo | 35 pruebas de geometría |
+| Segmentador: ciclo, alternante e isométrico | Completo | 25 pruebas |
 | Referencias offline de los cuatro ejercicios (cinco archivos, la abducción por pierna) | Completo  | Script `crear_referencia.py`;  |
 | Alineador DTW en la sesión, desactivable, con banda opcional | Implementado con un defecto conocido: no es de extremo abierto (el progreso sale siempre 1,0); no afecta a ninguna decisión actual | Pruebas de sesión e instrumentación |
-| Motor de decisión con abstención, política de silencio y refuerzo | Completo | 43 pruebas de decisión; banco sintético de 156 episodios |
+| Motor de decisión con abstención, política de silencio y refuerzo | Completo | 45 pruebas de decisión; banco sintético de 120 episodios |
 | *Skills* de los cuatro ejercicios, con los umbrales revisados por la licenciada | Completo; umbrales provisionales | 14 pruebas de carga y validación de *skills* |
 | Verbalizador por plantillas y validador | Completo | 26 pruebas |
 | Verbalizador con modelo de lenguaje (adaptador) | Implementado; sin medir | Requiere `llama-server`, disponible solo en la Mac |
 | Cola de voz con Piper y respaldos | Completo | Pruebas de voz |
 | Sesión, rutina, pausas por ausencia o inactividad, avisos de colocación | Completo | Pruebas de sesión y de pausa |
-| Interfaz de escritorio: inicio, sesión (cámara, esqueleto, contador, último mensaje, motivo de silencio) y resumen | Completo | 21 pruebas del contrato y del orquestador |
+| Interfaz de escritorio: inicio, sesión (cámara, esqueleto, contador, último mensaje, motivo de silencio) y resumen | Completo | 25 pruebas del contrato y del orquestador |
 | Guía visual *stick figure* | Pendiente | La interfaz tiene el espacio; falta enviar los puntos de la referencia |
 | Arnés de instrumentación y evaluación | Completo  | Arnés `feedback_testing`, marcador `pytest -m metricas` |
 
-El código fuente cuenta con **237 pruebas automatizadas** que verifican el funcionamiento del sistema. Las pruebas pertenecientes a la capa de dominio operan de manera pura (sin requerir acceso a cámaras ni GPUs), mientras que los componentes de aplicación e interfaz emplean simuladores de pose y voz para validar la orquestación completa sin depender del hardware final.
+El código fuente cuenta con **209 pruebas automatizadas** que verifican el funcionamiento del sistema. Las pruebas pertenecientes a la capa de dominio operan de manera pura (sin requerir acceso a cámaras ni GPUs), mientras que los componentes de aplicación e interfaz emplean simuladores de pose y voz para validar la orquestación completa sin depender del hardware final.
 
 ### 11.3 Integraciones realizadas
 
@@ -663,7 +636,7 @@ En su lugar, el sistema articula sus componentes mediante cuatro fronteras de in
 1. **Integración con la biblioteca de percepción (MediaPipe Tasks API):** Encapsulada dentro de un adaptador dedicado de la capa de infraestructura, el cual traduce y normaliza los 33 puntos articulares de MediaPipe hacia la nomenclatura anatómica canónica definida en el contrato geométrico del sistema.
 2. **Integración con el motor de síntesis de voz (Piper TTS):** Coordinada a través del gestor de la cola de voz, el cual solicita a Piper la pre-síntesis local de las instrucciones operacionales y de corrección al iniciar la sesión. Esto garantiza la reproducción inmediata de audio sin introducir latencia de generación durante la práctica.
 3. **Integración entre la capa de aplicación Python y la interfaz gráfica (pywebview):** Comunicación bidireccional en el dispositivo entre la lógica del backend y la interfaz nativa en React/TypeScript. *pywebview* expone una API con métodos explícitos (info, estado, iniciar, siguiente, reiniciar, terminar, volver_al_inicio y salir) invocados desde JavaScript. Las capacidades activas se gestionan de forma dinámica mediante un contrato de datos estructurado en JSON.
-4. **Integración opcional con el servidor de lenguaje local (llama-server):** Comunicación mediante peticiones HTTP locales con un proceso de inferencia en segundo plano. La integración incluye restricciones de gramática en la salida y un mecanismo de caída a plantilla (*fallback*) en caso de indisponibilidad o retraso en la generación.
+4. **Integración opcional con el servidor de lenguaje local (llama-server):** Comunicación mediante peticiones HTTP locales con un proceso de inferencia en segundo plano. La integración incluye restricciones de gramática en la salida y un mecanismo de caída a plantilla (*fallback*) en caso de indisponibilidad o retraso en la generación. El adaptador está implementado y se usa en el banco de EXP-001, pero aún no se activa desde el arranque de la aplicación; esa conexión queda pendiente para la entrega final (sección 11.4).
 
 ### 11.4 Pendientes para la entrega final
 
@@ -677,6 +650,7 @@ Para completar la consolidación y validación del prototipo de cara a la entreg
 6. **Optimización del alineamiento temporal (DTW):** Implementación de la alineación incremental con ventana acotada para mitigar el costo computacional en repeticiones extendidas, junto con la actualización de la secuencia de referencia para el ejercicio de marcha.
 7. **Gestión de contingencias:** Especificación formal del mecanismo de respuesta del sistema ante la indisponibilidad total del servidor local de lenguaje.
 8. **Optimización de la cola de audio:** Implementación de políticas de interrupción prioritaria en la cola de voz para que las correcciones de técnica prevalezcan de forma inmediata sobre los anuncios informativos o instrucciones de inicio.
+9. **Conexión del verbalizador con modelo de lenguaje:** Activar el adaptador del modelo de lenguaje desde el arranque de la aplicación, que hoy solo lo usa el banco de EXP-001. La activación depende de que EXP-001 confirme los criterios acordados; mientras tanto la aplicación utiliza las plantillas.
 
 ## 12. Despliegue y operación preliminar
 
@@ -774,9 +748,9 @@ La validación combina tres niveles: pruebas automatizadas por componente, prueb
 
 ### 13.1 Pruebas por componentes
 
-Cada módulo del dominio tiene pruebas unitarias que no necesitan cámara ni modelos: geometría (31 pruebas, incluidas medidas con puntos ocluidos y confianza nula), segmentador (21), motor de decisión (43, incluidas abstención, evidencia, prioridad, periodo refractario y refuerzo), *skills* (14, incluida la validación del esquema y la unicidad de prioridades) y verbalizador y validador (26). Las pruebas de arquitectura verifican que el dominio y la aplicación no importan adaptadores ni librerías de cámara, pose, voz, ventana o red.
+Cada módulo del dominio tiene pruebas unitarias que no necesitan cámara ni modelos: geometría (35 pruebas, incluidas medidas con puntos ocluidos y confianza nula), segmentador (25), motor de decisión (45, incluidas abstención, evidencia, prioridad, periodo refractario y refuerzo), *skills* (14, incluida la validación del esquema y la unicidad de prioridades) y verbalizador y validador (26). Las pruebas de arquitectura verifican que el dominio y la aplicación no importan adaptadores ni librerías de cámara, pose, voz, ventana o red.
 
-El componente de decisión se validó además con un **banco sintético** (EXP-001, condición plantillas): 156 episodios generados de forma determinista a partir de las reglas, con el error inducido en tres severidades, con la medida ocluida, con el plano no observable y con ejecuciones correctas. El banco no simula biomecánica: mide si el motor hace lo que su contrato promete. Sus resultados (sección 14) son la línea base contra la que se medirá la condición con modelo de lenguaje.
+El componente de decisión se validó además con un **banco sintético** (EXP-001, condición plantillas): 120 episodios generados de forma determinista a partir de las reglas, con el error inducido en tres severidades, con la medida ocluida, con el plano no observable y con ejecuciones correctas. El banco no simula biomecánica: mide si el motor hace lo que su contrato promete. Sus resultados (sección 14) son la línea base contra la que se medirá la condición con modelo de lenguaje.
 
 El segundo experimento por componente fue EXP-002, que cuantificó el error de proyección monocular de cada medida según la orientación del sujeto, con esqueletos sintéticos rotados de 0° a 90°. Su resultado fijó qué ejercicios son evaluables con una cámara y desde qué vista.
 
@@ -833,7 +807,7 @@ Cada experimento declara hipótesis, alternativas, datos, protocolo, métricas y
 
 - **Pregunta e hipótesis.** Con la detección fija, ¿redacta mejor un modelo de lenguaje pequeño y local que una plantilla, sin introducir errores de contenido ni romper el presupuesto de latencia? Hipótesis nula: la plantilla es al menos igual de exacta y siempre más rápida.
 - **Alternativas.** A: plantillas (línea base y respaldo permanente). F: modelo de lenguaje local con salida restringida y validador. F′: F con variantes de frase.
-- **Datos.** El banco sintético (156 episodios, ya ejecutado para A) y los errores emitidos durante las sesiones V-01, verbalizados por A y por F a partir del mismo `ErrorTipificado`.
+- **Datos.** El banco sintético (120 episodios, ya ejecutado para A) y los errores emitidos durante las sesiones V-01, verbalizados por A y por F a partir del mismo `ErrorTipificado`.
 - **Protocolo.** Se ejecuta cada condición sobre las mismas entradas; las frases se presentan a evaluadores sin indicar su origen.
 - **Métricas.** M1, exactitud de contenido (el mensaje nombra el segmento y el lado del error de referencia; doble anotación ciega con κ); M2, aserciones no soportadas; M3, sobrecorrección; M4, latencia p50 y p95 de verbalización; M5, determinismo; M6, naturalidad percibida (Likert, al menos cinco evaluadores, exploratoria); M7, tasa de caída a plantilla.
 - **Criterio de decisión (fijado en ADR-001).** Se adopta F solo si M1(F) ≥ M1(A), M2(F) = 0 %, M3(F) ≤ M3(A) y el p95 de M4 cabe en el presupuesto. En cualquier otro caso se mantiene A. A gana los empates.
@@ -888,17 +862,17 @@ Cada experimento declara hipótesis, alternativas, datos, protocolo, métricas y
 
 | Métrica | Valor | n |
 | --- | --- | --- |
-| Coherencia entre el error inducido y el señalado (sintética) | 100,0 % | 81 episodios |
-| Aserciones no soportadas | 0,0 % | 162 correcciones |
-| Sobrecorrección en ejecuciones correctas | 0,0 % | 21 episodios |
-| Determinismo | 100,0 % | 156 episodios × 10 ejecuciones |
-| Caída a plantilla | 0,0 % | 189 mensajes |
-| Elogio con un error observable | 0,0 % | 81 episodios |
-| Elogio con un error presente pero no observable | 11,1 % | 54 episodios |
+| Coherencia entre el error inducido y el señalado (sintética) | 100,0 % | 63 episodios |
+| Aserciones no soportadas | 0,0 % | 126 correcciones |
+| Sobrecorrección en ejecuciones correctas | 0,0 % | 15 episodios |
+| Determinismo | 100,0 % | 120 episodios × 10 ejecuciones |
+| Caída a plantilla | 0,0 % | 147 mensajes |
+| Elogio con un error observable | 0,0 % | 63 episodios |
+| Elogio con un error presente pero no observable | 14,3 % | 42 episodios |
 | Abstención con la medida ocluida o el plano no observable | 100,0 % | episodios de abstención |
-| Densidad de mensajes | 2,60 correcciones + 0,43 elogios por minuto | — |
+| Densidad de mensajes | 2,62 correcciones + 0,44 elogios por minuto | — |
 
-El motor hace lo que su contrato promete: nunca nombra un segmento o un lado que no detectó, no corrige ejecuciones correctas del banco y calla cuando la medida no es fiable o el plano no es observable. El 11,1 % de elogios con un error no observable es un costo conocido y aceptado por el equipo: corresponde a episodios en los que el error está en la pierna que la cámara no ve de perfil; como la marcha solo evalúa el lado visible, el sistema felicita por lo que sí comprueba. Estas cifras **no** son exactitud sobre personas: el banco genera directamente las medidas que el motor consume y no simula biomecánica. La sobrecorrección de 0 % debe leerse junto con el 30,4 % que CoachMe documenta [26]: indica que la arquitectura no tiene el sesgo estructural de un modelo entrenado solo con ejemplos correctivos, no que el sistema no vaya a sobrecorregir a personas reales.
+El motor hace lo que su contrato promete: nunca nombra un segmento o un lado que no detectó, no corrige ejecuciones correctas del banco y calla cuando la medida no es fiable o el plano no es observable. El 14,3 % de elogios con un error no observable (6 de 42 episodios) es un costo conocido y aceptado por el equipo: corresponde a episodios en los que el error está en la pierna que la cámara no ve de perfil; como la marcha solo evalúa el lado visible, el sistema felicita por lo que sí comprueba. Estas cifras **no** son exactitud sobre personas: el banco genera directamente las medidas que el motor consume y no simula biomecánica. La sobrecorrección de 0 % debe leerse junto con el 30,4 % que CoachMe documenta [26]: indica que la arquitectura no tiene el sesgo estructural de un modelo entrenado solo con ejemplos correctivos, no que el sistema no vaya a sobrecorregir a personas reales.
 
 ### 14.2 Observabilidad monocular
 
