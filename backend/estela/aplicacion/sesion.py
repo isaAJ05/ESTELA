@@ -63,6 +63,37 @@ _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
                Plano.SAGITAL: "Colócate de perfil a la cámara."}
 
 
+def _preparar_guia(referencia: Optional[Mapping[str, Any]]
+                   ) -> Tuple[Optional[np.ndarray], float]:
+    if not referencia:
+        return None, 30.0
+    puntos = np.asarray(referencia.get("keypoints_2d", ()), dtype=np.float32)
+    fps = float(referencia.get("fps", 30.0))
+    if (puntos.ndim != 3 or puntos.shape[1:] != (33, 2)
+            or puntos.shape[0] == 0 or not np.isfinite(fps) or fps <= 0):
+        return None, 30.0
+    validos = np.isfinite(puntos).all(axis=(0, 2))
+    if not validos.all():
+        return None, 30.0
+    minimo = puntos.min(axis=(0, 1))
+    maximo = puntos.max(axis=(0, 1))
+    centro = (minimo + maximo) / 2.0
+    escala = 0.76 / max(float(maximo[0] - minimo[0]),
+                        float(maximo[1] - minimo[1]), 1e-6)
+    puntos = (puntos - centro) * escala + 0.5
+    guia = np.zeros((puntos.shape[0], 33, 4), dtype=np.float32)
+    guia[:, :, :2] = puntos
+    guia[:, :, 3] = 1.0
+    return guia, fps
+
+
+def _guia_actual(paso: _Paso, t_ms: int) -> Optional[np.ndarray]:
+    if paso.guia is None or paso.inicio_ms is None:
+        return None
+    indice = int(max(0, t_ms - paso.inicio_ms) * paso.guia_fps / 1000.0)
+    return paso.guia[indice % len(paso.guia)]
+
+
 @dataclass(frozen=True)
 class EstadoFrame:
     ejercicio: str
@@ -96,6 +127,8 @@ class EstadoFrame:
     angulos: Optional[Dict[str, float]] = None
     #: los ángulos que importan en este ejercicio (`angulos_requeridos` de la skill)
     angulos_importantes: Tuple[str, ...] = ()
+    #: postura de referencia del frame actual, en formato (33, 4)
+    guia: Optional[np.ndarray] = None
 
 
 @dataclass
@@ -111,6 +144,8 @@ class _Paso:
     pausa: DetectorPausa = field(default_factory=DetectorPausa)
     alineador: Optional[AlineadorDTW] = None
     registro: Optional[RegistroRepeticiones] = None
+    guia: Optional[np.ndarray] = None
+    guia_fps: float = 30.0
     equivocado_desde: Optional[int] = None
     ult_aviso_equivocado_ms: Optional[int] = None
 
@@ -168,11 +203,13 @@ class Sesion:
             return
         p = self.rutina.pasos[self._i]
         ej = self.catalogo[p.skill_id]
+        guia, guia_fps = _preparar_guia(ej.referencia)
         self._pasos.append(_Paso(ej, p.repeticiones,
                                  MotorFeedback(ej.skill, self.verbalizador),
                                  ej.nuevo_segmentador(),
                                  alineador=None if self.sin_dtw else AlineadorDTW(ej.referencia),
-                                 registro=RegistroRepeticiones(ej)))
+                                 registro=RegistroRepeticiones(ej),
+                                 guia=guia, guia_fps=guia_fps))
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -400,7 +437,8 @@ class Sesion:
             feedback=self._ultimo_feedback,
             motivo_silencio=motivo_silencio,
             angulos=dict(angulos) if angulos else None,
-            angulos_importantes=tuple(p.ejercicio.skill.angulos_requeridos))
+            angulos_importantes=tuple(p.ejercicio.skill.angulos_requeridos),
+            guia=_guia_actual(p, self._t_ms))
 
     # -- resumen ------------------------------------------------------------
 

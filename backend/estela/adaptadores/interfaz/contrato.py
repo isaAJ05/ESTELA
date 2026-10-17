@@ -61,7 +61,7 @@ VERSION = 1
 CAPACIDADES: Dict[str, bool] = {
     "nivel": False,
     "correctasConError": False,
-    "guia": False,
+    "guia": True,
     "resumenTexto": False,
     "motivoSilencio": True,
     "pausaManual": False,

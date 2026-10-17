@@ -17,10 +17,11 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from estela.aplicacion.rutina import cargar_catalogo, rutina_desde_dict
+from estela.aplicacion.rutina import (cargar_catalogo, rutina_de_un_ejercicio,
+                                      rutina_desde_dict)
 from estela.dominio.feedback.motor.skill import directorio_skills
 from estela.aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
-                                  Sesion)
+                                  Sesion, _preparar_guia)
 from estela.adaptadores.interfaz import contrato
 from estela.adaptadores.interfaz.orquestador import ERROR, INICIO, RESUMEN, SESION, Orquestador
 from tests.test_sesion import EstimadorFalso, VozFalsa, correr
@@ -108,7 +109,7 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert d["rutina"]["pasos"][1]["unidad"] == "segundos"
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
-    assert [k for k, v in d["capacidades"].items() if v] == ["motivoSilencio"]
+    assert [k for k, v in d["capacidades"].items() if v] == ["guia", "motivoSilencio"]
     json.dumps(d)
 
 
@@ -120,10 +121,35 @@ def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
     assert d["ejercicioId"] == ZANCADA and d["completadas"] == 1
     assert len(d["puntos"]) == 33 and len(d["puntos"][0]) == 3
     assert d["depuracion"]["fps"] == 30.0
-    for futuro in ("correctas", "conError", "nivel", "guia"):
+    for futuro in ("correctas", "conError", "nivel"):
         assert d[futuro] is None
+    assert d["guia"] is None  # la zancada de prueba no tiene referencia
     # el motor sí corrió en este frame: dice por qué no habló
     assert d["depuracion"]["motivoSilencio"] is not None
+
+
+def test_estado_entrega_guia_animada_desde_referencia(catalogo):
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 5, catalogo),
+               catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    estado = s.procesar(170.0, 1000)
+    d = contrato.estado_a_dict(estado)
+    assert len(d["guia"]) == 33 and len(d["guia"][0]) == 3
+    primero = d["guia"]
+    estado = s.procesar(170.0, 1000 + round(1000 / 59.94005994005994))
+    assert contrato.estado_a_dict(estado)["guia"] != primero
+
+
+def test_referencias_de_guia_se_encuadran_sin_alterar_su_duracion(catalogo):
+    for skill_id in ("jumping_jacks", "abduccion_cadera_izq",
+                     "abduccion_cadera_der", "marcha_rodillas", "plancha"):
+        referencia = catalogo[skill_id].referencia
+        assert referencia is not None
+        assert referencia["keypoints_2d"]
+        assert referencia["fps"] > 0
+        guia, _ = _preparar_guia(referencia)
+        assert guia is not None
+        assert guia.shape[1:] == (33, 4)
+        assert np.all((guia[:, :, :2] >= 0) & (guia[:, :, :2] <= 1))
 
 
 def test_feedback_tipado_llega_a_la_interfaz(catalogo):

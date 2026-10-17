@@ -94,6 +94,7 @@ svg { flex-shrink: 0; }
 /* -- figura e íconos ------------------------------------------------------- */
 .figura { overflow: visible; }
 .figura-cabeza { fill: none; stroke: var(--color-violeta-suave); stroke-width: 4; }
+.figura-cara { fill: none; stroke: var(--color-violeta-suave); stroke-width: 2.5; stroke-linecap: round; }
 .figura-linea { fill: none; stroke: var(--color-violeta-suave); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
 .figura-resalte { stroke: var(--color-amarillo); filter: drop-shadow(0 0 0.3125rem rgba(255, 201, 77, 0.6)); }
 

@@ -49,6 +49,7 @@ export function Figura({ skillId, tam = 160, resaltar = true }: {
          preserveAspectRatio="xMidYMid meet"
          role="img" aria-label="Postura clave del ejercicio">
       <circle className="figura-cabeza" cx="60" cy="20" r="9" />
+      <path className="figura-cara" d="M55 21Q60 26 65 21" />
       <path className="figura-linea" d={`M60 30V78 ${BRAZOS[postura]}`} />
       <path className={`figura-linea ${resaltar && postura !== 'depie' ? 'figura-resalte' : ''}`} d={PIERNAS[postura]} />
     </svg>

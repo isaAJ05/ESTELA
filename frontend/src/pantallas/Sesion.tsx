@@ -152,7 +152,7 @@ function PanelEjercicio() {
       </div>
 
       <figure className="panel-guia">
-        {conGuia && guia ? <GuiaAnimada puntos={guia} /> : <Figura skillId={skillId} tam={150} />}
+        {conGuia && guia ? <GuiaAnimada puntos={guia} ejercicioId={skillId} /> : <Figura skillId={skillId} tam={150} />}
         <figcaption>{conGuia && guia ? 'Movimiento de referencia' : 'Postura clave'}</figcaption>
       </figure>
     </aside>
