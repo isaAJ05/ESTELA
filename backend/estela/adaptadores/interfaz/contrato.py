@@ -95,6 +95,28 @@ def _puntos(lm: Optional[np.ndarray]) -> Optional[List[List[float]]]:
             for p in lm]
 
 
+def _referencia_estatica(referencia: Optional[Mapping[str, Any]]
+                         ) -> Optional[List[List[float]]]:
+    if not referencia:
+        return None
+    frames = np.asarray(referencia.get("keypoints_2d", ()), dtype=float)
+    if frames.ndim != 3 or frames.shape[1:] != (33, 2) or not len(frames):
+        return None
+    indice = int(referencia.get("indice_medoide", 0))
+    indice = max(0, min(indice, len(frames) - 1))
+    puntos = frames[indice]
+    if not np.isfinite(puntos).all():
+        return None
+    minimo = frames.min(axis=(0, 1))
+    maximo = frames.max(axis=(0, 1))
+    centro = (minimo + maximo) / 2.0
+    escala = 0.76 / max(float(maximo[0] - minimo[0]),
+                        float(maximo[1] - minimo[1]), 1e-6)
+    puntos = (puntos - centro) * escala + 0.5
+    return [[round(float(x), 4), round(float(y), 4), 1.0]
+            for x, y in puntos]
+
+
 def _angulos_de_medida(clave: str) -> List[str]:
     """Nombres de los ángulos de una medida (`Medida.clave()`): «angulo:x»,
     «min(x)@repeticion» o «asimetria(x,y)». Un ángulo bilateral («_medio»)
@@ -243,6 +265,7 @@ def rutina_a_dict(rutina: Rutina, catalogo: Mapping[str, Ejercicio]) -> Dict[str
             "orientacion": _ORIENTACION.get(ej.skill.orientacion_preferida),
             "unidad": ej.unidad,
             "objetivo": p.repeticiones,
+            "guia": _referencia_estatica(ej.referencia),
         })
     return {"nombre": rutina.nombre, "pasos": pasos}
 

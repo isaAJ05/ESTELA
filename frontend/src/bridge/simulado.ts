@@ -11,13 +11,13 @@ import type {
 } from './tipos'
 
 const PASOS: PasoRutina[] = [
-  { skillId: 'jumping_jacks', nombre: 'Jumping jacks', orientacion: 'frente', unidad: 'repeticiones', objetivo: 10 },
-  { skillId: 'abduccion_cadera_izq', nombre: 'Abducción de cadera de pie, pierna izquierda', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8 },
-  { skillId: 'abduccion_cadera_der', nombre: 'Abducción de cadera de pie, pierna derecha', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8 },
-  { skillId: 'marcha_rodillas', nombre: 'Marcha con elevación de rodillas', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 16 },
-  { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6 },
-  { skillId: 'zancada_atras_der', nombre: 'Zancada atrás estática, pierna derecha atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6 },
-  { skillId: 'plancha', nombre: 'Plancha', orientacion: 'perfil', unidad: 'segundos', objetivo: 20 },
+  { skillId: 'jumping_jacks', nombre: 'Jumping jacks', orientacion: 'frente', unidad: 'repeticiones', objetivo: 10, guia: null },
+  { skillId: 'abduccion_cadera_izq', nombre: 'Abducción de cadera de pie, pierna izquierda', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8, guia: null },
+  { skillId: 'abduccion_cadera_der', nombre: 'Abducción de cadera de pie, pierna derecha', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8, guia: null },
+  { skillId: 'marcha_rodillas', nombre: 'Marcha con elevación de rodillas', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 16, guia: null },
+  { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
+  { skillId: 'zancada_atras_der', nombre: 'Zancada atrás estática, pierna derecha atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
+  { skillId: 'plancha', nombre: 'Plancha', orientacion: 'perfil', unidad: 'segundos', objetivo: 20, guia: null },
 ]
 
 const CONEXIONES: [number, number][] = [

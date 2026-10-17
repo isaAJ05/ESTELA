@@ -270,9 +270,10 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
 }
 
 /** Esqueleto de referencia en pequeño (capacidad «guia»). */
-export function GuiaAnimada({ puntos, ejercicioId }: {
+export function GuiaAnimada({ puntos, ejercicioId, animar = true }: {
   puntos: Punto[]
   ejercicioId: string
+  animar?: boolean
 }) {
   const conexiones = useEstado((s) => s.info?.conexiones ?? [])
   const [puntosSuavizados, setPuntosSuavizados] = useState(puntos)
@@ -280,6 +281,11 @@ export function GuiaAnimada({ puntos, ejercicioId }: {
   const animacion = useRef<number | null>(null)
 
   useEffect(() => {
+    if (!animar) {
+      setPuntosSuavizados(puntos)
+      actuales.current = puntos
+      return
+    }
     if (animacion.current !== null) cancelAnimationFrame(animacion.current)
 
     const inicio = actuales.current
@@ -311,7 +317,7 @@ export function GuiaAnimada({ puntos, ejercicioId }: {
     return () => {
       if (animacion.current !== null) cancelAnimationFrame(animacion.current)
     }
-  }, [puntos])
+  }, [animar, puntos])
 
   const punto = (indice: number): Punto => puntosSuavizados[indice] ?? [0.5, 0.5, 0]
   const medio = (a: number, b: number): Punto => [

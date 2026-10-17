@@ -34,6 +34,8 @@ export interface PasoRutina {
   orientacion: Orientacion | null
   unidad: Unidad
   objetivo: number
+  /** Postura representativa de la referencia, sin animación. */
+  guia: Punto[] | null
 }
 
 export interface Info {
