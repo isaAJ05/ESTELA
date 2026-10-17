@@ -105,6 +105,24 @@ def test_orientacion_incorrecta_se_avisa_por_voz(catalogo):
     assert ("Colócate de frente a la cámara.", PRIORIDAD_AVISO) in voz.dichas
 
 
+def test_resumen_cuenta_los_frames_por_resultado_del_dtw(catalogo):
+    """Sin repetición en curso el DTW no alinea, y el resumen lo dice."""
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 5, catalogo), catalogo,
+               EstimadorFalso(tronco=10), VozFalsa())
+    correr(s, [170.0] * 20)
+    r = s.resumen()
+    assert r["sin_dtw"] is False
+    assert r["pasos"][0]["dtw"] == {"sin_repeticion": 20}
+    assert "dtw" in r["latencias"]
+
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 5, catalogo), catalogo,
+               EstimadorFalso(tronco=10), VozFalsa(), sin_dtw=True)
+    correr(s, [170.0] * 20)
+    r = s.resumen()
+    assert r["sin_dtw"] is True and r["pasos"][0]["dtw"] is None
+    assert "dtw" not in r["latencias"]
+
+
 def test_ejercicio_retirado_se_rechaza(catalogo):
     """ADR-005: sentadilla, elevación de brazos y rotación de tronco salieron."""
     for retirado in ("sentadilla", "elevacion_brazos", "rotacion_tronco"):

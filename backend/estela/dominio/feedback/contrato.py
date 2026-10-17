@@ -160,7 +160,13 @@ class Observacion:
       fase          fase del ciclo según el segmentador/DTW.
       repeticion    índice de repetición, empezando en 1.
       progreso      posición dentro del ciclo en [0,1] (salida del DTW).
-      angulos_ref   ángulo de la referencia en el instante alineado por DTW.
+      angulos_ref   valor de la referencia en el instante alineado por DTW.
+                    Guarda ángulos y también distancias (p. ej.
+                    `separacion_pies` en jumping jacks).
+      sigma_ref     σ de la referencia en ese mismo instante: cuánto varían
+                    las repeticiones correctas de la referencia. Mismas claves
+                    y unidades que `angulos_ref`. Lo usan los umbrales
+                    relativos `k × max(σ_ref, ruido)` (ADR-004 §2.2).
       distancias    medidas escalares normalizadas por escala corporal
                     (p. ej. separación de pies / ancho de caderas).
       orientacion   ángulo en grados entre el plano frontal del sujeto y el
@@ -170,8 +176,9 @@ class Observacion:
       coste_dtw     coste de alineamiento, como señal de confianza global.
 
     `desviaciones` es derivado: si `angulos_ref` está presente, el motor
-    calcula `angulos - angulos_ref`; si el equipo de percepción ya lo calcula,
-    puede entregarlo directamente y se usará tal cual.
+    calcula `valor - angulos_ref` (el valor sale de `angulos` o de
+    `distancias`); si el equipo de percepción ya lo calcula, puede entregarlo
+    directamente y se usará tal cual.
     """
     t_ms: int
     ejercicio_id: str
@@ -185,13 +192,15 @@ class Observacion:
     distancias: Dict[str, float] = field(default_factory=dict)
     orientacion: Optional[float] = None
     coste_dtw: Optional[float] = None
+    sigma_ref: Dict[str, float] = field(default_factory=dict)
 
     def desviacion_de(self, nombre: str) -> Optional[float]:
         """Desviación respecto a la referencia, o None si no es calculable."""
         if nombre in self.desviaciones:
             return self.desviaciones[nombre]
-        if nombre in self.angulos and nombre in self.angulos_ref:
-            return self.angulos[nombre] - self.angulos_ref[nombre]
+        valor = self.angulos.get(nombre, self.distancias.get(nombre))
+        if valor is not None and nombre in self.angulos_ref:
+            return valor - self.angulos_ref[nombre]
         return None
 
     def confianza_de(self, nombre: str) -> float:

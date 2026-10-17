@@ -34,7 +34,7 @@ from ..dominio.feedback.verbalizador.base import Verbalizador
 from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 
 from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador, leer_senal
-from .dtw import AlineadorDTW
+from .dtw import Comparador, comparador_de_referencia
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
 from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
@@ -142,7 +142,7 @@ class _Paso:
     seg: Optional[EstadoSegmento] = None
     mensajes: List[Dict[str, Any]] = field(default_factory=list)
     pausa: DetectorPausa = field(default_factory=DetectorPausa)
-    alineador: Optional[AlineadorDTW] = None
+    alineador: Optional[Comparador] = None
     registro: Optional[RegistroRepeticiones] = None
     guia: Optional[np.ndarray] = None
     guia_fps: float = 30.0
@@ -207,7 +207,8 @@ class Sesion:
         self._pasos.append(_Paso(ej, p.repeticiones,
                                  MotorFeedback(ej.skill, self.verbalizador),
                                  ej.nuevo_segmentador(),
-                                 alineador=None if self.sin_dtw else AlineadorDTW(ej.referencia),
+                                 alineador=(None if self.sin_dtw
+                                            else comparador_de_referencia(ej.referencia)),
                                  registro=RegistroRepeticiones(ej),
                                  guia=guia, guia_fps=guia_fps))
         self._mal_orientada_desde = None
@@ -276,7 +277,7 @@ class Sesion:
             t_dtw = time.perf_counter()
             dtw = p.alineador.actualizar(obs)
             if dtw is not None:
-                obs = replace(obs, angulos_ref=dtw.angulos_ref,
+                obs = replace(obs, angulos_ref=dtw.angulos_ref, sigma_ref=dtw.sigma_ref,
                               progreso=dtw.progreso, coste_dtw=dtw.coste)
             lat["dtw"] = (time.perf_counter() - t_dtw) * 1000
         if p.registro is not None:
@@ -468,11 +469,19 @@ class Sesion:
                 "pausa_s": round(pausa_ms / 1000.0, 1),
                 "mensajes": p.mensajes,
                 "abstenciones": p.motor.abstenciones,
+                # «absolutos» o «referencia» (aplicacion/umbrales.py), y frames
+                # en que cada regla relativa se evaluó con su respaldo absoluto
+                "umbrales": p.ejercicio.umbrales,
+                "respaldos": p.motor.respaldos,
+                # frames por resultado del DTW (`dtw.ALINEADO`, `dtw.SIN_*`...);
+                # None con `sin_dtw`
+                "dtw": dict(p.alineador.motivos) if p.alineador is not None else None,
                 "repeticiones": self._filas(p),
             })
         return {
             "rutina": self.rutina.nombre,
             "terminada": self.terminada,
+            "sin_dtw": self.sin_dtw,
             "frames": self.frames,
             "frames_sin_persona": self.frames_sin_persona,
             "latencias": self.latencias.resumen(),

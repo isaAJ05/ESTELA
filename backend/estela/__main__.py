@@ -57,6 +57,9 @@ def _argumentos(argv=None) -> argparse.Namespace:
                    help="sin interfaz gráfica (pruebas con vídeo)")
     p.add_argument("--sin-dtw", action="store_true",
                    help="desactivar la comparación con la referencia DTW")
+    p.add_argument("--umbrales", choices=("absolutos", "referencia"), default="absolutos",
+                   help="«referencia»: las reglas con forma relativa se miden contra la "
+                        "referencia del ejercicio (EXP-006); defecto «absolutos»")
     p.add_argument("--guardar-metricas", action="store_true",
                    help="guardar el resumen (solo métricas derivadas) en sesiones/")
     p.add_argument("-v", "--verbose", action="store_true")
@@ -75,6 +78,13 @@ def _imprimir_resumen(r: dict) -> None:
                  if paso["pausas_sesion"] else ""))
         for m in paso["mensajes"]:
             print(f"    [{m['t_ms'] / 1000:6.1f} s · rep {m['repeticion']}] {m['texto']}")
+        if paso.get("dtw"):
+            print("    DTW (frames): " + ", ".join(
+                f"{motivo} {n}" for motivo, n in sorted(paso["dtw"].items())))
+        if paso.get("umbrales") == "referencia":
+            print("    Umbrales relativos a la referencia; respaldo absoluto (frames): "
+                  + (", ".join(f"{e} {n}" for e, n in sorted(paso["respaldos"].items()))
+                     or "ninguno"))
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")
     print("Latencia por etapa (ms):")
     for etapa, v in r["latencias"].items():
@@ -93,7 +103,7 @@ def main(argv=None) -> int:
     from .adaptadores.voz.cola import ColaVoz
     from .adaptadores.voz.motores import buscar_voz_piper, crear_motor
 
-    catalogo = cargar_catalogo()
+    catalogo = cargar_catalogo(umbrales=args.umbrales)
     try:
         rutina = (rutina_de_un_ejercicio(args.ejercicio, args.repeticiones, catalogo)
                   if args.ejercicio else cargar_rutina(args.rutina, catalogo))

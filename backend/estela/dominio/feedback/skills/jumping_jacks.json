@@ -48,7 +48,11 @@
       "severidad": {"moderada": 20, "alta": 45},
       "umbral_origen": "[?] provisional, sin calibrar. 100° = 10° sobre la horizontal (hombro_medio: 90 + θ): solo corrige si los brazos apenas pasan del hombro. Antes 105° (15–30° recomendado, DEC-009); la licenciada pidió no usar 15–30° como umbral universal. Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "rango_brazos_insuficiente",
-      "direccion": {"aumentar": "subir"}
+      "direccion": {"aumentar": "subir"},
+      "relativa": {
+        "condicion": {"op": "<", "k": 3, "ruido": 5.7, "extremo": "max"},
+        "umbral_origen": "[?] máximo de hombro_medio de la referencia − k·max(σ, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "apertura_pies_insuficiente",
@@ -63,7 +67,12 @@
       "severidad": {"moderada": 0.2, "alta": 0.4},
       "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): medida cambiada a separacion_pies_hombros; 0,9 ≈ algo menos que el ancho de hombros. En vídeos correctos: 0,35 con los pies juntos y 1,5–2,7 abiertos [F]. Antes separacion_pies < 1,45 (y < 1,6 antes de eso). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "apertura_insuficiente",
-      "direccion": {"aumentar": "abrir"}
+      "direccion": {"aumentar": "abrir"},
+      "relativa": {
+        "medida": {"tipo": "agregado", "fn": "max", "nombre": "separacion_pies", "ventana": "repeticion"},
+        "condicion": {"op": "<", "k": 3, "ruido": 0.05, "extremo": "max"},
+        "umbral_origen": "[?] la referencia guarda separacion_pies, no separacion_pies_hombros: máximo de la referencia − k·max(σ, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "codos_flexionados",
@@ -78,7 +87,12 @@
       "severidad": {"moderada": 20, "alta": 40},
       "umbral_origen": "[?] provisional, sin calibrar. Plano frontal, como el ejercicio: EXP-002 E1 mide de frente un error de proyección del codo de 16,2°, por debajo del umbral moderado (20°). Declarada «sagital», no era observable nunca en la vista frontal (ADR-006 §2.9). Antes 145; la licenciada pide «extender sin bloquear los codos», así que solo se corrige una flexión clara. EXP-009 (2026-10-12): pasa de mínimo de la repetición (que mezclaba la subida de los brazos) a ángulo instantáneo con los brazos arriba. [F] Con los brazos arriba, en ejecuciones correctas MediaPipe da 98–123° (2 vídeos) y 150–166° (1 vídeo): de frente el codo distingue mal, así que 90 solo corrige el «codo en alas» claro",
       "mensaje_id": "codos_flexionados",
-      "direccion": {"aumentar": "menos_flexion"}
+      "direccion": {"aumentar": "menos_flexion"},
+      "relativa": {
+        "medida": {"tipo": "desviacion", "nombre": "codo_medio", "fn": "mediana"},
+        "condicion": {"op": "<", "k": 3, "ruido": 3.2},
+        "umbral_origen": "[?] mediana de la desviación respecto al instante alineado < −k·max(σ_ref, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     }
   ]
 }

@@ -12,13 +12,18 @@ from __future__ import annotations
 import json
 import os
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 from ..contrato import Direccion, Lado, Plano, SEGMENTOS
 
 OPERADORES = (">", ">=", "<", "<=", "fuera_de", "dentro_de")
 TIPOS_MEDIDA = ("angulo", "desviacion", "distancia", "agregado", "asimetria")
 FUNCIONES_AGREGADO = ("min", "max", "rango", "media")
+#: `fn` de una `desviacion`: vacío = el frame actual; `mediana` = mediana de
+#: los frames de la repetición en curso en que la regla aplica.
+FUNCIONES_DESVIACION = ("", "mediana")
+#: Extremo de la referencia con que se compara un agregado `max` o `min`.
+EXTREMOS = ("max", "min")
 #: Sentido en que debe moverse el *valor de la medida* para volver al rango.
 SENTIDOS = ("aumentar", "disminuir")
 #: `descartado` = fuera del conjunto de ejercicios (ADR-005); vive en `retirados/`.
@@ -44,6 +49,8 @@ class Medida:
             return f"{self.fn}({self.nombre})@{self.ventana}"
         if self.tipo == "asimetria":
             return f"asimetria({','.join(self.nombres)})"
+        if self.tipo == "desviacion" and self.fn:
+            return f"{self.fn}(desviacion:{self.nombre})@repeticion"
         return f"{self.tipo}:{self.nombre}"
 
     def angulos_implicados(self) -> Sequence[str]:
@@ -58,6 +65,28 @@ class Condicion:
     umbral: Optional[float] = None
     min: Optional[float] = None
     max: Optional[float] = None
+    #: Forma relativa (ADR-004 §2.2): el umbral es `k × max(σ_ref, ruido)`, en
+    #: las unidades de la medida. Sin `extremo` se calcula en cada frame con el
+    #: σ del instante alineado (`con_escala`, medidas `desviacion`). Con
+    #: `extremo` se resuelve una vez contra el máximo o el mínimo de la
+    #: referencia (`aplicacion/umbrales.py`).
+    k: Optional[float] = None
+    ruido: float = 0.0
+    extremo: Optional[str] = None
+
+    @property
+    def relativa(self) -> bool:
+        return self.k is not None
+
+    def con_escala(self, escala: float) -> "Condicion":
+        """La condición concreta de una desviación cuya escala es
+        `max(σ_ref, ruido)`: `>` → +k·escala, `<` → −k·escala y `fuera_de` →
+        fuera de ±k·escala."""
+        limite = self.k * escala
+        if self.op == "fuera_de":
+            return Condicion(op="fuera_de", min=-limite, max=limite)
+        signo = 1.0 if self.op in (">", ">=") else -1.0
+        return Condicion(op=self.op, umbral=signo * limite)
 
     def evalua(self, valor: float) -> bool:
         if self.op == ">":
@@ -109,6 +138,20 @@ class Condicion:
 
 
 @dataclass(frozen=True)
+class FormaRelativa:
+    """La regla medida contra la referencia (ADR-004 §2.1, EXP-006).
+
+    Solo se usa con umbrales «referencia» (`aplicacion/umbrales.py`): pasa a
+    ser la forma principal de la regla y la absoluta queda de respaldo.
+    """
+    medida: Medida
+    condicion: Condicion
+    umbral_origen: str = "[?] provisional, sin calibrar"
+    #: vacío = la misma severidad que la forma absoluta (mismas unidades)
+    umbrales_severidad: Dict[str, float] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class Regla:
     error_id: str
     descripcion: str
@@ -133,6 +176,11 @@ class Regla:
     #: si alguna de estas reglas se disparó en la repetición en curso, esta
     #: calla el resto de la repetición (precedencia entre errores).
     silenciada_por: Sequence[str] = ()
+    #: forma relativa a la referencia, sin usar con umbrales «absolutos»
+    relativa: Optional[FormaRelativa] = None
+    #: medida y condición absolutas que se evalúan en los frames en que la
+    #: forma principal necesita la referencia y no la hay (sin DTW, coste alto)
+    respaldo: Optional[Tuple[Medida, Condicion]] = None
 
     def medida_espejo(self) -> Optional[str]:
         """La misma medida del otro lado: `rodilla_izq` <-> `rodilla_der`."""
@@ -142,8 +190,10 @@ class Regla:
                 return nombre[: -len(suf)] + otro
         return None
 
-    def direccion_de(self, valor: float) -> Optional[Direccion]:
-        sentido = self.condicion.sentido(valor)
+    def direccion_de(self, valor: float,
+                     condicion: Optional[Condicion] = None) -> Optional[Direccion]:
+        """`condicion`: la que se evaluó en este frame (relativa o respaldo)."""
+        sentido = (condicion or self.condicion).sentido(valor)
         return self.direcciones.get(sentido) if sentido else None
 
     def severidad_de(self, exceso: float) -> str:
@@ -238,6 +288,8 @@ def _medida_desde(d: Dict[str, Any]) -> Medida:
         raise SkillInvalido(f"tipo de medida desconocido: {tipo}")
     if tipo == "agregado" and d.get("fn") not in FUNCIONES_AGREGADO:
         raise SkillInvalido(f"funcion de agregado desconocida: {d.get('fn')}")
+    if tipo == "desviacion" and d.get("fn", "") not in FUNCIONES_DESVIACION:
+        raise SkillInvalido(f"una desviacion solo admite fn 'mediana': {d.get('fn')}")
     if tipo == "asimetria":
         nombres = tuple(d.get("nombres", ()))
         if len(nombres) != 2:
@@ -257,6 +309,13 @@ def _condicion_desde(d: Dict[str, Any]) -> Condicion:
     op = d.get("op")
     if op not in OPERADORES:
         raise SkillInvalido(f"operador desconocido: {op}")
+    if d.get("k") is not None:
+        k, extremo = float(d["k"]), d.get("extremo")
+        if k <= 0 or op == "dentro_de":
+            raise SkillInvalido(f"forma relativa no válida: k={k} con '{op}'")
+        if extremo is not None and (extremo not in EXTREMOS or op == "fuera_de"):
+            raise SkillInvalido(f"extremo '{extremo}' no válido con '{op}'")
+        return Condicion(op=op, k=k, ruido=float(d.get("ruido", 0.0)), extremo=extremo)
     if op in ("fuera_de", "dentro_de"):
         if d.get("min") is None or d.get("max") is None:
             raise SkillInvalido(f"'{op}' requiere 'min' y 'max'")
@@ -293,6 +352,38 @@ def _regla_desde(d: Dict[str, Any]) -> Regla:
     return regla
 
 
+def _comprueba_forma(error_id: str, medida: Medida, condicion: Condicion,
+                     en_relativa: bool) -> None:
+    """Una condición con `k` compara una `desviacion` frame a frame o, con
+    `extremo` (solo dentro de `relativa`), un agregado `max`/`min` con el
+    extremo de la referencia."""
+    if condicion.extremo is not None:
+        if not en_relativa:
+            raise SkillInvalido(f"{error_id}: 'extremo' solo va dentro de 'relativa'")
+        if medida.tipo != "agregado" or medida.fn not in EXTREMOS:
+            raise SkillInvalido(
+                f"{error_id}: el extremo de la referencia se compara con un "
+                f"agregado max o min")
+    elif condicion.relativa and medida.tipo != "desviacion":
+        raise SkillInvalido(f"{error_id}: una condición con 'k' necesita una 'desviacion'")
+
+
+def _forma_relativa_desde(d: Dict[str, Any], absoluta: Medida,
+                          error_id: str) -> FormaRelativa:
+    if "condicion" not in d:
+        raise SkillInvalido(f"{error_id}: 'relativa' requiere 'condicion'")
+    medida = _medida_desde(d["medida"]) if "medida" in d else absoluta
+    condicion = _condicion_desde(d["condicion"])
+    if not condicion.relativa:
+        raise SkillInvalido(f"{error_id}: la condición de 'relativa' necesita 'k'")
+    _comprueba_forma(error_id, medida, condicion, en_relativa=True)
+    return FormaRelativa(
+        medida=medida, condicion=condicion,
+        umbral_origen=d.get("umbral_origen", "[?] provisional, sin calibrar"),
+        umbrales_severidad=dict(d.get("severidad", {})),
+    )
+
+
 def _regla_sin_validar(d: Dict[str, Any]) -> Regla:
     for campo in ("error_id", "medida", "condicion", "segmento", "lado",
                   "plano", "prioridad"):
@@ -301,11 +392,13 @@ def _regla_sin_validar(d: Dict[str, Any]) -> Regla:
     if d["segmento"] not in SEGMENTOS:
         raise SkillInvalido(
             f"segmento '{d['segmento']}' fuera del vocabulario cerrado")
+    medida, condicion = _medida_desde(d["medida"]), _condicion_desde(d["condicion"])
+    _comprueba_forma(d["error_id"], medida, condicion, en_relativa=False)
     return Regla(
         error_id=d["error_id"],
         descripcion=d.get("descripcion", ""),
-        medida=_medida_desde(d["medida"]),
-        condicion=_condicion_desde(d["condicion"]),
+        medida=medida,
+        condicion=condicion,
         segmento=d["segmento"],
         lado=Lado(d["lado"]),
         plano=Plano(d["plano"]),
@@ -317,6 +410,8 @@ def _regla_sin_validar(d: Dict[str, Any]) -> Regla:
         direcciones=_direcciones_desde(d.get("direccion", {})),
         solo_lado_visible=bool(d.get("solo_lado_visible", False)),
         silenciada_por=tuple(d.get("silenciada_por", ())),
+        relativa=(_forma_relativa_desde(d["relativa"], medida, d["error_id"])
+                  if "relativa" in d else None),
     )
 
 
@@ -399,7 +494,7 @@ def directorio_skills() -> str:
 
 
 __all__ = [
-    "Skill", "Regla", "Medida", "Condicion", "PoliticaSilencio", "PoliticaRefuerzo",
-    "SkillInvalido", "cargar_skill", "cargar_skills", "skill_desde_dict",
-    "directorio_skills",
+    "Skill", "Regla", "Medida", "Condicion", "FormaRelativa", "PoliticaSilencio",
+    "PoliticaRefuerzo", "SkillInvalido", "cargar_skill", "cargar_skills",
+    "skill_desde_dict", "directorio_skills",
 ]

@@ -71,5 +71,10 @@ class MotorFeedback:
     def abstenciones(self) -> Dict[str, int]:
         return dict(self.decision.contador_abstenciones)
 
+    @property
+    def respaldos(self) -> Dict[str, int]:
+        """Frames evaluados con el respaldo absoluto, por regla."""
+        return dict(self.decision.contador_respaldo)
+
 
 __all__ = ["MotorFeedback", "Tiempos", "Salida"]

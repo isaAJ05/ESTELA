@@ -48,7 +48,8 @@ class RegistroRepeticiones:
         self._rep: Optional[int] = None
         self._inicio_ms: Optional[int] = None
 
-    def _cierra(self, rep: int, resultado: str, t_ms: int) -> None:
+    def _cierra(self, rep: int, resultado: str, t_ms: int,
+                obs: Optional[Observacion] = None) -> None:
         fila: Dict[str, Any] = {
             "rep": rep, "resultado": resultado,
             "t_s": round(t_ms / 1000.0, 1),
@@ -59,6 +60,13 @@ class RegistroRepeticiones:
             r = self._rango.get(n)
             fila[f"{n}_min"] = round(r[0], 2) if r else None
             fila[f"{n}_max"] = round(r[1], 2) if r else None
+        if obs is not None:
+            # DTW en el frame que cierra la repetición (vuelta al reposo): coste
+            # medio del movimiento y hasta dónde llegó en la referencia (EXP-006)
+            fila["coste_dtw"] = (round(obs.coste_dtw, 2)
+                                 if obs.coste_dtw is not None else None)
+            fila["progreso_dtw"] = (round(obs.progreso, 2)
+                                    if obs.progreso is not None else None)
         self.filas.append(fila)
         self._rango = {}
         self._inicio_ms = t_ms
@@ -83,7 +91,7 @@ class RegistroRepeticiones:
         if not self.isometrico and seg.evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA):
             self._cierra(seg.repeticion,
                          "cuenta" if seg.evento == EVENTO_COMPLETA else "no_cuenta",
-                         obs.t_ms)
+                         obs.t_ms, obs)
 
     def cerrar(self, t_ms: int) -> None:
         """Bloque isométrico en curso al terminar el paso."""

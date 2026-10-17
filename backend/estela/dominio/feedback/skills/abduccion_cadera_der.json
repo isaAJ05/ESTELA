@@ -73,7 +73,12 @@
         "alta": 12
       },
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "inclinacion_lateral"
+      "mensaje_id": "inclinacion_lateral",
+      "relativa": {
+        "medida": {"tipo": "desviacion", "nombre": "inclinacion_lateral_tronco", "fn": "mediana"},
+        "condicion": {"op": ">", "k": 3, "ruido": 0.2},
+        "umbral_origen": "[?] inclinacion_lateral_tronco = nombre canónico de inclinacion_lateral. Mediana de la desviación > k·max(σ_ref, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "cadera_der_sube",
@@ -100,7 +105,12 @@
       },
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "cadera_sube",
-      "direccion": {"aumentar": "bajar"}
+      "direccion": {"aumentar": "bajar"},
+      "relativa": {
+        "medida": {"tipo": "desviacion", "nombre": "inclinacion_pelvis", "fn": "mediana"},
+        "condicion": {"op": "<", "k": 3, "ruido": 0.2},
+        "umbral_origen": "[?] inclinacion_pelvis = nombre canónico de oblicuidad_pelvis. Mediana de la desviación < −k·max(σ_ref, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "abduccion_insuficiente_der",
@@ -129,7 +139,11 @@
       "umbral_origen": "[?] provisional, sin calibrar. 16° = el extremo de la segmentación: una repetición cuenta si y solo si no se corrige su amplitud. Antes 25° (casi el techo recomendado de ~30°, DEC-011). Calla si el tronco o la cadera compensaron (silenciada_por). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "abduccion_insuficiente",
       "direccion": {"aumentar": "abrir"},
-      "silenciada_por": ["tronco_inclinado_izq", "cadera_der_sube"]
+      "silenciada_por": ["tronco_inclinado_izq", "cadera_der_sube"],
+      "relativa": {
+        "condicion": {"op": "<", "k": 3, "ruido": 0.5, "extremo": "max"},
+        "umbral_origen": "[?] máximo de la abducción de la referencia − k·max(σ, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     }
   ]
 }

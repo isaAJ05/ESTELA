@@ -24,6 +24,7 @@ que es el peor fallo posible porque es silencioso.
 
 from __future__ import annotations
 
+import statistics
 from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Set, Tuple, Union
 
@@ -34,9 +35,20 @@ from ..contrato import (
     MOTIVO_PLANO_NO_OBSERVABLE, MOTIVO_REFRACTARIO, MOTIVO_SIN_ERROR,
     MOTIVO_DTW_NO_DISPONIBLE,
 )
-from .skill import Medida, PoliticaRefuerzo, Regla, Skill
+from .skill import Condicion, Medida, PoliticaRefuerzo, Regla, Skill
 
 Decision = Union[ErrorTipificado, Refuerzo, Silencio]
+#: (regla, valor, confianza, medida y condición con que se evaluó)
+_Candidato = Tuple[Regla, float, float, Medida, Condicion]
+
+#: muestras que necesita una desviación con `fn: mediana` antes de evaluarse:
+#: con menos, un solo frame ruidoso decidiría la mediana
+MIN_MUESTRAS_MEDIANA = 3
+
+
+def escala_relativa(condicion: Condicion, sigma: Optional[float]) -> float:
+    """`max(σ_ref, ruido)` de una condición relativa; 0 si no hay ninguno."""
+    return max(sigma or 0.0, condicion.ruido)
 
 
 # ---------------------------------------------------------------------------
@@ -133,6 +145,12 @@ class MotorDecision:
         self._t_ultima_emision_ms: Optional[int] = None
         #: diagnóstico: cuántas veces se abstuvo por cada motivo
         self.contador_abstenciones: Dict[str, int] = {}
+        #: frames en que cada regla se evaluó con su respaldo absoluto porque
+        #: su forma principal necesitaba la referencia y no la había
+        self.contador_respaldo: Dict[str, int] = {}
+        #: desviaciones y escalas de la repetición en curso, por regla con
+        #: `fn: mediana`
+        self._rep_desviaciones: Dict[str, Tuple[List[float], List[float]]] = {}
         #: estado de la racha de repeticiones limpias (refuerzo positivo)
         self._refuerzo = _EstadoRefuerzo()
         #: reglas aplicables (por fase) y reglas comprobadas en la repetición
@@ -164,6 +182,7 @@ class MotorDecision:
             self._rep_comprobadas = set()
             self._rep_sucia = False
             self._rep_disparadas = set()
+            self._rep_desviaciones = {}
 
     def _cierra_repeticion_anterior(self) -> None:
         """Decide si la repetición que acaba de terminar fue 'limpia'.
@@ -245,30 +264,74 @@ class MotorDecision:
             return False
         return self._lado_visible(regla, obs) and not self._silenciada(regla)
 
+    @staticmethod
+    def _referencia_disponible(medida: Medida, condicion: Condicion,
+                               obs: Observacion) -> bool:
+        """¿Trae este frame la referencia que necesita una `desviacion`?"""
+        if obs.coste_dtw is None or medida.nombre not in obs.angulos_ref:
+            return False
+        return (not condicion.relativa
+                or escala_relativa(condicion, obs.sigma_ref.get(medida.nombre)) > 0)
+
+    def _forma(self, regla: Regla, obs: Observacion
+               ) -> Optional[Tuple[Medida, Condicion]]:
+        """Medida y condición con que se evalúa la regla en este frame.
+
+        Una `desviacion` necesita la referencia alineada. Si en este frame no
+        la hay (sin DTW, coste alto, aún sin repetición), se evalúa el
+        respaldo absoluto de la regla; sin respaldo, None: abstención por
+        `dtw_no_disponible` (ADR-004 §2.3).
+        """
+        if (regla.medida.tipo != "desviacion"
+                or self._referencia_disponible(regla.medida, regla.condicion, obs)):
+            return regla.medida, regla.condicion
+        if regla.respaldo is None:
+            return None
+        self.contador_respaldo[regla.error_id] = (
+            self.contador_respaldo.get(regla.error_id, 0) + 1)
+        return regla.respaldo
+
+    def _mediana_desviacion(self, regla: Regla, medida: Medida, condicion: Condicion,
+                            obs: Observacion) -> Optional[Tuple[float, float]]:
+        """(mediana de la desviación, mediana de su escala) en los frames de la
+        repetición en curso en que la regla aplica. None mientras haya menos de
+        `MIN_MUESTRAS_MEDIANA`."""
+        desviacion = obs.desviacion_de(medida.nombre)
+        if desviacion is None:
+            return None
+        desviaciones, escalas = self._rep_desviaciones.setdefault(regla.error_id, ([], []))
+        desviaciones.append(desviacion)
+        escalas.append(escala_relativa(condicion, obs.sigma_ref.get(medida.nombre)))
+        if len(desviaciones) < MIN_MUESTRAS_MEDIANA:
+            return None
+        return statistics.median(desviaciones), statistics.median(escalas)
+
     def _candidatos(self, obs: Observacion
-                    ) -> Tuple[List[Tuple[Regla, float, float]], List[str], List[str]]:
+                    ) -> Tuple[List[_Candidato], List[str], List[str]]:
         """Devuelve (candidatos, motivos_de_abstencion, reglas_evaluadas).
 
-        Cada candidato es (regla, valor, confianza); el exceso y la dirección
-        se derivan del valor. `reglas_evaluadas` son los `error_id` de las
-        reglas que sí se pudieron comprobar: distingue
+        Cada candidato es (regla, valor, confianza, medida, condición): la
+        medida y la condición con que se evaluó en este frame (la principal,
+        con el umbral relativo ya calculado, o el respaldo). El exceso y la
+        dirección se derivan de ellas. `reglas_evaluadas` son los `error_id`
+        de las reglas que sí se pudieron comprobar: distingue
         «no hay error» de «no pude mirar», que es una distinción que el sistema
         debe poder hacer y reportar.
         """
-        candidatos: List[Tuple[Regla, float, float]] = []
+        candidatos: List[_Candidato] = []
         motivos: List[str] = []
         evaluadas: List[str] = []
 
         for regla in self.skill.reglas:
             if not self._aplica(regla, obs):
                 continue
-            if regla.medida.tipo == "desviacion" and (
-                    obs.coste_dtw is None or
-                    regla.medida.nombre not in obs.angulos_ref):
+            forma = self._forma(regla, obs)
+            if forma is None:
                 motivos.append(MOTIVO_DTW_NO_DISPONIBLE)
                 continue
+            medida, condicion = forma
 
-            conf = self.confianza_de_medida(regla.medida, obs)
+            conf = self.confianza_de_medida(medida, obs)
             if conf < self.politica.confianza_minima:
                 motivos.append(MOTIVO_CONFIANZA_BAJA)
                 continue
@@ -278,14 +341,23 @@ class MotorDecision:
                 motivos.append(MOTIVO_PLANO_NO_OBSERVABLE)
                 continue
 
-            valor = self.valor_de_medida(regla.medida, obs)
+            if medida.tipo == "desviacion" and medida.fn == "mediana":
+                mediana = self._mediana_desviacion(regla, medida, condicion, obs)
+                if mediana is None:          # aún pocas muestras: ni error ni abstención
+                    continue
+                valor, escala = mediana
+            else:
+                valor = self.valor_de_medida(medida, obs)
+                escala = escala_relativa(condicion, obs.sigma_ref.get(medida.nombre))
             if valor is None:
                 motivos.append(MOTIVO_CONFIANZA_BAJA)
                 continue
+            if condicion.relativa:
+                condicion = condicion.con_escala(escala)
 
             evaluadas.append(regla.error_id)
-            if regla.condicion.evalua(valor):
-                candidatos.append((regla, valor, conf))
+            if condicion.evalua(valor):
+                candidatos.append((regla, valor, conf, medida, condicion))
 
         return candidatos, motivos, evaluadas
 
@@ -416,7 +488,7 @@ class MotorDecision:
         candidatos, motivos, evaluadas_ids = self._candidatos(obs)
         # Precedencia: lo que se dispara en este frame ya silencia a las
         # reglas que declaran `silenciada_por`, también en este mismo frame.
-        self._rep_disparadas.update(r.error_id for r, _, _ in candidatos)
+        self._rep_disparadas.update(c[0].error_id for c in candidatos)
         candidatos = [c for c in candidatos if not self._silenciada(c[0])]
         evaluadas_ids = [e for e in evaluadas_ids
                          if not self._silenciada(self.skill.regla_de(e))]
@@ -426,7 +498,7 @@ class MotorDecision:
         self._rep_comprobadas.update(evaluadas_ids)
         if candidatos:
             self._rep_sucia = True
-        self._actualiza_evidencia(obs, [r.error_id for r, _, _ in candidatos],
+        self._actualiza_evidencia(obs, [c[0].error_id for c in candidatos],
                                   evaluadas_ids)
 
         # Las abstenciones se contabilizan siempre, aunque otra regla sí se
@@ -450,10 +522,10 @@ class MotorDecision:
         # Una sola prioridad. Desempate determinista: prioridad, luego mayor
         # exceso, luego error_id alfabético.
         candidatos.sort(key=lambda c: (c[0].prioridad,
-                                       -c[0].condicion.exceso(c[1]),
+                                       -c[4].exceso(c[1]),
                                        c[0].error_id))
-        regla, valor, conf = candidatos[0]
-        exceso = regla.condicion.exceso(valor)
+        regla, valor, conf, medida, condicion = candidatos[0]
+        exceso = condicion.exceso(valor)
 
         motivo = self._puede_hablar(regla, obs)
         if motivo is not None:
@@ -475,9 +547,9 @@ class MotorDecision:
             ejercicio_id=self.skill.skill_id,
             mensaje_id=regla.mensaje_id or regla.error_id,
             magnitud=round(exceso, 3),
-            medida=regla.medida.clave(),
+            medida=medida.clave(),
             confianza=round(conf, 3),
-            direccion=regla.direccion_de(valor),
+            direccion=regla.direccion_de(valor, condicion),
         )
 
     def reiniciar(self) -> None:
@@ -487,6 +559,8 @@ class MotorDecision:
         self._estado.clear()
         self._t_ultima_emision_ms = None
         self.contador_abstenciones.clear()
+        self.contador_respaldo.clear()
+        self._rep_desviaciones = {}
         self._refuerzo = _EstadoRefuerzo()
         self._rep_aplicables = set()
         self._rep_comprobadas = set()

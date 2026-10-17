@@ -57,7 +57,8 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "mensaje_id": "valgo_rodilla",     // clave en plantillas_es.json; varias reglas pueden compartirla
   "direccion": { … },                // opcional; ver abajo
   "solo_lado_visible": false,         // opcional; ver abajo
-  "silenciada_por": []                // opcional; ver abajo
+  "silenciada_por": [],               // opcional; ver abajo
+  "relativa": { … }                   // opcional; ver abajo
 }
 ```
 
@@ -83,7 +84,7 @@ La regla que manda tiene que evaluarse **antes** en la repetición (en una fase 
 |---|---|---|
 | `angulo` | `nombre` | Valor instantáneo de `Observacion.angulos[nombre]`. |
 | `distancia` | `nombre` | Valor instantáneo de `Observacion.distancias[nombre]`. |
-| `desviacion` | `nombre` | `angulos[nombre] - angulos_ref[nombre]` (o el valor que entregue percepción). |
+| `desviacion` | `nombre`, `fn` opcional (`mediana`) | Valor (ángulo o distancia) menos `angulos_ref[nombre]`, o el valor que entregue percepción. Con `fn: mediana`, la mediana de los frames de la repetición en curso en que la regla aplica (desde 3 muestras). Necesita la referencia alineada (DTW); sin ella, abstención `dtw_no_disponible` o respaldo absoluto (ver `relativa`). |
 | `agregado` | `fn` (`min`\|`max`\|`rango`\|`media`), `nombre`, `ventana` (`repeticion`) | Agregado acumulado dentro de la repetición actual. |
 | `asimetria` | `nombres` (exactamente 2) | Valor absoluto de la diferencia entre las dos medidas. |
 
@@ -94,8 +95,31 @@ La regla que manda tiene que evaluarse **antes** en la repetición (en una fase 
 | `>` `>=` `<` `<=` | `umbral` | el valor compara así con el umbral |
 | `fuera_de` | `min`, `max` | el valor está fuera del intervalo |
 | `dentro_de` | `min`, `max` | el valor está dentro del intervalo |
+| `>` `>=` `<` `<=` `fuera_de` | `k`, `ruido` | **relativa** (ADR-004 §2.2), solo sobre una `desviacion`: el umbral es `k × max(σ_ref, ruido)`, con el σ de la referencia en el instante alineado (`Observacion.sigma_ref`). `>` → +k·escala, `<` → −k·escala, `fuera_de` → fuera de ±k·escala |
+| `>` `>=` `<` `<=` | `k`, `ruido`, `extremo` (`max`\|`min`) | **relativa**, solo dentro de `relativa` y sobre un agregado `max`/`min`: el umbral es el extremo de la referencia ∓ k × max(σ en ese frame, ruido) |
 
-El **exceso** (cuánto se rebasa el umbral) determina la severidad mediante el bloque `severidad`: `alta` si el exceso la alcanza, si no `moderada`, si no `leve`.
+El **exceso** (cuánto se rebasa el umbral) determina la severidad mediante el bloque `severidad`: `alta` si el exceso la alcanza, si no `moderada`, si no `leve`. En las condiciones relativas también va en las unidades de la medida (grados por encima del umbral relativo), así que la misma `severidad` sirve para las dos formas.
+
+### `relativa` (opcional; ADR-004 §2.1–2.2, EXP-006)
+
+La misma regla medida contra la referencia del ejercicio. **Solo se usa con umbrales «referencia»** (`python -m estela --umbrales referencia`, `aplicacion/umbrales.py`). Entonces pasa a ser la forma principal y la forma absoluta queda de **respaldo**: se evalúa en los frames en que la desviación no tiene referencia (sin DTW, coste alto). Con umbrales «absolutos», que es el defecto, se ignora.
+
+```jsonc
+// postura o compensación: desviación respecto a la referencia en el instante alineado
+"relativa": {
+  "medida": {"tipo": "desviacion", "nombre": "inclinacion_lateral_tronco", "fn": "mediana"},
+  "condicion": {"op": "<", "k": 3, "ruido": 1.5},
+  "umbral_origen": "[?] k provisional (EXP-005); ruido estimado en EXP-006 §3"
+}
+// amplitud del movimiento principal: el agregado de la regla frente al extremo de la referencia
+"relativa": {"condicion": {"op": "<", "k": 3, "ruido": 1.5, "extremo": "max"}}
+```
+
+- Sin `medida`, hereda la de la regla.
+- `severidad` opcional; sin ella, la de la regla.
+- Si la referencia no trae la medida, la regla se queda absoluta.
+
+**Qué forma usar** (EXP-006 §2.5): `[F]` el DTW «absorbe» la desviación de la medida que guía el alineamiento. Para la amplitud del movimiento principal (brazos en jumping jacks, la pierna en la abducción) se usa el **extremo**; para posturas y compensaciones (tronco, pelvis, codos, cadera en la plancha), la **desviación**, mejor con `fn: mediana`.
 
 ### `direccion` (opcional, ADR-004 §2.5)
 
@@ -211,6 +235,16 @@ El JSON cíclico contiene `angulos.media`, `angulos.sigma`, `angulos.n`,
 `fases`, `keypoints_2d` y `dtw`. El JSON isométrico contiene `postura.media`,
 `postura.sigma`, `postura.n` y `keypoints_2d`. El gráfico de control se revisa
 antes de usar los valores para sustituir umbrales provisionales.
+
+En sesión, `estela/aplicacion/dtw.py` alinea cada repetición con
+`angulos.media` (DTW incremental de final abierto, ADR-004 §2.3) y lee del
+bloque `dtw`:
+
+| Campo | Qué hace en sesión |
+|---|---|
+| `banda` | Banda Sakoe-Chiba en frames de la referencia, alrededor del instante que tocaría al ritmo de la referencia (tiempo desde el inicio de la repetición × `fps`). `null` = sin banda. Offline, `crear_referencia.py` la centra en la diagonal de las dos series completas. |
+| `coste_maximo` | Opcional. Con `coste_dtw` por encima, el frame no se alinea y las reglas `desviacion` se abstienen (`dtw_no_disponible`). `[?]` Ninguna referencia lo trae todavía: se calibra con el `coste_dtw` por repetición de EXP-006. |
+| `coste_medoide_a_resto` | Solo informativo: coste medio del medoide frente a las demás repeticiones, en las mismas unidades que `coste_dtw`. |
 
 ## Reglas de higiene que el cargador impone
 
