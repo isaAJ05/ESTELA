@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { EstadoSesion, Punto, Severidad } from '../bridge/tipos'
 import { alFrame, useEstado } from '../estado/almacen'
 
@@ -270,12 +270,95 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
 }
 
 /** Esqueleto de referencia en pequeño (capacidad «guia»). */
-export function GuiaAnimada({ puntos }: { puntos: Punto[] }) {
+export function GuiaAnimada({ puntos, ejercicioId, animar = true }: {
+  puntos: Punto[]
+  ejercicioId: string
+  animar?: boolean
+}) {
   const conexiones = useEstado((s) => s.info?.conexiones ?? [])
+  const [puntosSuavizados, setPuntosSuavizados] = useState(puntos)
+  const actuales = useRef(puntos)
+  const animacion = useRef<number | null>(null)
+
+  useEffect(() => {
+    if (!animar) {
+      setPuntosSuavizados(puntos)
+      actuales.current = puntos
+      return
+    }
+    if (animacion.current !== null) cancelAnimationFrame(animacion.current)
+
+    const inicio = actuales.current
+    const fin = puntos
+    const duracion = 100
+    const t0 = performance.now()
+
+    const avanzar = (ahora: number) => {
+      const progreso = Math.min((ahora - t0) / duracion, 1)
+      const suave = progreso * progreso * (3 - 2 * progreso)
+      const interpolados = fin.map((punto, indice) => {
+        const anterior = inicio[indice] ?? punto
+        return [
+          anterior[0] + (punto[0] - anterior[0]) * suave,
+          anterior[1] + (punto[1] - anterior[1]) * suave,
+          punto[2],
+        ] as Punto
+      })
+      actuales.current = interpolados
+      setPuntosSuavizados(interpolados)
+      if (progreso < 1) {
+        animacion.current = requestAnimationFrame(avanzar)
+      } else {
+        animacion.current = null
+      }
+    }
+
+    animacion.current = requestAnimationFrame(avanzar)
+    return () => {
+      if (animacion.current !== null) cancelAnimationFrame(animacion.current)
+    }
+  }, [animar, puntos])
+
+  const punto = (indice: number): Punto => puntosSuavizados[indice] ?? [0.5, 0.5, 0]
+  const medio = (a: number, b: number): Punto => [
+    (punto(a)[0] + punto(b)[0]) / 2,
+    (punto(a)[1] + punto(b)[1]) / 2,
+    1,
+  ]
+  const hombros = medio(11, 12)
+  const caderas = medio(23, 24)
+  const orejas = medio(7, 8)
+  const cabeza: Punto = [
+    orejas[0] * 0.75 + punto(0)[0] * 0.25,
+    orejas[1] * 0.75 + punto(0)[1] * 0.25
+      - (ejercicioId === 'jumping_jacks' ? 0.035 : 0),
+    1,
+  ]
+  const esPerfil = ejercicioId === 'plancha' || ejercicioId === 'marcha_rodillas'
+  const radioCabeza = esPerfil
+    ? 0.06
+    : Math.max(0.018, Math.min(0.05,
+      Math.abs(punto(11)[0] - punto(12)[0]) * 0.4))
+  const cuerpo = new Set([11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28])
+  const segmento = (a: number, b: number, clase = 'guia-extremidad') => (
+    <line className={clase} x1={punto(a)[0]} y1={punto(a)[1]}
+      x2={punto(b)[0]} y2={punto(b)[1]} />
+  )
+
   return (
     <svg className="guia-animada" viewBox="0 0 1 1" preserveAspectRatio="xMidYMid meet" aria-label="Movimiento de referencia" role="img">
-      {conexiones.map(([a, b]) => puntos[a] && puntos[b] && (
-        <line key={`${a}-${b}`} x1={puntos[a][0]} y1={puntos[a][1]} x2={puntos[b][0]} y2={puntos[b][1]} />
+      <line className="guia-torso" x1={hombros[0]} y1={hombros[1]} x2={caderas[0]} y2={caderas[1]} />
+      {segmento(11, 12, 'guia-cintura')}
+      {segmento(23, 24, 'guia-cintura')}
+      {segmento(11, 13)}{segmento(13, 15)}
+      {segmento(12, 14)}{segmento(14, 16)}
+      {segmento(23, 25)}{segmento(25, 27)}
+      {segmento(24, 26)}{segmento(26, 28)}
+      <circle className="guia-cabeza" cx={cabeza[0]} cy={cabeza[1]} r={radioCabeza} />
+      {[15, 16, 27, 28].map((indice) => <circle key={`mano-${indice}`} className="guia-articulacion" cx={punto(indice)[0]} cy={punto(indice)[1]} r="0.018" />)}
+      {[31, 32].map((indice) => <ellipse key={`pie-${indice}`} className="guia-pie" cx={punto(indice)[0]} cy={punto(indice)[1]} rx="0.035" ry="0.018" />)}
+      {conexiones.filter(([a, b]) => (!cuerpo.has(a) || !cuerpo.has(b)) && (a >= 33 || b >= 33)).map(([a, b]) => (
+        <line key={`extra-${a}-${b}`} className="guia-extra" x1={punto(a)[0]} y1={punto(a)[1]} x2={punto(b)[0]} y2={punto(b)[1]} />
       ))}
     </svg>
   )

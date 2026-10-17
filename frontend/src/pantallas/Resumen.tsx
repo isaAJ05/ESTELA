@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
 import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
 import { Figura } from '../componentes/Figura'
+import { GuiaAnimada } from '../componentes/VistaCamara'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
 export function Resumen({ bridge }: { bridge: Bridge }) {
@@ -59,7 +60,8 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
 
         {tecnico ? <PanelTecnico resumen={resumen} /> : (
           <ol className="tarjeta lista-resumen">
-            {resumen.pasos.map((p, i) => <FilaResumen key={`${p.skillId}-${i}`} paso={p} />)}
+            {resumen.pasos.map((p, i) => <FilaResumen key={`${p.skillId}-${i}`} paso={p}
+              referencia={plan.find((planPaso) => planPaso.skillId === p.skillId)?.guia ?? null} />)}
             {pendientes.map((p, i) => <FilaPendiente key={`p-${p.skillId}-${i}`} paso={p} />)}
           </ol>
         )}
@@ -74,7 +76,7 @@ function agrupar(paso: PasoResumen): [string, number][] {
   return [...veces.entries()].sort((a, b) => b[1] - a[1])
 }
 
-function FilaResumen({ paso }: { paso: PasoResumen }) {
+function FilaResumen({ paso, referencia }: { paso: PasoResumen; referencia: PasoRutina['guia'] }) {
   const conCorrectas = useCapacidad('correctasConError')
   const correcciones = agrupar(paso)
   const [abierta, setAbierta] = useState(false)
@@ -93,7 +95,11 @@ function FilaResumen({ paso }: { paso: PasoResumen }) {
     <li className={`fila-resumen ${abierta ? 'abierta' : ''}`}>
       <button className="fila-resumen-cabeza" onClick={() => setAbierta(!abierta)}
               aria-expanded={abierta} disabled={correcciones.length === 0}>
-        <span className="paso-figura"><Figura skillId={paso.skillId} tam={44} resaltar={false} /></span>
+        <span className="paso-figura">
+          {referencia
+            ? <GuiaAnimada puntos={referencia} ejercicioId={paso.skillId} animar={false} />
+            : <Figura skillId={paso.skillId} tam={44} resaltar={false} />}
+        </span>
         <span className="fila-resumen-nombre">
           <strong>{paso.nombre}</strong>
           <span>{detalles.join(' · ')}</span>

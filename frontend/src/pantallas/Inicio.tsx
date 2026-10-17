@@ -2,7 +2,8 @@ import { AlertTriangle, Loader2, Play, RotateCcw, Ruler, ScanLine, Sun } from 'l
 import { useState } from 'react'
 import type { Bridge, Nivel } from '../bridge/tipos'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
-import { Figura, IconoVista, textoVista } from '../componentes/Figura'
+import { Figura, textoVista } from '../componentes/Figura'
+import { GuiaAnimada } from '../componentes/VistaCamara'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
 function textoError(tipo: 'fuente' | 'modelo', fuente: 'camara' | 'video') {
@@ -85,10 +86,14 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
             <ol className="lista-pasos">
               {rutina.pasos.map((p, i) => (
                 <li key={`${p.skillId}-${i}`}>
-                  <span className="paso-figura"><Figura skillId={p.skillId} tam={44} resaltar={false} /></span>
+                  <span className="paso-figura">
+                    {p.guia
+                      ? <GuiaAnimada puntos={p.guia} ejercicioId={p.skillId} animar={false} />
+                      : <Figura skillId={p.skillId} tam={44} resaltar={false} />}
+                  </span>
                   <div>
                     <strong>{p.nombre}</strong>
-                    <span><IconoVista vista={p.orientacion} />{textoVista(p.orientacion)}</span>
+                    <span>{textoVista(p.orientacion)}</span>
                   </div>
                   <span className="paso-objetivo">
                     {p.objetivo} {p.unidad === 'segundos' ? 's' : 'rep.'}

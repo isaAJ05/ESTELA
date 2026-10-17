@@ -2,7 +2,7 @@ import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanL
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, EstadoSesion, Feedback, TipoAviso } from '../bridge/tipos'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
-import { Figura, IconoVista, textoVista } from '../componentes/Figura'
+import { Figura, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
 import { GuiaAnimada, VistaCamara } from '../componentes/VistaCamara'
 import { useCapacidad, useEstado } from '../estado/almacen'
@@ -135,7 +135,7 @@ function PanelEjercicio() {
       <div>
         <span className="etiqueta etiqueta-marca">Ahora</span>
         <h2 className="panel-nombre">{ejercicio}</h2>
-        <span className="chip"><IconoVista vista={orientacion} />{textoVista(orientacion)}</span>
+        <span className="chip">{textoVista(orientacion)}</span>
       </div>
 
       <Progreso completadas={completadas} objetivo={objetivo} unidad={unidad} />
@@ -152,7 +152,7 @@ function PanelEjercicio() {
       </div>
 
       <figure className="panel-guia">
-        {conGuia && guia ? <GuiaAnimada puntos={guia} /> : <Figura skillId={skillId} tam={150} />}
+        {conGuia && guia ? <GuiaAnimada puntos={guia} ejercicioId={skillId} /> : <Figura skillId={skillId} tam={150} />}
         <figcaption>{conGuia && guia ? 'Movimiento de referencia' : 'Postura clave'}</figcaption>
       </figure>
     </aside>
@@ -237,12 +237,13 @@ function Transicion() {
   if (!info) return null
   return (
     <div className={`transicion ${visible ? 'visible' : ''}`} aria-hidden={!visible}>
-      <Figura skillId={info.skillId} tam={120} />
+      {info.guia
+        ? <GuiaAnimada puntos={info.guia} ejercicioId={info.skillId} animar={false} />
+        : <Figura skillId={info.skillId} tam={120} />}
       <div>
         <span className="etiqueta etiqueta-marca">{paso === 1 ? 'Empezamos' : 'Siguiente ejercicio'}</span>
         <h3>{info.nombre}</h3>
         <p>
-          <IconoVista vista={info.orientacion} />
           <strong>{info.orientacion === 'perfil' ? 'Ponte de perfil' : info.orientacion === 'frente' ? 'Ponte de frente' : 'Colócate como prefieras'}</strong>
           {' · '}{info.objetivo} {info.unidad === 'segundos' ? 'segundos' : 'repeticiones'}
         </p>

@@ -30,6 +30,9 @@ VERDE = (80, 220, 120)
 AMARILLO = (255, 200, 60)
 NARANJA = (255, 140, 40)
 GRIS = (190, 190, 190)
+GUIA = (220, 120, 255)
+GUIA_SOMBRA = (170, 80, 220)
+GUIA_ROSTRO = (35, 25, 45)
 
 
 @lru_cache(maxsize=8)
@@ -53,6 +56,48 @@ def _esqueleto(img: np.ndarray, lm: np.ndarray, espejo: bool) -> None:
         cv2.circle(img, pts[i], 5, color, -1, cv2.LINE_AA)
 
 
+def _guia(img: np.ndarray, lm: np.ndarray, espejo: bool,
+          depuracion: bool = False) -> None:
+    """Dibuja la referencia como una figura de palitos limpia y proporcionada."""
+    h, w = img.shape[:2]
+    puntos = np.asarray(lm, dtype=np.float32)
+    xs = (1.0 - puntos[:, 0]) if espejo else puntos[:, 0]
+    pts = [(int(np.clip(x, 0, 1) * (w - 1)),
+            int(np.clip(y, 0, 1) * (h - 1))) for x, y in zip(xs, puntos[:, 1])]
+
+    # Solo articulaciones principales: las conexiones faciales producen ruido visual.
+    segmentos = (
+        (11, 12), (23, 24), (11, 23),  # hombros, caderas y tronco
+        (11, 13), (13, 15), (12, 14), (14, 16),
+        (23, 25), (25, 27), (24, 26), (26, 28),
+    )
+    grosor = max(3, int(min(w, h) * 0.009))
+    # Sombra discreta para separar la referencia de la cámara.
+    for a, b in segmentos:
+        cv2.line(img, pts[a], pts[b], GUIA_SOMBRA, grosor + 3, cv2.LINE_AA)
+    for a, b in segmentos:
+        cv2.line(img, pts[a], pts[b], GUIA, grosor, cv2.LINE_AA)
+
+    hombros = ((pts[11][0] + pts[12][0]) // 2,
+               (pts[11][1] + pts[12][1]) // 2)
+    # Media entre nariz y orejas: evita que la cabeza se desplace hacia delante.
+    orejas = ((pts[7][0] + pts[8][0]) // 2,
+              (pts[7][1] + pts[8][1]) // 2)
+    nariz = pts[0]
+    cabeza = (int(orejas[0] * .75 + nariz[0] * .25),
+              int(orejas[1] * .75 + nariz[1] * .25))
+    radio = max(7, min(int(np.linalg.norm(np.subtract(pts[11], pts[12])) * .38),
+                       int(min(w, h) * .045)))
+    cv2.circle(img, cabeza, radio, GUIA, -1, cv2.LINE_AA)
+
+    radio_art = max(3, grosor // 2)
+    for i in (15, 16, 27, 28):
+        cv2.circle(img, pts[i], radio_art, GUIA, -1, cv2.LINE_AA)
+    if depuracion:
+        for i in (11, 12, 13, 14, 15, 16, 23, 24, 25, 26, 27, 28):
+            cv2.circle(img, pts[i], max(2, grosor // 2), GUIA_ROSTRO, -1, cv2.LINE_AA)
+
+
 def _panel(img: np.ndarray, x0: int, y0: int, x1: int, y1: int,
            alfa: float = 0.55) -> None:
     sub = img[y0:y1, x0:x1]
@@ -60,9 +105,12 @@ def _panel(img: np.ndarray, x0: int, y0: int, x1: int, y1: int,
 
 
 def dibujar(frame: np.ndarray, estado: EstadoFrame, espejo: bool = True,
-            fps: Optional[float] = None) -> np.ndarray:
+            fps: Optional[float] = None, depuracion_guia: bool = False
+            ) -> np.ndarray:
     img = cv2.flip(frame, 1) if espejo else frame.copy()
     h, w = img.shape[:2]
+    if estado.guia is not None:
+        _guia(img, estado.guia, espejo, depuracion_guia)
     if estado.landmarks is not None:
         _esqueleto(img, estado.landmarks, espejo)
 
