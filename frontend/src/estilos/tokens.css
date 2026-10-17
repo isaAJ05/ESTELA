@@ -1,0 +1,44 @@
+/* Tokens del sistema visual de ESTELA. Los componentes no usan colores sueltos. */
+:root {
+  color-scheme: dark;
+
+  --color-fondo: #0e0d16;
+  --color-superficie: #171522;
+  --color-superficie-elevada: #211d30;
+  --color-borde: #302b40;
+  --color-texto: #f7f4ff;
+  --color-texto-suave: #b7b0c9;
+  /* más claro que en la guía (#716a80) para llegar a contraste AA */
+  --color-texto-sutil: #918aa5;
+  --color-violeta: #806bff;
+  --color-violeta-suave: #a99dff;
+  --color-violeta-profundo: #5140c7;
+  --color-amarillo: #ffc94d;
+  --color-ambar: #f4a340;
+  --color-exito: #70d6a1;
+  --color-peligro: #e98591;
+  --color-sobre-violeta: #171329;
+
+  --radio-sm: 0.625rem;
+  --radio-md: 0.875rem;
+  --radio-lg: 1.375rem;
+  --radio-pildora: 999px;
+
+  --espacio-1: 0.25rem;
+  --espacio-2: 0.5rem;
+  --espacio-3: 0.75rem;
+  --espacio-4: 1rem;
+  --espacio-5: 1.5rem;
+  --espacio-6: 2rem;
+  --espacio-7: 3rem;
+  --espacio-8: 4rem;
+
+  --sombra-suave: 0 1.25rem 3.75rem rgba(0, 0, 0, 0.22);
+  --sombra-brillo: 0 0 1.875rem rgba(128, 107, 255, 0.24);
+
+  --fuente: 'Manrope Variable', -apple-system, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  --fuente-mono: ui-monospace, 'SF Mono', Menlo, monospace;
+
+  --duracion-corta: 180ms;
+  --duracion-media: 300ms;
+}

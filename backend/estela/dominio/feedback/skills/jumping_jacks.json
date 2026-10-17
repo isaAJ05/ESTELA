@@ -1,0 +1,84 @@
+{
+  "skill_id": "jumping_jacks",
+  "nombre": "Jumping jacks",
+  "version": "0.2.0",
+  "estado": "candidato",
+  "notas": "Umbrales provisionales, sin calibrar. EXP-009 (2026-10-12): la repetición la marcan los brazos (`hombro_medio`) y solo cuenta si los pies también se abren (`requiere`); antes la marcaban solo los pies y contaba movimientos de solo brazos o de una sola pierna. Las reglas de amplitud se evalúan en «cierre», cuando la repetición ya mostró su máximo. Las piernas se miden con `separacion_pies_hombros` (1,0 = pies al ancho de los hombros, la pauta de la licenciada). Las abducciones de cadera se muestran pero no tienen regla: en vídeos correctos valen 10–24° por pierna, no los 30–45° de algunas fuentes web.",
+  "fases": ["cerrado", "apertura", "abierto", "cierre"],
+  "orientacion_preferida": "frontal",
+  "angulos_requeridos": ["hombro_medio", "codo_medio", "abduccion_cadera_izq", "abduccion_cadera_der"],
+  "politica_silencio": {
+    "refractario_ms": 5000,
+    "refractario_mismo_error_ms": 15000,
+    "repeticiones_evidencia": 3,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 3,
+    "fases_silenciadas": ["apertura"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 4,
+    "refractario_ms": 15000,
+    "max_emisiones": 2
+  },
+  "segmentacion": {
+    "tipo": "ciclo",
+    "senal": "angulos.hombro_medio",
+    "reposo": 45,
+    "extremo": 100,
+    "margen_retorno": 15,
+    "fases": ["cerrado", "apertura", "abierto", "cierre"],
+    "suavizado": 2,
+    "requiere": [{"senal": "distancias.separacion_pies_hombros", "min": 0.9}],
+    "umbral_origen": "[?] provisional. EXP-009 (2026-10-12): brazos abajo 11–17°, arriba 137–171° en los 3 vídeos de jumping jacks; extremo 100 = umbral de brazos_no_llegan_arriba y requiere 0,9 = umbral de apertura_pies_insuficiente, así que una repetición cuenta si y solo si no se corrige su amplitud. Antes: separacion_pies, reposo 0,9, extremo 1,4"
+  },
+  "reglas": [
+    {
+      "error_id": "brazos_no_llegan_arriba",
+      "descripcion": "Los brazos no alcanzan la posición alta en la apertura.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "hombro_medio", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 100},
+      "fases": ["cierre"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "bilateral",
+      "prioridad": 1,
+      "severidad": {"moderada": 20, "alta": 45},
+      "umbral_origen": "[?] provisional, sin calibrar. 100° = 10° sobre la horizontal (hombro_medio: 90 + θ): solo corrige si los brazos apenas pasan del hombro. Antes 105° (15–30° recomendado, DEC-009); la licenciada pidió no usar 15–30° como umbral universal. Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
+      "mensaje_id": "rango_brazos_insuficiente",
+      "direccion": {"aumentar": "subir"}
+    },
+    {
+      "error_id": "apertura_pies_insuficiente",
+      "descripcion": "La separación de pies en la apertura es menor que la de referencia.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "separacion_pies_hombros", "ventana": "repeticion"},
+      "condicion": {"op": "<", "umbral": 0.9},
+      "fases": ["cierre"],
+      "plano": "frontal",
+      "segmento": "pie",
+      "lado": "bilateral",
+      "prioridad": 2,
+      "severidad": {"moderada": 0.2, "alta": 0.4},
+      "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): medida cambiada a separacion_pies_hombros; 0,9 ≈ algo menos que el ancho de hombros. En vídeos correctos: 0,35 con los pies juntos y 1,5–2,7 abiertos [F]. Antes separacion_pies < 1,45 (y < 1,6 antes de eso). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
+      "mensaje_id": "apertura_insuficiente",
+      "direccion": {"aumentar": "abrir"}
+    },
+    {
+      "error_id": "codos_flexionados",
+      "descripcion": "Los codos permanecen flexionados durante la apertura.",
+      "medida": {"tipo": "angulo", "nombre": "codo_medio"},
+      "condicion": {"op": "<", "umbral": 90},
+      "fases": ["abierto"],
+      "plano": "frontal",
+      "segmento": "codo",
+      "lado": "bilateral",
+      "prioridad": 3,
+      "severidad": {"moderada": 20, "alta": 40},
+      "umbral_origen": "[?] provisional, sin calibrar. Plano frontal, como el ejercicio: EXP-002 E1 mide de frente un error de proyección del codo de 16,2°, por debajo del umbral moderado (20°). Declarada «sagital», no era observable nunca en la vista frontal (ADR-006 §2.9). Antes 145; la licenciada pide «extender sin bloquear los codos», así que solo se corrige una flexión clara. EXP-009 (2026-10-12): pasa de mínimo de la repetición (que mezclaba la subida de los brazos) a ángulo instantáneo con los brazos arriba. [F] Con los brazos arriba, en ejecuciones correctas MediaPipe da 98–123° (2 vídeos) y 150–166° (1 vídeo): de frente el codo distingue mal, así que 90 solo corrige el «codo en alas» claro",
+      "mensaje_id": "codos_flexionados",
+      "direccion": {"aumentar": "menos_flexion"}
+    }
+  ]
+}

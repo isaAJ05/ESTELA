@@ -1,0 +1,89 @@
+{
+  "skill_id": "marcha_rodillas",
+  "nombre": "Marcha con elevación de rodillas",
+  "version": "0.2.0",
+  "estado": "candidato",
+  "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json. EXP-009 (2026-10-12): nueva regla de rodilla estirada al subir y tobillos visibles en pantalla; la rodilla estirada tiene prioridad sobre la rodilla baja (subir la pierna estirada también deja la rodilla baja, y la corrección útil es «dobla la rodilla»); el tobillo no tiene regla (talón levantado y pie colgando necesitan talón y punta del pie, ruidosos de perfil; sin datos de error).",
+  "fases": ["apoyo_izq", "apoyo_der", "transicion"],
+  "orientacion_preferida": "sagital",
+  "angulos_requeridos": ["cadera_izq", "cadera_der", "rodilla_izq", "rodilla_der", "tobillo_izq", "tobillo_der", "tronco_inclinacion"],
+  "politica_silencio": {
+    "refractario_ms": 4000,
+    "refractario_mismo_error_ms": 10000,
+    "repeticiones_evidencia": 3,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 4,
+    "fases_silenciadas": ["transicion"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 4,
+    "refractario_ms": 15000,
+    "max_emisiones": 3
+  },
+  "segmentacion": {
+    "tipo": "alternante",
+    "senal_izq": "angulos.cadera_izq",
+    "senal_der": "angulos.cadera_der",
+    "reposo": 150,
+    "extremo": 125,
+    "margen_retorno": 10,
+    "fase_izq_arriba": "apoyo_der",
+    "fase_der_arriba": "apoyo_izq",
+    "fase_transicion": "transicion",
+    "suavizado": 3,
+    "umbral_origen": "[?] provisional: señales 3D de PRUEBAS/DATASET/videos/marcha_rodillas/1 mujer.mp4 (cadera ~170 de pie, 50-100 con la rodilla arriba). Cambiado 2026-10-11: extremo 115→125, igual al umbral de rodilla_*_baja (revisión de la licenciada, DEC-008): una repetición cuenta si y solo si no se corrige la altura."
+  },
+  "reglas": [
+    {
+      "error_id": "tronco_muy_inclinado",
+      "descripcion": "El tronco se inclina hacia atrás o hacia delante al elevar la rodilla.",
+      "medida": {"tipo": "angulo", "nombre": "tronco_inclinacion"},
+      "condicion": {"op": ">", "umbral": 15},
+      "fases": ["apoyo_izq", "apoyo_der"],
+      "plano": "sagital",
+      "segmento": "tronco",
+      "lado": "na",
+      "prioridad": 5,
+      "severidad": {"moderada": 8, "alta": 18},
+      "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): antes 20; [F] en 2 vídeos correctos el tronco va a 2–12° de la vertical, y en la prueba con cámara no corrigió la inclinación",
+      "mensaje_id": "tronco_muy_inclinado"
+    },
+    {
+      "error_id": "rodilla_izq_baja",
+      "descripcion": "La rodilla izquierda no alcanza la altura objetivo.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "cadera_izq", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 125},
+      "fases": ["apoyo_der"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "izquierdo",
+      "prioridad": 3,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en calentamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
+      "mensaje_id": "rodilla_baja",
+      "direccion": {"disminuir": "subir"},
+      "solo_lado_visible": true
+    },
+    {
+      "error_id": "rodilla_der_baja",
+      "descripcion": "La rodilla derecha no alcanza la altura objetivo.",
+      "medida": {"tipo": "agregado", "fn": "min", "nombre": "cadera_der", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 125},
+      "fases": ["apoyo_izq"],
+      "plano": "sagital",
+      "segmento": "rodilla",
+      "lado": "derecho",
+      "prioridad": 4,
+      "severidad": {"moderada": 15, "alta": 30},
+      "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en calentamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
+      "mensaje_id": "rodilla_baja",
+      "direccion": {"disminuir": "subir"},
+      "solo_lado_visible": true
+    },
+    {"error_id": "rodilla_izq_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_der"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 1, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true},
+    {"error_id": "rodilla_der_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_izq"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 2, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true}
+  ]
+}

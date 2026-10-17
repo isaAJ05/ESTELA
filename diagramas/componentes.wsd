@@ -1,0 +1,112 @@
+@startuml componentes-estela
+' Diagrama de componentes de ESTELA (SegundoInforme §10.2).
+' Notación UML: componente, interfaz ofrecida (-() ), interfaz requerida
+' (--( ), dependencia (flecha punteada) y artefacto (archivo).
+' Render: el servidor de PlantUML o Graphviz local dan el mejor orden. Si la
+' extensión se queja de que no encuentra Graphviz, descomenta la línea
+' siguiente (usa otro motor de disposición, menos prolijo).
+' !pragma layout smetana
+
+title ESTELA — Diagrama de componentes\n(un solo proceso de Python; llama-server es un proceso aparte)
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 30
+skinparam ranksep 70
+
+package "Adaptadores" as AD {
+  component "Orquestador y ventana\n(interfaz/)" as ORQ
+  component "Fuente de cámara y video\n(captura/)" as CAM
+  component "Estimador de pose\n(pose/)" as EP
+  component "Cola de voz y motores\n(voz/)" as VOZ
+  component "Verbalizador con LLM\n(llm/)" as LLM
+}
+
+package "Aplicación (biblioteca estándar y NumPy)" as AP {
+  component "Sesión, rutina y pausas" as SES
+  component "Alineador DTW" as DTW
+  component "Registro por repetición" as REG
+  component "Latencias y métricas" as MET
+  interface "Fuente" as IFUENTE
+  interface "Estimador" as IEST
+  interface "Voz" as IVOZ
+}
+
+package "Dominio (solo biblioteca estándar)" as DO {
+  component "Geometría" as GEO
+  component "Segmentador" as SEG
+  component "Motor de feedback\n(MotorFeedback)" as MF
+  component "Motor de decisión" as MOT
+  component "Verbalizador por plantillas\ny validador" as VER
+  interface "Verbalizador" as IVERB
+  artifact "skills/*.json" as SKILL
+  artifact "referencias/*.json" as REF
+}
+
+component "Arranque\n(__main__.py)" as MAIN
+component "Creador de referencias\n(scripts/crear_referencia.py)\n«offline»" as CR
+
+package "Tecnologías externas" as EXT {
+  node "Cámara física" as HWCAM
+  component "MediaPipe\n«biblioteca»" as MPLIB
+  component "Piper\n«biblioteca»" as PIPER
+  component "Interfaz React\n«en la ventana pywebview»" as REACT
+  component "llama-server\n«proceso externo, opcional»" as LLAMA
+  artifact "Video de referencia" as VIDEO
+}
+
+' --------------------------------------------------------------- puertos
+CAM -() IFUENTE
+EP -() IEST
+VOZ -() IVOZ
+VER -() IVERB
+LLM -() IVERB
+
+ORQ --( IFUENTE
+ORQ --( IEST
+SES --( IEST
+SES --( IVOZ
+MF --( IVERB
+
+' ------------------------------------------------- dependencias entre capas
+ORQ ..> SES : «usa»
+SES ..> DTW
+SES ..> REG
+SES ..> MET
+SES ..> GEO
+SES ..> SEG
+SES ..> MF
+MF ..> MOT
+MOT ..> SKILL : «lee»
+SEG ..> SKILL : «lee»
+DTW ..> REF : «lee»
+
+' ------------------------------------------------------------- arranque
+MAIN ..> ORQ : «crea e inyecta»
+MAIN ..> CAM
+MAIN ..> EP
+MAIN ..> VOZ
+
+' --------------------------------------------------------------- externos
+CAM ..> HWCAM
+EP ..> MPLIB
+VOZ ..> PIPER
+LLM ..> LLAMA : «HTTP local»
+ORQ ..> REACT : «JSON»
+
+' --------------------------------------------------------------- offline
+CR ..> EP : «usa»
+CR ..> GEO : «usa»
+CR ..> SEG : «usa»
+CR ..> SKILL : «lee»
+CR ..> VIDEO : «lee»
+CR ..> REF : «genera»
+
+note bottom of LLM
+  Implementado
+  hoy lo usa el banco de EXP-001.
+end note
+@enduml

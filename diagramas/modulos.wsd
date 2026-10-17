@@ -1,0 +1,119 @@
+@startuml modulos-estela
+' Diagrama de módulos de ESTELA (SegundoInforme §10.3).
+' Es un diagrama de paquetes UML: cada paquete es un módulo o paquete de Python
+' (backend/estela/...), y cada flecha punteada es una dependencia de importación
+' verificada leyendo los `import` del código. La etiqueta indica qué dato cruza
+' la frontera (los contratos de datos de §10.3).
+' Render: servidor de PlantUML o Graphviz local. Si la extensión no encuentra
+' Graphviz, descomenta la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de módulos\n(dependencias de importación entre módulos de backend/estela)
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 25
+skinparam ranksep 55
+skinparam packageStyle folder
+
+package "Arranque" as ARR {
+  package "<U+005F><U+005F>main<U+005F><U+005F> y config" as MAIN {
+  }
+}
+
+package "Adaptadores  (adaptadores/)" as AD {
+  package "interfaz" as INTERF {
+  }
+  package "captura" as CAP {
+  }
+  package "pose" as POSE {
+  }
+  package "voz" as VOZ {
+  }
+  package "llm" as LLM {
+  }
+}
+
+package "Aplicación  (aplicacion/, usa NumPy)" as AP {
+  package "sesion" as SES {
+  }
+  package "rutina" as RUT {
+  }
+  package "registro" as REG {
+  }
+  package "dtw" as DTW {
+  }
+  package "pausa y metricas" as PAU {
+  }
+  package "puertos\n(Estimador, Voz, Fuente)" as PUE {
+  }
+}
+
+package "Dominio  (dominio/, solo biblioteca estándar)" as DO {
+  package "conteo\n(segmentador)" as CON {
+  }
+  package "feedback.pipeline\n(MotorFeedback)" as PIPE {
+  }
+  package "feedback.motor.geometria" as GEO {
+  }
+  package "feedback.motor.decision" as DEC {
+  }
+  package "feedback.motor.skill\n(carga de skills)" as SKI {
+  }
+  package "feedback.verbalizador\n(plantillas y validador)" as VER {
+  }
+  package "feedback.contrato\n(contratos de datos)" as CTR {
+  }
+}
+
+' ------------------------------------------------------------ arranque
+MAIN ..> INTERF
+MAIN ..> CAP
+MAIN ..> POSE
+MAIN ..> VOZ
+MAIN ..> SES
+MAIN ..> RUT
+MAIN ..> REG
+
+' ----------------------------------------------------------- adaptadores
+INTERF ..> SES : EstadoFrame
+INTERF ..> RUT
+INTERF ..> PUE
+INTERF ..> POSE
+POSE ..> PUE
+VOZ ..> PUE
+LLM ..> VER : ErrorTipificado\n→ MensajeFeedback
+
+' ------------------------------------------------------------ aplicación
+SES ..> PUE : ResultadoPose
+SES ..> RUT
+SES ..> REG
+SES ..> DTW : Observacion
+SES ..> PAU
+REG ..> RUT
+REG ..> CON
+RUT ..> SKI
+RUT ..> CON
+
+' ----------------------------------------------- aplicación hacia dominio
+SES ..> GEO : MuestraPose\n→ Observacion
+SES ..> CON : Observacion\n→ fase y repetición
+SES ..> PIPE : Observacion\n→ MensajeFeedback\no Silencio
+
+' ----------------------------------------------------------------- dominio
+PIPE ..> DEC : Observacion\n→ ErrorTipificado,\nRefuerzo o Silencio
+PIPE ..> VER : ErrorTipificado\n→ MensajeFeedback
+PIPE ..> SKI
+DEC ..> SKI : reglas y umbrales
+
+' Notas para el pie de figura en el informe (no se dibujan aquí porque el motor
+' de disposición de respaldo falla con notas y leyenda):
+'  - Flecha punteada: el módulo de origen importa al de destino. La etiqueta es
+'    el dato que cruza esa frontera. Las flechas apuntan hacia el dominio.
+'  - Todos los módulos importan los contratos de datos (feedback.contrato); esa
+'    flecha se omite para no saturar el diagrama.
+'  - captura no importa los puertos: cumple el puerto Fuente por estructura
+'    (typing.Protocol), así que no hay flecha aunque implemente la interfaz.
+@enduml

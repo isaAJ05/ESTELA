@@ -1,0 +1,117 @@
+{
+  "skill_id": "plancha",
+  "nombre": "Plancha",
+  "version": "0.2.0",
+  "estado": "candidato",
+  "notas": "Postura mantenida, de perfil a la cámara (ADR-005; segmentación `isometrico`, ADR-006). El objetivo de la rutina va en segundos (`duracion_s`). Para el motor, cada bloque de `bloque_s` segundos en posición es una «repetición»: un error tiene que mantenerse en `repeticiones_evidencia` bloques seguidos antes de decirse, y el refuerzo cuenta bloques limpios. La cadera hundida o elevada se mide con la altura de la cadera respecto a la recta hombro-tobillo (`alineacion_cadera`), que es lo observable de perfil con los 33 puntos; la curvatura lumbar en sí no lo es (EXP-008). TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio. EXP-009 (2026-10-12): bloques de 3 s en vez de 5 (un error se dice tras ~6 s en lugar de ~10 s), hombros adelantados pasa a prioridad 2 por petición de Natalia (es lo que puede lastimar en un ejercicio de tiempo), nueva regla de rodillas dobladas, y se muestran codos, rodillas, tobillos y la línea hombro-cadera-tobillo en grados (`alineacion_cuerpo_*`, 180° = recta). Codos y tobillos no tienen regla: [F] en el vídeo correcto valen ~89° (antebrazos) y ~105°, y no hay vídeo con error.",
+  "fases": ["preparacion", "mantenimiento"],
+  "orientacion_preferida": "sagital",
+  "angulos_requeridos": ["tronco_inclinacion", "cabeza_adelantada", "hombro_izq", "hombro_der", "codo_izq", "codo_der", "rodilla_izq", "rodilla_der", "tobillo_izq", "tobillo_der", "alineacion_cuerpo_izq", "alineacion_cuerpo_der"],
+  "politica_silencio": {
+    "refractario_ms": 5000,
+    "refractario_mismo_error_ms": 12000,
+    "repeticiones_evidencia": 2,
+    "factor_desvanecimiento": 1.5,
+    "max_emisiones_mismo_error": 3,
+    "fases_silenciadas": ["preparacion"],
+    "confianza_minima": 0.6,
+    "tolerancia_orientacion_grados": 30.0
+  },
+  "politica_refuerzo": {
+    "activa": true,
+    "repeticiones_limpias": 3,
+    "refractario_ms": 15000,
+    "max_emisiones": 2
+  },
+  "segmentacion": {
+    "tipo": "isometrico",
+    "condiciones": [
+      {"senal": "angulos.tronco_inclinacion", "min": 55},
+      {"senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"], "min": 120}
+    ],
+    "fases": ["preparacion", "mantenimiento"],
+    "entrada_ms": 1000,
+    "salida_ms": 1500,
+    "bloque_s": 3,
+    "confianza_minima": 0.5,
+    "umbral_origen": "[?] provisional: en plancha el tronco está casi horizontal (~75-95° respecto a la vertical) y las rodillas extendidas; la condición de rodillas evita contar como plancha la postura a cuatro patas."
+  },
+  "reglas": [
+    {
+      "error_id": "cadera_hundida",
+      "descripcion": "La cadera cae por debajo de la línea hombro-tobillo.",
+      "medida": {"tipo": "distancia", "nombre": "alineacion_cadera"},
+      "condicion": {"op": ">", "umbral": 0.10},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "cadera",
+      "lado": "bilateral",
+      "prioridad": 1,
+      "severidad": {"moderada": 0.05, "alta": 0.15},
+      "umbral_origen": "[?] provisional, sin calibrar: 0,10 escalas corporales ≈ 5 cm",
+      "mensaje_id": "cadera_hundida",
+      "direccion": {"disminuir": "subir"}
+    },
+    {
+      "error_id": "cadera_elevada",
+      "descripcion": "La cadera sube por encima de la línea hombro-tobillo.",
+      "medida": {"tipo": "distancia", "nombre": "alineacion_cadera"},
+      "condicion": {"op": "<", "umbral": -0.15},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "cadera",
+      "lado": "bilateral",
+      "prioridad": 3,
+      "severidad": {"moderada": 0.05, "alta": 0.15},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "cadera_elevada",
+      "direccion": {"aumentar": "bajar"}
+    },
+    {
+      "error_id": "cabeza_desalineada",
+      "descripcion": "La cabeza cae o se levanta en lugar de seguir la línea del tronco.",
+      "medida": {"tipo": "angulo", "nombre": "cabeza_adelantada"},
+      "condicion": {"op": ">", "umbral": 30},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "cabeza",
+      "lado": "na",
+      "prioridad": 7,
+      "severidad": {"moderada": 10, "alta": 20},
+      "umbral_origen": "[?] provisional, sin calibrar",
+      "mensaje_id": "cabeza_desalineada"
+    },
+    {
+      "error_id": "hombros_adelantados",
+      "descripcion": "Los hombros pasan por delante de los codos: el cuerpo se va hacia delante (catálogo v2, PL-03).",
+      "medida": {"tipo": "distancia", "nombre": "hombro_sobre_codo"},
+      "condicion": {"op": ">", "umbral": 0.2},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "hombro",
+      "lado": "na",
+      "prioridad": 2,
+      "severidad": {"moderada": 0.1, "alta": 0.2},
+      "umbral_origen": "[?] provisional, sin calibrar: 0,20 escalas de tronco ≈ 10 cm. El catálogo prevé compararla con la postura media de la referencia (T11)",
+      "mensaje_id": "hombros_adelantados",
+      "direccion": {"disminuir": "atras"}
+    },
+    {
+      "error_id": "hombros_retrasados",
+      "descripcion": "Los hombros quedan por detrás de los codos: los codos están demasiado adelantados (catálogo v2, PL-04; DEC-006 propuesto como error).",
+      "medida": {"tipo": "distancia", "nombre": "hombro_sobre_codo"},
+      "condicion": {"op": "<", "umbral": -0.2},
+      "fases": ["mantenimiento"],
+      "plano": "sagital",
+      "segmento": "hombro",
+      "lado": "na",
+      "prioridad": 6,
+      "severidad": {"moderada": 0.1, "alta": 0.2},
+      "umbral_origen": "[?] provisional, sin calibrar: simétrico de hombros_adelantados",
+      "mensaje_id": "hombros_retrasados",
+      "direccion": {"aumentar": "adelante"}
+    },
+    {"error_id": "rodilla_izq_flexionada", "descripcion": "La rodilla visible se dobla durante la plancha: se pierde la línea recta del cuerpo.", "medida": {"tipo": "angulo", "nombre": "rodilla_izq"}, "condicion": {"op": "<", "umbral": 160}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 4, "severidad": {"moderada": 10, "alta": 25}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en el vídeo de plancha correcto la rodilla vale ~175°. 160 deja 15° de margen. La segmentación ya no exige 145° (ahora 120), así que esta regla puede hablar antes de que la postura deje de contar.", "mensaje_id": "rodilla_flexionada_plancha", "direccion": {"aumentar": "menos_flexion"}, "solo_lado_visible": true},
+    {"error_id": "rodilla_der_flexionada", "descripcion": "La rodilla visible se dobla durante la plancha: se pierde la línea recta del cuerpo.", "medida": {"tipo": "angulo", "nombre": "rodilla_der"}, "condicion": {"op": "<", "umbral": 160}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 5, "severidad": {"moderada": 10, "alta": 25}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en el vídeo de plancha correcto la rodilla vale ~175°. 160 deja 15° de margen. La segmentación ya no exige 145° (ahora 120), así que esta regla puede hablar antes de que la postura deje de contar.", "mensaje_id": "rodilla_flexionada_plancha", "direccion": {"aumentar": "menos_flexion"}, "solo_lado_visible": true}
+  ]
+}
