@@ -212,6 +212,16 @@ El JSON cíclico contiene `angulos.media`, `angulos.sigma`, `angulos.n`,
 `postura.sigma`, `postura.n` y `keypoints_2d`. El gráfico de control se revisa
 antes de usar los valores para sustituir umbrales provisionales.
 
+En sesión, `estela/aplicacion/dtw.py` alinea cada repetición con
+`angulos.media` (DTW incremental de final abierto, ADR-004 §2.3) y lee del
+bloque `dtw`:
+
+| Campo | Qué hace en sesión |
+|---|---|
+| `banda` | Banda Sakoe-Chiba en frames de la referencia, alrededor del instante que tocaría al ritmo de la referencia (tiempo desde el inicio de la repetición × `fps`). `null` = sin banda. Offline, `crear_referencia.py` la centra en la diagonal de las dos series completas. |
+| `coste_maximo` | Opcional. Con `coste_dtw` por encima, el frame no se alinea y las reglas `desviacion` se abstienen (`dtw_no_disponible`). `[?]` Ninguna referencia lo trae todavía: se calibra con el `coste_dtw` por repetición de EXP-006. |
+| `coste_medoide_a_resto` | Solo informativo: coste medio del medoide frente a las demás repeticiones, en las mismas unidades que `coste_dtw`. |
+
 ## Reglas de higiene que el cargador impone
 
 - `segmento` debe estar en el vocabulario cerrado (`contrato.SEGMENTOS`). Es lo que permite al validador de salida rechazar mensajes que nombren otra parte del cuerpo.

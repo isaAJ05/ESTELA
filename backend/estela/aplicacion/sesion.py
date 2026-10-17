@@ -430,11 +430,15 @@ class Sesion:
                 "pausa_s": round(pausa_ms / 1000.0, 1),
                 "mensajes": p.mensajes,
                 "abstenciones": p.motor.abstenciones,
+                # frames por resultado del DTW (`dtw.ALINEADO`, `dtw.SIN_*`...);
+                # None con `sin_dtw`
+                "dtw": dict(p.alineador.motivos) if p.alineador is not None else None,
                 "repeticiones": self._filas(p),
             })
         return {
             "rutina": self.rutina.nombre,
             "terminada": self.terminada,
+            "sin_dtw": self.sin_dtw,
             "frames": self.frames,
             "frames_sin_persona": self.frames_sin_persona,
             "latencias": self.latencias.resumen(),

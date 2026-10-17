@@ -75,6 +75,9 @@ def _imprimir_resumen(r: dict) -> None:
                  if paso["pausas_sesion"] else ""))
         for m in paso["mensajes"]:
             print(f"    [{m['t_ms'] / 1000:6.1f} s · rep {m['repeticion']}] {m['texto']}")
+        if paso.get("dtw"):
+            print("    DTW (frames): " + ", ".join(
+                f"{motivo} {n}" for motivo, n in sorted(paso["dtw"].items())))
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")
     print("Latencia por etapa (ms):")
     for etapa, v in r["latencias"].items():
