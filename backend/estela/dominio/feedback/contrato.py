@@ -163,6 +163,10 @@ class Observacion:
       angulos_ref   valor de la referencia en el instante alineado por DTW.
                     Guarda ángulos y también distancias (p. ej.
                     `separacion_pies` en jumping jacks).
+      sigma_ref     σ de la referencia en ese mismo instante: cuánto varían
+                    las repeticiones correctas de la referencia. Mismas claves
+                    y unidades que `angulos_ref`. Lo usan los umbrales
+                    relativos `k × max(σ_ref, ruido)` (ADR-004 §2.2).
       distancias    medidas escalares normalizadas por escala corporal
                     (p. ej. separación de pies / ancho de caderas).
       orientacion   ángulo en grados entre el plano frontal del sujeto y el
@@ -188,6 +192,7 @@ class Observacion:
     distancias: Dict[str, float] = field(default_factory=dict)
     orientacion: Optional[float] = None
     coste_dtw: Optional[float] = None
+    sigma_ref: Dict[str, float] = field(default_factory=dict)
 
     def desviacion_de(self, nombre: str) -> Optional[float]:
         """Desviación respecto a la referencia, o None si no es calculable."""

@@ -21,6 +21,7 @@ from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 from ..dominio.feedback.motor.skill import Skill, directorio_skills, skill_desde_dict
 
 from ..dominio.conteo.segmentador import Segmentador, segmentador_desde_dict
+from .umbrales import UMBRALES, con_umbrales_de_referencia
 
 
 class RutinaInvalida(ValueError):
@@ -32,6 +33,8 @@ class Ejercicio:
     skill: Skill
     segmentacion: Optional[Mapping[str, Any]]
     referencia: Optional[Mapping[str, Any]] = None
+    #: con qué umbrales se cargó el skill (`aplicacion/umbrales.py`)
+    umbrales: str = "absolutos"
 
     @property
     def soportado(self) -> bool:
@@ -51,8 +54,12 @@ class Ejercicio:
         return segmentador_desde_dict(self.segmentacion, tuple(self.skill.fases))
 
 
-def cargar_catalogo(directorio: Optional[Union[str, Path]] = None
-                    ) -> Dict[str, Ejercicio]:
+def cargar_catalogo(directorio: Optional[Union[str, Path]] = None,
+                    umbrales: str = "absolutos") -> Dict[str, Ejercicio]:
+    """`umbrales="referencia"`: las reglas con `relativa` se miden contra la
+    referencia del ejercicio (ADR-004 §2.2, EXP-006)."""
+    if umbrales not in UMBRALES:
+        raise RutinaInvalida(f"umbrales desconocidos: {umbrales}")
     directorio = Path(directorio or directorio_skills())
     catalogo: Dict[str, Ejercicio] = {}
     for nombre in sorted(os.listdir(directorio)):
@@ -65,7 +72,10 @@ def cargar_catalogo(directorio: Optional[Union[str, Path]] = None
         if ruta_referencia.is_file():
             with open(ruta_referencia, encoding="utf-8") as ref:
                 referencia = json.load(ref)
-        ej = Ejercicio(skill_desde_dict(d), d.get("segmentacion"), referencia)
+        skill = skill_desde_dict(d)
+        if umbrales == "referencia":
+            skill = con_umbrales_de_referencia(skill, referencia)
+        ej = Ejercicio(skill, d.get("segmentacion"), referencia, umbrales)
         if ej.soportado:
             ej.nuevo_segmentador()            # valida la configuración ya
         catalogo[ej.skill.skill_id] = ej

@@ -1,13 +1,14 @@
 # EXP-006 · DTW en sesión: coste por frame y calidad del alineamiento
 
-Arnés de la parte de DTW de `docs/experimentos/EXP-006-reglas-absolutas-vs-relativas.md` (espacio de trabajo del proyecto). Mide lo que ADR-004 §2.3 dejó como `[?]`: coste por frame, efecto de la banda y estabilidad del alineamiento. Sirve también para calibrar `dtw.coste_maximo`.
+Arnés de la parte de DTW de `docs/experimentos/EXP-006-absolutas-vs-referencia.md` (espacio de trabajo del proyecto). Mide lo que ADR-004 §2.3 dejó como `[?]`: coste por frame, efecto de la banda y estabilidad del alineamiento. Sirve también para calibrar `dtw.coste_maximo`.
 
 No toca `estela/` ni añade dependencias.
 
 | Archivo | Qué es |
 |---|---|
-| `medir_dtw.py` | `sintetico`: tiempo por frame del DTW anterior (PR #8) y del incremental con las referencias del catálogo, sin cámara ni modelo. `video`: pose una vez sobre un vídeo y tres pasadas de la sesión con esa misma pose (sin DTW, anterior, incremental). |
-| `resultados/` | Salida en JSON. Ignorada por git: solo métricas derivadas, pero de personas reales. |
+| `medir_dtw.py` | Fase 0. `sintetico`: tiempo por frame del DTW anterior (PR #8) y del incremental con las referencias del catálogo, sin cámara ni modelo. `video`: pose una vez sobre un vídeo y tres pasadas de la sesión con esa misma pose (sin DTW, anterior, incremental). |
+| `comparar_reglas.py` | Fase 1 (T32). `ruido`: piso de ruido provisional por medida (jitter en los frames quietos). `banco`: banco piloto semisintético (vídeos públicos correctos + errores inducidos sobre su pose) con tres condiciones: `absolutos`, `referencia`, `referencia_sin_dtw`. |
+| `resultados/` | Salida en JSON (y Markdown del banco). Ignorada por git: solo métricas derivadas, pero de personas reales. |
 
 ## Comandos
 
@@ -24,6 +25,14 @@ python PRUEBAS/exp006_dtw/medir_dtw.py video --ejercicio jumping_jacks \
 ```
 
 `--sin-anterior` se salta la versión anterior, que en un vídeo largo tarda minutos.
+
+```bash
+# Fase 1 (T32): ~5 min de pose por comando sobre los 15 vídeos del banco
+python PRUEBAS/exp006_dtw/comparar_reglas.py ruido
+python PRUEBAS/exp006_dtw/comparar_reglas.py banco --k 2 3 4
+```
+
+El banco piloto está definido en `BANCO` y `VARIANTES` dentro del script. Para el banco grabado de T24/T26 se sustituyen los vídeos y, en vez de inducir errores, se usan las etiquetas de consenso.
 
 ## Qué mide el modo `video`
 

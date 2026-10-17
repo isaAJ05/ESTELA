@@ -242,9 +242,9 @@ def _pasar_pose(video: Path, modelo: str) -> Tuple[List[Any], List[int], float]:
 
 def _reproducir(skill_id: str, catalogo, resultados, tiempos, alineador) -> Dict[str, Any]:
     """Una pasada de la sesión sobre la pose grabada. `alineador` None = sin DTW."""
-    original = modulo_sesion.AlineadorDTW
+    original = modulo_sesion.comparador_de_referencia
     if alineador is not None:
-        modulo_sesion.AlineadorDTW = _con_traza(alineador)
+        modulo_sesion.comparador_de_referencia = _con_traza(alineador)
     try:
         s = modulo_sesion.Sesion(rutina_de_un_ejercicio(skill_id, 999, catalogo), catalogo,
                                  _EstimadorGrabado(resultados), _VozMuda(),
@@ -262,7 +262,7 @@ def _reproducir(skill_id: str, catalogo, resultados, tiempos, alineador) -> Dict
                 "dtw_ms": list(s.latencias._datos.get("dtw", [])),
                 "sesion_sin_pose_ms": totales}
     finally:
-        modulo_sesion.AlineadorDTW = original
+        modulo_sesion.comparador_de_referencia = original
 
 
 def _calidad(ref, traza, seg) -> Dict[str, Any]:

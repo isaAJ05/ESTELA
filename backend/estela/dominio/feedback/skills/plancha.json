@@ -50,7 +50,12 @@
       "severidad": {"moderada": 0.05, "alta": 0.15},
       "umbral_origen": "[?] provisional, sin calibrar: 0,10 escalas corporales ≈ 5 cm",
       "mensaje_id": "cadera_hundida",
-      "direccion": {"disminuir": "subir"}
+      "direccion": {"disminuir": "subir"},
+      "relativa": {
+        "medida": {"tipo": "desviacion", "nombre": "alineacion_cadera", "fn": "mediana"},
+        "condicion": {"op": ">", "k": 3, "ruido": 0.001},
+        "umbral_origen": "[?] mediana de la desviación respecto a la postura media de la referencia > k·max(σ, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames del vídeo de referencia, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "cadera_elevada",
@@ -65,7 +70,12 @@
       "severidad": {"moderada": 0.05, "alta": 0.15},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "cadera_elevada",
-      "direccion": {"aumentar": "bajar"}
+      "direccion": {"aumentar": "bajar"},
+      "relativa": {
+        "medida": {"tipo": "desviacion", "nombre": "alineacion_cadera", "fn": "mediana"},
+        "condicion": {"op": "<", "k": 3, "ruido": 0.001},
+        "umbral_origen": "[?] mediana de la desviación respecto a la postura media de la referencia < −k·max(σ, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames del vídeo de referencia, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "cabeza_desalineada",
@@ -79,7 +89,12 @@
       "prioridad": 7,
       "severidad": {"moderada": 10, "alta": 20},
       "umbral_origen": "[?] provisional, sin calibrar",
-      "mensaje_id": "cabeza_desalineada"
+      "mensaje_id": "cabeza_desalineada",
+      "relativa": {
+        "medida": {"tipo": "desviacion", "nombre": "cabeza_adelantada", "fn": "mediana"},
+        "condicion": {"op": ">", "k": 3, "ruido": 0.05},
+        "umbral_origen": "[?] mediana de la desviación respecto a la postura media de la referencia > k·max(σ, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames del vídeo de referencia, cota inferior hasta EXP-004 (EXP-006 §3.7)"
+      }
     },
     {
       "error_id": "hombros_adelantados",

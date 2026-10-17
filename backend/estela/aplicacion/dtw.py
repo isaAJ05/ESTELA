@@ -1,8 +1,10 @@
 """Alineamiento DTW en línea contra la referencia de un skill (ADR-004 §2.3).
 
-Completa la `Observacion` con `angulos_ref`, `progreso` y `coste_dtw` antes
-del motor. Vive en `aplicacion` y no en `dominio` porque usa numpy, y el
-dominio se limita a la biblioteca estándar (ADR-007).
+Completa la `Observacion` con `angulos_ref`, `sigma_ref`, `progreso` y
+`coste_dtw` antes del motor. Vive en `aplicacion` y no en `dominio` porque usa
+numpy, y el dominio se limita a la biblioteca estándar (ADR-007). Los
+ejercicios isométricos no se alinean: `ReferenciaPostura` entrega su postura
+media ± σ (`comparador_de_referencia` elige uno u otro).
 
 DTW incremental de final abierto, reiniciado en cada repetición:
 
@@ -41,8 +43,8 @@ movimiento principal se juzga mejor con agregados por repetición, y
 from __future__ import annotations
 
 import math
-from dataclasses import dataclass
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from dataclasses import dataclass, field
+from typing import Any, Dict, List, Mapping, Optional, Tuple, Union
 
 import numpy as np
 
@@ -64,10 +66,13 @@ _INF = math.inf
 @dataclass(frozen=True)
 class ResultadoDTW:
     angulos_ref: Dict[str, float]
-    progreso: float
+    #: None en una postura isométrica: no hay ciclo que recorrer
+    progreso: Optional[float]
     coste: float
     #: frame de la referencia alineado con el frame actual
     indice: int
+    #: σ de la referencia en ese frame (mismas claves que `angulos_ref`)
+    sigma_ref: Dict[str, float] = field(default_factory=dict)
 
 
 class AlineadorDTW:
@@ -84,11 +89,16 @@ class AlineadorDTW:
         self._nombres: Tuple[str, ...] = ()
         self._media = np.empty((0, 0), dtype=float)
         nombres = tuple(ref.get("medidas", ()))
-        media = (ref.get("angulos") or {}).get("media", ())
+        angulos = ref.get("angulos") or {}
+        media = angulos.get("media", ())
         if nombres and media:
             matriz = np.asarray(media, dtype=float)      # null -> nan
             if matriz.ndim == 2 and matriz.shape[1] == len(nombres):
                 self._nombres, self._media = nombres, matriz
+        self._sigma = np.full(self._media.shape, np.nan)
+        sigma = angulos.get("sigma")
+        if sigma is not None and np.shape(sigma) == self._media.shape:
+            self._sigma = np.asarray(sigma, dtype=float)
 
         dtw = ref.get("dtw") or {}
         self.banda: Optional[int] = (int(dtw["banda"]) if dtw.get("banda") is not None
@@ -139,12 +149,14 @@ class AlineadorDTW:
         coste = self._acumulado[j] / self._longitud[j]
         if self.coste_maximo is not None and coste > self.coste_maximo:
             return None, COSTE_ALTO
+        validas = [(nombre, float(v), float(s)) for nombre, v, s
+                   in zip(self._nombres, self._media[j], self._sigma[j]) if np.isfinite(v)]
         return ResultadoDTW(
-            angulos_ref={nombre: float(v) for nombre, v in zip(self._nombres, self._media[j])
-                         if np.isfinite(v)},
+            angulos_ref={nombre: v for nombre, v, _ in validas},
             progreso=j / max(len(self._media) - 1, 1),
             coste=coste,
             indice=j,
+            sigma_ref={nombre: s for nombre, _, s in validas if np.isfinite(s)},
         ), ALINEADO
 
     def _vector(self, obs: Any) -> np.ndarray:
@@ -215,6 +227,67 @@ class AlineadorDTW:
         return acumulado, longitud, minimo
 
 
-__all__ = ["AlineadorDTW", "ResultadoDTW", "CONFIANZA_MINIMA", "ALINEADO",
+class ReferenciaPostura:
+    """Referencia de un ejercicio isométrico (plancha, ADR-004 §2.3).
+
+    No hay secuencia que alinear: en cada frame entrega la postura media ± σ
+    de `referencia.json` y, como coste, la diferencia media con ella sobre las
+    medidas válidas. Misma interfaz que `AlineadorDTW`.
+    """
+
+    def __init__(self, referencia: Optional[Mapping[str, Any]],
+                 confianza_minima: float = CONFIANZA_MINIMA) -> None:
+        self.referencia = referencia
+        self.confianza_minima = confianza_minima
+        self.motivos: Dict[str, int] = {}
+        ref = referencia or {}
+        postura = ref.get("postura") or {}
+        nombres = ref.get("medidas", ())
+        self._media = {n: float(v) for n, v in zip(nombres, postura.get("media", ()))
+                       if v is not None}
+        self._sigma = {n: float(v) for n, v in zip(nombres, postura.get("sigma", ()))
+                       if v is not None and n in self._media}
+
+    @property
+    def disponible(self) -> bool:
+        return bool(self._media)
+
+    def reiniciar(self) -> None:
+        pass
+
+    def actualizar(self, obs: Any) -> Optional[ResultadoDTW]:
+        resultado, motivo = self._comparar(obs)
+        self.motivos[motivo] = self.motivos.get(motivo, 0) + 1
+        return resultado
+
+    def _comparar(self, obs: Any) -> Tuple[Optional[ResultadoDTW], str]:
+        if not self.disponible:
+            return None, SIN_REFERENCIA
+        if not obs.repeticion:
+            return None, SIN_REPETICION
+        diferencias = []
+        for nombre, ref in self._media.items():
+            v = obs.angulos.get(nombre, obs.distancias.get(nombre))
+            if v is not None and obs.confianza_de(nombre) >= self.confianza_minima:
+                diferencias.append(abs(v - ref))
+        if not diferencias:
+            return None, SIN_MEDIDAS
+        return ResultadoDTW(angulos_ref=dict(self._media), progreso=None,
+                            coste=sum(diferencias) / len(diferencias), indice=0,
+                            sigma_ref=dict(self._sigma)), ALINEADO
+
+
+Comparador = Union[AlineadorDTW, ReferenciaPostura]
+
+
+def comparador_de_referencia(referencia: Optional[Mapping[str, Any]]) -> Comparador:
+    """DTW para los ejercicios cíclicos; postura media para los isométricos."""
+    if (referencia or {}).get("tipo") == "isometrico":
+        return ReferenciaPostura(referencia)
+    return AlineadorDTW(referencia)
+
+
+__all__ = ["AlineadorDTW", "ReferenciaPostura", "ResultadoDTW", "Comparador",
+           "comparador_de_referencia", "CONFIANZA_MINIMA", "ALINEADO",
            "SIN_REFERENCIA", "SIN_REPETICION", "SIN_MEDIDAS", "SIN_CAMINO",
            "COSTE_ALTO"]
