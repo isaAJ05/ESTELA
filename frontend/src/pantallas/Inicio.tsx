@@ -165,21 +165,17 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
   return (
     <section className="inicio-cuerpo">
       <div className="inicio-texto">
-        <span className="etiqueta etiqueta-marca">Bienvenida</span>
-        <h1>Prepara tu rutina,<br /><em>a tu manera.</em></h1>
+        <span className="etiqueta etiqueta-marca">Sesión de hoy</span>
+        <h1>Tu sesión,<br /><em>a tu ritmo.</em></h1>
         <p className="inicio-proposito">
-          {personalizable
-            ? 'Elige los ejercicios que quieres hacer, ajusta las repeticiones o los segundos y empieza cuando quieras. Te observo con la cámara y te doy indicaciones habladas sobre tu técnica.'
-            : 'Te observo con la cámara mientras calientas y te doy indicaciones habladas sobre tu técnica.'}
+          Analizo tus movimientos en tiempo real y te doy indicaciones por voz para ayudarte a mejorar tu técnica.
         </p>
 
-        {personalizable && (
-          <ol className="pasos-flujo" aria-label="Cómo funciona">
-            <li><b>1</b><span><strong>Elige</strong> tus ejercicios</span></li>
-            <li><b>2</b><span><strong>Ajusta</strong> repeticiones o segundos</span></li>
-            <li><b>3</b><span><strong>Entrena</strong> con indicaciones habladas</span></li>
-          </ol>
-        )}
+        <ul className="consejos" aria-label="Antes de empezar">
+          <li><Ruler aria-hidden="true" />Aléjate unos 2,5–3 m de la pantalla</li>
+          <li><ScanLine aria-hidden="true" />Que se vea tu cuerpo entero</li>
+          <li><Sun aria-hidden="true" />Busca un lugar con buena luz</li>
+        </ul>
 
         {nivel}
 
@@ -202,12 +198,6 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
             </Boton>
           </div>
         )}
-
-        <ul className="consejos" aria-label="Antes de empezar">
-          <li><Ruler aria-hidden="true" />Aléjate unos 2,5–3 m de la pantalla</li>
-          <li><ScanLine aria-hidden="true" />Que se vea tu cuerpo entero</li>
-          <li><Sun aria-hidden="true" />Busca un lugar con buena luz</li>
-        </ul>
         <p className="descargo">
           ESTELA te da indicaciones sobre tu técnica; no reemplaza a un profesional ni hace diagnósticos.
         </p>
