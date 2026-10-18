@@ -6,9 +6,11 @@ Ejemplos:
     python -m estela --ejercicio plancha --repeticiones 30          # segundos
     python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana
 
-Por defecto abre la interfaz de escritorio (frontend/, pywebview). Con
---interfaz opencv se usa la ventana de OpenCV, más simple, para pruebas y
-mediciones.
+Por defecto abre la interfaz de escritorio (frontend/, pywebview). En su
+inicio se eligen los ejercicios, su orden y su objetivo antes de empezar;
+--rutina o --ejercicio solo fijan la rutina recomendada que aparece al abrir.
+Con --interfaz opencv se usa la ventana de OpenCV, más simple, para pruebas y
+mediciones (sin pantalla de selección: usa --rutina o --ejercicio).
 
 Teclas en la interfaz: n siguiente ejercicio · r reiniciar ejercicio ·
 Esc terminar · d datos de depuración.

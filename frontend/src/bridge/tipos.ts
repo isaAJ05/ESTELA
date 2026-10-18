@@ -26,6 +26,8 @@ export interface Capacidades {
   pausaManual: boolean
   colocacion: boolean
   avisoLuz: boolean
+  /** la usuaria puede elegir ejercicios y objetivos antes de empezar */
+  rutinaPersonalizada?: boolean
 }
 
 export interface PasoRutina {
@@ -38,10 +40,23 @@ export interface PasoRutina {
   guia: Punto[] | null
 }
 
+/** Cómo se cuenta: ciclo completo, una por cada pierna que se eleva, o segundos. */
+export type Conteo = 'ciclo' | 'alternante' | 'isometrico'
+
+/** Un ejercicio que se puede añadir a la rutina, con los límites de su objetivo. */
+export interface EjercicioCatalogo extends PasoRutina {
+  descripcion: string | null
+  conteo: Conteo
+  minimo: number
+  maximo: number
+}
+
 export interface Info {
   version: number
   capacidades: Capacidades
   rutina: { nombre: string; pasos: PasoRutina[] }
+  /** ejercicios disponibles (capacidad «rutinaPersonalizada») */
+  catalogo?: EjercicioCatalogo[]
   /** pares de índices de los puntos que forman el esqueleto */
   conexiones: [number, number][]
   /** dibujar en espejo (cámara en vivo) */
@@ -171,8 +186,16 @@ export interface Estado {
   frame: string | null
 }
 
+export interface PasoElegido {
+  skillId: string
+  objetivo: number
+}
+
 export interface OpcionesInicio {
   nivel?: Nivel
+  /** rutina elegida por la usuaria; sin ella se repite la última */
+  nombre?: string
+  pasos?: PasoElegido[]
 }
 
 /** Lo que la interfaz puede pedirle a Python. */

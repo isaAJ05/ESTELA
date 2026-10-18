@@ -35,6 +35,8 @@ class Ejercicio:
     referencia: Optional[Mapping[str, Any]] = None
     #: con qué umbrales se cargó el skill (`aplicacion/umbrales.py`)
     umbrales: str = "absolutos"
+    #: frase corta para la usuaria (campo opcional `descripcion` del skill)
+    descripcion: Optional[str] = None
 
     @property
     def soportado(self) -> bool:
@@ -75,7 +77,8 @@ def cargar_catalogo(directorio: Optional[Union[str, Path]] = None,
         skill = skill_desde_dict(d)
         if umbrales == "referencia":
             skill = con_umbrales_de_referencia(skill, referencia)
-        ej = Ejercicio(skill, d.get("segmentacion"), referencia, umbrales)
+        ej = Ejercicio(skill, d.get("segmentacion"), referencia, umbrales,
+                       d.get("descripcion"))
         if ej.soportado:
             ej.nuevo_segmentador()            # valida la configuración ya
         catalogo[ej.skill.skill_id] = ej

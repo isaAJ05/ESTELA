@@ -7,7 +7,8 @@
 //                       ?escena=resumen|error empieza en esa fase
 
 import type {
-  Bridge, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, PasoRutina, Punto, Resumen, Severidad,
+  Bridge, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio, PasoRutina,
+  Punto, Resumen, Severidad,
 } from './tipos'
 
 const PASOS: PasoRutina[] = [
@@ -19,6 +20,22 @@ const PASOS: PasoRutina[] = [
   { skillId: 'zancada_atras_der', nombre: 'Zancada atrás estática, pierna derecha atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
   { skillId: 'plancha', nombre: 'Plancha', orientacion: 'perfil', unidad: 'segundos', objetivo: 20, guia: null },
 ]
+
+const DESCRIPCION: Record<string, string> = {
+  jumping_jacks: 'Abre y cierra brazos y piernas a la vez, con un pequeño salto.',
+  abduccion_cadera_izq: 'De pie, eleva la pierna izquierda hacia el lado sin inclinar el tronco.',
+  abduccion_cadera_der: 'De pie, eleva la pierna derecha hacia el lado sin inclinar el tronco.',
+  marcha_rodillas: 'Marcha en el sitio subiendo las rodillas, con el tronco erguido.',
+  plancha: 'Sostén el cuerpo en línea recta apoyado en antebrazos y puntas de los pies.',
+}
+
+const CATALOGO: EjercicioCatalogo[] = PASOS.filter((p) => !p.skillId.startsWith('zancada')).map((p) => ({
+  ...p,
+  descripcion: DESCRIPCION[p.skillId] ?? null,
+  conteo: p.unidad === 'segundos' ? 'isometrico' : p.skillId === 'marcha_rodillas' ? 'alternante' : 'ciclo',
+  minimo: p.unidad === 'segundos' ? 5 : 1,
+  maximo: p.unidad === 'segundos' ? 180 : 50,
+}))
 
 const CONEXIONES: [number, number][] = [
   [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24],
@@ -135,6 +152,8 @@ export function bridgeSimulado(): Bridge {
   const escena = url.get('escena')
 
   let version = 0
+  let pasos: PasoRutina[] = CATALOGO
+  let nombreRutina = 'Calentamiento básico'
   let fase: Estado['fase'] = 'inicio'
   let error: Estado['error'] = null
   let resumen: Resumen | null = null
@@ -153,14 +172,14 @@ export function bridgeSimulado(): Bridge {
 
   const empezarPaso = () => {
     reloj = 0
-    actual = { paso: PASOS[i], completadas: 0, incompletas: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
+    actual = { paso: pasos[i], completadas: 0, incompletas: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
     hechos.push(actual)
   }
 
   const cerrar = (terminada: boolean) => {
     clearInterval(temporizador)
     resumen = {
-      rutina: 'Calentamiento básico',
+      rutina: nombreRutina,
       terminada,
       duracionTotalS: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 10) / 10,
       pasos: hechos.map((h) => ({
@@ -184,7 +203,7 @@ export function bridgeSimulado(): Bridge {
 
   const avanzar = () => {
     i++
-    if (i >= PASOS.length) return cerrar(true)
+    if (i >= pasos.length) return cerrar(true)
     empezarPaso()
   }
 
@@ -217,7 +236,7 @@ export function bridgeSimulado(): Bridge {
                                lado: fb.lado, severidad: fb.severidad, repeticion: actual.completadas })
       }
     }
-    const cambiaOrientacion = i === 0 || PASOS[i - 1].orientacion !== paso.orientacion
+    const cambiaOrientacion = i === 0 || pasos[i - 1].orientacion !== paso.orientacion
     let aviso: string | null = null
     let avisoTipo: EstadoSesion['avisoTipo'] = null
     if (enPausa) { aviso = 'Pausa. No te veo: vuelve al encuadre para seguir.'; avisoTipo = 'pausa' }
@@ -226,7 +245,7 @@ export function bridgeSimulado(): Bridge {
       avisoTipo = 'orientacion'
     }
     sesion = {
-      ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: PASOS.length,
+      ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: pasos.length,
       objetivo: paso.objetivo, unidad: paso.unidad, completadas: actual.completadas, incompletas: actual.incompletas,
       fase: 'simulada', persona: !enPausa, orientacionGrados: paso.orientacion === 'perfil' ? 88 : 4,
       aviso, avisoTipo, ultimoMensaje, mensajesEmitidos, feedback, pausada: enPausa,
@@ -238,8 +257,17 @@ export function bridgeSimulado(): Bridge {
     if (actual.completadas >= paso.objetivo) avanzar()
   }
 
-  const iniciar = async () => {
+  const iniciar = async (opciones?: OpcionesInicio) => {
     if (fase === 'sesion' || fase === 'preparando') return false
+    if (opciones?.pasos?.length) {
+      const elegidos = opciones.pasos.map((e) => {
+        const ej = CATALOGO.find((c) => c.skillId === e.skillId)
+        return ej && e.objetivo >= ej.minimo && e.objetivo <= ej.maximo ? { ...ej, objetivo: e.objetivo } : null
+      })
+      if (elegidos.some((e) => e === null)) return false
+      pasos = elegidos as PasoRutina[]
+      nombreRutina = opciones.nombre ?? 'Rutina personalizada'
+    }
     fase = 'preparando'; error = null; resumen = null; sesion = null; publicar()
     await new Promise((r) => setTimeout(r, 700))
     i = 0; hechos = []; mensajesEmitidos = 0; ultimoMensaje = null; feedback = null
@@ -267,8 +295,9 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false },
-    rutina: { nombre: 'Calentamiento básico', pasos: PASOS },
+    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true },
+    rutina: { nombre: 'Calentamiento básico', pasos: CATALOGO },
+    catalogo: CATALOGO,
     conexiones: CONEXIONES,
     espejo: true,
     fuente: 'camara',

@@ -17,6 +17,8 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
+from ...aplicacion.rutina import RutinaInvalida
+from . import contrato
 from .orquestador import Orquestador
 
 log = logging.getLogger(__name__)
@@ -42,9 +44,17 @@ class Api:
         return self._orq.estado(int(desde))
 
     def iniciar(self, opciones: Optional[Dict[str, Any]] = None) -> bool:
-        # `opciones` trae lo que elige la usuaria en el inicio, p. ej. {"nivel":
-        # "avanzado"} cuando exista la capacidad «nivel» (T22.a). Hoy no se usa.
-        return self._orq.iniciar()
+        # `opciones` trae lo que elige la usuaria en el inicio: la rutina
+        # personalizada en "pasos" y, cuando exista la capacidad «nivel»
+        # (T22.a), {"nivel": "avanzado"}, que hoy no se usa.
+        rutina = None
+        if opciones and opciones.get("pasos"):
+            try:
+                rutina = contrato.rutina_desde_opciones(opciones, self._orq.catalogo)
+            except RutinaInvalida as e:
+                log.warning("Rutina de la interfaz rechazada: %s", e)
+                return False
+        return self._orq.iniciar(rutina)
 
     def siguiente(self) -> None:
         self._orq.siguiente()

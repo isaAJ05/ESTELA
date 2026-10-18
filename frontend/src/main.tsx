@@ -2,6 +2,7 @@ import '@fontsource-variable/manrope'
 import './estilos/tokens.css'
 import './estilos/base.css'
 import './estilos/pantallas.css'
+import './estilos/rutina.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

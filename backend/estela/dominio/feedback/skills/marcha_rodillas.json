@@ -1,6 +1,7 @@
 {
   "skill_id": "marcha_rodillas",
   "nombre": "Marcha con elevación de rodillas",
+  "descripcion": "Marcha en el sitio subiendo las rodillas, con el tronco erguido.",
   "version": "0.2.0",
   "estado": "candidato",
   "notas": "Umbrales provisionales, sin calibrar. La altura de rodilla se mide por el ángulo de cadera (180° = pierna extendida); baja al elevar la rodilla. Ver nota de sentadilla.json. EXP-009 (2026-10-12): nueva regla de rodilla estirada al subir y tobillos visibles en pantalla; la rodilla estirada tiene prioridad sobre la rodilla baja (subir la pierna estirada también deja la rodilla baja, y la corrección útil es «dobla la rodilla»); el tobillo no tiene regla (talón levantado y pie colgando necesitan talón y punta del pie, ruidosos de perfil; sin datos de error).",

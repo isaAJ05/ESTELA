@@ -144,7 +144,7 @@
 .panel-guia { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--espacio-2); margin: 0; padding: var(--espacio-3); border-radius: var(--radio-md); background: rgba(0, 0, 0, 0.18); }
 .panel-guia .figura { flex: 1 1 auto; width: 100%; height: 100%; min-height: 0; max-height: none; }
 .panel-guia figcaption { color: var(--color-texto-sutil); font-size: 0.8125rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
-.panel-guia { overflow: hidden; }
+.panel-guia { overflow: hidden; padding-top: var(--espacio-6); }  /* aire arriba: brazos levantados de la guía */
 .guia-animada { display: block; flex: 1 1 auto; width: 100%; height: 100%; min-height: 14rem; max-height: none; overflow: visible; }
 .guia-animada line { fill: none; stroke-linecap: round; stroke-linejoin: round; }
 .guia-animada .guia-torso { stroke: rgba(170, 80, 220, 0.92); stroke-width: 0.025; }

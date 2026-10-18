@@ -18,6 +18,9 @@
   --color-exito: #70d6a1;
   --color-peligro: #e98591;
   --color-sobre-violeta: #171329;
+  /* morado de la identidad de ESTELA: fondos y estados elegidos (no texto) */
+  --color-morado: #360568;
+  --color-morado-tenue: rgba(54, 5, 104, 0.45);
 
   --radio-sm: 0.625rem;
   --radio-md: 0.875rem;

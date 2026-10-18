@@ -1,6 +1,6 @@
 import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Bridge, EstadoSesion, Feedback, TipoAviso } from '../bridge/tipos'
+import type { Bridge, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
@@ -76,7 +76,7 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
   bridge: Bridge; alTerminar: () => void; angulos: boolean; alternarAngulos: () => void
 }) {
   const paso = useSesion('paso') ?? 1
-  const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.info?.rutina.pasos.length ?? 0)
+  const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
   const pausaManual = useCapacidad('pausaManual')
   const pausada = useSesion('pausada')
   return (
@@ -125,7 +125,8 @@ function PanelEjercicio() {
   const correctas = useSesion('correctas')
   const conError = useSesion('conError')
   const guia = useEstado((s) => s.estado?.sesion?.guia ?? null)
-  const orientacion = useEstado((s) => s.info?.rutina.pasos[paso - 1]?.orientacion ?? null)
+  const orientacion = useEstado((s) => s.plan?.pasos[paso - 1]?.orientacion ?? null)
+  const proximo = useEstado((s) => s.plan?.pasos[paso] ?? null)
   const conCorrectas = useCapacidad('correctasConError')
   const conGuia = useCapacidad('guia')
 
@@ -155,7 +156,24 @@ function PanelEjercicio() {
         {conGuia && guia ? <GuiaAnimada puntos={guia} ejercicioId={skillId} /> : <Figura skillId={skillId} tam={150} />}
         <figcaption>{conGuia && guia ? 'Movimiento de referencia' : 'Postura clave'}</figcaption>
       </figure>
+
+      <Proximo paso={proximo} />
     </aside>
+  )
+}
+
+/** Solo el ejercicio siguiente (una línea fija, para no cambiar el tamaño del panel). */
+function Proximo({ paso }: { paso: PasoRutina | null }) {
+  return (
+    <div className="panel-siguientes">
+      <span className="etiqueta">{paso ? 'A continuación' : 'Último ejercicio'}</span>
+      {paso && (
+        <p>
+          <span>{paso.nombre}</span>
+          <b>{paso.objetivo} {paso.unidad === 'segundos' ? 's' : 'rep.'}</b>
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -227,7 +245,7 @@ function BandaMensaje() {
 /** Al empezar cada ejercicio: cuál es, cómo colocarse y el objetivo. */
 function Transicion() {
   const paso = useSesion('paso') ?? 0
-  const info = useEstado((s) => s.info?.rutina.pasos[paso - 1] ?? null)
+  const info = useEstado((s) => s.plan?.pasos[paso - 1] ?? null)
   const [visible, setVisible] = useState(true)
   useEffect(() => {
     setVisible(true)

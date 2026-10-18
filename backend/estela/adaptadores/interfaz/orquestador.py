@@ -35,7 +35,7 @@ import numpy as np
 
 from ...aplicacion.puertos import Estimador, Fuente
 from ...aplicacion.rutina import Ejercicio, Rutina
-from ...aplicacion.sesion import EstadoFrame, Sesion
+from ...aplicacion.sesion import EstadoFrame, Sesion, frases_de_rutina
 from . import contrato
 
 log = logging.getLogger(__name__)
@@ -72,6 +72,8 @@ class Orquestador:
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`."""
         self.rutina = rutina
+        #: la rutina de `rutina`: la que se describe en `info()`
+        self._rutina_base = rutina
         self.catalogo = catalogo
         self._crear_estimador = crear_estimador
         self._abrir_fuente = abrir_fuente
@@ -98,7 +100,7 @@ class Orquestador:
     # -- consultas (cualquier hilo) ------------------------------------------
 
     def info(self) -> Dict[str, Any]:
-        d = contrato.info(self.rutina, self.catalogo, self._espejo)
+        d = contrato.info(self._rutina_base, self.catalogo, self._espejo)
         d["fuente"] = self._fuente
         return d
 
@@ -127,11 +129,17 @@ class Orquestador:
 
     # -- comandos (cualquier hilo) -------------------------------------------
 
-    def iniciar(self) -> bool:
-        """Empieza una sesión nueva desde el inicio, el resumen o un error."""
+    def iniciar(self, rutina: Optional[Rutina] = None) -> bool:
+        """Empieza una sesión nueva desde el inicio, el resumen o un error.
+        Con `rutina`, la usa a partir de ahora («Repetir rutina» repite la
+        última); sin ella, repite la que había."""
         with self._cv:
             if self._fase not in (INICIO, RESUMEN, ERROR):
                 return False
+            if rutina is not None and rutina != self.rutina:
+                self.rutina = rutina
+                if hasattr(self._voz, "precalentar"):
+                    self._voz.precalentar(frases_de_rutina(rutina, self.catalogo))
             if self._hilo is not None:
                 self._hilo.join()
             self._parar.clear()
