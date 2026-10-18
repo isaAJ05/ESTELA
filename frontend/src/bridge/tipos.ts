@@ -28,6 +28,8 @@ export interface Capacidades {
   avisoLuz: boolean
   /** la usuaria puede elegir ejercicios y objetivos antes de empezar */
   rutinaPersonalizada?: boolean
+  /** la usuaria puede silenciar las indicaciones habladas (`configurar`) */
+  silenciarVoz?: boolean
 }
 
 export interface PasoRutina {
@@ -198,6 +200,11 @@ export interface OpcionesInicio {
   pasos?: PasoElegido[]
 }
 
+/** Ajustes que Python aplica en cualquier fase (capacidad «silenciarVoz»). */
+export interface AjustesPython {
+  voz?: boolean
+}
+
 /** Lo que la interfaz puede pedirle a Python. */
 export interface Bridge {
   info(): Promise<Info>
@@ -209,6 +216,7 @@ export interface Bridge {
   terminar(): Promise<void>
   volverAlInicio(): Promise<void>
   salir(): Promise<void>
+  configurar(ajustes: AjustesPython): Promise<void>
   /** Solo con la capacidad «pausaManual». */
   pausar(): Promise<void>
   reanudar(): Promise<void>

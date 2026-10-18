@@ -1,5 +1,5 @@
 {
-  "nombre": "Calentamiento básico",
+  "nombre": "Rutina de entrenamiento",
   "notas": "Los ejercicios de ADR-005. Primero los de frente (jumping jacks, abducción de cadera por pierna) y después los de perfil (marcha y plancha), para cambiar de orientación una sola vez; la plancha al final porque es en el suelo. Repeticiones y duración provisionales, sin revisar por la licenciada en educación física.",
   "pasos": [
     {"skill_id": "jumping_jacks", "repeticiones": 10},

@@ -3,7 +3,7 @@ import type { ReactNode } from 'react'
 export function Marca() {
   return (
     <div className="marca">
-      <span className="marca-signo"><span /></span>
+      <img className="marca-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" />
       <span>estela</span>
     </div>
   )

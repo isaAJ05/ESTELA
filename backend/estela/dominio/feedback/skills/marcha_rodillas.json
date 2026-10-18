@@ -63,7 +63,7 @@
       "lado": "izquierdo",
       "prioridad": 3,
       "severidad": {"moderada": 15, "alta": 30},
-      "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en calentamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
+      "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en entrenamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "rodilla_baja",
       "direccion": {"disminuir": "subir"},
       "solo_lado_visible": true
@@ -79,7 +79,7 @@
       "lado": "derecho",
       "prioridad": 4,
       "severidad": {"moderada": 15, "alta": 30},
-      "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en calentamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
+      "umbral_origen": "[?] provisional, sin calibrar. 125° = muslo ~35° por debajo de la horizontal (horizontal ≈ 90°). Antes 110; la licenciada: en entrenamiento suave la rodilla puede quedar por debajo de la horizontal (DEC-008). Revisión de la licenciada (2026-10, «Propuesta de corrección ESTELA»): no hay umbral universal de amplitud; corregir solo si se puede con control y estabilidad. Por eso el umbral pasa a ser un piso permisivo [R]. Sigue siendo provisional: lo calibran EXP-005 y EXP-009",
       "mensaje_id": "rodilla_baja",
       "direccion": {"disminuir": "subir"},
       "solo_lado_visible": true

@@ -1,4 +1,4 @@
-import type { Bridge, Estado, Info, OpcionesInicio } from './tipos'
+import type { AjustesPython, Bridge, Estado, Info, OpcionesInicio } from './tipos'
 
 // Métodos de `backend/estela/adaptadores/interfaz/ventana.py:Api`, publicados por pywebview.
 interface ApiPython {
@@ -10,6 +10,8 @@ interface ApiPython {
   terminar(): Promise<void>
   volver_al_inicio(): Promise<void>
   salir(): Promise<void>
+  // solo con la capacidad «silenciarVoz»
+  configurar?(ajustes: AjustesPython): Promise<void>
   // aún no existen en Python (capacidad «pausaManual»)
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
@@ -46,6 +48,7 @@ export function bridgePywebview(api: ApiPython): Bridge {
     terminar: () => api.terminar(),
     volverAlInicio: () => api.volver_al_inicio(),
     salir: () => api.salir(),
+    configurar: async (ajustes) => { await api.configurar?.(ajustes) },
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

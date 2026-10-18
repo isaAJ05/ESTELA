@@ -25,6 +25,8 @@ from estela.aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PER
 from estela.adaptadores.interfaz import contrato
 from estela.adaptadores.interfaz.orquestador import ERROR, INICIO, RESUMEN, SESION, Orquestador
 from estela.adaptadores.interfaz.ventana import Api
+from estela.adaptadores.voz.cola import ColaVoz
+from estela.adaptadores.voz.motores import VozTexto
 from tests.test_sesion import EstimadorFalso, VozFalsa, correr
 
 ZANCADA = "zancada_atras_izq"
@@ -111,7 +113,7 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
-        "guia", "motivoSilencio", "rutinaPersonalizada"]
+        "guia", "motivoSilencio", "rutinaPersonalizada", "silenciarVoz"]
     json.dumps(d)
 
 
@@ -135,7 +137,7 @@ def test_rutina_desde_opciones(catalogo):
                    {"skillId": "jumping_jacks", "objetivo": 12}]}, catalogo)
     assert [(p.skill_id, p.repeticiones) for p in r.pasos] == [
         ("plancha", 30), ("jumping_jacks", 12)]
-    assert r.nombre == "Rutina personalizada"
+    assert r.nombre == "Rutina de entrenamiento"
     for malo in ({"pasos": []},
                  {"pasos": [{"skillId": "no_existe", "objetivo": 5}]},
                  {"pasos": [{"skillId": "plancha", "objetivo": 1}]},      # < 5 s
@@ -366,6 +368,22 @@ def test_iniciar_con_rutina_personalizada_y_repetirla(catalogo, rutina):
     fin = esperar_fase(orq, RESUMEN)
     assert [p["objetivo"] for p in fin["resumen"]["pasos"]] == [1]
     assert len(orq.info()["rutina"]["pasos"]) == 2
+
+
+def test_configurar_silencia_y_reactiva_la_voz(catalogo, rutina):
+    cola = ColaVoz(VozTexto())
+    orq = Orquestador(rutina, catalogo, EstimadorCerrable, lambda: FuenteLista([], False),
+                      cola, espejo=True)
+    api = Api(orq)
+    api.configurar({"voz": False})
+    assert cola.silenciada
+    api.configurar({"voz": "no"})          # solo booleanos
+    api.configurar(None)
+    assert cola.silenciada
+    api.configurar({"voz": True})
+    assert not cola.silenciada
+    Api(nuevo_orquestador(catalogo, rutina, [])[0]).configurar({"voz": False})  # voz sin silenciar()
+    cola.cerrar(esperar=False)
 
 
 def test_rutina_personalizada_respeta_el_orden_y_terminar_libera_recursos(catalogo, rutina):

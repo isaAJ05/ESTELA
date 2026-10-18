@@ -1,6 +1,7 @@
 import { AlertTriangle, Check, ChevronDown, LogOut, ListChecks, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
+import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
 import { Figura } from '../componentes/Figura'
 import { GuiaAnimada } from '../componentes/VistaCamara'
@@ -27,7 +28,10 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
     <main className="pantalla pantalla-resumen">
       <header className="cabecera">
         <Marca />
-        <span className="etiqueta">Resumen de la sesión</span>
+        <div className="cabecera-derecha">
+          <span className="etiqueta solo-ancho">Resumen de la sesión</span>
+          <ControlesCabecera bridge={bridge} />
+        </div>
       </header>
 
       <section className="resumen-cuerpo">

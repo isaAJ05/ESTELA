@@ -4,6 +4,7 @@ Tiene un único hueco pendiente: si llega una frase nueva mientras otra
 espera, la más reciente la sustituye (un feedback de hace 3 s ya no sirve).
 Los avisos de la aplicación (cambio de ejercicio, fin de rutina) tienen más
 prioridad que las correcciones y no los pisa una corrección.
+Silenciada (ajuste de la interfaz), descarta todo lo que se le pide.
 """
 
 from __future__ import annotations
@@ -34,6 +35,7 @@ class ColaVoz:
         self._pendiente: Optional[Locucion] = None
         self._hablando = False
         self._cerrada = False
+        self._silenciada = False
         self.descartadas = 0
         #: (texto, segundos entre encolar y empezar a sonar)
         self.historial: List[tuple] = []
@@ -44,7 +46,7 @@ class ColaVoz:
     def decir(self, texto: str, prioridad: int = PRIORIDAD_FEEDBACK) -> bool:
         """Encola una frase. Devuelve False si se descartó."""
         with self._cv:
-            if self._cerrada:
+            if self._cerrada or self._silenciada:
                 return False
             p = self._pendiente
             if p is not None and p.prioridad > prioridad:
@@ -55,6 +57,17 @@ class ColaVoz:
             self._pendiente = Locucion(texto, prioridad, time.perf_counter())
             self._cv.notify()
             return True
+
+    def silenciar(self, silenciada: bool = True) -> None:
+        """Deja de hablar (lo que ya suena termina) o vuelve a hablar."""
+        with self._cv:
+            self._silenciada = silenciada
+            if silenciada:
+                self._pendiente = None
+
+    @property
+    def silenciada(self) -> bool:
+        return self._silenciada
 
     def precalentar(self, textos: Iterable[str]) -> None:
         """Sintetiza en segundo plano las frases conocidas, sin bloquear.

@@ -33,12 +33,19 @@ colocacion         (fase previa de colocación)         —
 avisoLuz           (aviso de poca luz)                 —
 =================  ==================================  =====================
 
-Rutina personalizada
+Rutina de entrenamiento
 --------------------
 `info()["catalogo"]` lista los ejercicios que se pueden usar en sesión, con su
 objetivo por defecto y los límites del objetivo. La interfaz arma una rutina
 con ellos y la manda en `iniciar({"pasos": [{"skillId", "objetivo"}]})`;
 `rutina_desde_opciones` la valida igual que una rutina escrita en JSON.
+
+Ajustes
+-------
+Con la capacidad `silenciarVoz`, `configurar({"voz": false})` silencia las
+indicaciones habladas (la sesión sigue igual: solo se deja de hablar) y
+`{"voz": true}` las reactiva. Se puede llamar en cualquier fase. El tema y el
+tamaño del texto son solo de la interfaz y no llegan a Python.
 
 Feedback
 --------
@@ -75,6 +82,7 @@ CAPACIDADES: Dict[str, bool] = {
     "colocacion": False,
     "avisoLuz": False,
     "rutinaPersonalizada": True,
+    "silenciarVoz": True,
 }
 
 #: límites del objetivo que puede elegir la usuaria, por unidad
@@ -333,7 +341,7 @@ def rutina_desde_opciones(opciones: Mapping[str, Any],
                 f"el objetivo de '{sid}' debe estar entre {minimo} y {maximo} {ej.unidad}")
         clave = "duracion_s" if ej.unidad == "segundos" else "repeticiones"
         pasos.append({"skill_id": sid, clave: objetivo})
-    nombre = str(opciones.get("nombre") or "Rutina personalizada")[:60]
+    nombre = str(opciones.get("nombre") or "Rutina de entrenamiento")[:60]
     return rutina_desde_dict({"nombre": nombre, "pasos": pasos}, catalogo)
 
 

@@ -8,7 +8,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { App, SinConexion } from './App'
 import { conectar } from './bridge'
+import { aplicarAjustes, sincronizarVoz } from './estado/ajustes'
 import { arrancar } from './estado/almacen'
+
+aplicarAjustes()
 
 const raiz = createRoot(document.getElementById('raiz')!)
 
@@ -17,6 +20,7 @@ conectar().then((bridge) => {
     raiz.render(<SinConexion />)
     return
   }
+  sincronizarVoz(bridge)
   void arrancar(bridge)
   raiz.render(<StrictMode><App bridge={bridge} /></StrictMode>)
 })

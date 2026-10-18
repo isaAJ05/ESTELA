@@ -153,7 +153,7 @@ export function bridgeSimulado(): Bridge {
 
   let version = 0
   let pasos: PasoRutina[] = CATALOGO
-  let nombreRutina = 'Calentamiento básico'
+  let nombreRutina = 'Rutina de entrenamiento'
   let fase: Estado['fase'] = 'inicio'
   let error: Estado['error'] = null
   let resumen: Resumen | null = null
@@ -266,7 +266,7 @@ export function bridgeSimulado(): Bridge {
       })
       if (elegidos.some((e) => e === null)) return false
       pasos = elegidos as PasoRutina[]
-      nombreRutina = opciones.nombre ?? 'Rutina personalizada'
+      nombreRutina = opciones.nombre ?? 'Rutina de entrenamiento'
     }
     fase = 'preparando'; error = null; resumen = null; sesion = null; publicar()
     await new Promise((r) => setTimeout(r, 700))
@@ -295,8 +295,8 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true },
-    rutina: { nombre: 'Calentamiento básico', pasos: CATALOGO },
+    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true },
+    rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
     espejo: true,
@@ -320,6 +320,7 @@ export function bridgeSimulado(): Bridge {
     terminar: async () => { if (fase === 'sesion') cerrar(false) },
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
+    configurar: async () => {},
     pausar: async () => {},
     reanudar: async () => {},
   }

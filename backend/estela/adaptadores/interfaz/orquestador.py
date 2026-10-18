@@ -162,6 +162,11 @@ class Orquestador:
         """Termina la sesión en curso y pasa al resumen."""
         self._comandos.put("terminar")
 
+    def configurar(self, voz: Optional[bool] = None) -> None:
+        """Ajustes de la interfaz que se pueden cambiar en cualquier momento."""
+        if voz is not None and hasattr(self._voz, "silenciar"):
+            self._voz.silenciar(not voz)
+
     def volver_al_inicio(self) -> None:
         with self._cv:
             if self._fase in (RESUMEN, ERROR):

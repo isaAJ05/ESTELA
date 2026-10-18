@@ -1,6 +1,7 @@
 import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina } from '../bridge/tipos'
+import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { textoVista } from '../componentes/Figura'
 import { FiguraEjercicio, ResumenRutina, TarjetaEjercicio, textoEstimado, textoObjetivo } from '../componentes/rutina'
@@ -69,7 +70,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
 
   const plan: PasoRutina[] = personalizable ? planDe(sel, catalogo) : (base?.pasos ?? [])
   const modificada = personalizable && !iguales(sel, recomendada)
-  const nombre = modificada || !base ? 'Rutina personalizada' : base.nombre
+  const nombre = modificada || !base ? 'Rutina de entrenamiento' : base.nombre
   const estimadoS = estimarSegundos(sel, catalogo)
   const avisos = personalizable
     ? [...problemas(sel.filter((p) => !invalidos.has(p.skillId)), catalogo),
@@ -102,7 +103,9 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
             </button>
           </nav>
         )}
-        <span className="etiqueta solo-ancho">Calentamiento guiado</span>
+        <div className="cabecera-derecha">
+          <ControlesCabecera bridge={bridge} />
+        </div>
       </header>
 
       {seccion === 'rutina' && personalizable ? (

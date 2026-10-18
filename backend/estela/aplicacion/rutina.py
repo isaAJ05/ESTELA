@@ -1,4 +1,4 @@
-"""Catálogo de ejercicios y rutina de calentamiento.
+"""Catálogo de ejercicios y rutina de entrenamiento.
 
 El catálogo son los skills de `estela/dominio/feedback/skills/` más su sección opcional
 `segmentacion`. Un skill sin `segmentacion` se carga (el motor lo acepta) pero

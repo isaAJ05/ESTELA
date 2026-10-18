@@ -12,7 +12,7 @@ inicio se eligen los ejercicios, su orden y su objetivo antes de empezar;
 Con --interfaz opencv se usa la ventana de OpenCV, más simple, para pruebas y
 mediciones (sin pantalla de selección: usa --rutina o --ejercicio).
 
-Teclas en la interfaz: n siguiente ejercicio · r reiniciar ejercicio ·
+Teclas en la interfaz: n siguiente ejercicio · r reiniciar ejercicio · v voz ·
 Esc terminar · d datos de depuración.
 Teclas en la ventana de OpenCV: q/Esc salir · n siguiente · r reiniciar.
 """
