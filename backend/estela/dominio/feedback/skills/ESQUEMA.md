@@ -14,6 +14,7 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
 {
   "skill_id": "sentadilla",          // único; debe coincidir con Observacion.ejercicio_id
   "nombre": "Sentadilla",
+  "descripcion": "…",                // opcional: frase corta que la interfaz muestra al elegir ejercicios
   "version": "0.1.0",
   "estado": "candidato",             // candidato | candidato_en_duda | adoptado | descartado
   "notas": "…",

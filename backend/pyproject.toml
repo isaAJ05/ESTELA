@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "estela"
 version = "0.1.0"
-description = "ESTELA: retroalimentación hablada en vivo para un calentamiento de bajo impacto"
+description = "ESTELA: retroalimentación hablada en vivo para un entrenamiento de bajo impacto"
 readme = "README.md"
 requires-python = ">=3.10"
 # Versiones con las que se validó la v1 (Python 3.14, Linux x86_64).

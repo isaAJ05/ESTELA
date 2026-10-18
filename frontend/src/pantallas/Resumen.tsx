@@ -1,6 +1,7 @@
-import { AlertTriangle, Check, ChevronDown, Home, LogOut, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, LogOut, ListChecks, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
+import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
 import { Figura } from '../componentes/Figura'
 import { GuiaAnimada } from '../componentes/VistaCamara'
@@ -8,7 +9,7 @@ import { useCapacidad, useEstado } from '../estado/almacen'
 
 export function Resumen({ bridge }: { bridge: Bridge }) {
   const resumen = useEstado((s) => s.estado?.resumen ?? null)
-  const plan = useEstado((s) => s.info?.rutina.pasos ?? [])
+  const plan = useEstado((s) => s.plan?.pasos ?? SIN_PASOS)
   const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
   const conTexto = useCapacidad('resumenTexto')
   const [tecnico, setTecnico] = useState(false)
@@ -27,7 +28,10 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
     <main className="pantalla pantalla-resumen">
       <header className="cabecera">
         <Marca />
-        <span className="etiqueta">Resumen de la sesión</span>
+        <div className="cabecera-derecha">
+          <span className="etiqueta solo-ancho">Resumen de la sesión</span>
+          <ControlesCabecera bridge={bridge} />
+        </div>
       </header>
 
       <section className="resumen-cuerpo">
@@ -53,7 +57,7 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
           )}
           <div className="acciones">
             <Boton onClick={() => void bridge.iniciar()}><RotateCcw />Repetir rutina</Boton>
-            <Boton variante="secundario" onClick={() => void bridge.volverAlInicio()}><Home />Inicio</Boton>
+            <Boton variante="secundario" onClick={() => void bridge.volverAlInicio()}><ListChecks />Configurar otra rutina</Boton>
             <Boton variante="suave" onClick={() => void bridge.salir()}><LogOut />Salir</Boton>
           </div>
         </div>
@@ -69,6 +73,8 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
     </main>
   )
 }
+
+const SIN_PASOS: PasoRutina[] = []
 
 function agrupar(paso: PasoResumen): [string, number][] {
   const veces = new Map<string, number>()

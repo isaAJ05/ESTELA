@@ -4,8 +4,9 @@ html, body, #raiz { height: 100%; }
 
 /* Escala fluida: todo está en rem y la raíz crece con la ventana, así la
    interfaz se ve proporcionada de 960×600 a 2560×1440 (se mira desde 3 m).
-   ≈15 px en 1280×800, 16 px en 1440×900, 19 px en 1920×1080, 23 px en 2560×1440. */
-html { font-size: clamp(15px, calc(0.45vw + 0.55vh + 4px), 26px); }
+   ≈15 px en 1280×800, 16 px en 1440×900, 19 px en 1920×1080, 23 px en 2560×1440.
+   El ajuste «Tamaño del texto» lo multiplica por --escala. */
+html { font-size: calc(clamp(15px, calc(0.45vw + 0.55vh + 4px), 26px) * var(--escala, 1)); }
 
 body {
   margin: 0;
@@ -29,8 +30,7 @@ svg { flex-shrink: 0; }
 
 /* -- marca --------------------------------------------------------------- */
 .marca { display: flex; align-items: center; gap: 0.625rem; font-size: 1.25rem; font-weight: 700; letter-spacing: -0.06em; }
-.marca-signo { display: grid; place-items: center; width: 1.5rem; height: 1.5rem; border: 2px solid var(--color-violeta-suave); border-radius: 50%; }
-.marca-signo span { width: 0.5rem; height: 0.5rem; border-radius: 50%; background: var(--color-amarillo); box-shadow: 0 0 0.75rem var(--color-amarillo); }
+.marca-logo { width: 2.25rem; height: 2.25rem; filter: drop-shadow(0 0.25rem 0.75rem rgba(128, 107, 255, 0.3)); }
 
 .etiqueta { display: block; color: var(--color-texto-sutil); font-size: 0.75rem; font-weight: 750; letter-spacing: 0.14em; text-transform: uppercase; }
 .etiqueta-marca { color: var(--color-violeta-suave); }
@@ -51,7 +51,7 @@ svg { flex-shrink: 0; }
 .boton:hover:not(:disabled) { transform: translateY(-1px); }
 .boton:disabled { cursor: default; opacity: 0.7; }
 .boton-primario { color: var(--color-sobre-violeta); background: var(--color-violeta-suave); box-shadow: var(--sombra-brillo); }
-.boton-primario:hover:not(:disabled) { background: #b9afff; }
+.boton-primario:hover:not(:disabled) { background: var(--color-violeta-hover); }
 .boton-secundario { color: var(--color-texto); background: var(--color-superficie-elevada); border-color: var(--color-borde); }
 .boton-secundario:hover:not(:disabled) { border-color: var(--color-violeta); }
 .boton-suave { color: var(--color-violeta-suave); background: rgba(128, 107, 255, 0.11); }
@@ -65,14 +65,14 @@ svg { flex-shrink: 0; }
   padding: var(--espacio-5);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-lg);
-  background: linear-gradient(145deg, rgba(33, 29, 48, 0.92), rgba(23, 21, 34, 0.92));
+  background: linear-gradient(145deg, var(--color-cristal-alto), var(--color-cristal));
   box-shadow: var(--sombra-suave);
 }
 
 .chip {
   display: inline-flex; align-items: center; gap: 0.375rem;
   padding: 0.375rem 0.75rem; border-radius: var(--radio-pildora);
-  color: var(--color-texto-suave); background: rgba(255, 255, 255, 0.07);
+  color: var(--color-texto-suave); background: var(--color-relleno);
   font-size: 0.875rem; font-weight: 700;
 }
 
@@ -87,8 +87,8 @@ svg { flex-shrink: 0; }
 .aviso strong { color: var(--color-texto); font-size: 1.0625rem; }
 .aviso div > span { margin-top: 2px; color: var(--color-texto-suave); font-size: 0.9375rem; }
 .aviso .boton { margin-left: auto; }
-.aviso-info { color: var(--color-violeta-suave); border-color: rgba(169, 157, 255, 0.3); background: rgba(40, 33, 80, 0.82); }
-.aviso-cuidado { color: var(--color-ambar); border-color: rgba(244, 163, 64, 0.35); background: rgba(62, 40, 18, 0.85); }
+.aviso-info { color: var(--color-violeta-suave); border-color: rgba(169, 157, 255, 0.3); background: var(--color-aviso-info); }
+.aviso-cuidado { color: var(--color-ambar); border-color: rgba(244, 163, 64, 0.35); background: var(--color-aviso-cuidado); }
 .aviso-bloqueo { color: var(--color-peligro); border-color: rgba(233, 133, 145, 0.3); background: rgba(233, 133, 145, 0.08); }
 
 /* -- figura e íconos ------------------------------------------------------- */

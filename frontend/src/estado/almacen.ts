@@ -10,11 +10,18 @@
 // que si la interfaz va más lenta, se salta estados en vez de acumular retraso.
 
 import { useRef, useSyncExternalStore } from 'react'
-import type { Bridge, Capacidades, Estado, EstadoSesion, Info } from '../bridge/tipos'
+import type { Bridge, Capacidades, Estado, EstadoSesion, Info, OpcionesInicio, PasoRutina } from '../bridge/tipos'
+
+/** La rutina de la sesión en curso o la última (la base, hasta que se elige otra). */
+export interface Plan {
+  nombre: string
+  pasos: PasoRutina[]
+}
 
 export interface Instantanea {
   info: Info | null
   estado: Estado | null
+  plan: Plan | null
 }
 
 export interface FrameNuevo {
@@ -23,7 +30,7 @@ export interface FrameNuevo {
   sesion: EstadoSesion | null
 }
 
-let actual: Instantanea = { info: null, estado: null }
+let actual: Instantanea = { info: null, estado: null, plan: null }
 const oyentes = new Set<() => void>()
 const oyentesFrame = new Set<(f: FrameNuevo) => void>()
 let ultimoFrame: FrameNuevo = { jpeg: null, sesion: null }
@@ -46,7 +53,8 @@ export function alFrame(f: (frame: FrameNuevo) => void): () => void {
 
 /** Arranca el bucle de lectura. Se llama una vez al abrir la interfaz. */
 export async function arrancar(bridge: Bridge): Promise<void> {
-  fijar({ info: await bridge.info() })
+  const info = await bridge.info()
+  fijar({ info, plan: info.rutina })
   let version = -1
   for (;;) {
     let e: Estado | null = null
@@ -64,6 +72,26 @@ export async function arrancar(bridge: Bridge): Promise<void> {
     ultimoFrame = { jpeg: frame, sesion: e.sesion }
     oyentesFrame.forEach((f) => f(ultimoFrame))
   }
+}
+
+/**
+ * Empieza la sesión con la rutina elegida. El plan se fija antes de llamar a
+ * Python (el estado de la sesión puede llegar antes de que `iniciar` vuelva)
+ * y se deshace si Python la rechaza.
+ */
+export async function iniciarRutina(bridge: Bridge, plan: Plan,
+                                    opciones?: OpcionesInicio): Promise<boolean> {
+  const anterior = actual.plan
+  fijar({ plan })
+  const pasos = plan.pasos.map((p) => ({ skillId: p.skillId, objetivo: p.objetivo }))
+  let ok = false
+  try {
+    ok = await bridge.iniciar({ ...opciones, nombre: plan.nombre, pasos })
+  } catch (err) {
+    console.error('iniciar()', err)
+  }
+  if (!ok) fijar({ plan: anterior })
+  return ok
 }
 
 /** Lee una parte del estado; re-renderiza solo si `igual` dice que cambió. */

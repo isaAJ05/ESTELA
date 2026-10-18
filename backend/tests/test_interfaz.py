@@ -17,13 +17,16 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from estela.aplicacion.rutina import (cargar_catalogo, rutina_de_un_ejercicio,
-                                      rutina_desde_dict)
+from estela.aplicacion.rutina import (RutinaInvalida, cargar_catalogo,
+                                      rutina_de_un_ejercicio, rutina_desde_dict)
 from estela.dominio.feedback.motor.skill import directorio_skills
 from estela.aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                                   Sesion, _preparar_guia)
 from estela.adaptadores.interfaz import contrato
 from estela.adaptadores.interfaz.orquestador import ERROR, INICIO, RESUMEN, SESION, Orquestador
+from estela.adaptadores.interfaz.ventana import Api
+from estela.adaptadores.voz.cola import ColaVoz
+from estela.adaptadores.voz.motores import VozTexto
 from tests.test_sesion import EstimadorFalso, VozFalsa, correr
 
 ZANCADA = "zancada_atras_izq"
@@ -109,8 +112,39 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert d["rutina"]["pasos"][1]["unidad"] == "segundos"
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
-    assert [k for k, v in d["capacidades"].items() if v] == ["guia", "motivoSilencio"]
+    assert [k for k, v in d["capacidades"].items() if v] == [
+        "guia", "motivoSilencio", "rutinaPersonalizada", "silenciarVoz"]
     json.dumps(d)
+
+
+def test_info_trae_el_catalogo_con_objetivos_por_defecto(catalogo, rutina):
+    d = contrato.info(rutina, catalogo, espejo=True)
+    por_id = {e["skillId"]: e for e in d["catalogo"]}
+    assert por_id[ZANCADA]["objetivo"] == 2              # el de la rutina base
+    assert por_id["plancha"]["unidad"] == "segundos"
+    assert por_id["jumping_jacks"]["objetivo"] == contrato.OBJETIVO_POR_DEFECTO["repeticiones"]
+    assert por_id["marcha_rodillas"]["conteo"] == "alternante"   # cada pierna cuenta una
+    assert por_id["plancha"]["conteo"] == "isometrico"
+    assert all(por_id[sid]["descripcion"] for sid in
+               ("jumping_jacks", "abduccion_cadera_izq", "abduccion_cadera_der",
+                "marcha_rodillas", "plancha"))
+    assert (por_id["plancha"]["minimo"], por_id["plancha"]["maximo"]) ==         contrato.LIMITES_OBJETIVO["segundos"]
+
+
+def test_rutina_desde_opciones(catalogo):
+    r = contrato.rutina_desde_opciones(
+        {"pasos": [{"skillId": "plancha", "objetivo": 30},
+                   {"skillId": "jumping_jacks", "objetivo": 12}]}, catalogo)
+    assert [(p.skill_id, p.repeticiones) for p in r.pasos] == [
+        ("plancha", 30), ("jumping_jacks", 12)]
+    assert r.nombre == "Rutina de entrenamiento"
+    for malo in ({"pasos": []},
+                 {"pasos": [{"skillId": "no_existe", "objetivo": 5}]},
+                 {"pasos": [{"skillId": "plancha", "objetivo": 1}]},      # < 5 s
+                 {"pasos": [{"skillId": "jumping_jacks", "objetivo": 500}]},
+                 {"pasos": [{"skillId": "jumping_jacks", "objetivo": "x"}]}):
+        with pytest.raises(RutinaInvalida):
+            contrato.rutina_desde_opciones(malo, catalogo)
 
 
 def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
@@ -318,6 +352,54 @@ def test_repetir_rutina_abre_fuente_y_estimador_nuevos(catalogo, rutina):
     assert len(resumenes) == 2
     orq.volver_al_inicio()
     assert orq.fase == INICIO
+
+
+def test_iniciar_con_rutina_personalizada_y_repetirla(catalogo, rutina):
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(1))
+    api = Api(orq)
+    assert not api.iniciar({"pasos": [{"skillId": ZANCADA, "objetivo": 999}]})
+    assert orq.fase == INICIO
+    assert api.iniciar({"pasos": [{"skillId": ZANCADA, "objetivo": 1}]})
+    fin = esperar_fase(orq, RESUMEN)
+    assert [(p["skillId"], p["objetivo"]) for p in fin["resumen"]["pasos"]] == [(ZANCADA, 1)]
+    assert fin["resumen"]["motivoFin"] == "completada"
+    # «Repetir rutina» repite la personalizada; info() sigue describiendo la base
+    assert api.iniciar(None)
+    fin = esperar_fase(orq, RESUMEN)
+    assert [p["objetivo"] for p in fin["resumen"]["pasos"]] == [1]
+    assert len(orq.info()["rutina"]["pasos"]) == 2
+
+
+def test_configurar_silencia_y_reactiva_la_voz(catalogo, rutina):
+    cola = ColaVoz(VozTexto())
+    orq = Orquestador(rutina, catalogo, EstimadorCerrable, lambda: FuenteLista([], False),
+                      cola, espejo=True)
+    api = Api(orq)
+    api.configurar({"voz": False})
+    assert cola.silenciada
+    api.configurar({"voz": "no"})          # solo booleanos
+    api.configurar(None)
+    assert cola.silenciada
+    api.configurar({"voz": True})
+    assert not cola.silenciada
+    Api(nuevo_orquestador(catalogo, rutina, [])[0]).configurar({"voz": False})  # voz sin silenciar()
+    cola.cerrar(esperar=False)
+
+
+def test_rutina_personalizada_respeta_el_orden_y_terminar_libera_recursos(catalogo, rutina):
+    orq, creados, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True)
+    assert Api(orq).iniciar({"pasos": [{"skillId": "plancha", "objetivo": 30},
+                                       {"skillId": ZANCADA, "objetivo": 3}]})
+    e = esperar_fase(orq, SESION)
+    while e["sesion"] is None:
+        e = orq.estado(e["version"], 1.0) or e
+    assert (e["sesion"]["ejercicioId"], e["sesion"]["objetivo"]) == ("plancha", 30)
+    assert e["sesion"]["totalPasos"] == 2
+    orq.terminar()
+    fin = esperar_fase(orq, RESUMEN)
+    assert fin["resumen"]["motivoFin"] == "usuaria"
+    assert [p["skillId"] for p in fin["resumen"]["pasos"]] == ["plancha"]
+    assert creados["fuentes"][0].cerrada and creados["estimadores"][0].cerrado
 
 
 def test_no_se_inicia_dos_veces(catalogo, rutina):

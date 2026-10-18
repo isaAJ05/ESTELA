@@ -46,6 +46,22 @@ def test_un_feedback_no_pisa_un_aviso_pendiente():
     assert m.dichas == ["sonando", "Ahora, sentadilla."]
 
 
+def test_silenciada_descarta_lo_pendiente_y_lo_nuevo():
+    m = MotorLento()
+    cola = ColaVoz(m)
+    cola.decir("sonando")
+    time.sleep(0.05)
+    cola.decir("pendiente")
+    cola.silenciar()
+    assert not cola.decir("Endereza el tronco.")
+    assert not cola.decir("Ahora, plancha.", PRIORIDAD_AVISO)
+    cola.silenciar(False)
+    assert cola.decir("Bien hecho.")
+    m.puede_seguir.set()
+    cola.cerrar()
+    assert m.dichas == ["sonando", "Bien hecho."]
+
+
 def test_crear_motor_cae_a_texto_sin_piper():
     assert crear_motor("piper", None).nombre in ("sistema", "texto")
     assert crear_motor("texto", None).nombre == "texto"

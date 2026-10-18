@@ -33,6 +33,20 @@ colocacion         (fase previa de colocación)         —
 avisoLuz           (aviso de poca luz)                 —
 =================  ==================================  =====================
 
+Rutina de entrenamiento
+--------------------
+`info()["catalogo"]` lista los ejercicios que se pueden usar en sesión, con su
+objetivo por defecto y los límites del objetivo. La interfaz arma una rutina
+con ellos y la manda en `iniciar({"pasos": [{"skillId", "objetivo"}]})`;
+`rutina_desde_opciones` la valida igual que una rutina escrita en JSON.
+
+Ajustes
+-------
+Con la capacidad `silenciarVoz`, `configurar({"voz": false})` silencia las
+indicaciones habladas (la sesión sigue igual: solo se deja de hablar) y
+`{"voz": true}` las reactiva. Se puede llamar en cualquier fase. El tema y el
+tamaño del texto son solo de la interfaz y no llegan a Python.
+
 Feedback
 --------
 `feedback` lleva la última indicación del motor ya tipada (no solo el texto):
@@ -52,7 +66,7 @@ from ...dominio.feedback.contrato import MensajeFeedback, Plano
 
 from ...dominio.feedback.motor.geometria import ANGULOS_MEDIOS, ANGULOS_TERNA
 from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
-from ...aplicacion.rutina import Ejercicio, Rutina
+from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida, rutina_desde_dict
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                              _COLOCACION, EstadoFrame)
 
@@ -67,7 +81,17 @@ CAPACIDADES: Dict[str, bool] = {
     "pausaManual": False,
     "colocacion": False,
     "avisoLuz": False,
+    "rutinaPersonalizada": True,
+    "silenciarVoz": True,
 }
+
+#: límites del objetivo que puede elegir la usuaria, por unidad
+LIMITES_OBJETIVO: Dict[str, Tuple[int, int]] = {
+    "repeticiones": (1, 50),
+    "segundos": (5, 180),
+}
+#: objetivo por defecto de un ejercicio que no está en la rutina base
+OBJETIVO_POR_DEFECTO = {"repeticiones": 10, "segundos": 20}
 
 _ORIENTACION = {Plano.FRONTAL: "frente", Plano.SAGITAL: "perfil"}
 
@@ -270,6 +294,57 @@ def rutina_a_dict(rutina: Rutina, catalogo: Mapping[str, Ejercicio]) -> Dict[str
     return {"nombre": rutina.nombre, "pasos": pasos}
 
 
+def catalogo_a_dict(catalogo: Mapping[str, Ejercicio],
+                    base: Optional[Rutina] = None) -> List[Dict[str, Any]]:
+    """Ejercicios que se pueden usar en sesión. El objetivo por defecto es el
+    de la rutina base si el ejercicio está en ella."""
+    en_base = {p.skill_id: p.repeticiones for p in (base.pasos if base else ())}
+    lista = []
+    for sid, ej in catalogo.items():
+        if not ej.soportado:
+            continue
+        minimo, maximo = LIMITES_OBJETIVO[ej.unidad]
+        lista.append({
+            "skillId": sid,
+            "nombre": ej.skill.nombre,
+            "descripcion": ej.descripcion,
+            "orientacion": _ORIENTACION.get(ej.skill.orientacion_preferida),
+            "unidad": ej.unidad,
+            # ciclo · alternante (cada pierna cuenta una) · isometrico (segundos)
+            "conteo": ej.segmentacion["tipo"],
+            "objetivo": en_base.get(sid, OBJETIVO_POR_DEFECTO[ej.unidad]),
+            "minimo": minimo,
+            "maximo": maximo,
+            "guia": _referencia_estatica(ej.referencia),
+        })
+    return lista
+
+
+def rutina_desde_opciones(opciones: Mapping[str, Any],
+                          catalogo: Mapping[str, Ejercicio]) -> Rutina:
+    """`{"nombre"?, "pasos": [{"skillId", "objetivo"}]}` de la interfaz → `Rutina`.
+    Lanza `RutinaInvalida` si un ejercicio no existe o el objetivo se sale de
+    `LIMITES_OBJETIVO`."""
+    pasos = []
+    for p in opciones.get("pasos") or []:
+        sid = p.get("skillId")
+        ej = catalogo.get(sid)
+        if ej is None or not ej.soportado:
+            raise RutinaInvalida(f"ejercicio desconocido en la rutina: {sid}")
+        try:
+            objetivo = int(p.get("objetivo"))
+        except (TypeError, ValueError):
+            raise RutinaInvalida(f"objetivo inválido en '{sid}'") from None
+        minimo, maximo = LIMITES_OBJETIVO[ej.unidad]
+        if not minimo <= objetivo <= maximo:
+            raise RutinaInvalida(
+                f"el objetivo de '{sid}' debe estar entre {minimo} y {maximo} {ej.unidad}")
+        clave = "duracion_s" if ej.unidad == "segundos" else "repeticiones"
+        pasos.append({"skill_id": sid, clave: objetivo})
+    nombre = str(opciones.get("nombre") or "Rutina de entrenamiento")[:60]
+    return rutina_desde_dict({"nombre": nombre, "pasos": pasos}, catalogo)
+
+
 #: por qué terminó la sesión (lo pone el orquestador)
 FIN_COMPLETADA, FIN_USUARIA, FIN_FUENTE, FIN_CIERRE, FIN_ERROR = (
     "completada", "usuaria", "fuente", "cierre", "error")
@@ -328,11 +403,12 @@ def info(rutina: Rutina, catalogo: Mapping[str, Ejercicio], espejo: bool) -> Dic
         "version": VERSION,
         "capacidades": dict(CAPACIDADES),
         "rutina": rutina_a_dict(rutina, catalogo),
+        "catalogo": catalogo_a_dict(catalogo, rutina),
         "conexiones": [list(c) for c in CONEXIONES],
         "espejo": espejo,
     }
 
 
-__all__ = ["CAPACIDADES", "VERSION", "FIN_CIERRE", "FIN_COMPLETADA", "FIN_ERROR",
+__all__ = ["CAPACIDADES", "LIMITES_OBJETIVO", "VERSION", "catalogo_a_dict", "rutina_desde_opciones", "FIN_CIERRE", "FIN_COMPLETADA", "FIN_ERROR",
            "FIN_FUENTE", "FIN_USUARIA", "estado_a_dict", "feedback_a_dict", "info", "resumen_a_dict",
            "rutina_a_dict", "tipo_aviso"]

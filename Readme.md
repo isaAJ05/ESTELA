@@ -20,7 +20,7 @@ python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[voz,interfaz,dev]"
 python scripts/descargar_modelos.py          # modelos de pose y voz Piper (una vez)
 
-python -m estela                              # rutina de calentamiento en la interfaz de escritorio
+python -m estela                              # rutina de entrenamiento en la interfaz de escritorio
 python -m estela --interfaz opencv            # ventana simple de OpenCV (pruebas y mediciones)
 python -m estela --ejercicio marcha_rodillas --repeticiones 8
 python -m estela --ejercicio plancha --repeticiones 30   # en la plancha son segundos
@@ -38,7 +38,7 @@ Ejercicios (ADR-005): jumping jacks, abducción de cadera de pie, marcha con ele
 | `backend/estela/aplicacion/` | Sesión en tiempo real, rutinas, pausas y los puertos (interfaces) que necesita |
 | `backend/estela/adaptadores/` | Cámara, pose (MediaPipe), voz y la conexión con la interfaz (pywebview) |
 | `backend/feedback_testing/` | Banco sintético y métricas de EXP-001, EXP-002 |
-| `backend/rutinas/` · `backend/tests/` | Rutinas de calentamiento (JSON) · tests |
+| `backend/rutinas/` · `backend/tests/` | Rutinas de entrenamiento (JSON) · tests |
 | `frontend/` | Interfaz de escritorio (React + TypeScript; `dist/` compilado y versionado). Ver [frontend/README.md](./frontend/README.md) |
 | `PRUEBAS/` | Prototipos históricos (incluida la BiLSTM retirada), dataset de vídeos y arnés de EXP-008 |
 

@@ -1,6 +1,7 @@
 {
   "skill_id": "plancha",
   "nombre": "Plancha",
+  "descripcion": "Sostén el cuerpo en línea recta apoyado en antebrazos y puntas de los pies.",
   "version": "0.2.0",
   "estado": "candidato",
   "notas": "Postura mantenida, de perfil a la cámara (ADR-005; segmentación `isometrico`, ADR-006). El objetivo de la rutina va en segundos (`duracion_s`). Para el motor, cada bloque de `bloque_s` segundos en posición es una «repetición»: un error tiene que mantenerse en `repeticiones_evidencia` bloques seguidos antes de decirse, y el refuerzo cuenta bloques limpios. La cadera hundida o elevada se mide con la altura de la cadera respecto a la recta hombro-tobillo (`alineacion_cadera`), que es lo observable de perfil con los 33 puntos; la curvatura lumbar en sí no lo es (EXP-008). TODOS los umbrales son provisionales: no hay vídeo de referencia del ejercicio. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio. EXP-009 (2026-10-12): bloques de 3 s en vez de 5 (un error se dice tras ~6 s en lugar de ~10 s), hombros adelantados pasa a prioridad 2 por petición de Natalia (es lo que puede lastimar en un ejercicio de tiempo), nueva regla de rodillas dobladas, y se muestran codos, rodillas, tobillos y la línea hombro-cadera-tobillo en grados (`alineacion_cuerpo_*`, 180° = recta). Codos y tobillos no tienen regla: [F] en el vídeo correcto valen ~89° (antebrazos) y ~105°, y no hay vídeo con error.",

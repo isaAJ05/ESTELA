@@ -1,10 +1,12 @@
 import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Bridge, EstadoSesion, Feedback, TipoAviso } from '../bridge/tipos'
+import type { Bridge, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
+import { BotonVoz } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
 import { GuiaAnimada, VistaCamara } from '../componentes/VistaCamara'
+import { cambiarAjustes, leerVoz } from '../estado/ajustes'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
 const MENSAJE_VISIBLE_MS = 4500
@@ -19,6 +21,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   const hayDatos = useEstado((s) => s.estado?.sesion != null)
   const pausaManual = useCapacidad('pausaManual')
   const pausada = useSesion('pausada')
+  const silenciable = useCapacidad('silenciarVoz')
   const [confirmar, setConfirmar] = useState(false)
   const [depurar, setDepurar] = useState(false)
   const [angulos, setAngulos] = useState(() => {
@@ -39,17 +42,19 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
       else if (k === 'r') void bridge.reiniciar()
       else if (k === 'd') setDepurar((d) => !d)
       else if (k === 'a') alternarAngulos()
+      else if (k === 'v' && silenciable) cambiarAjustes({ voz: !leerVoz() }, bridge)
       else if (k === ' ' && pausaManual) { e.preventDefault(); void (pausada ? bridge.reanudar() : bridge.pausar()) }
     }
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
-  }, [bridge, confirmar, pausaManual, pausada])
+  }, [bridge, confirmar, pausaManual, pausada, silenciable])
 
   return (
     <main className="pantalla pantalla-sesion">
       <BarraSuperior bridge={bridge} alTerminar={() => setConfirmar(true)}
                      angulos={angulos} alternarAngulos={alternarAngulos} />
       <div className="sesion-cuerpo">
+        <div className="escenario-zona">
         <section className="escenario">
           <VistaCamara mostrarAngulos={angulos} />
           {hayDatos ? <>
@@ -62,6 +67,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
           )}
           {depurar && <Depuracion />}
         </section>
+        </div>
         <PanelEjercicio />
       </div>
       {confirmar && (
@@ -76,7 +82,7 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
   bridge: Bridge; alTerminar: () => void; angulos: boolean; alternarAngulos: () => void
 }) {
   const paso = useSesion('paso') ?? 1
-  const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.info?.rutina.pasos.length ?? 0)
+  const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
   const pausaManual = useCapacidad('pausaManual')
   const pausada = useSesion('pausada')
   return (
@@ -93,6 +99,7 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
             {pausada ? <Play /> : <Pause />}
           </Boton>
         )}
+        <BotonVoz bridge={bridge} />
         <Boton variante={angulos ? 'primario' : 'suave'} onClick={alternarAngulos} atajo="A"
                title="Mostrar u ocultar los ángulos (A)" aria-label="Mostrar ángulos" aria-pressed={angulos}>
           <DraftingCompass /><span className="solo-ancho">Ángulos</span>
@@ -125,7 +132,8 @@ function PanelEjercicio() {
   const correctas = useSesion('correctas')
   const conError = useSesion('conError')
   const guia = useEstado((s) => s.estado?.sesion?.guia ?? null)
-  const orientacion = useEstado((s) => s.info?.rutina.pasos[paso - 1]?.orientacion ?? null)
+  const orientacion = useEstado((s) => s.plan?.pasos[paso - 1]?.orientacion ?? null)
+  const proximo = useEstado((s) => s.plan?.pasos[paso] ?? null)
   const conCorrectas = useCapacidad('correctasConError')
   const conGuia = useCapacidad('guia')
 
@@ -155,7 +163,24 @@ function PanelEjercicio() {
         {conGuia && guia ? <GuiaAnimada puntos={guia} ejercicioId={skillId} /> : <Figura skillId={skillId} tam={150} />}
         <figcaption>{conGuia && guia ? 'Movimiento de referencia' : 'Postura clave'}</figcaption>
       </figure>
+
+      <Proximo paso={proximo} />
     </aside>
+  )
+}
+
+/** Solo el ejercicio siguiente (una línea fija, para no cambiar el tamaño del panel). */
+function Proximo({ paso }: { paso: PasoRutina | null }) {
+  return (
+    <div className="panel-siguientes">
+      <span className="etiqueta">{paso ? 'A continuación' : 'Último ejercicio'}</span>
+      {paso && (
+        <p>
+          <span>{paso.nombre}</span>
+          <b>{paso.objetivo} {paso.unidad === 'segundos' ? 's' : 'rep.'}</b>
+        </p>
+      )}
+    </div>
   )
 }
 
@@ -227,7 +252,7 @@ function BandaMensaje() {
 /** Al empezar cada ejercicio: cuál es, cómo colocarse y el objetivo. */
 function Transicion() {
   const paso = useSesion('paso') ?? 0
-  const info = useEstado((s) => s.info?.rutina.pasos[paso - 1] ?? null)
+  const info = useEstado((s) => s.plan?.pasos[paso - 1] ?? null)
   const [visible, setVisible] = useState(true)
   useEffect(() => {
     setVisible(true)

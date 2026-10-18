@@ -8,8 +8,9 @@ const DPR_MAX = 1.5
 // Cuánto dura resaltada la parte del cuerpo de una corrección (igual que la banda del mensaje).
 const RESALTE_MS = 4500
 
-function color(nombre: string, respaldo: string): string {
-  return getComputedStyle(document.documentElement).getPropertyValue(nombre).trim() || respaldo
+/** Lee un token del lienzo (el escenario fija los del tema oscuro en los dos temas). */
+function color(el: Element, nombre: string, respaldo: string): string {
+  return getComputedStyle(el).getPropertyValue(nombre).trim() || respaldo
 }
 
 /**
@@ -47,13 +48,13 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
     if (!canvas || !conexiones) return
     const ctx = canvas.getContext('2d')
     if (!ctx) return
-    const linea = color('--color-violeta-suave', '#a99dff')
-    const articulacion = color('--color-amarillo', '#ffc94d')
-    const fondo = color('--color-superficie', '#171522')
+    const linea = color(canvas, '--color-violeta-suave', '#a99dff')
+    const articulacion = color(canvas, '--color-amarillo', '#ffc94d')
+    const fondo = color(canvas, '--color-superficie', '#171522')
     const colorSeveridad: Record<Severidad, string> = {
       leve: articulacion,
-      moderada: color('--color-ambar', '#f4a340'),
-      alta: color('--color-peligro', '#e98591'),
+      moderada: color(canvas, '--color-ambar', '#f4a340'),
+      alta: color(canvas, '--color-peligro', '#e98591'),
     }
 
     let imagen: HTMLImageElement | null = null
@@ -140,7 +141,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
       if (!angulos) return
       // con los ángulos ocultos, solo se señala el que no se cumple
       const todos = verAngulos.current
-      const base = Math.max(11, Math.round(h / 40))
+      const base = Math.max(11, Math.round(Math.min(h, canvas.height) / 40))
       ctx.textBaseline = 'middle'
       ctx.lineJoin = 'round'
       ctx.strokeStyle = 'rgba(0, 0, 0, 0.85)'
@@ -176,7 +177,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
       otros.forEach((a, k) => {
         const f = fallo(a.nombre)
         texto(`${NOMBRE_ANGULO[a.nombre] ?? a.nombre} ${a.grados}°${f ? f.detalle : ''}`,
-              x0 + tam * 0.6, y0 + h - tam * (1 + 1.4 * (otros.length - 1 - k)),
+              Math.max(x0, 0) + tam * 0.6, Math.min(y0 + h, canvas.height) - tam * (1 + 1.4 * (otros.length - 1 - k)),
               f ? Math.round(tam * 1.15) : tam, f ? f.color : articulacion, 1)
       })
       ctx.globalAlpha = 1
@@ -191,7 +192,8 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
       const W = canvas.width, H = canvas.height
       ctx.setTransform(1, 0, 0, 1, 0, 0)
       ctx.clearRect(0, 0, W, H)
-      // encaja el frame sin recortarlo (el cuerpo entero debe verse)
+      // el escenario toma la proporción de la cámara (ver `aplicar`), así el
+      // frame entra entero y sin franjas; esto solo encaja por si difiere un píxel
       const aspecto = imagen ? imagen.naturalWidth / imagen.naturalHeight : 16 / 9
       const w = Math.min(W, H * aspecto), h = w / aspecto
       const x0 = (W - w) / 2, y0 = (H - h) / 2
@@ -208,7 +210,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
         ctx.fillRect(x0, y0, w, h)
       }
       if (!puntos) return
-      const grosor = Math.max(3, h / 140)
+      const grosor = Math.max(3, Math.min(h, H) / 140)
       // brillo: un trazo ancho y translúcido debajo (shadowBlur es caro sin GPU)
       esqueleto(puntos, x0, y0, w, h, 0.22, grosor * 3)
       esqueleto(puntos, x0, y0, w, h, 1, grosor)
@@ -246,6 +248,12 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
       }
       if (!sesion) { mensajes = -1; resalte = null }
       const aplicar = (img: HTMLImageElement | null) => {
+        // el recuadro adopta la proporción real de la cámara (16:9, 4:3…)
+        if (img && (img.naturalWidth !== imagen?.naturalWidth || img.naturalHeight !== imagen?.naturalHeight)) {
+          const escenario = canvas.closest<HTMLElement>('.escenario')
+          escenario?.style.setProperty('--aspecto-camara', `${img.naturalWidth} / ${img.naturalHeight}`)
+          escenario?.style.setProperty('--aspecto-camara-n', String(img.naturalWidth / img.naturalHeight))
+        }
         imagen = img
         puntos = nuevos
         angulos = sesion?.angulos ?? null
