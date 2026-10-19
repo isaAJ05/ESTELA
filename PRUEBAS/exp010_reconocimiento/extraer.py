@@ -66,6 +66,11 @@ BANCO: List[Tuple[str, Path, str, str, bool]] = (
        for i, p in enumerate(sorted((DOCS / "Zancada atrás estática por pierna").glob("*.mp4")))]
 )
 
+# vídeos propios anotados con registrar.py (registro.csv, ignorado por git)
+from registrar import leer as _leer_registro  # noqa: E402
+
+BANCO += [(f["id"], Path(f["ruta"]), f["clase"], f["lado"], False) for f in _leer_registro()]
+
 
 def extraer(ruta: Path, modelo: str) -> dict:
     from estela import config

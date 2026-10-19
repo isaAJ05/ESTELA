@@ -493,12 +493,17 @@ def main() -> int:
                     for con_seg in (False, True):
                         configs.append((nombre, tau_no, tau_si, con_seg, ratio))
 
+    # «propios» = solo los vídeos de registro.csv: datos que no se usaron para ajustar
+    subconjuntos = ("todos", "sin_referencias") + (
+        ("propios",) if any(k.startswith("propio_") for k in videos) else ())
     tabla = []
     for metodo, tau_no, tau_si, con_seg, ratio in configs:
-        for subconjunto in ("todos", "sin_referencias"):
+        for subconjunto in subconjuntos:
             casos = []
             for k, v in videos.items():
                 if subconjunto == "sin_referencias" and v.es_ref:
+                    continue
+                if subconjunto == "propios" and not k.startswith("propio_"):
                     continue
                 for elegida in CLASES:
                     av = decidir(elegida, len(v), punts.get(metodo, {}).get(k), comps[k], acts[k],
@@ -509,7 +514,7 @@ def main() -> int:
             fila = {"metodo": metodo + ("+seg" if con_seg else ""), "tau_no": tau_no,
                     "tau_si": tau_si, "ratio": ratio, "subconjunto": subconjunto,
                     **evaluar(casos)}
-            if metodo == "segmentadores" or subconjunto == "sin_referencias":
+            if metodo == "segmentadores" or subconjunto != "todos":
                 fila["casos"] = casos
             tabla.append(fila)
 
