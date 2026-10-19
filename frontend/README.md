@@ -7,7 +7,7 @@ La interfaz **no decide nada**: muestra lo que manda Python. Qué error hubo, cu
 ## Uso
 
 ```bash
-cd interfaz
+cd frontend
 npm install            # una vez
 npm run dev            # en el navegador, con el backend simulado (sin cámara ni Python)
 npm run build          # compila dist/, que es lo que abre python -m estela

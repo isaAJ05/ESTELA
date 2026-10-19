@@ -61,6 +61,14 @@ source .venv/bin/activate
 pip install -e ".[voz,interfaz,dev]"
 ```
 
+En Windows PowerShell, activa el entorno y ejecuta el mismo comando así:
+
+```powershell
+cd backend
+.\.venv\Scripts\Activate.ps1
+python -m pip install -e ".[voz,interfaz,dev]"
+```
+
 Extras opcionales:
 - `voz` instala Piper.
 - `interfaz` instala pywebview, para la ventana de escritorio.

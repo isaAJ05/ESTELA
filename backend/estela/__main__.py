@@ -94,6 +94,12 @@ def _imprimir_resumen(r: dict) -> None:
 
 
 def main(argv=None) -> int:
+    # Windows puede iniciar Python con la consola heredada en CP1252. La
+    # ayuda y los mensajes en español contienen caracteres fuera de ese
+    # conjunto.
+    if sys.platform == "win32":
+        sys.stdout.reconfigure(encoding="utf-8")
+        sys.stderr.reconfigure(encoding="utf-8")
     args = _argumentos(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
