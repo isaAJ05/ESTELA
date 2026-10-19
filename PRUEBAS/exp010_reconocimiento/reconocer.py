@@ -20,6 +20,11 @@ ejercicio». Compara tres detectores:
                    vector común de medidas (brazos + piernas + tronco),
                    normalizado por medida. Se construyen aquí con los mismos
                    vídeos de referencia del catálogo y el segmentador del skill.
+``dtw_multi``      Como `dtw_comun`, pero con una referencia por cada vídeo de
+                   docs_estela del ejercicio (salvo técnica incorrecta). Se
+                   valida dejando uno fuera: cada vídeo se puntúa sin su propia
+                   referencia (ni las que comparten frames con él, `GRUPO`), así
+                   que «todos» ya es un resultado honesto.
 
 Los dos DTW pueden combinarse con el segmentador del elegido (`+seg`): no se
 avisa si el elegido completó una repetición en la ventana.
@@ -68,6 +73,16 @@ SKILLS_DE_CLASE = {"jumping_jacks": ("jumping_jacks",),
 VIDEO_REF = {"jumping_jacks": "jj_7_hombre", "abduccion_cadera_der": "abd_der_ref",
              "abduccion_cadera_izq": "abd_izq_ref", "marcha_rodillas": "marcha_high_knees",
              "plancha": "plancha_1"}
+#: dtw_multi: vídeos que comparten frames; en la validación salen juntos
+GRUPO = {"abd_der_banda_completo": "abd_banda", "abd_der_ref": "abd_banda",
+         "abd_izq_ref": "abd_banda"}
+#: dtw_multi: no se usan como referencia los vídeos de técnica incorrecta a
+#: propósito («plancha incorrecta 2», «plancha incorrrecta 1»)
+def _es_incorrecto(v: "Video") -> bool:
+    return "incorr" in v.video.lower()
+
+
+MIN_REPS_REF = 2
 
 #: vector común: lo que distingue los cuatro ejercicios entre sí
 COMUN = ("hombro_izq", "hombro_der", "codo_medio", "separacion_pies_hombros",
@@ -99,6 +114,7 @@ class Video:
         self.id = ruta.stem
         self.clase, self.lado = str(d["clase"]), str(d["lado"])
         self.es_ref = bool(d["es_ref"])
+        self.video = str(d["video"])
         self.nombres = [str(n) for n in d["nombres"]]
         es_dist = d["es_distancia"]
         t = d["t_ms"]
@@ -247,51 +263,106 @@ def _a_fps(media: np.ndarray, fps: float) -> np.ndarray:
                      else np.full(len(tt), np.nan) for k in range(media.shape[1])], axis=1)
 
 
+def referencia_cruda(v: Video, catalogo, sid: str) -> Optional[Tuple[str, np.ndarray, Dict[str, Any]]]:
+    """(tipo, media, info) de un vídeo en el vector común, cortado con el
+    segmentador del skill `sid`. None si no da una referencia utilizable."""
+    ej = catalogo[sid]
+    seg = ej.nuevo_segmentador()
+    x = v.serie(COMUN)
+    if (ej.segmentacion or {}).get("tipo") == "isometrico":
+        filas = [i for i, o in enumerate(v.observaciones())
+                 if o is not None and seg.actualizar(o).fase == ej.skill.fases[1]]
+        if len(filas) < FPS:               # menos de 1 s en posición
+            return None
+        with np.errstate(all="ignore"):
+            media = np.nanmean(x[filas], axis=0, keepdims=True)
+        return "isometrico", media, {"frames_en_posicion": len(filas)}
+    grupos: Dict[int, List[int]] = {}
+    completas = set()
+    for i, o in enumerate(v.observaciones()):
+        if o is None:
+            continue
+        e = seg.actualizar(o)
+        if e.repeticion > 0:
+            grupos.setdefault(e.repeticion, []).append(i)
+            if e.evento == EVENTO_COMPLETA:
+                completas.add(e.repeticion)
+    reps = [x[grupos[r]] for r in sorted(completas)]
+    reps = [r for r in reps if np.isfinite(r).any(axis=1).sum() >= 5]
+    if len(reps) < MIN_REPS_REF:
+        return None
+    im, dist = medoide(reps)
+    with np.errstate(all="ignore"):
+        media, _, _ = estadistica_alineada(reps, im)
+    return "ciclico", media, {
+        "repeticiones": len(reps), "frames": len(media),
+        "coste_medoide_a_resto": round(float(dist[im].sum() / max(len(reps) - 1, 1)), 3)}
+
+
+def componer(crudas: Dict[str, Tuple[str, str, np.ndarray]]) -> Tuple[Dict[str, List[Tuple[str, Any]]],
+                                                                      np.ndarray]:
+    """{nombre: (clase, tipo, media)} → comparadores por clase, cada
+    referencia con su espejo, todas con la misma escala por medida."""
+    escala = _escala(COMUN, [m for _, _, m in crudas.values()])
+    perm = [COMUN.index(espejo(m)) for m in COMUN]
+    por_clase: Dict[str, List[Tuple[str, Any]]] = {}
+    for nombre, (clase, tipo, media) in crudas.items():
+        for sufijo, mm in (("", media), ("_espejo", media[:, perm])):
+            comp = Postura(mm[0], escala) if tipo == "isometrico" else Subsecuencia(mm, escala)
+            por_clase.setdefault(clase, []).append((nombre + sufijo, (list(COMUN), comp)))
+    return por_clase, escala
+
+
 def refs_comunes(catalogo, videos: Dict[str, Video]) -> Tuple[Dict[str, List[Tuple[str, Any]]],
                                                               Dict[str, Any]]:
     """Reconstruye cada referencia en el vector común, con el mismo vídeo y
     el mismo segmentador que la del catálogo, y le añade su espejo."""
-    crudas: Dict[str, Tuple[str, np.ndarray]] = {}
+    crudas: Dict[str, Tuple[str, str, np.ndarray]] = {}
     info: Dict[str, Any] = {}
+    clase_de = {sid: c for c, skills in SKILLS_DE_CLASE.items() for sid in skills}
     for sid, vid in VIDEO_REF.items():
-        v = videos[vid]
-        ej = catalogo[sid]
-        seg = ej.nuevo_segmentador()
-        x = v.serie(COMUN)
-        if (ej.segmentacion or {}).get("tipo") == "isometrico":
-            filas = [i for i, o in enumerate(v.observaciones())
-                     if o is not None and seg.actualizar(o).fase == ej.skill.fases[1]]
-            crudas[sid] = ("isometrico", np.nanmean(x[filas], axis=0, keepdims=True))
-            info[sid] = {"frames_en_posicion": len(filas)}
-            continue
-        grupos: Dict[int, List[int]] = {}
-        completas = set()
-        for i, o in enumerate(v.observaciones()):
-            if o is None:
-                continue
-            e = seg.actualizar(o)
-            if e.repeticion > 0:
-                grupos.setdefault(e.repeticion, []).append(i)
-                if e.evento == EVENTO_COMPLETA:
-                    completas.add(e.repeticion)
-        reps = [x[grupos[r]] for r in sorted(completas)]
-        reps = [r for r in reps if np.isfinite(r).any(axis=1).sum() >= 5]
-        im, dist = medoide(reps)
-        media, _, _ = estadistica_alineada(reps, im)
-        crudas[sid] = ("ciclico", media)
-        info[sid] = {"repeticiones": len(reps), "frames": len(media),
-                     "coste_medoide_a_resto": round(float(dist[im].sum() / max(len(reps) - 1, 1)), 3)}
-    escala = _escala(COMUN, [m for _, m in crudas.values()])
+        tipo, media, info[sid] = referencia_cruda(videos[vid], catalogo, sid)
+        crudas[sid] = (clase_de[sid], tipo, media)
+    por_clase, escala = componer(crudas)
     info["escala"] = {m: round(float(s), 3) for m, s in zip(COMUN, escala)}
-    perm = [COMUN.index(espejo(m)) for m in COMUN]
-    por_clase: Dict[str, List[Tuple[str, Any]]] = {}
-    for clase, skills in SKILLS_DE_CLASE.items():
-        for sid in skills:
-            tipo, media = crudas[sid]
-            for sufijo, mm in (("", media), ("_espejo", media[:, perm])):
-                comp = Postura(mm[0], escala) if tipo == "isometrico" else Subsecuencia(mm, escala)
-                por_clase.setdefault(clase, []).append((sid + sufijo, (list(COMUN), comp)))
     return por_clase, info
+
+
+def grupo(vid: str) -> str:
+    return GRUPO.get(vid, vid)
+
+
+def crudas_multi(catalogo, videos: Dict[str, Video]) -> Tuple[Dict[str, Tuple[str, str, np.ndarray]],
+                                                              Dict[str, Any]]:
+    """Una referencia por cada vídeo de docs_estela de los cuatro ejercicios
+    (no «otro», no vídeos propios, no los de técnica incorrecta). En la
+    abducción sin lado conocido se prueba el segmentador de cada pierna y se
+    queda el que cuenta más repeticiones."""
+    crudas: Dict[str, Tuple[str, str, np.ndarray]] = {}
+    info: Dict[str, Any] = {}
+    for vid, v in videos.items():
+        if v.clase not in CLASES or vid.startswith("propio_") or _es_incorrecto(v):
+            continue
+        sids = SKILLS_DE_CLASE[v.clase]
+        if v.clase == "abduccion" and v.lado:
+            sids = (f"abduccion_cadera_{v.lado}",)
+        mejor = None
+        for sid in sids:
+            r = referencia_cruda(v, catalogo, sid)
+            if r and (mejor is None or r[2].get("repeticiones", 0) > mejor[1][2].get("repeticiones", 0)):
+                mejor = (sid, r)
+        if mejor is None:
+            info[vid] = "descartado: sin repeticiones completas suficientes"
+            continue
+        sid, (tipo, media, i) = mejor
+        crudas[vid] = (v.clase, tipo, media)
+        info[vid] = {"skill": sid, **i}
+    return crudas, info
+
+
+def refs_multi(crudas: Dict[str, Tuple[str, str, np.ndarray]], excluir: str = "") -> Dict[str, List[Tuple[str, Any]]]:
+    """Referencias multi sin las del grupo `excluir` (validación deja-uno-fuera)."""
+    return componer({k: c for k, c in crudas.items() if not excluir or grupo(k) != grupo(excluir)})[0]
 
 
 # ---------------------------------------------------------------------------
@@ -455,13 +526,18 @@ def main() -> int:
     rp = refs_propias(catalogo)
     rc, info_comun = refs_comunes(catalogo, videos)
     print("referencias comunes:", json.dumps(info_comun, ensure_ascii=False))
+    cm, info_multi = crudas_multi(catalogo, videos)
+    print("referencias multi:", json.dumps(info_multi, ensure_ascii=False))
 
     acts = {k: actividad(v) for k, v in videos.items()}
     comps = {k: completadas(v, catalogo) for k, v in videos.items()}
-    punts: Dict[str, Dict[str, Dict[str, np.ndarray]]] = {"dtw_propias": {}, "dtw_comun": {}}
-    lat: Dict[str, List[float]] = {"dtw_propias": [], "dtw_comun": []}
+    punts: Dict[str, Dict[str, Dict[str, np.ndarray]]] = {"dtw_propias": {}, "dtw_comun": {},
+                                                          "dtw_multi": {}}
+    lat: Dict[str, List[float]] = {"dtw_propias": [], "dtw_comun": [], "dtw_multi": []}
     for k, v in videos.items():
-        for nombre, refs in (("dtw_propias", rp), ("dtw_comun", rc)):
+        # dtw_multi: deja-uno-fuera, el vídeo nunca es su propia referencia
+        for nombre, refs in (("dtw_propias", rp), ("dtw_comun", rc),
+                             ("dtw_multi", refs_multi(cm, excluir=k))):
             punts[nombre][k], t = puntuar(v, refs)
             lat[nombre] += t
 
@@ -486,7 +562,7 @@ def main() -> int:
                         "elegida_incorrecta_p5_p50": [round(float(np.percentile(m_, q)), 3) for q in (5, 50)]}
 
     configs = [("segmentadores", None, None, False, None)]
-    for nombre in ("dtw_propias", "dtw_comun"):
+    for nombre in ("dtw_propias", "dtw_comun", "dtw_multi"):
         for tau_no in (0.5, 0.75, 1.0, 1.5, 2.0):
             for tau_si in (0.75, 1.0, 1.5):
                 for ratio in (0.5, 0.7):
@@ -531,7 +607,7 @@ def main() -> int:
               "videos": {k: {"clase": v.clase, "lado": v.lado, "es_ref": v.es_ref,
                              "frames": len(v), "presente": round(float(v.presente.mean()), 3)}
                          for k, v in videos.items()},
-              "referencias_comunes": info_comun, "actividad_p10_p50_p90": act_stats,
+              "referencias_comunes": info_comun, "referencias_multi": info_multi, "actividad_p10_p50_p90": act_stats,
               "distribucion_costes": dist, "latencia_ms_por_frame": lat_res,
               "confusion_frames": conf, "tabla": tabla}
     RESULTADOS.mkdir(exist_ok=True)

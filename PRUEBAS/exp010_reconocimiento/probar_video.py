@@ -5,8 +5,9 @@ Desde ESTELA/, con el entorno de backend/:
     python PRUEBAS/exp010_reconocimiento/probar_video.py --video RUTA.mp4 --elegido jumping_jacks
 
 Simula que en la sesión se eligió `--elegido` y dice en qué segundo saltaría
-el aviso «ese no es el ejercicio», con el detector recomendado en EXP-010 §7
-(`dtw_comun+seg`, τ_no 0,75 · τ_si 0,75 · ratio 0,7). Debajo imprime una
+el aviso «ese no es el ejercicio» (τ_no 0,75 · τ_si 0,75 · ratio 0,7). Por
+defecto usa `dtw_multi`: una referencia por cada vídeo de docs_estela del
+ejercicio; `--referencias una` vuelve a `dtw_comun+seg` (EXP-010 §7). Debajo imprime una
 línea de tiempo cada `--paso` segundos para compararla con lo que se hizo de
 verdad.
 
@@ -14,7 +15,7 @@ La pose se calcula en memoria y se descarta; solo se guarda el texto que
 imprime, en `resultados/<fecha>-probar-<vídeo>-<elegido>.txt` (ignorado por
 git). Graba los vídeos fuera del repositorio (Ley 1581/2012, CLAUDE.md §6).
 
-La primera vez extrae la pose de los 5 vídeos de referencia
+La primera vez extrae la pose de los vídeos de referencia
 (`docs_estela/.../datasets/videos/`) a `cache/`, unos minutos.
 """
 
@@ -48,11 +49,11 @@ def _video(ruta: Path, modelo: str, clase: str = "?") -> R.Video:
         return R.Video(npz)
 
 
-def _referencias(modelo: str):
+def _referencias(modelo: str, ids):
     """Vídeos de referencia desde `cache/`; los que falten se extraen."""
     por_id = {vid: ruta for vid, ruta, *_ in E.BANCO}
     videos = {}
-    for vid in R.VIDEO_REF.values():
+    for vid in ids:
         npz = R.CACHE / f"{vid}.npz"
         if not npz.exists():
             print(f"extrayendo la referencia {vid} ...", flush=True)
@@ -80,8 +81,10 @@ def main() -> int:
     p.add_argument("--tau-si", type=float, default=0.75)
     p.add_argument("--ratio", type=float, default=0.7)
     p.add_argument("--act-min", type=float, default=0.25)
+    p.add_argument("--referencias", default="multi", choices=("multi", "una"),
+                   help="multi: todos los vídeos de docs_estela del ejercicio; una: la del catálogo")
     p.add_argument("--sin-seg", action="store_true",
-                   help="no callar el aviso cuando el segmentador del elegido cuenta")
+                   help="solo con --referencias una: no callar el aviso cuando el segmentador del elegido cuenta")
     p.add_argument("--paso", type=float, default=2.0, help="segundos entre filas de la línea de tiempo")
     a = p.parse_args()
     if not a.video.exists():
@@ -89,14 +92,25 @@ def main() -> int:
     elegido = ALIAS.get(a.elegido, a.elegido)
 
     catalogo = R.cargar_catalogo()
-    refs, _ = R.refs_comunes(catalogo, _referencias(a.modelo))
+    if a.referencias == "una":
+        refs, _ = R.refs_comunes(catalogo, _referencias(a.modelo, R.VIDEO_REF.values()))
+        metodo, con_seg = "dtw_comun", not a.sin_seg
+    else:
+        ids = [vid for vid, _, clase, *_ in E.BANCO
+               if clase in R.CLASES and not vid.startswith("propio_")]
+        crudas, _ = R.crudas_multi(catalogo, _referencias(a.modelo, ids))
+        # si el vídeo es del banco, no puede ser su propia referencia
+        propio = next((vid for vid, ruta, *_ in E.BANCO
+                       if ruta.exists() and ruta.resolve() == a.video.resolve()), "")
+        refs = R.refs_multi(crudas, excluir=propio)
+        metodo, con_seg = "dtw_multi", False
     print(f"analizando {a.video.name} ...", flush=True)
     v = _video(a.video, a.modelo)
     punt, _ = R.puntuar(v, refs)
     comp = R.completadas(v, catalogo)
     act = R.actividad(v)
-    avisos = R.decidir(elegido, len(v), punt, comp, act, "dtw_comun",
-                       a.tau_no, a.tau_si, a.act_min, not a.sin_seg, a.ratio)
+    avisos = R.decidir(elegido, len(v), punt, comp, act, metodo,
+                       a.tau_no, a.tau_si, a.act_min, con_seg, a.ratio)
 
     lineas = []
 
@@ -106,8 +120,8 @@ def main() -> int:
         print(texto)
 
     out(f"{datetime.now():%Y-%m-%d %H:%M:%S} · {a.video} · modelo {a.modelo} · "
-        f"tau_no {a.tau_no} · tau_si {a.tau_si} · ratio {a.ratio} · act_min {a.act_min}"
-        f"{' · sin seg' if a.sin_seg else ''}")
+        f"{metodo}{'+seg' if con_seg else ''} · tau_no {a.tau_no} · tau_si {a.tau_si} · "
+        f"ratio {a.ratio} · act_min {a.act_min}")
 
     out(f"\nVídeo: {a.video.name} · {len(v) / R.FPS:.1f} s · persona visible "
         f"{v.presente.mean():.0%} · elegido: {NOMBRE[elegido]}")
@@ -118,7 +132,7 @@ def main() -> int:
         out("  ninguno")
 
     out("\n=== Línea de tiempo ===")
-    out("  costes: menor = se parece más (con vector común; el elegido entre [ ])")
+    out(f"  costes: menor = se parece más ({metodo}; el elegido entre [ ])")
     out("     t   " + "  ".join(f"{c[:10]:>10s}" for c in R.CLASES)
         + "   parecido a       movimiento  reps del elegido")
     w = int(R.VENTANA_S * R.FPS)
