@@ -8,7 +8,7 @@ No toca `estela/` ni añade dependencias.
 |---|---|
 | `extraer.py` | Una pasada de pose por vídeo del banco (`BANCO`) con el pipeline de la sesión. Guarda las medidas por frame en `cache/` |
 | `reconocer.py` | Simula, por cada vídeo y cada ejercicio «elegido», cuándo saltaría el aviso. Compara tres detectores: `segmentadores` (sin DTW), `dtw_propias` (referencias del catálogo) y `dtw_comun` (referencias con un vector común de medidas) |
-| `probar_video.py` | Prueba con un vídeo propio: `--video RUTA --elegido jumping_jacks\|abduccion\|marcha_rodillas\|plancha`. Imprime los avisos que daría la sesión y una línea de tiempo con el coste de cada ejercicio. No guarda nada |
+| `probar_video.py` | Prueba con un vídeo propio: `--video RUTA --elegido jumping_jacks\|abduccion\|marcha_rodillas\|plancha`. Imprime los avisos que daría la sesión y una línea de tiempo con el coste de cada ejercicio. Guarda ese texto en `resultados/<fecha>-probar-<vídeo>-<elegido>.txt` |
 | `registrar.py` | Añade un vídeo propio al banco: `--video RUTA --clase X [--lado izq\|der] [--vista frente\|lado\|diagonal] --consentimiento FECHA`. `--lista` muestra lo registrado |
 | `cache/`, `resultados/`, `registro.csv` | Ignorados por git: solo métricas derivadas y rutas, pero de personas reales |
 

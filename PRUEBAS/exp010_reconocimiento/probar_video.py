@@ -10,8 +10,9 @@ el aviso «ese no es el ejercicio», con el detector recomendado en EXP-010 §7
 línea de tiempo cada `--paso` segundos para compararla con lo que se hizo de
 verdad.
 
-No guarda nada: la pose se calcula en memoria y se descarta. Graba los vídeos
-fuera del repositorio (Ley 1581/2012, CLAUDE.md §6).
+La pose se calcula en memoria y se descarta; solo se guarda el texto que
+imprime, en `resultados/<fecha>-probar-<vídeo>-<elegido>.txt` (ignorado por
+git). Graba los vídeos fuera del repositorio (Ley 1581/2012, CLAUDE.md §6).
 
 La primera vez extrae la pose de los 5 vídeos de referencia
 (`docs_estela/.../datasets/videos/`) a `cache/`, unos minutos.
@@ -22,6 +23,7 @@ from __future__ import annotations
 import argparse
 import sys
 import tempfile
+from datetime import datetime
 from pathlib import Path
 
 import numpy as np
@@ -96,18 +98,29 @@ def main() -> int:
     avisos = R.decidir(elegido, len(v), punt, comp, act, "dtw_comun",
                        a.tau_no, a.tau_si, a.act_min, not a.sin_seg, a.ratio)
 
-    print(f"\nVídeo: {a.video.name} · {len(v) / R.FPS:.1f} s · persona visible "
-          f"{v.presente.mean():.0%} · elegido: {NOMBRE[elegido]}")
-    print(f"\n=== Avisos ({len(avisos)}) ===")
-    for t, etiqueta in avisos:
-        print(f"  {t:6.1f} s  {_mensaje(etiqueta, elegido)}")
-    if not avisos:
-        print("  ninguno")
+    lineas = []
 
-    print("\n=== Línea de tiempo ===")
-    print("  costes: menor = se parece más (con vector común; el elegido entre [ ])")
-    print("     t   " + "  ".join(f"{c[:10]:>10s}" for c in R.CLASES)
-          + "   parecido a       movimiento  reps del elegido")
+    def out(texto: str = "") -> None:
+        """Imprime y guarda la misma línea."""
+        lineas.append(texto)
+        print(texto)
+
+    out(f"{datetime.now():%Y-%m-%d %H:%M:%S} · {a.video} · modelo {a.modelo} · "
+        f"tau_no {a.tau_no} · tau_si {a.tau_si} · ratio {a.ratio} · act_min {a.act_min}"
+        f"{' · sin seg' if a.sin_seg else ''}")
+
+    out(f"\nVídeo: {a.video.name} · {len(v) / R.FPS:.1f} s · persona visible "
+        f"{v.presente.mean():.0%} · elegido: {NOMBRE[elegido]}")
+    out(f"\n=== Avisos ({len(avisos)}) ===")
+    for t, etiqueta in avisos:
+        out(f"  {t:6.1f} s  {_mensaje(etiqueta, elegido)}")
+    if not avisos:
+        out("  ninguno")
+
+    out("\n=== Línea de tiempo ===")
+    out("  costes: menor = se parece más (con vector común; el elegido entre [ ])")
+    out("     t   " + "  ".join(f"{c[:10]:>10s}" for c in R.CLASES)
+        + "   parecido a       movimiento  reps del elegido")
     w = int(R.VENTANA_S * R.FPS)
     for i in range(int(R.CALENTAMIENTO_S * R.FPS), len(v), max(1, int(a.paso * R.FPS))):
         costes = {c: punt[c][i] for c in R.CLASES}
@@ -117,7 +130,12 @@ def main() -> int:
         mejor = min(finitos, key=finitos.get) if finitos else "—"
         reps = int(comp[elegido][max(0, i - w + 1):i + 1].sum())
         mov = "sí" if act[i] >= a.act_min else "quieta"
-        print(f"  {i / R.FPS:5.1f}  {celdas}   {mejor:16s} {mov:10s}  {reps}")
+        out(f"  {i / R.FPS:5.1f}  {celdas}   {mejor:16s} {mov:10s}  {reps}")
+
+    R.RESULTADOS.mkdir(exist_ok=True)
+    salida = R.RESULTADOS / f"{datetime.now():%Y%m%d-%H%M%S}-probar-{a.video.stem}-{elegido}.txt"
+    salida.write_text("\n".join(lineas) + "\n", encoding="utf-8")
+    print(f"\nguardado en {salida}")
     return 0
 
 
