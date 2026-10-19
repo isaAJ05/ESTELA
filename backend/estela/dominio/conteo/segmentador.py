@@ -249,7 +249,8 @@ class SegmentadorAlternante(Segmentador):
                  senal_der: Union[str, Sequence[str]], reposo: float,
                  extremo: float, fase_izq_arriba: str, fase_der_arriba: str,
                  fase_transicion: str, margen_retorno: float,
-                 suavizado: int = 3, confianza_minima: float = 0.5) -> None:
+                 suavizado: int = 3, confianza_minima: float = 0.5,
+                 alternar: bool = False) -> None:
         self._senales = {"izq": senal_izq, "der": senal_der}
         self._ciclos = {lado: Ciclo(reposo, extremo, margen_retorno, suavizado)
                         for lado in ("izq", "der")}
@@ -257,6 +258,10 @@ class SegmentadorAlternante(Segmentador):
         self._transicion = fase_transicion
         self.confianza_minima = confianza_minima
         self._activo: Optional[str] = None
+        #: `alternar`: una elevación de la misma pierna que la anterior no cuenta
+        self.alternar = alternar
+        self._ultimo: Optional[str] = None
+        self._alterna = True
         self._rep = self._completadas = self._incompletas = 0
 
     def actualizar(self, obs: Observacion) -> EstadoSegmento:
@@ -271,9 +276,13 @@ class SegmentadorAlternante(Segmentador):
                 continue
             validas += 1
             evento = self._ciclos[lado].paso(valor)
+            if evento == EVENTO_COMPLETA and not self._alterna:
+                evento = EVENTO_INCOMPLETA
             if evento == EVENTO_INICIO:
                 self._activo = lado
                 self._rep += 1
+                self._alterna = not (self.alternar and lado == self._ultimo)
+                self._ultimo = lado
             elif evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA):
                 self._activo = None
                 if evento == EVENTO_COMPLETA:
@@ -302,6 +311,7 @@ class SegmentadorAlternante(Segmentador):
         for c in self._ciclos.values():
             c.reiniciar()
         self._activo = None
+        self._ultimo, self._alterna = None, True
         self._rep = self._completadas = self._incompletas = 0
 
 
@@ -459,7 +469,7 @@ def segmentador_desde_dict(d: Mapping[str, Any],
         return SegmentadorAlternante(
             senal_izq=d["senal_izq"], senal_der=d["senal_der"],
             fase_izq_arriba=fases[0], fase_der_arriba=fases[1],
-            fase_transicion=fases[2], **comunes)
+            fase_transicion=fases[2], alternar=bool(d.get("alternar", False)), **comunes)
     raise SegmentacionInvalida(f"tipo de segmentacion desconocido: {tipo}")
 
 

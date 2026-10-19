@@ -22,8 +22,9 @@ corre y los contadores se conservan hasta que retoma.
 from __future__ import annotations
 
 import time
+from collections import deque
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Deque, Dict, List, Mapping, Optional, Set, Tuple
 
 import numpy as np
 
@@ -131,6 +132,34 @@ class EstadoFrame:
     guia: Optional[np.ndarray] = None
 
 
+class _SaltoCadera:
+    """Añade `salto_cadera` a la observación: cuánto sube la cadera sobre el
+    suelo, en longitudes de tronco. Los landmarks de mundo tienen la cadera de
+    origen, así que solo la imagen (y hacia abajo) ve un salto. El suelo es el
+    percentil 20 de la altura de los últimos `VENTANA_MS`: en saltos seguidos
+    los pies pisan el suelo al menos una parte del tiempo."""
+    VENTANA_MS = 3000
+
+    def __init__(self) -> None:
+        self._historial: Deque[Tuple[int, float]] = deque()
+
+    def aplicar(self, obs, imagen):
+        if imagen is None:
+            return obs
+        hombros, caderas = imagen[[11, 12]], imagen[[23, 24]]
+        tronco = abs(float(caderas[:, 1].mean() - hombros[:, 1].mean()))
+        if tronco < 1e-6:
+            return obs
+        altura = -float(caderas[:, 1].mean()) / tronco
+        self._historial.append((obs.t_ms, altura))
+        while obs.t_ms - self._historial[0][0] > self.VENTANA_MS:
+            self._historial.popleft()
+        suelo = float(np.percentile([a for _, a in self._historial], 20))
+        conf = float(min(hombros[:, 3].min(), caderas[:, 3].min()))
+        return replace(obs, distancias={**obs.distancias, "salto_cadera": altura - suelo},
+                       confianza={**obs.confianza, "salto_cadera": conf})
+
+
 @dataclass
 class _Paso:
     ejercicio: Ejercicio
@@ -148,6 +177,7 @@ class _Paso:
     guia_fps: float = 30.0
     equivocado_desde: Optional[int] = None
     ult_aviso_equivocado_ms: Optional[int] = None
+    salto: _SaltoCadera = field(default_factory=_SaltoCadera)
 
 
 class Sesion:
@@ -267,6 +297,7 @@ class Sesion:
         skill = p.ejercicio.skill
         t0 = time.perf_counter()
         obs = observacion_desde_pose(res.muestra, skill.skill_id)
+        obs = p.salto.aplicar(obs, res.imagen)
         t1 = time.perf_counter()
         seg = p.segmentador.actualizar(obs)
         p.seg = seg

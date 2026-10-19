@@ -42,14 +42,14 @@
       "error_id": "cadera_hundida",
       "descripcion": "La cadera cae por debajo de la línea hombro-tobillo.",
       "medida": {"tipo": "distancia", "nombre": "alineacion_cadera"},
-      "condicion": {"op": ">", "umbral": 0.10},
+      "condicion": {"op": ">", "umbral": 0.07},
       "fases": ["mantenimiento"],
       "plano": "sagital",
       "segmento": "cadera",
       "lado": "bilateral",
       "prioridad": 1,
       "severidad": {"moderada": 0.05, "alta": 0.15},
-      "umbral_origen": "[?] provisional, sin calibrar: 0,10 escalas corporales ≈ 5 cm",
+      "umbral_origen": "[?] provisional, sin calibrar: 0,07 escalas corporales ≈ 3,5 cm (antes 0,10; 2026-10-19, pedido de Natalia: detectar antes la cadera hundida; σ de la referencia 0,02)",
       "mensaje_id": "cadera_hundida",
       "direccion": {"disminuir": "subir"},
       "relativa": {
@@ -87,7 +87,7 @@
       "plano": "sagital",
       "segmento": "cabeza",
       "lado": "na",
-      "prioridad": 7,
+      "prioridad": 9,
       "severidad": {"moderada": 10, "alta": 20},
       "umbral_origen": "[?] provisional, sin calibrar",
       "mensaje_id": "cabeza_desalineada",
@@ -121,13 +121,15 @@
       "plano": "sagital",
       "segmento": "hombro",
       "lado": "na",
-      "prioridad": 6,
+      "prioridad": 8,
       "severidad": {"moderada": 0.1, "alta": 0.2},
       "umbral_origen": "[?] provisional, sin calibrar: simétrico de hombros_adelantados",
       "mensaje_id": "hombros_retrasados",
       "direccion": {"aumentar": "adelante"}
     },
-    {"error_id": "rodilla_izq_flexionada", "descripcion": "La rodilla visible se dobla durante la plancha: se pierde la línea recta del cuerpo.", "medida": {"tipo": "angulo", "nombre": "rodilla_izq"}, "condicion": {"op": "<", "umbral": 160}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 4, "severidad": {"moderada": 10, "alta": 25}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en el vídeo de plancha correcto la rodilla vale ~175°. 160 deja 15° de margen. La segmentación ya no exige 145° (ahora 120), así que esta regla puede hablar antes de que la postura deje de contar.", "mensaje_id": "rodilla_flexionada_plancha", "direccion": {"aumentar": "menos_flexion"}, "solo_lado_visible": true},
-    {"error_id": "rodilla_der_flexionada", "descripcion": "La rodilla visible se dobla durante la plancha: se pierde la línea recta del cuerpo.", "medida": {"tipo": "angulo", "nombre": "rodilla_der"}, "condicion": {"op": "<", "umbral": 160}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 5, "severidad": {"moderada": 10, "alta": 25}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en el vídeo de plancha correcto la rodilla vale ~175°. 160 deja 15° de margen. La segmentación ya no exige 145° (ahora 120), así que esta regla puede hablar antes de que la postura deje de contar.", "mensaje_id": "rodilla_flexionada_plancha", "direccion": {"aumentar": "menos_flexion"}, "solo_lado_visible": true}
+    {"error_id": "codo_izq_fuera_de_90", "descripcion": "El codo visible no está a 90°: el antebrazo no sostiene el cuerpo en vertical bajo el hombro.", "medida": {"tipo": "angulo", "nombre": "codo_izq"}, "condicion": {"op": "fuera_de", "min": 75, "max": 105}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "codo", "lado": "izquierdo", "prioridad": 4, "severidad": {"moderada": 5, "alta": 15}, "umbral_origen": "[?] provisional (2026-10-19), pedido de Natalia: los codos deben formar 90°. [F] en el vídeo de plancha correcto el codo vale ~89° (EXP-009). ±15° es margen para el ruido de MediaPipe de perfil, sin calibrar.", "mensaje_id": "codos_noventa_plancha", "solo_lado_visible": true},
+    {"error_id": "codo_der_fuera_de_90", "descripcion": "El codo visible no está a 90°: el antebrazo no sostiene el cuerpo en vertical bajo el hombro.", "medida": {"tipo": "angulo", "nombre": "codo_der"}, "condicion": {"op": "fuera_de", "min": 75, "max": 105}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "codo", "lado": "derecho", "prioridad": 5, "severidad": {"moderada": 5, "alta": 15}, "umbral_origen": "[?] provisional (2026-10-19), pedido de Natalia: los codos deben formar 90°. [F] en el vídeo de plancha correcto el codo vale ~89° (EXP-009). ±15° es margen para el ruido de MediaPipe de perfil, sin calibrar.", "mensaje_id": "codos_noventa_plancha", "solo_lado_visible": true},
+    {"error_id": "rodilla_izq_flexionada", "descripcion": "La rodilla visible se dobla durante la plancha: se pierde la línea recta del cuerpo.", "medida": {"tipo": "angulo", "nombre": "rodilla_izq"}, "condicion": {"op": "<", "umbral": 165}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 6, "severidad": {"moderada": 10, "alta": 25}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en el vídeo de plancha correcto la rodilla vale ~175°. 160 deja 15° de margen. La segmentación ya no exige 145° (ahora 120), así que esta regla puede hablar antes de que la postura deje de contar.", "mensaje_id": "rodilla_flexionada_plancha", "direccion": {"aumentar": "menos_flexion"}, "solo_lado_visible": true},
+    {"error_id": "rodilla_der_flexionada", "descripcion": "La rodilla visible se dobla durante la plancha: se pierde la línea recta del cuerpo.", "medida": {"tipo": "angulo", "nombre": "rodilla_der"}, "condicion": {"op": "<", "umbral": 165}, "fases": ["mantenimiento"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 7, "severidad": {"moderada": 10, "alta": 25}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en el vídeo de plancha correcto la rodilla vale ~175°. 160 deja 15° de margen. La segmentación ya no exige 145° (ahora 120), así que esta regla puede hablar antes de que la postura deje de contar.", "mensaje_id": "rodilla_flexionada_plancha", "direccion": {"aumentar": "menos_flexion"}, "solo_lado_visible": true}
   ]
 }

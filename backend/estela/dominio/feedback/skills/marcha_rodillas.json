@@ -9,9 +9,9 @@
   "orientacion_preferida": "sagital",
   "angulos_requeridos": ["cadera_izq", "cadera_der", "rodilla_izq", "rodilla_der", "tobillo_izq", "tobillo_der", "tronco_inclinacion"],
   "politica_silencio": {
-    "refractario_ms": 4000,
-    "refractario_mismo_error_ms": 10000,
-    "repeticiones_evidencia": 3,
+    "refractario_ms": 2500,
+    "refractario_mismo_error_ms": 6000,
+    "repeticiones_evidencia": 2,
     "factor_desvanecimiento": 1.5,
     "max_emisiones_mismo_error": 4,
     "fases_silenciadas": ["transicion"],
@@ -35,6 +35,7 @@
     "fase_der_arriba": "apoyo_izq",
     "fase_transicion": "transicion",
     "suavizado": 3,
+    "alternar": true,
     "umbral_origen": "[?] provisional: señales 3D de PRUEBAS/DATASET/videos/marcha_rodillas/1 mujer.mp4 (cadera ~170 de pie, 50-100 con la rodilla arriba). Cambiado 2026-10-11: extremo 115→125, igual al umbral de rodilla_*_baja (revisión de la licenciada, DEC-008): una repetición cuenta si y solo si no se corrige la altura."
   },
   "reglas": [
@@ -84,7 +85,7 @@
       "direccion": {"disminuir": "subir"},
       "solo_lado_visible": true
     },
-    {"error_id": "rodilla_izq_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_der"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 1, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true},
-    {"error_id": "rodilla_der_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 120}, "fases": ["apoyo_izq"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 2, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true}
+    {"error_id": "rodilla_izq_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_izq", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 90}, "fases": ["apoyo_der"], "plano": "sagital", "segmento": "rodilla", "lado": "izquierdo", "prioridad": 1, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio. 2026-10-19, pedido de Natalia: más de 90° ya es error (rodilla debe quedar flexionada a 90° o menos); ojo, 57–90° eran los vídeos correctos, así que 90 queda en el borde.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true},
+    {"error_id": "rodilla_der_extendida", "descripcion": "La pierna sube con la rodilla estirada en lugar de doblarla.", "medida": {"tipo": "agregado", "fn": "min", "nombre": "rodilla_der", "ventana": "repeticion"}, "condicion": {"op": ">", "umbral": 90}, "fases": ["apoyo_izq"], "plano": "sagital", "segmento": "rodilla", "lado": "derecho", "prioridad": 2, "severidad": {"moderada": 15, "alta": 30}, "umbral_origen": "[?] provisional, sin calibrar. EXP-009 (2026-10-12): [F] en 2 vídeos correctos la rodilla de la pierna que sube vale 57–90°; subirla estirada la deja por encima de ~150°. 120 queda en medio. 2026-10-19, pedido de Natalia: más de 90° ya es error (rodilla debe quedar flexionada a 90° o menos); ojo, 57–90° eran los vídeos correctos, así que 90 queda en el borde.", "mensaje_id": "rodilla_extendida_marcha", "direccion": {"disminuir": "mas_flexion"}, "solo_lado_visible": true}
   ]
 }

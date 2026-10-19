@@ -122,8 +122,8 @@ class TestEvidenciaYSilencio(unittest.TestCase):
                 fase="apoyo_der" if izq else "apoyo_izq", repeticion=rep))
             if isinstance(d, ErrorTipificado):
                 dichos.append((rep, d.error_id, d.lado))
-        # repeticiones_evidencia = 3: la tercera elevación izquierda es la 5.
-        self.assertEqual(dichos[0], (5, "rodilla_izq_baja", Lado.IZQUIERDO))
+        # repeticiones_evidencia = 2: la segunda elevación izquierda es la 3.
+        self.assertEqual(dichos[0], (3, "rodilla_izq_baja", Lado.IZQUIERDO))
 
     def test_desvanecimiento_corta_tras_max_emisiones(self):
         m = MotorDecision(SKILLS["sentadilla"])

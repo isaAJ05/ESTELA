@@ -140,9 +140,21 @@
   },
 
   "hombros_adelantados": {
-    "leve": ["Lleva los {segmento_pl} un poco hacia atrás."],
-    "moderada": ["Lleva los {segmento_pl} hacia atrás, sobre el apoyo."],
-    "alta": ["Lleva bien los {segmento_pl} hacia atrás, sobre el apoyo."]
+    "leve": ["Lleva los {segmento_pl} un poco hacia atrás, en vertical sobre el punto de apoyo."],
+    "moderada": ["Lleva los {segmento_pl} hacia atrás, en vertical sobre el punto de apoyo."],
+    "alta": ["Lleva bien los {segmento_pl} hacia atrás, en vertical sobre el punto de apoyo."]
+  },
+
+  "codos_noventa_plancha": {
+    "leve": ["Ajusta el {segmento} {lado} a noventa grados."],
+    "moderada": ["Pon el {segmento} {lado} a noventa grados."],
+    "alta": ["Coloca bien el {segmento} {lado}, a noventa grados exactos."]
+  },
+
+  "salto_insuficiente": {
+    "leve": ["Salta un poco más, despega los {segmento_pl} del suelo."],
+    "moderada": ["Salta en cada repetición, despega los {segmento_pl} del suelo."],
+    "alta": ["Estás abriendo sin saltar, despega los {segmento_pl} del suelo."]
   },
 
   "hombros_retrasados": {

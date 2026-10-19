@@ -50,7 +50,7 @@ def _argumentos(argv=None) -> argparse.Namespace:
                         "un ejercicio isométrico como la plancha (defecto 10)")
     p.add_argument("--video", type=Path, help="usar un vídeo en lugar de la cámara")
     p.add_argument("--camara", type=int, default=0, help="índice de cámara")
-    p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="full",
+    p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="lite",
                    help="variante de Pose Landmarker")
     p.add_argument("--voz", choices=("piper", "sistema", "texto"), default="piper")
     p.add_argument("--interfaz", choices=("ventana", "opencv"), default="ventana",
