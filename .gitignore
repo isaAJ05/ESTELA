@@ -9,6 +9,9 @@ modelos/
 
 # Métricas de sesión (derivadas, pueden contener datos de una persona)
 sesiones/
+
+# Episodios de pose etiquetados (biométricos derivados, Ley 1581/2012)
+grabaciones/
 .pytest_cache/
 
 # Node (frontend/; también restos de la antigua carpeta interfaz/)

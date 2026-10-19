@@ -9,6 +9,8 @@ MODELOS = RAIZ / "modelos"
 VOCES = MODELOS / "voces"
 RUTINAS = RAIZ / "rutinas"
 SESIONES = RAIZ / "sesiones"
+#: episodios de pose etiquetados (adaptadores/grabacion); fuera de git
+GRABACIONES = RAIZ / "grabaciones"
 #: interfaz de escritorio compilada (frontend/, `npm run build`)
 INTERFAZ = RAIZ.parent / "frontend" / "dist"
 

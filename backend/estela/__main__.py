@@ -12,6 +12,12 @@ inicio se eligen los ejercicios, su orden y su objetivo antes de empezar;
 Con --interfaz opencv se usa la ventana de OpenCV, más simple, para pruebas y
 mediciones (sin pantalla de selección: usa --rutina o --ejercicio).
 
+Grabar episodios etiquetados (solo pose, nunca vídeo) para referencias y umbrales:
+
+    python -m estela --grabar zancada_atras_izq --etiqueta correcto --persona p01
+    python -m estela --grabar zancada_atras_izq --etiqueta paso_corto --persona p01
+    python -m estela --grabar zancada_atras_izq --etiqueta correcto --persona web01 --video ruta.mp4
+
 Teclas en la interfaz: n siguiente ejercicio · r reiniciar ejercicio · v voz ·
 Esc terminar · d datos de depuración.
 Teclas en la ventana de OpenCV: q/Esc salir · n siguiente · r reiniciar.
@@ -48,6 +54,12 @@ def _argumentos(argv=None) -> argparse.Namespace:
     p.add_argument("--repeticiones", type=int, default=10,
                    help="objetivo con --ejercicio: repeticiones, o segundos en "
                         "un ejercicio isométrico como la plancha (defecto 10)")
+    grupo.add_argument("--grabar", metavar="SKILL_ID",
+                       help="grabar episodios etiquetados de este skill (solo pose)")
+    p.add_argument("--etiqueta", help="con --grabar: «correcto» o un error_id del skill")
+    p.add_argument("--persona", help="con --grabar: código de la persona (p. ej. p01), "
+                                     "sin nombre; con su consentimiento (Ley 1581/2012)")
+    p.add_argument("--notas", default="", help="con --grabar: nota libre del episodio")
     p.add_argument("--video", type=Path, help="usar un vídeo en lugar de la cámara")
     p.add_argument("--camara", type=int, default=0, help="índice de cámara")
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="lite",
@@ -103,6 +115,8 @@ def main(argv=None) -> int:
     args = _argumentos(argv)
     logging.basicConfig(level=logging.DEBUG if args.verbose else logging.INFO,
                         format="%(levelname)s %(name)s: %(message)s")
+    if args.grabar:
+        return _grabar(args)
 
     from .aplicacion.rutina import (RutinaInvalida, cargar_catalogo, cargar_rutina,
                                 rutina_de_un_ejercicio)
@@ -148,6 +162,25 @@ def main(argv=None) -> int:
     if args.sin_ventana or args.interfaz == "opencv":
         return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion)
     return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion)
+
+
+def _grabar(args: argparse.Namespace) -> int:
+    from .adaptadores.grabacion.episodio import EtiquetaInvalida
+    from .adaptadores.grabacion.grabador import correr
+    from .adaptadores.pose.estimador import EstimadorPose
+
+    if not args.etiqueta or not args.persona:
+        print("Error: --grabar necesita --etiqueta y --persona", file=sys.stderr)
+        return 2
+    try:
+        return correr(args.grabar, args.etiqueta, args.persona, config.GRABACIONES,
+                      lambda: EstimadorPose(config.modelo_pose(args.modelo)),
+                      lambda: _abrir_fuente(args, tiempo_real=False),
+                      f"mediapipe_tasks:pose_landmarker_{args.modelo}",
+                      video=args.video, notas=args.notas)
+    except (KeyError, EtiquetaInvalida, ValueError) as e:
+        print(f"Error: {e}", file=sys.stderr)
+        return 2
 
 
 def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool):
