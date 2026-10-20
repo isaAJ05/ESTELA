@@ -433,7 +433,7 @@ def completadas(v: Video, catalogo) -> Dict[str, np.ndarray]:
 def decidir(elegida: str, n: int, punt: Optional[Dict[str, np.ndarray]],
             comp: Dict[str, np.ndarray], act: np.ndarray, metodo: str,
             tau_no: float, tau_si: float, act_min: float, con_seg: bool,
-            ratio: float = 0.7) -> List[Tuple[float, str]]:
+            ratio: float = 0.7, relativo: bool = False) -> List[Tuple[float, str]]:
     """Avisos [(t_s, etiqueta)]: etiqueta = clase reconocida o 'no_reconocido'.
     Un aviso por estado sostenido; se repite como mucho cada 8 s."""
     w = int(VENTANA_S * FPS)
@@ -459,9 +459,12 @@ def decidir(elegida: str, n: int, punt: Optional[Dict[str, np.ndarray]],
                         e = "no_reconocido"
             elif not (con_seg and propio > 0):
                 s_el = punt[elegida][i]
-                if s_el > tau_no:
-                    s_o, c = min((punt[c][i], c) for c in CLASES if c != elegida)
-                    if s_o < tau_si and s_o < ratio * s_el:
+                s_o, c = min((punt[c][i], c) for c in CLASES if c != elegida)
+                claro = s_o < tau_si and s_o < ratio * s_el
+                # relativo: también avisa si otro ejercicio se parece claramente
+                # más, aunque el elegido no pase de tau_no
+                if s_el > tau_no or (relativo and claro):
+                    if claro:
                         e = c
                     elif act[i] >= act_min:
                         e = "no_reconocido"
@@ -561,19 +564,21 @@ def main() -> int:
         dist[nombre] = {"elegida_correcta_p50_p95_p99": [round(float(np.percentile(b, q)), 3) for q in (50, 95, 99)],
                         "elegida_incorrecta_p5_p50": [round(float(np.percentile(m_, q)), 3) for q in (5, 50)]}
 
-    configs = [("segmentadores", None, None, False, None)]
+    configs = [("segmentadores", None, None, False, None, False)]
     for nombre in ("dtw_propias", "dtw_comun", "dtw_multi"):
         for tau_no in (0.5, 0.75, 1.0, 1.5, 2.0):
             for tau_si in (0.75, 1.0, 1.5):
                 for ratio in (0.5, 0.7):
                     for con_seg in (False, True):
-                        configs.append((nombre, tau_no, tau_si, con_seg, ratio))
+                        configs.append((nombre, tau_no, tau_si, con_seg, ratio, False))
+                    if nombre == "dtw_multi":
+                        configs.append((nombre, tau_no, tau_si, False, ratio, True))
 
     # «propios» = solo los vídeos de registro.csv: datos que no se usaron para ajustar
     subconjuntos = ("todos", "sin_referencias") + (
         ("propios",) if any(k.startswith("propio_") for k in videos) else ())
     tabla = []
-    for metodo, tau_no, tau_si, con_seg, ratio in configs:
+    for metodo, tau_no, tau_si, con_seg, ratio, relativo in configs:
         for subconjunto in subconjuntos:
             casos = []
             for k, v in videos.items():
@@ -584,10 +589,11 @@ def main() -> int:
                 for elegida in CLASES:
                     av = decidir(elegida, len(v), punts.get(metodo, {}).get(k), comps[k], acts[k],
                                  metodo, tau_no or 0, tau_si or 0, a.act_min, con_seg,
-                                 ratio or 0.7)
+                                 ratio or 0.7, relativo)
                     casos.append({"video": k, "real": v.clase, "elegida": elegida,
                                   "es_ref": v.es_ref, "avisos": av})
-            fila = {"metodo": metodo + ("+seg" if con_seg else ""), "tau_no": tau_no,
+            fila = {"metodo": metodo + ("+seg" if con_seg else "") + ("+rel" if relativo else ""),
+                    "tau_no": tau_no,
                     "tau_si": tau_si, "ratio": ratio, "subconjunto": subconjunto,
                     **evaluar(casos)}
             if metodo == "segmentadores" or subconjunto != "todos":

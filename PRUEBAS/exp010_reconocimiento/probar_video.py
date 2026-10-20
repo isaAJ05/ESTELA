@@ -6,8 +6,9 @@ Desde ESTELA/, con el entorno de backend/:
 
 Simula que en la sesión se eligió `--elegido` y dice en qué segundo saltaría
 el aviso «ese no es el ejercicio» (τ_no 0,75 · τ_si 0,75 · ratio 0,7). Por
-defecto usa `dtw_multi`: una referencia por cada vídeo de docs_estela del
-ejercicio; `--referencias una` vuelve a `dtw_comun+seg` (EXP-010 §7). Debajo imprime una
+defecto usa `dtw_multi+rel`: una referencia por cada vídeo de docs_estela del
+ejercicio, y avisa también cuando otro ejercicio se parece claramente más que
+el elegido (EXP-010 §10); `--referencias una` vuelve a `dtw_comun+seg` (§7). Debajo imprime una
 línea de tiempo cada `--paso` segundos para compararla con lo que se hizo de
 verdad.
 
@@ -94,7 +95,7 @@ def main() -> int:
     catalogo = R.cargar_catalogo()
     if a.referencias == "una":
         refs, _ = R.refs_comunes(catalogo, _referencias(a.modelo, R.VIDEO_REF.values()))
-        metodo, con_seg = "dtw_comun", not a.sin_seg
+        metodo, con_seg, relativo = "dtw_comun", not a.sin_seg, False
     else:
         ids = [vid for vid, _, clase, *_ in E.BANCO
                if clase in R.CLASES and not vid.startswith("propio_")]
@@ -103,14 +104,14 @@ def main() -> int:
         propio = next((vid for vid, ruta, *_ in E.BANCO
                        if ruta.exists() and ruta.resolve() == a.video.resolve()), "")
         refs = R.refs_multi(crudas, excluir=propio)
-        metodo, con_seg = "dtw_multi", False
+        metodo, con_seg, relativo = "dtw_multi", False, True
     print(f"analizando {a.video.name} ...", flush=True)
     v = _video(a.video, a.modelo)
     punt, _ = R.puntuar(v, refs)
     comp = R.completadas(v, catalogo)
     act = R.actividad(v)
     avisos = R.decidir(elegido, len(v), punt, comp, act, metodo,
-                       a.tau_no, a.tau_si, a.act_min, con_seg, a.ratio)
+                       a.tau_no, a.tau_si, a.act_min, con_seg, a.ratio, relativo)
 
     lineas = []
 
@@ -120,7 +121,7 @@ def main() -> int:
         print(texto)
 
     out(f"{datetime.now():%Y-%m-%d %H:%M:%S} · {a.video} · modelo {a.modelo} · "
-        f"{metodo}{'+seg' if con_seg else ''} · tau_no {a.tau_no} · tau_si {a.tau_si} · "
+        f"{metodo}{'+seg' if con_seg else ''}{'+rel' if relativo else ''} · tau_no {a.tau_no} · tau_si {a.tau_si} · "
         f"ratio {a.ratio} · act_min {a.act_min}")
 
     out(f"\nVídeo: {a.video.name} · {len(v) / R.FPS:.1f} s · persona visible "
