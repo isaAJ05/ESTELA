@@ -72,7 +72,10 @@ from registrar import leer as _leer_registro  # noqa: E402
 BANCO += [(f["id"], Path(f["ruta"]), f["clase"], f["lado"], False) for f in _leer_registro()]
 
 
-def extraer(ruta: Path, modelo: str) -> dict:
+def extraer(ruta: Path, modelo: str, ancho_max: int = 0, fps_max: float = 0) -> dict:
+    """`ancho_max`/`fps_max` (0 = sin límite) acercan un vídeo de móvil (4K,
+    60 fps) a lo que da la cámara de la sesión (1280×720, `FuenteCamara`)."""
+    import cv2
     from estela import config
     from estela.adaptadores.captura.fuente import FuenteVideo
     from estela.adaptadores.pose.estimador import EstimadorPose
@@ -82,9 +85,17 @@ def extraer(ruta: Path, modelo: str) -> dict:
     fuente, estimador = FuenteVideo(ruta), EstimadorPose(config.modelo_pose(modelo))
     salto = _SaltoCadera()
     filas, t_ms_l, orient, pose_ms = [], [], [], []
+    siguiente = 0.0
     try:
         while (leido := fuente.leer()) is not None:
             frame, t_ms = leido
+            if fps_max:
+                if t_ms < siguiente:
+                    continue
+                siguiente = max(siguiente + 1000.0 / fps_max, t_ms)
+            if ancho_max and frame.shape[1] > ancho_max:
+                alto = round(frame.shape[0] * ancho_max / frame.shape[1])
+                frame = cv2.resize(frame, (ancho_max, alto), interpolation=cv2.INTER_AREA)
             res = estimador.estimar(frame, t_ms)
             pose_ms.append(res.latencia_ms)
             t_ms_l.append(t_ms)
