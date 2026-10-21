@@ -334,7 +334,8 @@ class Sesion:
         progreso = ((seg.fase, seg.repeticion, seg.completadas, seg.incompletas)
                     if seg.repeticion > 0 and seg.senal_valida else None)
         self._anuncia_pausa(p, p.pausa.actualizar(
-            t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion)))
+            t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion),
+            otro_ejercicio), callar_reanudacion=otro_ejercicio)
         if p.pausa.pausada:
             for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento"):
                 if etapa not in lat:
@@ -342,7 +343,6 @@ class Sesion:
                 self.latencias.anota(etapa, lat[etapa])
             aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                      or self._revisa_encuadre(seg.senal_valida, t_ms)
-                     or self._revisa_otro_ejercicio(p, otro_ejercicio, t_ms)
                      or AVISO_PAUSA[p.pausa.motivo])
             return self._estado(p, res, aviso, lat, obs.orientacion,
                                angulos=obs.angulos)
@@ -383,14 +383,19 @@ class Sesion:
         self.latencias.anota("total", lat["total"])
         return estado
 
-    def _anuncia_pausa(self, p: _Paso, evento: Optional[str]) -> None:
+    def _anuncia_pausa(self, p: _Paso, evento: Optional[str],
+                       callar_reanudacion: bool = False) -> None:
+        """`callar_reanudacion`: la pausa por inactividad se quitó porque
+        está haciendo otro ejercicio; «Seguimos» no tocaría, solo el aviso de
+        `_revisa_otro_ejercicio`."""
         if evento == EVENTO_PAUSA:
             self.voz.decir(AVISO_PAUSA[p.pausa.motivo], PRIORIDAD_AVISO)
         elif evento == EVENTO_REANUDA:
             p.segmentador.interrumpir()
             self._mal_orientada_desde = None
             self._ult_senal_ms = None
-            self.voz.decir(AVISO_REANUDA, PRIORIDAD_AVISO)
+            if not callar_reanudacion:
+                self.voz.decir(AVISO_REANUDA, PRIORIDAD_AVISO)
 
     @staticmethod
     def _orientacion_ok(skill, orientacion: Optional[float]) -> bool:
