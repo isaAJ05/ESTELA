@@ -1,0 +1,48 @@
+@startuml fallback-llm
+' Verbalizador con modelo de lenguaje y caída a plantilla (SegundoInforme §10.4).
+' Sigue a VerbalizadorLLMLocal.verbalizar (adaptadores/llm/llm_local.py) y a
+' validar (dominio/feedback/verbalizador/validador.py).
+' Diagrama de secuencia. No necesita Graphviz.
+' Condición F: salida restringida por esquema + validador.
+' Condición F': control de EXP-001, sin esquema y sin validador.
+
+title ESTELA — Verbalizador con modelo de lenguaje y caída a plantilla
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+participant "Motor de\nfeedback" as MF
+participant "Verbalizador LLM\n(adaptador llm/)" as L
+participant "llama-server\n(proceso local)" as H
+participant "Validador\n(dominio)" as V
+participant "Plantillas\n(dominio)" as T
+
+MF -> L : verbalizar(ErrorTipificado)
+L -> H : petición HTTP local (127.0.0.1)\nsolo con el error tipificado
+
+alt responde dentro del presupuesto de tiempo
+  H --> L : texto
+
+  alt condición F (con validación)
+    L -> V : validar(texto, ErrorTipificado)
+    alt no vacío y de longitud válida, sin vocabulario clínico,\nsolo nombra el segmento del error, el lado correcto\n(ni omitido ni inventado) y no pide la dirección contraria
+      V --> L : válido
+      L --> MF : MensajeFeedback(texto del modelo)
+    else rechazado
+      V --> L : inválido (motivo)
+      L -> T : verbalizar(ErrorTipificado)
+      T --> L : texto de plantilla
+      L --> MF : MensajeFeedback(texto de plantilla)
+    end
+  else condición F' (control de EXP-001, sin validación)
+    L --> MF : MensajeFeedback(texto del modelo)
+  end
+
+else error de conexión, tiempo agotado o respuesta ilegible
+  L -> T : verbalizar(ErrorTipificado)
+  T --> L : texto de plantilla
+  L --> MF : MensajeFeedback(texto de plantilla)
+end
+@enduml

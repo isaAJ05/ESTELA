@@ -1,0 +1,42 @@
+@startuml SECUENCIA_sesion_desde_interfaz_corto
+' Versión corta de SECUENCIA_sesion_desde_interfaz.wsd para diapositivas.
+
+title ESTELA — Una sesión desde la interfaz
+
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Usuaria" as USU
+participant "Interfaz" as UI
+participant "Orquestador" as ORQ
+participant "Hilo de\nsesión" as HILO
+participant "Voz" as VOZ
+
+USU -> UI : elige la rutina
+UI -> ORQ : iniciar(rutina)
+ORQ ->> HILO : lanzar
+HILO -> HILO : abrir cámara\ny modelo de pose
+
+par
+  loop cada fotograma
+    HILO -> HILO : procesar el fotograma
+    HILO ->> VOZ : correcciones y avisos
+    HILO -> ORQ : publicar estado
+  end
+else
+  loop mientras la ventana esté abierta
+    UI -> ORQ : estado (sondeo largo)
+    ORQ --> UI : estado más reciente
+  end
+else
+  USU -> UI : siguiente / terminar
+  UI -> ORQ : comando (en cola)
+end
+
+HILO -> ORQ : resumen (solo métricas)
+ORQ --> UI : resumen
+UI -> USU : pantalla de resumen
+@enduml

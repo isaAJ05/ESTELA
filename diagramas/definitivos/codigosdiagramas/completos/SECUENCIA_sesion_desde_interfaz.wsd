@@ -1,0 +1,98 @@
+@startuml SECUENCIA_sesion_desde_interfaz
+' Control de una sesión desde la interfaz de escritorio (SegundoInforme §10.4).
+' Diagrama de secuencia: inicio de la sesión, sondeo largo del estado,
+' comandos de la usuaria y cierre con el resumen. Sigue a ventana.Api y a
+' Orquestador (adaptadores/interfaz/). No necesita Graphviz.
+
+title ESTELA — Control de una sesión desde la interfaz
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 320
+
+actor "Usuaria" as USU
+participant "Interfaz React\n(ventana pywebview)" as UI
+participant "Api de la ventana\n(hilo por llamada)" as API
+participant "Orquestador" as ORQ
+participant "Hilo de sesión\n(Orquestador._correr)" as HILO
+participant "Fuente y\nestimador" as FE
+participant "Sesión" as SES
+participant "Cola de voz\n(hilo propio)" as VOZ
+participant "Arranque\n(al terminar)" as MAIN
+
+== Inicio ==
+USU -> UI : elige ejercicios, orden y objetivo
+UI -> API : iniciar(opciones)
+API -> API : validar la rutina\n(rutina_desde_opciones)
+API -> ORQ : iniciar(rutina)
+opt la rutina cambió
+  ORQ ->> VOZ : precalentar(frases de la rutina)
+end
+ORQ -> ORQ : publicar(fase «preparando»)
+ORQ ->> HILO : lanzar el hilo de sesión
+ORQ --> API : True
+API --> UI : True
+
+HILO -> FE : abrir la fuente y cargar el modelo de pose
+alt la cámara o el modelo fallan
+  HILO -> ORQ : publicar(fase «error», motivo)
+else todo listo
+  HILO -> SES : crear Sesion(rutina, catálogo, estimador, voz)
+  SES ->> VOZ : decir(anuncio del primer ejercicio)
+  HILO -> ORQ : publicar(fase «sesion»)
+end
+
+== Sesión en curso: tres actividades a la vez ==
+par hilo de sesión
+  loop por cada fotograma
+    ref over HILO, SES : Flujo de un fotograma en la fase en vivo
+    HILO -> ORQ : publicar(EstadoFrame, fotograma)
+  end
+else sondeo largo de la interfaz
+  loop mientras la ventana esté abierta
+    UI -> API : estado(desde)
+    API -> ORQ : estado(desde)
+    ORQ -> ORQ : esperar una versión más nueva\n(hasta 0,5 s)
+    alt hay versión nueva
+      ORQ -> ORQ : convertir a JSON y comprimir\nel fotograma en JPEG
+      ORQ --> API : estado (JSON + JPEG)
+      API --> UI : estado
+      UI -> UI : dibujar; si va más lenta que la\ncámara, se salta estados
+    else no llega en 0,5 s
+      ORQ --> API : None
+      API --> UI : None (vuelve a preguntar)
+    end
+  end
+else comandos de la usuaria
+  USU -> UI : siguiente, reiniciar, terminar o silenciar la voz
+  UI -> API : siguiente() / reiniciar() / terminar()
+  API -> ORQ : encolar el comando
+  ORQ --> API : (vuelve de inmediato)
+  API --> UI
+  note over HILO : el hilo de sesión aplica el comando\nal comienzo de la vuelta siguiente
+  UI -> API : configurar({voz: false})
+  API -> ORQ : configurar(voz)
+  ORQ ->> VOZ : silenciar()
+end
+
+== Cierre ==
+note over HILO
+  Termina cuando la rutina se completa,
+  la usuaria pulsa «terminar» o la
+  fuente deja de dar fotogramas.
+end note
+HILO -> FE : cerrar la fuente y el estimador
+HILO -> SES : resumen()
+SES --> HILO : resumen (solo métricas derivadas)
+HILO -> MAIN : al_terminar(resumen)
+opt con --guardar-metricas
+  MAIN -> MAIN : escribir JSON y CSV en sesiones/\n(sin video ni puntos articulares)
+end
+HILO -> ORQ : publicar(fase «resumen», resumen)
+UI -> API : estado(desde)
+API -> ORQ : estado(desde)
+ORQ --> UI : resumen
+UI -> USU : pantalla de resumen
+@enduml

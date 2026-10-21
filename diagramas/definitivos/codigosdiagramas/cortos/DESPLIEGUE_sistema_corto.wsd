@@ -1,0 +1,31 @@
+@startuml DESPLIEGUE_sistema_corto
+' Versión corta de DESPLIEGUE_sistema.wsd para diapositivas.
+
+title ESTELA — Despliegue
+
+left to right direction
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam ArrowFontSize 14
+skinparam nodesep 40
+skinparam ranksep 100
+
+node "Cámara web" as CAMD
+node "Altavoces" as AUD
+
+node "Computador de la usuaria\n(Windows, Linux o macOS)" as PC {
+  node "Python\n(estela, MediaPipe,\nOpenCV, Piper)" as PY
+  node "Ventana pywebview\n(interfaz React)" as WEB
+  folder "Modelos, skills\ny referencias" as FS
+}
+
+CAMD --> PY : fotogramas
+AUD <-- PY : voz
+PY <--> WEB : HTTP local
+PY --> FS : lee
+
+legend bottom left
+  Todo se ejecuta en el equipo: ningún dato sale durante la sesión.
+endlegend
+@enduml

@@ -1,0 +1,87 @@
+@startuml DEPENDENCIAS_modulos
+' Dependencias de importación entre módulos de ESTELA (SegundoInforme §10.3,
+' figura complementaria del diagrama de interacción entre módulos).
+' Diagrama de paquetes UML: cada paquete es un módulo o paquete de Python
+' (backend/estela/...), y cada flecha punteada es una dependencia de importación
+' verificada leyendo los `import` del código. La etiqueta indica qué dato cruza
+' la frontera (los contratos de datos de §10.3).
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Dependencias de importación entre módulos\n(backend/estela)
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 45
+skinparam ranksep 85
+skinparam packageStyle folder
+
+skinparam folder {
+  BackgroundColor<<adaptador>> #FDEBD0
+  BackgroundColor<<aplicacion>> #D6EAF8
+  BackgroundColor<<dominio>> #D5F5E3
+}
+hide stereotype
+
+folder "voz" <<adaptador>> as VOZ
+folder "captura" <<adaptador>> as CAP
+folder "interfaz" <<adaptador>> as INTERF
+folder "pose" <<adaptador>> as POSE
+folder "puertos\n(Estimador, Voz, Fuente)" <<aplicacion>> as PUE
+folder "sesion" <<aplicacion>> as SES
+folder "reconocimiento" <<aplicacion>> as RECO
+folder "pausa y metricas" <<aplicacion>> as PAU
+folder "dtw" <<aplicacion>> as DTW
+folder "feedback.pipeline\n(MotorFeedback)" <<dominio>> as PIPE
+folder "llm" <<adaptador>> as LLM
+folder "registro" <<aplicacion>> as REG
+folder "feedback.motor.geometria" <<dominio>> as GEO
+folder "feedback.motor.decision" <<dominio>> as DEC
+folder "feedback.verbalizador\n(plantillas y validador)" <<dominio>> as VER
+folder "rutina" <<aplicacion>> as RUT
+folder "conteo\n(segmentador)" <<dominio>> as CON
+folder "umbrales" <<aplicacion>> as UMB
+folder "feedback.motor.skill\n(carga de skills)" <<dominio>> as SKI
+
+' Aristas en orden de izquierda a derecha: así Graphviz parte de un orden
+' sin cruces.
+VOZ ..> PUE
+INTERF ..> POSE
+INTERF ..> PUE
+INTERF ..> SES : EstadoFrame
+INTERF ..> GEO
+INTERF ..> RUT
+POSE ..> PUE
+SES ..> PUE : ResultadoPose
+SES ..> RECO : Observacion\n→ ¿otro ejercicio?
+SES ..> PAU
+SES ..> DTW : Observacion
+SES ..> PIPE : Observacion\n→ MensajeFeedback\no Silencio
+SES ..> VER
+SES ..> CON : Observacion\n→ fase y repetición
+SES ..> REG
+SES ..> RUT
+SES ..> GEO : MuestraPose\n→ Observacion
+LLM ..> VER
+RECO ..> SKI
+PIPE ..> DEC : Observacion\n→ ErrorTipificado,\nRefuerzo o Silencio
+PIPE ..> SKI
+PIPE ..> VER : ErrorTipificado\n→ MensajeFeedback
+DEC ..> SKI : reglas y umbrales
+REG ..> CON
+REG ..> RUT
+RUT ..> CON
+RUT ..> UMB
+RUT ..> SKI
+UMB ..> SKI
+
+legend bottom left
+  <back:#FDEBD0> adaptadores/ </back>  <back:#D6EAF8> aplicacion/ (usa NumPy) </back>  <back:#D5F5E3> dominio/ (solo biblioteca estándar) </back>
+  Flecha punteada: el módulo de origen importa al de destino; la etiqueta es el dato que cruza.
+  Todos los módulos importan los contratos de datos (feedback.contrato); esa flecha se omite.
+  <U+005F><U+005F>main<U+005F><U+005F> (raíz de composición) importa interfaz, captura, voz, pose, sesion, rutina y registro para cablearlos; se omite.
+  captura no importa los puertos: cumple el puerto Fuente por estructura (typing.Protocol).
+endlegend
+@enduml
