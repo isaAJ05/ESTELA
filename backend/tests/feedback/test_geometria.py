@@ -256,5 +256,36 @@ class TestCabezaMirada(unittest.TestCase):
         self.assertIsNone(g.cabeza_mirada(c))
 
 
+class TestJumpingJacksDeFrente(unittest.TestCase):
+    """Medidas frontales de los errores de jumping jacks (2026-10-21)."""
+
+    def _de_pie(self, nariz_y=0.12, muneca_x=0.42, muneca_y=0.55):
+        # de frente, y hacia abajo; hombros a 0,2 de ancho
+        return {
+            "nose": kp(0.5, nariz_y), "left_ear": kp(0.55, 0.1), "right_ear": kp(0.45, 0.1),
+            "left_shoulder": kp(0.6, 0.2), "right_shoulder": kp(0.4, 0.2),
+            "left_hip": kp(0.58, 0.55), "right_hip": kp(0.42, 0.55),
+            "left_wrist": kp(1.0 - muneca_x, muneca_y), "right_wrist": kp(muneca_x, muneca_y),
+        }
+
+    def test_cabeza_baja_crece_al_mirar_al_suelo(self):
+        neutra = g.cabeza_baja(self._de_pie(nariz_y=0.11), usar_z=False)
+        abajo = g.cabeza_baja(self._de_pie(nariz_y=0.135), usar_z=False)
+        self.assertAlmostEqual(neutra, 0.05, places=6)       # (0,11 − 0,10) / 0,2
+        self.assertGreater(abajo, 0.12)
+
+    def test_apertura_brazos(self):
+        pegados = g.apertura_brazos(self._de_pie(muneca_x=0.4, muneca_y=0.55), usar_z=False)
+        cruz = g.apertura_brazos(self._de_pie(muneca_x=0.1, muneca_y=0.2), usar_z=False)
+        self.assertLess(pegados, 5.0)
+        self.assertAlmostEqual(cruz, 90.0, delta=4.0)
+
+    def test_las_dos_entran_en_la_observacion(self):
+        obs = g.observacion_desde_pose(MuestraPose(t_ms=0, keypoints=self._de_pie()), "x")
+        self.assertIn("cabeza_baja", obs.distancias)
+        self.assertIn("apertura_brazos", obs.angulos)
+        self.assertIn("apertura_brazos", obs.confianza)
+
+
 if __name__ == "__main__":
     unittest.main()

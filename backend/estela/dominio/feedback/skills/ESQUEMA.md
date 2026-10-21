@@ -209,6 +209,11 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
 | `hombro_sobre_codo` | distancia | sagital | Hombro respecto al codo en horizontal, en escalas de tronco: + = hombro por delante (hacia la cabeza). Plancha sobre antebrazos (PL-03/04); lado más visible |
 | `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (cadera → tobillo del lado más visible). Zancada retirada (ZR-04). `[?]` Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene y el ejercicio no felicita |
+| `cabeza_baja` | distancia | frontal | Nariz por debajo de la línea de las orejas, en anchos de hombros; + = mira al suelo. La posición neutra da ~0,05 (jumping jacks) |
+| `apertura_brazos` | ángulo | frontal | Cadera–hombro–**muñeca**, media de los dos lados; 0 = brazos pegados al cuerpo. A diferencia de `hombro_*`, ve la mano lejos de la cadera aunque el codo esté pegado |
+| `salto_cadera` | distancia | frontal | Cadera sobre el suelo en la imagen, en longitudes de tronco (`sesion._SaltoCadera`) |
+| `brazos_abajo` | ángulo (en `distancias`) | frontal | Mínimo de `apertura_brazos` entre la repetición anterior y esta (`sesion._EntreRepeticiones`). Se publica durante la repetición siguiente: el aviso llega con una de retraso |
+| `ritmo_irregular` | distancia | cualquiera | \|último ciclo − mediana de los 3 anteriores\| / mediana (`sesion._EntreRepeticiones`). Falta en las 4 primeras repeticiones y tras un descanso de más de 3 s |
 
 ## Referencias offline
 

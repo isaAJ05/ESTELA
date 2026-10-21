@@ -185,6 +185,24 @@
     ]
   },
 
+  "brazos_no_bajan": {
+    "leve": ["Al cerrar, baja los {segmento_pl} del todo."],
+    "moderada": ["Baja los {segmento_pl} hasta los costados en cada cierre."],
+    "alta": ["Lleva los {segmento_pl} hasta abajo, pegados al cuerpo, al cerrar."]
+  },
+
+  "cabeza_baja": {
+    "leve": ["Levanta un poco la {segmento}, mirada al frente."],
+    "moderada": ["Levanta la {segmento} y mira al frente."],
+    "alta": ["No mires al suelo: {segmento} arriba y mirada al frente."]
+  },
+
+  "ritmo_irregular": {
+    "leve": ["Intenta mantener el mismo ritmo en cada salto."],
+    "moderada": ["Mantén un ritmo constante, sin acelerar ni frenar."],
+    "alta": ["Busca un ritmo constante: todos los saltos al mismo paso."]
+  },
+
   "_generico": {
     "leve": ["Corrige un poco la posición {de_art} {segmento} {lado}."],
     "moderada": ["Corrige la posición {de_art} {segmento} {lado}."],

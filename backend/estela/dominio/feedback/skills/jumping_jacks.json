@@ -108,6 +108,48 @@
         "condicion": {"op": "<", "k": 3, "ruido": 3.2},
         "umbral_origen": "[?] mediana de la desviación respecto al instante alineado < −k·max(σ_ref, ruido). k = 3 provisional hasta EXP-005; ruido = jitter máximo entre frames en el banco piloto, cota inferior hasta EXP-004 (EXP-006 §3.7)"
       }
+    },
+    {
+      "error_id": "brazos_no_bajan",
+      "descripcion": "Al cerrar, los brazos no vuelven junto al cuerpo: las manos se quedan lejos de la cadera.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "brazos_abajo", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 45},
+      "fases": ["cierre"],
+      "plano": "frontal",
+      "segmento": "brazo",
+      "lado": "bilateral",
+      "prioridad": 5,
+      "severidad": {"moderada": 8, "alta": 15},
+      "umbral_origen": "[I] provisional, sin calibrar (2026-10-21). `brazos_abajo` = mínimo de cadera–hombro–muñeca entre una repetición y la siguiente (sesion._EntreRepeticiones); se publica en la repetición siguiente, así que el aviso llega con una de retraso. [F] Vídeo «brazos no lleguen a la cadera»: 43, 53 y 65° por repetición; la misma persona bien hecho: 22–44°; correctos de 5 personas más: 10–32°. Con 45 detecta 2 de 3 repeticiones con error y ninguna correcta. Con el ángulo del codo (`hombro_medio`) no se separaban: el codo queda junto al cuerpo aunque la mano no. Falta calibrar con más personas (EXP-005)",
+      "mensaje_id": "brazos_no_bajan"
+    },
+    {
+      "error_id": "cabeza_baja",
+      "descripcion": "Hace el ejercicio mirando al suelo, con la cabeza agachada.",
+      "medida": {"tipo": "agregado", "fn": "media", "nombre": "cabeza_baja", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 0.12},
+      "fases": ["cierre"],
+      "plano": "frontal",
+      "segmento": "cabeza",
+      "lado": "na",
+      "prioridad": 6,
+      "severidad": {"moderada": 0.03, "alta": 0.06},
+      "umbral_origen": "[I] provisional, sin calibrar (2026-10-21). `cabeza_baja` = nariz por debajo de las orejas, en anchos de hombros (geometria.cabeza_baja). [F] Media por repetición: 0,16–0,18 en los vídeos «mirando hacia abajo» y «no estar recto» (la misma persona mira al suelo en los dos); 0,03–0,08 en los correctos de 6 personas, salvo una repetición suelta de 0,18 al empezar. Catálogo v2 JJ-01 la dejaba fuera por falta de medida frontal. Falta calibrar con más personas (EXP-005)",
+      "mensaje_id": "cabeza_baja"
+    },
+    {
+      "error_id": "ritmo_irregular",
+      "descripcion": "El ritmo cambia mucho de una repetición a otra.",
+      "medida": {"tipo": "agregado", "fn": "max", "nombre": "ritmo_irregular", "ventana": "repeticion"},
+      "condicion": {"op": ">", "umbral": 0.5},
+      "fases": ["cierre"],
+      "plano": "cualquiera",
+      "segmento": "pierna",
+      "lado": "bilateral",
+      "prioridad": 7,
+      "severidad": {"moderada": 0.25, "alta": 0.5},
+      "umbral_origen": "[?] provisional, sin datos de ritmo irregular (2026-10-21). `ritmo_irregular` = |último ciclo − mediana de los 3 anteriores| / mediana (sesion._EntreRepeticiones); un ciclo de más de 3 s es un descanso y reinicia el historial. 0,5 = un ciclo un 50 % más largo o más corto que los anteriores. [F] En los correctos, acelerar de 1,2 s a 0,57 s por ciclo da como mucho 0,39. El vídeo «no mantener ritmo» tiene ciclos regulares (1,03 y 1,0 s): lo irregular está dentro de cada salto y esta medida no lo ve. Catálogo v2 TR-01. `segmento` pierna porque el vocabulario cerrado no tiene «cuerpo» [?]",
+      "mensaje_id": "ritmo_irregular"
     }
   ]
 }

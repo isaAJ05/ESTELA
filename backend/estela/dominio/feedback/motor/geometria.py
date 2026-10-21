@@ -103,6 +103,9 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     # T17: medidas del catálogo de errores v2 (PL-03/04, ZR-04).
     "hombro_sobre_codo": Plano.SAGITAL,
     "longitud_paso": Plano.SAGITAL,
+    # Errores de jumping jacks del 2026-10-21 (vista frontal).
+    "cabeza_baja": Plano.FRONTAL,
+    "apertura_brazos": Plano.FRONTAL,
 }
 
 
@@ -421,6 +424,50 @@ def cabeza_mirada(kps: Dict[str, Keypoint]) -> Optional[float]:
     return 90.0 - math.degrees(math.acos(cos))
 
 
+def cabeza_baja(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Cuánto queda la nariz por debajo de las orejas, en anchos de hombros.
+
+    Mirar al suelo baja la nariz respecto a la línea de las orejas, y eso se
+    ve de frente (`cabeza_mirada` necesita el perfil). Positivo = nariz más
+    baja que las orejas. Plano frontal.
+
+    `[F]` En los clips de jumping jacks (2026-10-21) la media por repetición
+    vale 0,16–0,18 mirando al suelo y 0,03–0,08 en ejecuciones correctas de
+    6 personas. La posición neutra no da 0: la nariz está algo más baja que
+    las orejas.
+    """
+    req = ("nose", "left_ear", "right_ear", "left_shoulder", "right_shoulder")
+    if any(k not in kps for k in req):
+        return None
+    hombros = _norma(_resta(_coords(kps["left_shoulder"], usar_z),
+                            _coords(kps["right_shoulder"], usar_z)))
+    if hombros < 1e-9:
+        return None
+    orejas_y = (kps["left_ear"].y + kps["right_ear"].y) / 2.0
+    return (kps["nose"].y - orejas_y) / hombros
+
+
+def apertura_brazos(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[float]:
+    """Ángulo cadera–hombro–muñeca, media de los dos lados, en grados.
+
+    0 = brazos pegados al cuerpo, 180 = brazos verticales. A diferencia de
+    `hombro_*` (cadera–hombro–codo), llega hasta la mano: con los codos
+    doblados el codo puede quedar junto al cuerpo y la mano lejos de la
+    cadera. Plano frontal.
+    """
+    lados = []
+    for pref in ("left", "right"):
+        terna = (f"{pref}_hip", f"{pref}_shoulder", f"{pref}_wrist")
+        if any(k not in kps for k in terna):
+            return None
+        pts = [_coords(kps[k], usar_z) for k in terna]
+        ang = angulo_entre(pts[0], pts[1], pts[2])
+        if ang is None:
+            return None
+        lados.append(ang)
+    return sum(lados) / 2.0
+
+
 def abduccion_cadera(kps: Dict[str, Keypoint], lado: str) -> Optional[float]:
     """Separación lateral del muslo respecto a la vertical, en grados.
 
@@ -697,6 +744,8 @@ def observacion_desde_pose(
          hombros + caderas + ("left_ear", "right_ear")),
         ("cabeza_mirada", cabeza_mirada(kps),
          hombros + caderas + ("left_ear", "right_ear", "nose")),
+        ("apertura_brazos", apertura_brazos(kps, usar_z),
+         hombros + caderas + ("left_wrist", "right_wrist")),
         ("abduccion_cadera_izq", abduccion_cadera(kps, "izq"),
          ("left_hip", "left_knee", "right_hip")),
         ("abduccion_cadera_der", abduccion_cadera(kps, "der"),
@@ -744,6 +793,11 @@ def observacion_desde_pose(
         distancias["hombro_sobre_codo"] = hsc
         confianza["hombro_sobre_codo"] = confianza_de_terna(
             kps, [f"{lado}_{p}" for p in PARTES_HOMBRO_CODO])
+    baja = cabeza_baja(kps, usar_z)
+    if baja is not None:
+        distancias["cabeza_baja"] = baja
+        confianza["cabeza_baja"] = confianza_de_terna(
+            kps, ("nose", "left_ear", "right_ear", "left_shoulder", "right_shoulder"))
     paso = longitud_paso(kps, usar_z)
     if paso is not None:
         distancias["longitud_paso"] = paso
@@ -771,7 +825,8 @@ __all__ = [
     "rotacion_tronco", "azimut_cadera",
     "oblicuidad_pelvis", "oblicuidad_hombros", "inclinacion_pelvis",
     "inclinacion_lateral", "inclinacion_lateral_tronco",
-    "cabeza_adelantada", "cabeza_mirada", "abduccion_cadera", "alineacion_cadera",
+    "cabeza_adelantada", "cabeza_mirada", "cabeza_baja", "apertura_brazos",
+    "abduccion_cadera", "alineacion_cadera",
     "alineacion_cuerpo", "hombro_sobre_codo", "longitud_paso", "lado_mas_visible",
     "confianza_de_terna", "observacion_desde_pose",
 ]

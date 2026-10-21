@@ -34,7 +34,8 @@ from ..dominio.feedback.pipeline import MotorFeedback
 from ..dominio.feedback.verbalizador.base import Verbalizador
 from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 
-from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador, leer_senal
+from ..dominio.conteo.segmentador import (EVENTO_COMPLETA, EVENTO_INCOMPLETA, EVENTO_INICIO,
+                                          EstadoSegmento, Segmentador, leer_senal)
 from .dtw import Comparador, comparador_de_referencia
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
@@ -160,6 +161,67 @@ class _SaltoCadera:
                        confianza={**obs.confianza, "salto_cadera": conf})
 
 
+class _EntreRepeticiones:
+    """Medidas de lo que pasa entre una repetición y la siguiente, que el motor
+    no ve: sus agregados se reinician al empezar cada repetición, y el reposo
+    (p. ej. bajar los brazos en jumping jacks) llega después de que la
+    repetición se cierra. Se calculan al empezar la repetición siguiente y se
+    publican en `distancias` durante toda ella, así que el aviso llega con una
+    repetición de retraso.
+
+    * `brazos_abajo`: mínimo de `apertura_brazos` desde que se cerró la
+      repetición anterior (o desde el inicio, antes de la primera). Alto = los
+      brazos no volvieron junto al cuerpo.
+    * `ritmo_irregular`: |duración del último ciclo − mediana de los
+      anteriores| / esa mediana. Un ciclo va de un inicio de repetición al
+      siguiente. Necesita `RITMO_CICLOS` ciclos previos; un ciclo de más de
+      `RITMO_MAX_CICLO_MS` es un descanso y reinicia el historial.
+    """
+    CONFIANZA = 0.5
+    RITMO_CICLOS = 3
+    RITMO_MAX_CICLO_MS = 3000
+
+    def __init__(self) -> None:
+        self._ultimo_inicio: Optional[int] = None
+        self._ciclos: Deque[int] = deque(maxlen=self.RITMO_CICLOS + 1)
+        self._en_reposo = True
+        self._brazos: Optional[float] = None
+        self._publicadas: Dict[str, float] = {}
+
+    def aplicar(self, obs, seg: EstadoSegmento):
+        if seg.evento == EVENTO_INICIO:
+            self._publicadas = self._al_iniciar(obs.t_ms)
+        elif seg.evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA):
+            self._en_reposo, self._brazos = True, None
+        v = obs.angulos.get("apertura_brazos")
+        if (self._en_reposo and v is not None
+                and obs.confianza.get("apertura_brazos", 0.0) >= self.CONFIANZA):
+            self._brazos = v if self._brazos is None else min(self._brazos, v)
+        if not self._publicadas:
+            return obs
+        return replace(obs, distancias={**obs.distancias, **self._publicadas},
+                       confianza={**obs.confianza, **{k: 1.0 for k in self._publicadas}})
+
+    def _al_iniciar(self, t_ms: int) -> Dict[str, float]:
+        publicadas: Dict[str, float] = {}
+        if self._brazos is not None:
+            publicadas["brazos_abajo"] = self._brazos
+        self._en_reposo, self._brazos = False, None
+        if self._ultimo_inicio is not None:
+            ciclo = t_ms - self._ultimo_inicio
+            if ciclo > self.RITMO_MAX_CICLO_MS:
+                self._ciclos.clear()
+            else:
+                self._ciclos.append(ciclo)
+        self._ultimo_inicio = t_ms
+        if len(self._ciclos) > self.RITMO_CICLOS:
+            *previos, ultimo = self._ciclos
+            mediana = float(np.median(previos))
+            if mediana > 0:
+                publicadas["ritmo_irregular"] = abs(ultimo - mediana) / mediana
+        return publicadas
+
+
 @dataclass
 class _Paso:
     ejercicio: Ejercicio
@@ -178,6 +240,7 @@ class _Paso:
     equivocado_desde: Optional[int] = None
     ult_aviso_equivocado_ms: Optional[int] = None
     salto: _SaltoCadera = field(default_factory=_SaltoCadera)
+    entre: _EntreRepeticiones = field(default_factory=_EntreRepeticiones)
 
 
 class Sesion:
@@ -302,6 +365,7 @@ class Sesion:
         seg = p.segmentador.actualizar(obs)
         p.seg = seg
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
+        obs = p.entre.aplicar(obs, seg)
         t2 = time.perf_counter()
         lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
         if p.alineador is not None:
