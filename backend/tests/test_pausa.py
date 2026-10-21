@@ -79,3 +79,29 @@ def test_si_sale_del_encuadre_durante_la_inactividad_cambia_el_motivo():
     assert d.motivo == SIN_PERSONA and d.veces == 1
     # al volver bien orientada retoma aunque no se haya movido todavía
     assert d.actualizar(14000, True, progreso=("reposo", 1, 1, 0)) == EVENTO_REANUDA
+
+def test_otro_ejercicio_no_es_inactividad():
+    d = DetectorPausa(inactividad_s=8)
+    for t in range(0, 20000, 100):                  # el elegido no avanza
+        assert d.actualizar(t, True, progreso=("reposo", 1, 1, 0), otro_ejercicio=True) is None
+    assert not d.pausada
+    # al dejar el otro ejercicio (último frame en 19 900), la espera empieza de cero
+    assert d.actualizar(27800, True, progreso=("reposo", 1, 1, 0)) is None
+    assert d.actualizar(27900, True, progreso=("reposo", 1, 1, 0)) == EVENTO_PAUSA
+
+
+def test_otro_ejercicio_quita_la_pausa_por_inactividad():
+    d = DetectorPausa(inactividad_s=8)
+    d.actualizar(0, True, progreso=("reposo", 1, 1, 0))
+    assert d.actualizar(8000, True, progreso=("reposo", 1, 1, 0)) == EVENTO_PAUSA
+    assert d.actualizar(9000, True, progreso=("reposo", 1, 1, 0),
+                        otro_ejercicio=True) == EVENTO_REANUDA
+    assert not d.pausada
+
+
+def test_otro_ejercicio_no_quita_la_pausa_sin_persona():
+    d = DetectorPausa(sin_persona_s=1)
+    d.actualizar(0, persona=False)
+    assert d.actualizar(1000, persona=False) == EVENTO_PAUSA
+    assert d.actualizar(1500, persona=False, otro_ejercicio=True) is None
+    assert d.pausada and d.motivo == SIN_PERSONA

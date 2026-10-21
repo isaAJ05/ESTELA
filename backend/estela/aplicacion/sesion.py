@@ -39,6 +39,7 @@ from .dtw import Comparador, comparador_de_referencia
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
 from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
+from .reconocimiento import ReconocedorEjercicio, reconocedor_para
 from .registro import RegistroRepeticiones
 from .rutina import Ejercicio, Rutina
 
@@ -56,6 +57,8 @@ AVISO_SIN_PERSONA = "No te veo: colócate dentro del encuadre."
 AVISO_PAUSA = {SIN_PERSONA: "Pausa. No te veo: vuelve al encuadre para seguir.",
                INACTIVIDAD: "Pausa. Cuando quieras, sigue con el ejercicio."}
 AVISO_REANUDA = "Seguimos."
+#: aviso de EXP-010: no nombra el ejercicio que parece, solo el que toca
+AVISO_OTRO_EJERCICIO = "Ese movimiento no es el de ahora. Toca {nombre}."
 #: milisegundos sosteniendo el movimiento equivocado antes de avisar
 MOVIMIENTO_EQUIVOCADO_MS = 1000
 
@@ -178,19 +181,23 @@ class _Paso:
     equivocado_desde: Optional[int] = None
     ult_aviso_equivocado_ms: Optional[int] = None
     salto: _SaltoCadera = field(default_factory=_SaltoCadera)
+    #: EXP-010: ¿está haciendo este ejercicio? None si no hay referencias
+    reconocedor: Optional[ReconocedorEjercicio] = None
+    ult_aviso_otro_ms: Optional[int] = None
 
 
 class Sesion:
     def __init__(self, rutina: Rutina, catalogo: Mapping[str, Ejercicio],
                  estimador: Estimador, voz: Voz,
                  verbalizador: Optional[Verbalizador] = None,
-                 sin_dtw: bool = False) -> None:
+                 sin_dtw: bool = False, reconocer: bool = True) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
         self.voz = voz
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
         self.sin_dtw = sin_dtw
+        self.reconocer = reconocer
         self.latencias = Latencias()
         self.frames = 0
         self.frames_sin_persona = 0
@@ -240,7 +247,9 @@ class Sesion:
                                  alineador=(None if self.sin_dtw
                                             else comparador_de_referencia(ej.referencia)),
                                  registro=RegistroRepeticiones(ej),
-                                 guia=guia, guia_fps=guia_fps))
+                                 guia=guia, guia_fps=guia_fps,
+                                 reconocedor=(reconocedor_para(ej.skill.skill_id)
+                                              if self.reconocer else None)))
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -313,6 +322,11 @@ class Sesion:
             lat["dtw"] = (time.perf_counter() - t_dtw) * 1000
         if p.registro is not None:
             p.registro.actualizar(obs, seg)
+        otro_ejercicio = False
+        if p.reconocedor is not None:
+            t_rec = time.perf_counter()
+            otro_ejercicio = p.reconocedor.actualizar(obs)
+            lat["reconocimiento"] = (time.perf_counter() - t_rec) * 1000
 
         # La inactividad se vigila desde la primera repetición (o el primer
         # bloque en posición) y solo con señal válida: sin señal, el problema
@@ -320,9 +334,10 @@ class Sesion:
         progreso = ((seg.fase, seg.repeticion, seg.completadas, seg.incompletas)
                     if seg.repeticion > 0 and seg.senal_valida else None)
         self._anuncia_pausa(p, p.pausa.actualizar(
-            t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion)))
+            t_ms, True, progreso, self._orientacion_ok(skill, obs.orientacion),
+            otro_ejercicio), callar_reanudacion=otro_ejercicio)
         if p.pausa.pausada:
-            for etapa in ("geometria", "segmentacion", "dtw"):
+            for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento"):
                 if etapa not in lat:
                     continue
                 self.latencias.anota(etapa, lat[etapa])
@@ -336,7 +351,7 @@ class Sesion:
         salida = p.motor.procesar(obs)
         t3 = time.perf_counter()
         lat["motor"] = (t3 - t2) * 1000
-        for etapa in ("geometria", "segmentacion", "dtw", "motor"):
+        for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento", "motor"):
             if etapa not in lat:
                 continue
             self.latencias.anota(etapa, lat[etapa])
@@ -356,7 +371,8 @@ class Sesion:
 
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                  or self._revisa_encuadre(seg.senal_valida, t_ms)
-                 or self._revisa_movimiento_equivocado(p, obs, seg, t_ms))
+                 or self._revisa_movimiento_equivocado(p, obs, seg, t_ms)
+                 or self._revisa_otro_ejercicio(p, otro_ejercicio, t_ms))
         estado = self._estado(p, res, aviso, lat, obs.orientacion,
                               salida.motivo if isinstance(salida, Silencio) else None,
                               angulos=obs.angulos)
@@ -367,14 +383,19 @@ class Sesion:
         self.latencias.anota("total", lat["total"])
         return estado
 
-    def _anuncia_pausa(self, p: _Paso, evento: Optional[str]) -> None:
+    def _anuncia_pausa(self, p: _Paso, evento: Optional[str],
+                       callar_reanudacion: bool = False) -> None:
+        """`callar_reanudacion`: la pausa por inactividad se quitó porque
+        está haciendo otro ejercicio; «Seguimos» no tocaría, solo el aviso de
+        `_revisa_otro_ejercicio`."""
         if evento == EVENTO_PAUSA:
             self.voz.decir(AVISO_PAUSA[p.pausa.motivo], PRIORIDAD_AVISO)
         elif evento == EVENTO_REANUDA:
             p.segmentador.interrumpir()
             self._mal_orientada_desde = None
             self._ult_senal_ms = None
-            self.voz.decir(AVISO_REANUDA, PRIORIDAD_AVISO)
+            if not callar_reanudacion:
+                self.voz.decir(AVISO_REANUDA, PRIORIDAD_AVISO)
 
     @staticmethod
     def _orientacion_ok(skill, orientacion: Optional[float]) -> bool:
@@ -427,6 +448,22 @@ class Sesion:
             p.ult_aviso_equivocado_ms = t_ms
             self.voz.decir(conf["aviso"], PRIORIDAD_AVISO)
         return conf["aviso"]
+
+    def _revisa_otro_ejercicio(self, p: _Paso, otro: bool, t_ms: int) -> Optional[str]:
+        """Aviso de operación de EXP-010: lleva `reconocimiento.SOSTENIDO_MS`
+        haciendo algo que no es el ejercicio elegido. No dice qué parece."""
+        if not otro:
+            return None
+        texto = self._aviso_otro(p.ejercicio)
+        if (p.ult_aviso_otro_ms is None
+                or t_ms - p.ult_aviso_otro_ms >= ORIENTACION_REPETIR_S * 1000):
+            p.ult_aviso_otro_ms = t_ms
+            self.voz.decir(texto, PRIORIDAD_AVISO)
+        return texto
+
+    @staticmethod
+    def _aviso_otro(ej: Ejercicio) -> str:
+        return AVISO_OTRO_EJERCICIO.format(nombre=ej.skill.nombre.lower())
 
     def _revisa_encuadre(self, senal_valida: bool, t_ms: int) -> Optional[str]:
         if senal_valida or self._ult_senal_ms is None:
@@ -537,6 +574,7 @@ def frases_de_rutina(rutina: Rutina, catalogo: Mapping[str, Ejercicio],
         ej = catalogo[paso.skill_id]
         frases.add(Sesion._anuncio(ej, paso.repeticiones))
         frases.add(f"Muy bien, terminaste {ej.skill.nombre.lower()}.")
+        frases.add(Sesion._aviso_otro(ej))
         equivocado = (ej.segmentacion or {}).get("movimiento_equivocado")
         if equivocado:
             frases.add(equivocado["aviso"])

@@ -18,6 +18,11 @@ Dos motivos:
                  orientación correcta. Si durante esta pausa la persona sale
                  del encuadre `sin_persona_s`, el motivo pasa a ``sin_persona``.
 
+Hacer otro ejercicio no es inactividad (EXP-010): mientras el reconocedor ve
+otro movimiento (`otro_ejercicio`), la espera de inactividad no corre, y una
+pausa por inactividad en curso se quita. Así solo queda el aviso «ese
+movimiento no es el de ahora», sin una pausa encima.
+
 La quietud de un isométrico no es inactividad: en posición, el segmentador
 suma un segundo cada segundo y eso cuenta como progreso.
 
@@ -55,6 +60,7 @@ class DetectorPausa:
       ejercicio (p. ej. fase, repetición y contadores), o None si no se puede
       vigilar la inactividad (el ejercicio no empezó o la señal no es válida).
     * `orientacion_ok`: si está colocada como pide el ejercicio.
+    * `otro_ejercicio`: si el reconocedor ve otro ejercicio (ya sostenido).
 
     Devuelve `EVENTO_PAUSA`, `EVENTO_REANUDA` o None.
     """
@@ -82,8 +88,11 @@ class DetectorPausa:
 
     def actualizar(self, t_ms: int, persona: bool,
                    progreso: Optional[Hashable] = None,
-                   orientacion_ok: bool = True) -> Optional[str]:
+                   orientacion_ok: bool = True,
+                   otro_ejercicio: bool = False) -> Optional[str]:
         if self.pausada:
+            if self.motivo == INACTIVIDAD and persona and otro_ejercicio:
+                return self._reanudar(t_ms, progreso)
             return self._quizas_reanudar(t_ms, persona, progreso, orientacion_ok)
 
         if self._ult_persona_ms is None:
@@ -94,7 +103,7 @@ class DetectorPausa:
             return None
         self._ult_persona_ms = t_ms
 
-        if progreso is None or progreso != self._progreso:
+        if otro_ejercicio or progreso is None or progreso != self._progreso:
             self._progreso, self._ult_progreso_ms = progreso, t_ms
             return None
         if t_ms - self._ult_progreso_ms >= self.inactividad_ms:
@@ -115,6 +124,9 @@ class DetectorPausa:
         if self.motivo == INACTIVIDAD and (progreso is None
                                            or progreso == self._progreso):
             return None
+        return self._reanudar(t_ms, progreso)
+
+    def _reanudar(self, t_ms: int, progreso: Optional[Hashable]) -> str:
         self._pausado_ms = self.tiempo_pausado_ms(t_ms)
         self.motivo, self._desde_ms = None, None
         self._ult_persona_ms = self._ult_progreso_ms = t_ms
