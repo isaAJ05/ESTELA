@@ -570,7 +570,7 @@ La elección del stack prioriza tres propiedades: que todo se ejecute en el equi
 | Alineador DTW incremental de final abierto en la sesión, desactivable, con banda opcional | Completo (17 de octubre); reemplazó a la versión que recalculaba todo el prefijo y no era de final abierto | 24 pruebas del alineador y 3 sobre video |
 | Motor de decisión con abstención, política de silencio y refuerzo | Completo | 45 pruebas de decisión; banco sintético de 135 episodios |
 | *Skills* de los cuatro ejercicios, con los umbrales revisados por la licenciada | Completo; umbrales provisionales; trece desviaciones comprometidas y cuatro añadidas (24 reglas) | 14 pruebas de carga y validación de *skills* |
-| Umbrales relativos a la referencia (`threshold = k × max(σ, ruido)`) | Implementado; desactivado por defecto (`--umbrales referencia`) | 20 pruebas; al 21 de octubre una falla porque espera la σ de la referencia anterior de la plancha |
+| Umbrales relativos a la referencia (`threshold = k × max(σ, ruido)`) | Implementado; desactivado por defecto (`--umbrales referencia`) | 20 pruebas |
 | Verbalizador por plantillas y validador | Completo | 26 pruebas |
 | Verbalizador con modelo de lenguaje (adaptador) | Implementado; sin medir | Requiere `llama-server`, disponible solo en la Mac |
 | Cola de voz con Piper y respaldos | Completo | Pruebas de voz |
@@ -579,7 +579,7 @@ La elección del stack prioriza tres propiedades: que todo se ejecute en el equi
 | Guía visual *stick figure* animada | Completo (17 de octubre) | La figura se anima con los puntos 2D de la referencia, sincronizada con el tiempo de la sesión |
 | Arnés de instrumentación y evaluación | Completo  | Arnés `feedback_testing`, marcador `pytest -m metricas` |
 
-El código fuente cuenta con **269 pruebas automatizadas** que verifican el funcionamiento del sistema: al 21 de octubre pasan 265, se omiten 3 que requieren un video local y el modelo de pose, y falla 1 (la de los umbrales relativos de la plancha, señalada arriba). Las pruebas pertenecientes a la capa de dominio operan de manera pura (sin requerir acceso a cámaras ni GPUs), mientras que los componentes de aplicación e interfaz emplean simuladores de pose y voz para validar la orquestación completa sin depender del hardware final.
+El código fuente cuenta con **269 pruebas automatizadas** que verifican el funcionamiento del sistema: al 21 de octubre pasan 266 y se omiten 3 que requieren un video local y el modelo de pose. Las pruebas pertenecientes a la capa de dominio operan de manera pura (sin requerir acceso a cámaras ni GPUs), mientras que los componentes de aplicación e interfaz emplean simuladores de pose y voz para validar la orquestación completa sin depender del hardware final.
 
 ### 11.3 Integraciones realizadas
 
