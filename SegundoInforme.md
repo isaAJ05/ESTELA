@@ -14,7 +14,7 @@ Las soluciones disponibles pueden agruparse en tres familias: los videos y bibli
 
 El desafío técnico es observar el movimiento, compararlo con una referencia, decidir qué desviación merece comunicarse y comunicarla mientras el movimiento todavía ocurre. Esa decisión tiene dos riesgos que la literatura documenta: corregir sobre una medida que la cámara no podía ver, lo que produce mensajes bien redactados pero falsos [26], [27], y hablar demasiado, lo que la literatura de aprendizaje motor asocia con dependencia de la retroalimentación [3]. Por eso ESTELA trata el silencio como una salida de primera clase, con motivo registrado, y mide la latencia por etapa como criterio de aceptación.
 
-Este segundo informe documenta el estado del prototipo ESTELA al finalizar la semana 11 del semestre y presenta los avances realizados respecto al Informe 1. Durante este periodo se introdujeron cambios en el alcance funcional y en la arquitectura del sistema, sustentados en decisiones de diseño y experimentos preliminares. El documento describe el planteamiento actualizado del problema, los objetivos medibles, la solución propuesta, la arquitectura y el estado de implementación, así como las pruebas realizadas, los resultados parciales y las actividades pendientes para completar la validación del prototipo.
+Este segundo informe documenta el estado del prototipo ESTELA al finalizar la semana 11 del semestre y presenta los avances realizados respecto al Informe 1. Durante este periodo se introdujeron cambios en el alcance funcional y en la arquitectura del sistema, sustentados en decisiones de diseño y experimentos preliminares. El documento describe el planteamiento actualizado del problema, los objetivos medibles, la solución propuesta, la arquitectura y el estado de implementación, así como las pruebas realizadas, los resultados parciales y las actividades pendientes para completar la validación del prototipo. Esta versión se actualizó el 21 de octubre (semana 12) con el estado del código en la rama de integración (`test`); cuando un resultado se midió con una versión anterior del código, se indica.
 
 ## 2. Marco conceptual
 
@@ -195,9 +195,9 @@ Las restricciones del entorno de uso se formalizan mediante parámetros de contr
 
 - Una aplicación de escritorio de ejecución e inferencia locales para un único usuario, dirigida a personas adultas (aproximadamente 18–40 años) que se inician en la práctica de ejercicio.
 - Cuatro ejercicios fijos, cada uno con su vista: jumping jacks (de frente), abducción de cadera de pie, una pierna por serie (de frente), marcha con elevación de rodillas (de perfil) y plancha sobre antebrazos (de perfil, isométrica).
-- Detección de trece desviaciones de técnica definidas por ejercicio (tabla de la sección 4), con abstención explícita cuando la medida no es fiable o el plano no es observable.
+- Detección de trece desviaciones de técnica comprometidas por ejercicio (tabla de la sección 4), más cuatro añadidas después sin compromiso de métricas, con abstención explícita cuando la medida no es fiable o el plano no es observable.
 - Retroalimentación hablada en español durante la ejecución, por plantillas, con síntesis de voz local; avisos de operación (orientación, encuadre, pausa); y refuerzo positivo solo cuando todas las reglas aplicables pudieron comprobarse.
-- Interfaz de escritorio con pantallas de inicio, sesión y resumen, y un resumen de métricas por sesión.
+- Interfaz de escritorio con pantallas de inicio (con selección de ejercicios y repeticiones), sesión (con la guía visual animada) y resumen, y un resumen de métricas por sesión.
 - Instrumentación y medición del sistema como actividad propia del proyecto: latencia por etapa, fotogramas por segundo, retraso acumulado, silencios por causa, precisión y recobrado frente a anotación humana.
 - Validación en ambiente controlado con cinco participantes ejecutando la rutina completa.
 
@@ -232,20 +232,22 @@ Para garantizar una evaluación rigurosa y comprobable en la fase de validación
 | Ejercicio (vista) | Desviación | Medida y criterio actual | Plano |
 | --- | --- | --- | --- |
 | Jumping jacks (frente) | Brazos que no llegan arriba | ángulo máximo de hombro en la repetición < 100° | frontal |
-|  | Apertura de pies insuficiente | separación de tobillos / separación de caderas, máximo < 1,45 | frontal |
-|  | Codos flexionados | ángulo mínimo de codo < 135° | frontal |
+|  | Apertura de pies insuficiente | separación de tobillos / ancho de hombros, máximo en la repetición < 0,9 | frontal |
+|  | Codos flexionados | ángulo de codo durante la apertura < 90° | frontal |
 | Abducción de cadera, por pierna (frente) | Abducción insuficiente | ángulo máximo de abducción < 16°; no se dice si hay compensación | frontal |
 |  | Tronco inclinado al lado contrario | inclinación lateral del tronco > 8° | frontal |
 |  | Cadera del lado que se eleva sube | oblicuidad de la pelvis > 6° | frontal |
 | Marcha con elevación de rodillas (perfil) | Rodilla baja (izquierda o derecha) | ángulo mínimo de cadera de ese lado > 125° (180° = pierna extendida); solo se evalúa el lado visible | sagital |
-|  | Tronco muy inclinado | inclinación del tronco respecto a la vertical > 20° | sagital |
-| Plancha sobre antebrazos (perfil) | Cadera hundida | distancia vertical de la cadera a la recta hombro–tobillo / distancia hombro–cadera > 0,10 | sagital |
+|  | Tronco muy inclinado | inclinación del tronco respecto a la vertical > 15° | sagital |
+| Plancha sobre antebrazos (perfil) | Cadera hundida | distancia vertical de la cadera a la recta hombro–tobillo / distancia hombro–cadera > 0,07 | sagital |
 |  | Cadera elevada | la misma medida < −0,15 | sagital |
 |  | Hombros adelantados | desplazamiento horizontal hombro − codo / distancia hombro–cadera > 0,20 | sagital |
 |  | Hombros retrasados | la misma medida < −0,20 | sagital |
 |  | Cabeza desalineada | ángulo entre el eje del tronco y el del cuello > 30° | sagital |
 
-**Nota operacional:** Los trece tipos de desviación se despliegan operacionalmente en diecisiete reglas de evaluación, dado que las desviaciones de abducción de cadera y elevación de rodilla se evalúan de forma independiente para cada extremidad (izquierda y derecha). 
+**Nota operacional:** Los trece tipos de desviación se despliegan operacionalmente en diecisiete reglas de evaluación, dado que las desviaciones de abducción de cadera y elevación de rodilla se evalúan de forma independiente para cada extremidad (izquierda y derecha). Los umbrales de la tabla son los vigentes en el código al 21 de octubre: cuatro se ajustaron después de la primera versión de este informe (apertura de pies, codos, tronco en la marcha y cadera hundida), y todos siguen siendo provisionales hasta la calibración con las sesiones.
+
+**Desviaciones añadidas después de la línea base.** Entre el 12 y el 19 de octubre se implementaron cuatro desviaciones más, con umbrales provisionales y sin compromiso de métricas para la entrega: *sin salto* en los jumping jacks (la cadera no se eleva al menos 0,20 longitudes de tronco en la repetición); *rodilla extendida* en la marcha (ángulo mínimo de la rodilla de la pierna que sube > 90°, por lado); y, en la plancha, *codo fuera de 90°* (ángulo de codo fuera de 75–105°) y *rodilla flexionada* (ángulo de rodilla < 165°), ambas solo en el lado visible. Con ellas el catálogo implementado suma diecisiete tipos de desviación y veinticuatro reglas. Los objetivos de la sección 4.2 siguen referidos a las trece desviaciones de la tabla.
 
 El alcance del proyecto se limita a la detección comprobable de estas trece desviaciones en ambiente controlado. Criterios adicionales de dinámica compleja (como pérdida de equilibrio o coordinación intersegmentaria) quedan definidos como trabajo futuro fuera de la línea base del prototipo.
 
@@ -379,7 +381,8 @@ El desarrollo del proyecto se rige por un marco de **prototipado iterativo condu
 | 2 · 23–24 sep. | Aplicación v1: cámara → pose → geometría → segmentación → motor → voz (ADR-003) | Latencia de pose en x86 (≈ 40 ms p50, ≈ 50 ms p95 con el modelo *full*) | El presupuesto de 33 ms de p95 no se cumple en portátil; se fija como objetivo a verificar en la Mac |
 | 3 · 3–5 oct. | Conjunto de ejercicios con una cámara (ADR-005); referencia con DTW y papel del LLM (ADR-004); motor único, retiro de la BiLSTM y política de refuerzo (ADR-006) | Re-ejecución de EXP-001; EXP-008 (puntos de tronco con SpinePose) | Se corrige un defecto del arnés que inflaba la sobrecorrección al 80 %; se descarta SpinePose; se felicita solo lo comprobado (M8′ de 39,5 % a 0 %) |
 | 4 · 6–11 oct. | Catálogo de errores v2 enviado a la licenciada; *skills* nuevas; script de referencias offline; DTW integrado y desactivable; interfaz de escritorio; arquitectura en capas (ADR-007) | EXP-001 con el catálogo v2 (156 episodios); revisión de la licenciada | Umbrales de amplitud relajados a un piso permisivo (EXP-009); la zancada se retira por falta de referencia (enmienda de ADR-005) |
-| 5 · desde 12 oct. | Métricas de validación instrumentadas y este informe | Ejecución del arnés de métricas sobre videos disponibles (sección 14) | Pendiente: sesiones anotadas con cinco participantes y medición en la Mac |
+| 5 · 12–13 oct. | Métricas de validación instrumentadas y la primera versión de este informe | Ejecución del arnés de métricas sobre videos disponibles (sección 14) | Pendiente: sesiones anotadas con cinco participantes y medición en la Mac |
+| 6 · 13–19 oct. (semana 12) | DTW incremental de final abierto; guía visual animada desde la referencia; selección de ejercicios y repeticiones en la interfaz; referencias nuevas de plancha y marcha; umbrales relativos a la referencia (desactivados por defecto); cuatro desviaciones nuevas | Medición del DTW incremental en la sesión sobre diez videos; banco sintético re-ejecutado con el catálogo actual (135 episodios) | El costo del DTW deja de crecer con la repetición (p95 ≤ 0,71 ms); las desviaciones nuevas quedan fuera de los objetivos comprometidos |
 
 ### 7.3 Validaciones y ajustes
 
@@ -466,9 +469,9 @@ En su dimensión estructural, el sistema se divide en tres capas con responsabil
 
 En su dimensión operativa, ESTELA funciona como un pipeline local de procesamiento en tiempo real. La captura proporciona el fotograma más reciente y descarta los anteriores que hayan quedado pendientes de procesamiento. Sobre cada fotograma se encadenan la estimación de pose, el cálculo de medidas, la segmentación del movimiento, la comparación con la referencia, la toma de decisiones y la comunicación de la retroalimentación. La captura y la síntesis de voz se ejecutan en hilos propios para evitar bloquear el flujo principal de análisis. Las etapas intercambian estructuras de datos explícitas, lo que permite delimitar sus responsabilidades y evaluar su comportamiento individualmente.
 
-El funcionamiento de ESTELA se complementa con una fase de preparación *offline*, ejecutada previamente para cada ejercicio. Un script procesa el video de referencia, extrae las secuencias de ángulos de las repeticiones y las alinea mediante DTW. A partir de estas secuencias, selecciona el medoide —la repetición más representativa del conjunto— y calcula estadísticas de referencia por instante. Para la plancha, debido a su carácter isométrico, se utiliza la postura media. Aunque este proceso ya cuenta con una implementación, la generación de la guía visual mediante figuras esquemáticas (*stick figures*) continúa pendiente.
+El funcionamiento de ESTELA se complementa con una fase de preparación *offline*, ejecutada previamente para cada ejercicio. Un script procesa el video de referencia, extrae las secuencias de ángulos de las repeticiones y las alinea mediante DTW. A partir de estas secuencias, selecciona el medoide —la repetición más representativa del conjunto— y calcula estadísticas de referencia por instante. Para la plancha, debido a su carácter isométrico, se utiliza la postura media. La referencia guarda además los puntos 2D de la repetición elegida, con los que la interfaz anima la guía visual (*stick figure*) del ejercicio durante la sesión.
 
-La arquitectura permite sustituir o configurar determinados componentes sin modificar toda la lógica del sistema. Por ejemplo, MediaPipe se integra mediante el puerto `Estimador`, lo que permite cambiar el estimador de pose sin alterar el dominio. Asimismo, el verbalizador se inyecta en el motor de feedback (`MotorFeedback`), que une la decisión con la verbalización, lo que permite comparar, mediante EXP-001, el uso de plantillas predeterminadas con la generación de mensajes asistida por un modelo de lenguaje. Este último recibe un error previamente tipificado y propone su formulación verbal, pero no determina qué error ocurrió ni cuándo debe emitirse una indicación. Si falla o supera el presupuesto de ejecución establecido, el sistema puede recurrir a las plantillas. Hoy este verbalizador está implementado como adaptador y lo utiliza el banco de EXP-001, pero la aplicación (`python -m estela`) todavía no lo activa: su conexión al arranque queda como pendiente para la entrega final y condicionada a que EXP-001 confirme los criterios acordados (sección 11.4). Por su parte, el alineador DTW puede desactivarse mediante el parámetro `--sin-dtw`, lo que permite comparar reglas absolutas y relativas a la referencia sobre las mismas secuencias.
+La arquitectura permite sustituir o configurar determinados componentes sin modificar toda la lógica del sistema. Por ejemplo, MediaPipe se integra mediante el puerto `Estimador`, lo que permite cambiar el estimador de pose sin alterar el dominio. Asimismo, el verbalizador se inyecta en el motor de feedback (`MotorFeedback`), que une la decisión con la verbalización, lo que permite comparar, mediante EXP-001, el uso de plantillas predeterminadas con la generación de mensajes asistida por un modelo de lenguaje. Este último recibe un error previamente tipificado y propone su formulación verbal, pero no determina qué error ocurrió ni cuándo debe emitirse una indicación. Si falla o supera el presupuesto de ejecución establecido, el sistema puede recurrir a las plantillas. Hoy este verbalizador está implementado como adaptador y lo utiliza el banco de EXP-001, pero la aplicación (`python -m estela`) todavía no lo activa: su conexión al arranque queda como pendiente para la entrega final y condicionada a que EXP-001 confirme los criterios acordados (sección 11.4). Por su parte, el alineador DTW puede desactivarse mediante el parámetro `--sin-dtw`, lo que permite comparar reglas absolutas y relativas a la referencia sobre las mismas secuencias. Las reglas relativas a la referencia ya están implementadas y se activan con `--umbrales referencia`; por defecto se usan los umbrales absolutos hasta calibrarlas.
 
 En conjunto, la arquitectura combina una separación estructural por capas y adaptadores con un pipeline de análisis del movimiento en tiempo real. La evaluación tecnológica de la sección 9 aporta el contexto para comprender los componentes seleccionados, mientras que el ADR-007 documenta las consideraciones y alternativas arquitectónicas examinadas. El objetivo es mantener una solución local, modular y reproducible, con una complejidad acorde con las necesidades del proyecto.
 
@@ -480,7 +483,7 @@ En conjunto, la arquitectura combina una separación estructural por capas y ada
 | Estimador de pose | Adaptador `pose/` | MediaPipe Pose Landmarker (*lite*, *full* o *heavy*): 33 puntos de imagen y de mundo con visibilidad; `landmarks.py` traduce esos puntos y entrega a la interfaz los de cada segmento corporal | RF-03, RNF-01 |
 | Geometría | Dominio `feedback/motor/geometria.py` | Convertir puntos en ángulos y distancias normalizadas con nombre canónico, plano anatómico y confianza = mínimo de la visibilidad; estimar la orientación | RF-03, RF-07 |
 | Segmentador | Dominio `conteo/` | Fase, repetición y conteo: ciclo, alternante o isométrico (bloques de tiempo) | RF-04 |
-| Alineador DTW | Aplicación `dtw.py` | Alinear la repetición en curso con la referencia y añadir el ángulo de referencia, el coste y el progreso (hoy el progreso sale siempre 1,0; véase la sección 11.2) | RF-05 |
+| Alineador DTW | Aplicación `dtw.py` | Alinear la repetición en curso con la referencia y añadir el ángulo de referencia, el coste y el progreso, con un DTW incremental de final abierto que en cada fotograma actualiza solo la última columna de la matriz de coste; en la plancha, que es isométrica, entrega la postura media | RF-05 |
 | Motor de decisión | Dominio `feedback/motor/decision.py` | Abstención por confianza y plano, evaluación de reglas, evidencia, prioridad única, política de silencio y refuerzo | RF-06, RF-07, RF-08, RF-14, RNF-04, RNF-07 |
 | Motor de feedback | Dominio `feedback/pipeline.py` | Una instancia por ejercicio: recibe la observación, la pasa al motor de decisión y, si hay error o refuerzo, al verbalizador inyectado; devuelve el mensaje o el silencio y los tiempos de decisión y de verbalización | RF-06, RF-09 |
 | Verbalizador y validador | Dominio `feedback/verbalizador/` | Plantillas en español por error y severidad; validador que rechaza segmento o lado distintos, vocabulario clínico o exceso de longitud | RF-09, RNF-04 |
@@ -488,10 +491,10 @@ En conjunto, la arquitectura combina una separación estructural por capas y ada
 | Cola y motor de voz | Adaptador `voz/` | Hilo propio; un solo hueco pendiente (la frase nueva sustituye a la vieja; hoy los avisos de la aplicación tienen prioridad sobre las correcciones, y la sección 11.4 prevé invertirlo); Piper con frases sintetizadas al inicio; respaldo a voz del sistema o texto | RF-10, RNF-02, RNF-06 |
 | Sesión y rutina | Aplicación `sesion.py`, `rutina.py`, `pausa.py` | Orquestar el bucle por fotograma, avanzar la rutina, detectar pausas y avisos de operación, medir latencias y resumir la sesión | RF-01, RF-11, RF-15 |
 | Registro por repetición | Aplicación `registro.py` | Anotar, por repetición o bloque de segundos, si contó y el mínimo y el máximo de las medidas que importan al ejercicio, para revisar a mano por qué el sistema contó o corrigió; con `--guardar-metricas` se escribe como CSV, sin video ni puntos articulares | EXP-009, RF-15 |
-| Orquestador e interfaz | Adaptador `interfaz/` + `frontend/` | Ejecutar la sesión en un hilo, traducir su estado a JSON y mostrarlo en las pantallas de inicio, sesión y resumen; `overlay.py` ofrece una ventana simple de OpenCV como alternativa | RF-12 (RF-13 pendiente) |
+| Orquestador e interfaz | Adaptador `interfaz/` + `frontend/` | Ejecutar la sesión en un hilo, traducir su estado a JSON y mostrarlo en las pantallas de inicio (con la selección de la rutina), sesión (con la guía visual animada) y resumen; `overlay.py` ofrece una ventana simple de OpenCV como alternativa | RF-01, RF-12, RF-13 |
 | Arranque | `__main__.py`, `config.py` | Leer las opciones de la línea de comandos, crear los adaptadores (voz, estimador, fuente, interfaz) y entregárselos a la sesión; escribir el resumen y el registro al terminar | RF-15 |
 | *Skills* y referencias | Archivos JSON en `dominio/feedback/skills/` (las referencias, en `skills/referencias/`) | Todo el conocimiento del ejercicio: fases, orientación, reglas, umbrales con su origen, política de silencio, segmentación y referencia | RNF-08 |
-| Creador de referencias | `scripts/crear_referencia.py` (offline) | Construir la referencia de un ejercicio a partir de un video, reutilizando el estimador, la geometría y el segmentador; guarda también los puntos 2D para la guía visual, aún sin conectar a la interfaz | RF-05 (RF-13 pendiente) |
+| Creador de referencias | `scripts/crear_referencia.py` (offline) | Construir la referencia de un ejercicio a partir de un video, reutilizando el estimador, la geometría y el segmentador; guarda también los puntos 2D con los que se anima la guía visual | RF-05, RF-13 |
 
 Las rutas de la columna «Capa / ubicación» son relativas a `backend/estela/<capa>/`, salvo el creador de referencias, que está en `backend/scripts/`.
 
@@ -533,9 +536,9 @@ La segunda secuencia relevante es la del verbalizador con modelo de lenguaje, qu
 
 **Verbalizador con modelo de lenguaje y caída a plantilla.** Diagrama de secuencia que distingue la condición F (con validación) de la condición F′ (sin validación) y muestra las dos causas de caída a la plantilla: la salida rechazada por el validador y el fallo de conexión, de tiempo o de formato.
 
-**Eficiencia y cuellos de botella.** El flujo no tiene pasos redundantes: cada fotograma se estima una sola vez, y la conversión a JSON y la compresión de la imagen para la interfaz ocurren en el hilo de la interfaz, no en el de la sesión. Las mediciones preliminares (sección 14.3) identifican tres cuellos de botella. El primero es la estimación de pose, que domina el tiempo por fotograma: en un portátil de bajo consumo, MediaPipe *full* midió 28,7 ms de p95 a ritmo real y 35,0 ms procesando sin pausa, al límite del objetivo de 33 ms, por lo que la medición en el equipo final es decisiva (EXP-004). El segundo es el DTW: la implementación actual recalcula el alineamiento de todo el prefijo de la repetición en cada fotograma, con un costo de unos 0,31 ms por fotograma de prefijo que crece sin límite cuando el segmentador no cierra la repetición; es la causa de los fotogramas descartados y de la deriva observada, y EXP-010 lo compara con una banda de Sakoe-Chiba [15]. El tercero está en la voz: la síntesis no limita, porque las frases se sintetizan al arrancar (factor de tiempo real 0,085), pero la cola tiene un solo hueco y no interrumpe la frase en curso, de modo que una corrección que llega durante el anuncio del ejercicio espera varios segundos.
+**Eficiencia y cuellos de botella.** El flujo no tiene pasos redundantes: cada fotograma se estima una sola vez, y la conversión a JSON y la compresión de la imagen para la interfaz ocurren en el hilo de la interfaz, no en el de la sesión. Las mediciones preliminares (sección 14.3) identifican tres cuellos de botella. El primero es la estimación de pose, que domina el tiempo por fotograma: en un portátil de bajo consumo, MediaPipe *full* midió 28,7 ms de p95 a ritmo real y 35,0 ms procesando sin pausa, al límite del objetivo de 33 ms, por lo que la medición en el equipo final es decisiva (EXP-004). El segundo era el DTW: la versión medida recalculaba el alineamiento de todo el prefijo de la repetición en cada fotograma, con un costo de unos 0,31 ms por fotograma de prefijo que crecía sin límite cuando el segmentador no cerraba la repetición; fue la causa de los fotogramas descartados y de la deriva observada. En la semana 12 se reemplazó por un DTW incremental de final abierto, cuyo costo por fotograma no crece con la repetición (sección 14.3). El tercero está en la voz: la síntesis no limita, porque las frases se sintetizan al arrancar (factor de tiempo real 0,085), pero la cola tiene un solo hueco y no interrumpe la frase en curso, de modo que una corrección que llega durante el anuncio del ejercicio espera varios segundos.
 
-**Desacoplamiento.** La interacción refleja un buen desacoplamiento en tres pruebas concretas: el motor se valida sin cámara con un banco sintético de 120 episodios; la sesión completa se prueba con un estimador y una voz falsos; y la interfaz se desarrolla con un backend simulado. La política de descarte en los tres puntos de concurrencia evita que un componente lento acumule retraso en otro, a costa de saltarse fotogramas o mensajes viejos, que el sistema contabiliza (fotogramas descartados, frases descartadas) para que ese costo sea visible en las métricas.
+**Desacoplamiento.** La interacción refleja un buen desacoplamiento en tres pruebas concretas: el motor se valida sin cámara con un banco sintético de 135 episodios; la sesión completa se prueba con un estimador y una voz falsos; y la interfaz se desarrolla con un backend simulado. La política de descarte en los tres puntos de concurrencia evita que un componente lento acumule retraso en otro, a costa de saltarse fotogramas o mensajes viejos, que el sistema contabiliza (fotogramas descartados, frases descartadas) para que ese costo sea visible en las métricas.
 
 ## 11. Implementación y avance actual
 
@@ -561,21 +564,22 @@ La elección del stack prioriza tres propiedades: que todo se ejecute en el equi
 | --- | --- | --- |
 | Captura de cámara y de video | Completo | Pruebas de fuente; reproducción determinista de videos |
 | Estimador MediaPipe (*lite*, *full*, *heavy*) | Completo | Adaptador con latencia por fotograma |
-| Geometría: 31 medidas canónicas con plano y confianza, y orientación del sujeto | Completo | 31 pruebas de geometría |
-| Segmentador: ciclo, alternante e isométrico | Completo | 21 pruebas |
-| Referencias offline de los cuatro ejercicios (cinco archivos, la abducción por pierna) | Completo  | Script `crear_referencia.py`;  |
-| Alineador DTW en la sesión, desactivable, con banda opcional | Implementado con un defecto conocido: no es de extremo abierto (el progreso sale siempre 1,0); no afecta a ninguna decisión actual | Pruebas de sesión e instrumentación |
-| Motor de decisión con abstención, política de silencio y refuerzo | Completo | 43 pruebas de decisión; banco sintético de 100 episodios |
-| *Skills* de los cuatro ejercicios, con los umbrales revisados por la licenciada | Completo; umbrales provisionales | 14 pruebas de carga y validación de *skills* |
+| Geometría: 31 medidas canónicas con plano y confianza, y orientación del sujeto | Completo | 35 pruebas de geometría |
+| Segmentador: ciclo, alternante e isométrico | Completo | 25 pruebas, más 3 de alternancia y salto |
+| Referencias offline de los cuatro ejercicios (cinco archivos, la abducción por pierna) | Completo; las de plancha y marcha se regeneraron el 17 de octubre | Script `crear_referencia.py` |
+| Alineador DTW incremental de final abierto en la sesión, desactivable, con banda opcional | Completo (17 de octubre); reemplazó a la versión que recalculaba todo el prefijo y no era de final abierto | 24 pruebas del alineador y 3 sobre video |
+| Motor de decisión con abstención, política de silencio y refuerzo | Completo | 45 pruebas de decisión; banco sintético de 135 episodios |
+| *Skills* de los cuatro ejercicios, con los umbrales revisados por la licenciada | Completo; umbrales provisionales; trece desviaciones comprometidas y cuatro añadidas (24 reglas) | 14 pruebas de carga y validación de *skills* |
+| Umbrales relativos a la referencia (`threshold = k × max(σ, ruido)`) | Implementado; desactivado por defecto (`--umbrales referencia`) | 20 pruebas; al 21 de octubre una falla porque espera la σ de la referencia anterior de la plancha |
 | Verbalizador por plantillas y validador | Completo | 26 pruebas |
 | Verbalizador con modelo de lenguaje (adaptador) | Implementado; sin medir | Requiere `llama-server`, disponible solo en la Mac |
 | Cola de voz con Piper y respaldos | Completo | Pruebas de voz |
 | Sesión, rutina, pausas por ausencia o inactividad, avisos de colocación | Completo | Pruebas de sesión y de pausa |
-| Interfaz de escritorio: inicio, sesión (cámara, esqueleto, contador, último mensaje, motivo de silencio) y resumen | Completo | 21 pruebas del contrato y del orquestador |
-| Guía visual *stick figure* | Pendiente | La interfaz tiene el espacio; falta refinar los puntos de la referencia |
+| Interfaz de escritorio: inicio (con selección de ejercicios y repeticiones), sesión (cámara, esqueleto, contador, último mensaje, motivo de silencio, guía visual) y resumen | Completo | 32 pruebas del contrato y del orquestador |
+| Guía visual *stick figure* animada | Completo (17 de octubre) | La figura se anima con los puntos 2D de la referencia, sincronizada con el tiempo de la sesión |
 | Arnés de instrumentación y evaluación | Completo  | Arnés `feedback_testing`, marcador `pytest -m metricas` |
 
-El código fuente cuenta con **237 pruebas automatizadas** que verifican el funcionamiento del sistema. Las pruebas pertenecientes a la capa de dominio operan de manera pura (sin requerir acceso a cámaras ni GPUs), mientras que los componentes de aplicación e interfaz emplean simuladores de pose y voz para validar la orquestación completa sin depender del hardware final.
+El código fuente cuenta con **269 pruebas automatizadas** que verifican el funcionamiento del sistema: al 21 de octubre pasan 265, se omiten 3 que requieren un video local y el modelo de pose, y falla 1 (la de los umbrales relativos de la plancha, señalada arriba). Las pruebas pertenecientes a la capa de dominio operan de manera pura (sin requerir acceso a cámaras ni GPUs), mientras que los componentes de aplicación e interfaz emplean simuladores de pose y voz para validar la orquestación completa sin depender del hardware final.
 
 ### 11.3 Integraciones realizadas
 
@@ -596,7 +600,7 @@ Para completar la consolidación y validación del prototipo de cara a la entreg
 2. **Caracterización de rendimiento en el hardware objetivo:** Evaluación cuantitativa de la tasa de fotogramas por segundo, la latencia por etapa (pose, geometría, decisión, síntesis) y el tiempo total de extremo a extremo sobre el equipo final de pruebas (Mac Studio M2 Ultra), incluyendo la evaluación comparativa de las variantes del estimador de pose y el verbalizador con modelo de lenguaje local.
 3. **Calibración empírica de umbrales biomecánicos:** Ajuste fino de los parámetros y tolerancias de amplitud articular a partir del análisis del banco de ejecuciones reales grabado durante las pruebas.
 4. **Refinamiento de la tolerancia de orientación del sujeto:** Ajuste de los rangos de ángulo de cámara para los ejercicios de abducción de cadera y plancha sobre antebrazos, garantizando la observabilidad óptima en sus respectivos planos anatómicos.
-5. **Optimización del alineamiento temporal (DTW):** Implementación de la alineación incremental con ventana acotada para mitigar el costo computacional en repeticiones extendidas, junto con la actualización de la secuencia de referencia para el ejercicio de marcha.
+5. **Optimización del alineamiento temporal (DTW):** completada en la semana 12 con el DTW incremental de final abierto y las referencias nuevas de marcha y plancha. Falta medir su efecto en la sesión completa con cámara (EXP-007).
 6. **Gestión de contingencias:** Especificación formal del mecanismo de respuesta del sistema ante la indisponibilidad total del servidor local de lenguaje.
 7. **Optimización de la cola de audio:** Implementación de políticas de interrupción prioritaria en la cola de voz para que las correcciones de técnica prevalezcan de forma inmediata sobre los anuncios informativos o instrucciones de inicio.
 
@@ -670,17 +674,19 @@ Después de actualizar el código con `git pull`, se repite `pip install -e ".[v
 
 ### 12.4 Opciones de ejecución
 
-`python -m estela` abre la ventana de escritorio con la rutina completa: *jumping jacks*, abducción de cadera izquierda y derecha, marcha y plancha. Estas opciones son iguales en los tres sistemas:
+`python -m estela` abre la ventana de escritorio con la rutina completa: *jumping jacks*, abducción de cadera izquierda y derecha, marcha y plancha. Desde la pantalla de inicio se pueden elegir los ejercicios y sus repeticiones. Estas opciones son iguales en los tres sistemas:
 
 | Comando | Qué hace |
 | --- | --- |
 | `python -m estela --ejercicio marcha_rodillas --repeticiones 8` | Un solo ejercicio; en la plancha, `--repeticiones` son segundos |
 | `python -m estela --video archivo.mp4` | Usa un video en lugar de la cámara |
 | `python -m estela --camara 1` | Elige otra cámara si hay varias |
-| `python -m estela --modelo lite` | Modelo de pose: `lite`, `full` (por defecto) o `heavy` |
+| `python -m estela --modelo full` | Modelo de pose: `lite` (por defecto), `full` o `heavy` |
 | `python -m estela --voz texto` | Voz: `piper` (por defecto), `sistema` o `texto` (sin audio) |
 | `python -m estela --interfaz opencv` | Ventana simple de OpenCV en lugar de la interfaz de escritorio |
 | `python -m estela --sin-dtw` | Desactiva la comparación con el movimiento de referencia |
+| `python -m estela --umbrales referencia` | Mide las reglas que tienen forma relativa contra la referencia del ejercicio (por defecto, umbrales absolutos) |
+| `python -m estela --rutina archivo.json` | Usa una rutina guardada en un archivo en lugar de la rutina por defecto |
 | `python -m estela --guardar-metricas` | Guarda el resumen de la sesión en `backend/sesiones/`, sin imágenes ni puntos articulares |
 | `pytest` | Ejecuta las pruebas automáticas, que no necesitan cámara |
 
@@ -706,7 +712,7 @@ Se realizaron pruebas unitarias sobre los principales módulos de ESTELA, con el
 
 Adicionalmente, se realizaron pruebas de arquitectura para comprobar que los módulos del dominio y de aplicación no dependieran directamente de los adaptadores de cámara, estimación de pose, voz, interfaz gráfica o red. Estas verificaciones contribuyen a mantener separada la lógica de decisión de las tecnologías utilizadas para ejecutarla.
 
-El motor de decisión también se evaluó mediante un banco sintético utilizado en la comparación de verbalizadores. Este banco contiene 100 episodios deterministas que representan errores de distinta severidad, medidas ocluidas, planos no observables y ejecuciones correctas. Su propósito es comprobar que el motor responde de acuerdo con las reglas definidas, no simular la biomecánica de una persona real.
+El motor de decisión también se evaluó mediante un banco sintético utilizado en la comparación de verbalizadores. Este banco contiene 135 episodios deterministas que representan errores de distinta severidad, medidas ocluidas, planos no observables y ejecuciones correctas. Su propósito es comprobar que el motor responde de acuerdo con las reglas definidas, no simular la biomecánica de una persona real.
 
 Por otra parte, el estudio de observabilidad monocular permitió analizar esqueletos tridimensionales sintéticos en diferentes orientaciones. Este experimento aportó evidencia para determinar qué medidas pueden evaluarse desde una sola cámara y establecer las orientaciones requeridas por los ejercicios. Los resultados de ambos estudios se presentan en la sección 14.
 
@@ -745,7 +751,7 @@ Las sesiones se desarrollaron mediante observación directa y registro continuo 
 - El sistema no detecta algunos errores cuando la desviación es muy pequeña.
 - En la plancha casi no hay mensajes mientras la ejecución es correcta, y la experiencia se percibe solitaria. Sugirieron indicar el tiempo restante o dar mensajes de ánimo.
 - El lenguaje de algunas correcciones y de los avisos de ajuste de cámara puede ser más claro.
-- La interfaz todavía no permite elegir los ejercicios ni el número de repeticiones.
+- La interfaz todavía no permitía elegir los ejercicios ni el número de repeticiones (resuelto en la semana 12).
 
 #### **Sugerencias de mejora**
 
@@ -765,7 +771,8 @@ Las sesiones se desarrollaron mediante observación directa y registro continuo 
 | Contador detenido sin explicación | Mostrar en pantalla el motivo cuando el sistema no evalúa (fuera de encuadre, orientación incorrecta, pausa) |
 | Lenguaje de correcciones y avisos de cámara | Revisar las plantillas de frases |
 | Plancha sin mensajes, pocas felicitaciones | Revisar la frecuencia de los mensajes de refuerzo y añadir aviso de tiempo restante |
-| Elegir ejercicios y repeticiones, tiempo de actividad, ocultar líneas guía | Cambios de interfaz para la entrega final |
+| Elegir ejercicios y repeticiones | Implementado (semana 12) |
+| Tiempo de actividad, ocultar líneas guía | Cambios de interfaz para la entrega final |
 | Ritmo del ejercicio, puntuación | Evaluar si caben en el tiempo disponible |
 | Historial, más ejercicios, versión móvil | Fuera del alcance del prototipo (cuatro ejercicios, aplicación de escritorio) |
 
@@ -785,7 +792,7 @@ Cada experimento declara hipótesis, alternativas, datos, protocolo, métricas y
 
 - **Pregunta e hipótesis.** Con la detección fija, ¿redacta mejor un modelo de lenguaje pequeño y local que una plantilla, sin introducir errores de contenido ni romper el presupuesto de latencia? Hipótesis nula: la plantilla es al menos igual de exacta y siempre más rápida.
 - **Alternativas.** A: plantillas (línea base y respaldo permanente). F: modelo de lenguaje local con salida restringida y validador. F′: F con variantes de frase.
-- **Datos.** El banco sintético (100 episodios, ya ejecutado para A) y los errores emitidos durante las sesiones V-01, verbalizados por A y por F a partir del mismo `ErrorTipificado`.
+- **Datos.** El banco sintético (135 episodios con el catálogo actual, ya ejecutado para A) y los errores emitidos durante las sesiones V-01, verbalizados por A y por F a partir del mismo `ErrorTipificado`.
 - **Protocolo.** Se ejecuta cada condición sobre las mismas entradas; las frases se presentan a evaluadores sin indicar su origen.
 - **Métricas.** M1, exactitud de contenido (el mensaje nombra el segmento y el lado del error de referencia; doble anotación ciega con κ); M2, aserciones no soportadas; M3, sobrecorrección; M4, latencia p50 y p95 de verbalización; M5, determinismo; M6, naturalidad percibida (Likert, al menos cinco evaluadores, exploratoria); M7, tasa de caída a plantilla.
 - **Criterio de decisión (fijado antes de medir).** Se adopta F solo si M1(F) ≥ M1(A), M2(F) = 0 %, M3(F) ≤ M3(A) y el p95 de M4 cabe en el presupuesto. En cualquier otro caso se mantiene A. A gana los empates.
@@ -828,29 +835,31 @@ Cada experimento declara hipótesis, alternativas, datos, protocolo, métricas y
 #### EXP-010 — DTW clásico frente a DTW con banda
 
 - **Pregunta e hipótesis.** ¿Reduce una banda de Sakoe-Chiba [15] la latencia del alineamiento sin cambiar la referencia alineada que reciben las reglas? Hipótesis: con una banda adecuada, el p95 de latencia del DTW baja sustancialmente y la diferencia en el ángulo de referencia es menor que el ruido del estimador.
-- **Alternativas.** DTW clásico sin restricción (implementación actual, que recalcula todo el prefijo en cada fotograma) y DTW con banda de varios anchos.
+- **Alternativas.** DTW clásico sin restricción (la versión medida en la sección 14.3, que recalcula todo el prefijo en cada fotograma) y DTW con banda de varios anchos.
 - **Datos.** Las cuatro referencias de ejercicios cíclicos (la plancha usa una postura media y no DTW) y las mismas secuencias de video para ambas variantes.
 - **Métricas.** Latencia por fotograma del DTW en función de la longitud de la repetición (media, p95, máximo); diferencia absoluta media y máxima del ángulo de referencia y del progreso respecto a la variante clásica; coste de alineamiento.
 - **Criterio (propuesto).** Se adopta la banda más estrecha cuya diferencia media en el ángulo de referencia sea menor que la desviación típica de la referencia en ese instante; si la variante clásica ya cumple el presupuesto con margen en el Mac Studio, se mantiene por simplicidad.
-- **Estado.** Programa de medición implementado; medición preliminar en la sección 14.
+- **Estado.** Programa de medición implementado; medición preliminar en la sección 14. Después se adoptó una tercera alternativa, el DTW incremental de final abierto, que acota el costo por fotograma (p95 ≤ 0,71 ms en diez videos); la banda queda como opción configurable.
 
 ## 14. Resultados parciales y discusión
 
 ### 14.1 Banco sintético del módulo de retroalimentación (verbalizador por plantillas)
 
+Resultados con el catálogo actual (diecisiete tipos de desviación, veinticuatro reglas), ejecutados el 21 de octubre. La primera versión de este informe reportó el mismo banco con el catálogo de trece desviaciones (100 episodios): los porcentajes eran iguales, salvo el elogio con un error no observable (5,9 %, 2 de 34).
+
 | Métrica | Valor | n |
 | --- | --- | --- |
-| Coherencia entre el error inducido y el señalado (sintética) | 100,0 % | 51 episodios |
-| Aserciones no soportadas | 0,0 % | 102 mensajes |
+| Coherencia entre el error inducido y el señalado (sintética) | 100,0 % | 72 episodios |
+| Aserciones no soportadas | 0,0 % | 159 mensajes |
 | Sobrecorrección en ejecuciones correctas | 0,0 % | 15 episodios |
-| Determinismo | 100,0 % | 100 episodios × 10 ejecuciones |
-| Caída a plantilla | 0,0 % | 119 mensajes |
-| Elogio con un error observable | 0,0 % | 51 episodios |
-| Elogio con un error presente pero no observable | 5,9 % | 34 episodios |
-| Abstención con la medida ocluida o el plano no observable | 100,0 % | 34 episodios (17 con la medida ocluida y 17 con el plano no observable) |
-| Densidad de mensajes | 2,55 correcciones + 0,42 elogios por minuto | — |
+| Determinismo | 100,0 % | 135 episodios × 10 ejecuciones |
+| Caída a plantilla | 0,0 % | 182 mensajes |
+| Elogio con un error observable | 0,0 % | 72 episodios |
+| Elogio con un error presente pero no observable | 16,7 % | 48 episodios |
+| Abstención con la medida ocluida o el plano no observable | 100,0 % | 48 episodios (24 con la medida ocluida y 24 con el plano no observable) |
+| Densidad de mensajes | 2,94 correcciones + 0,43 elogios por minuto | — |
 
-El motor hace lo que su contrato promete: nunca nombra un segmento o un lado que no detectó, no corrige ejecuciones correctas del banco y calla cuando la medida no es fiable o el plano no es observable. El 5,9 % de elogios con un error no observable (2 de 34 episodios) es un costo conocido y aceptado por el equipo: corresponde a episodios en los que el error está en la pierna que la cámara no ve de perfil; como la marcha solo evalúa el lado visible, el sistema felicita por lo que sí comprueba. Estas cifras **no** son exactitud sobre personas: el banco genera directamente las medidas que el motor consume y no simula biomecánica. La sobrecorrección de 0 % debe leerse junto con el 30,4 % que CoachMe documenta [26]: indica que la arquitectura no tiene el sesgo estructural de un modelo entrenado solo con ejemplos correctivos, no que el sistema no vaya a sobrecorregir a personas reales. Las cifras se regeneran con `python -m feedback_testing.runner` desde `backend/`, sobre la misma versión del código que las mediciones de 14.3.
+El motor hace lo que su contrato promete: nunca nombra un segmento o un lado que no detectó, no corrige ejecuciones correctas del banco y calla cuando la medida no es fiable o el plano no es observable. El 16,7 % de elogios con un error no observable (8 de 48 episodios) es un costo conocido y aceptado por el equipo: son episodios de la marcha (4) y de la plancha (4) con la medida del error ocluida en una regla que solo evalúa el lado visible, de modo que el sistema felicita por lo que sí comprueba. Sube respecto a la primera versión porque las reglas nuevas de la marcha (rodilla extendida) y de la plancha (codo y rodilla) también se evalúan por lado. Estas cifras **no** son exactitud sobre personas: el banco genera directamente las medidas que el motor consume y no simula biomecánica. La sobrecorrección de 0 % debe leerse junto con el 30,4 % que CoachMe documenta [26]: indica que la arquitectura no tiene el sesgo estructural de un modelo entrenado solo con ejemplos correctivos, no que el sistema no vaya a sobrecorregir a personas reales. Las cifras se regeneran con `python -m feedback_testing.runner` desde `backend/`, sobre la misma versión del código que las mediciones de 14.3.
 
 ### 14.2 Observabilidad monocular
 
@@ -896,7 +905,9 @@ Las mediciones de esta sección se obtuvieron con el programa de medición inclu
 
 **DTW clásico frente a banda (preliminar).** El DTW clásico cuesta unos 0,31 ms por fotograma de prefijo: unos 14 ms con prefijos de 31–60 fotogramas y unos 90 ms con más de 240. Una banda del 10 % lo reduce unas cinco veces, pero no produce resultado en el 7–32 % de los fotogramas (prefijos cortos). Cuando ambas variantes dan resultado, coinciden. La medición reveló además un defecto: el alineamiento termina siempre en la última celda, de modo que el progreso vale 1,0 y el ángulo de referencia es el del último fotograma de la referencia en el 100 % de los casos; es decir, el DTW actual **no es de extremo abierto**. Hoy no altera ninguna decisión, porque ninguna regla usa todavía la desviación respecto a la referencia, pero debe corregirse antes de usarla.
 
-**Voz y verbalización.** Piper sintetiza con un factor de tiempo real de 0,085 (p50 de 301 ms por frase, 76 frases), por lo que la síntesis no limita. El verbalizador por plantillas mantiene en el banco sintético 0 % de aserciones no soportadas y de sobrecorrección y 100 % de determinismo, con p95 de 0,18 ms; el verbalizador con modelo de lenguaje queda pendiente de medición en el Mac Studio.
+**Actualización del DTW (semana 12).** El defecto se corrigió después de estas mediciones: el alineador actual es incremental y de final abierto, guarda solo la última columna de la matriz de coste y su costo por fotograma no crece con la repetición. Medido dentro de la sesión sobre diez videos de jumping jacks, abducción y marcha, su p95 por fotograma quedó entre 0,09 y 0,71 ms, frente a 1,3–530 ms de la versión anterior en los mismos videos, con las mismas repeticiones y los mismos mensajes. Las cifras de fotogramas por segundo y de retraso acumulado de esta sección corresponden a la versión anterior y deben volver a medirse.
+
+**Voz y verbalización.** Piper sintetiza con un factor de tiempo real de 0,085 (p50 de 301 ms por frase, 76 frases), por lo que la síntesis no limita. El verbalizador por plantillas mantiene en el banco sintético 0 % de aserciones no soportadas y de sobrecorrección y 100 % de determinismo, con p95 de 0,15 ms; el verbalizador con modelo de lenguaje queda pendiente de medición en el Mac Studio.
 
 **Interpretación.** El presupuesto de pose se cumple a ritmo real incluso en un portátil de bajo consumo, aunque sin margen bajo carga continua; *lite* ofrece margen con más ruido. Los dos incumplimientos tienen causas identificadas y corregibles sin cambiar la arquitectura. El de fotogramas por segundo se debe principalmente al DTW, que recalcula todo el prefijo y crece sin límite cuando el segmentador no cierra la repetición; la comparación con la banda confirma que una banda, o un DTW incremental de extremo abierto, lo acota. El de detección → voz lo produce la cola de voz: 8 de las 21 correcciones esperaron a que terminara el anuncio del ejercicio (3–4 s) u otra frase, porque la cola tiene un solo hueco y no interrumpe lo que suena; con la cola libre, el p95 es de 43 ms. Ninguna de estas cifras sustituye la medición en el equipo final ni con personas.
 
@@ -904,13 +915,13 @@ Las mediciones de esta sección se obtuvieron con el programa de medición inclu
 
 | Objetivo | Umbral | Estado al cierre de este informe |
 | --- | --- | --- |
-| Percepción en tiempo real | ≥ 25 fps; p95 de pose ≤ 33 ms | Preliminar en portátil: pose 28,7 ms de p95 (cumple a ritmo real); 4 de 13 videos bajo 25 fps por el costo del DTW; medición en el Mac Studio pendiente |
-| Detección de desviaciones | Precisión ≥ 0,80 y recobrado ≥ 0,70 por ejercicio | Las trece desviaciones están implementadas y el cálculo está listo; pendiente de las sesiones anotadas |
+| Percepción en tiempo real | ≥ 25 fps; p95 de pose ≤ 33 ms | Preliminar en portátil: pose 28,7 ms de p95 (cumple a ritmo real); 4 de 13 videos bajo 25 fps por el costo del DTW, que se corrigió en la semana 12 (falta volver a medir los fps); medición en el Mac Studio pendiente |
+| Detección de desviaciones | Precisión ≥ 0,80 y recobrado ≥ 0,70 por ejercicio | Las trece desviaciones están implementadas (más cuatro añadidas sin compromiso) y el cálculo está listo; pendiente de las sesiones anotadas |
 | Abstención y sobrecorrección | Sobrecorrección ≤ 10 %; 0 % aserciones no soportadas | 0 % y 0 % en el banco sintético; pendiente con personas |
 | Retroalimentación en español | ≥ 90 % mensajes correctos; p95 detección → voz ≤ 1 s; decisión sobre el verbalizador con modelo de lenguaje | Detección → voz 3,66 s de p95 (no cumple, por la espera en la cola; 43 ms con la cola libre); mensajes correctos pendiente de anotación; verbalizador con modelo de lenguaje pendiente en el Mac Studio |
-| Guía visual | *Stick figure* para los cuatro ejercicios | La interfaz muestra una figura fija por ejercicio; la guía animada a partir de la referencia grabada está pendiente (las referencias ya contienen los puntos 2D necesarios) |
+| Guía visual | *Stick figure* para los cuatro ejercicios | Implementada en la semana 12: la figura se anima con los puntos 2D de la referencia de cada ejercicio; falta evaluarla en las sesiones |
 
-La lectura de conjunto es que el sistema está **construido e instrumentado, pero no validado formalmente con personas**: solo hay una evaluación cualitativa con cinco participantes (13.3), sin anotación de errores. Los riesgos técnicos que podían invalidar la propuesta (la observabilidad con una cámara, el fallo silencioso y la sobrecorrección estructural) se enfrentaron con experimentos y con decisiones de diseño verificables. El riesgo que sigue abierto es empírico: si los umbrales, provisionales, separan bien a las personas que se mueven bien de las que no, y si la pose cumple el presupuesto en el equipo final. Ambos se resuelven con las sesiones planificadas. Queda además una corrección técnica antes de usar la referencia en las reglas: el DTW actual no es de extremo abierto y su costo debe acotarse (14.3).
+La lectura de conjunto es que el sistema está **construido e instrumentado, pero no validado formalmente con personas**: solo hay una evaluación cualitativa con cinco participantes (13.3), sin anotación de errores. Los riesgos técnicos que podían invalidar la propuesta (la observabilidad con una cámara, el fallo silencioso y la sobrecorrección estructural) se enfrentaron con experimentos y con decisiones de diseño verificables. El riesgo que sigue abierto es empírico: si los umbrales, provisionales, separan bien a las personas que se mueven bien de las que no, y si la pose cumple el presupuesto en el equipo final. Ambos se resuelven con las sesiones planificadas. La corrección técnica del DTW (final abierto y costo acotado) se hizo en la semana 12; falta medir su efecto en la sesión completa (14.3).
 
 ## 15. Plan de cierre hacia la entrega final
 
@@ -925,6 +936,8 @@ El plan tiene tres etapas: estabilizar el sistema (semana 12), validarlo con per
 | 14 (27 oct.–2 nov.) | Anotar las sesiones (una parte por dos personas, para medir el acuerdo). Calcular precisión, recobrado, sobrecorrección y mensajes correctos. Calibrar los umbrales y comparar las reglas absolutas con las relativas a la referencia. | Resultados de validación al 1 de noviembre; umbrales calibrados |
 | 15 (3–9 nov.) | Validar los umbrales dejando una persona fuera (se calibra con cuatro participantes y se mide con la quinta). Comparar el verbalizador por plantillas con el de modelo de lenguaje. Redactar el informe final y la documentación técnica. | Cifras finales; decisión sobre el verbalizador; borradores del informe y la documentación |
 | 16 (10–15 nov.) | Póster, versión final del código, cierre del informe y sustentación con una demostración grabada de respaldo | Entrega final (15 de noviembre) |
+
+**Estado al 21 de octubre.** De la semana 12 se completaron el DTW (final abierto y costo acotado), la guía visual y, además, la selección de la rutina en la interfaz. Siguen pendientes la espera de las correcciones en la cola de voz y la repetición del experimento de observabilidad con la abducción y la plancha.
 
 ### 15.2 Prioridades
 
@@ -956,7 +969,7 @@ Las mejoras menores de la interfaz y de los mensajes solo se harán si no retras
 
 El alcance funcional se congela al final de la semana 12, y las semanas 13 a 15 se dedican a medir, calibrar y documentar. Hay tres puntos de control:
 
-- **19 de octubre:** si la guía visual no está lista, se termina en la semana 13; si el 26 de octubre sigue sin estarlo, pasa a trabajo futuro.
+- **19 de octubre:** si la guía visual no está lista, se termina en la semana 13; si el 26 de octubre sigue sin estarlo, pasa a trabajo futuro. *Cumplido: la guía visual se integró el 17 de octubre.*
 - **26 de octubre:** si faltan sesiones, se continúan hasta el 30 de octubre; después se reporta con las que haya.
 - **6 de noviembre:** si no se ha probado el verbalizador con modelo de lenguaje, se mantienen las plantillas.
 
