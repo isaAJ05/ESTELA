@@ -1,4 +1,5 @@
 # ESTELA
+DIAPOSITIVAS AVANCE: https://canva.link/vdqak6mpl6fc0mb
 
 ## Resumen ejecutivo
 
