@@ -420,6 +420,7 @@ class Corrida:
             e = self.registro[i]
             d = {"t_ms": e["t_ms"], "refuerzo": e["mensaje"]["refuerzo"],
                  "descartada": v["descartada"],
+                 "motivo_descarte": v.get("motivo_descarte"),
                  "frame_a_encolado_s": v["t_encolado"] - self.llegada[i]}
             if v.get("t_inicio_audio") is not None:
                 d["encolado_a_audio_s"] = v["t_inicio_audio"] - v["t_encolado"]
@@ -1160,11 +1161,13 @@ def objetivos(R: Mapping[str, Any]) -> List[Dict[str, Any]]:
          "política «último frame»)",
          P.get("fps", "pendiente de medición: ningún vídeo con fuente ≥ 25 fps a ritmo real"))
 
-    totales = [d["total_s"] for c in ultimo for d in c.deteccion_a_voz()
-               if not d["refuerzo"] and "total_s" in d]
+    corr = [d for c in ultimo for d in c.deteccion_a_voz() if not d["refuerzo"]]
+    totales = [d["total_s"] for d in corr if "total_s" in d]
+    caducadas = sum(1 for d in corr if d.get("motivo_descarte") == "caducada")
     p95v = mi.percentil(totales, 95)
     fila("deteccion_voz_p95_s", p95v,
-         f"{_n(p95v, 2)} s (n = {len(totales)} correcciones habladas; {R.get('voz', '')})",
+         f"{_n(p95v, 2)} s (n = {len(totales)} correcciones habladas; {caducadas} descartadas "
+         f"por esperar más de 1 s; {R.get('voz', '')})",
          P.get("deteccion_voz", "pendiente de medición: ninguna corrección hablada"))
 
     an = R.get("anotaciones")
@@ -1312,9 +1315,17 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
               "`[I]` La espera la causan sobre todo el anuncio del ejercicio al empezar y la frase "
               "anterior: la cola tiene un solo hueco y no interrumpe lo que está sonando."]
         perdidas = sum(1 for d in corr if d["descartada"])
-        L += ["", f"Correcciones emitidas: {len(corr)}; no llegaron a sonar (sustituidas en la cola o "
-              f"tapadas por un aviso): {perdidas} ({_pct(perdidas / len(corr) if corr else None)}). "
-              f"Refuerzos: {len(dv) - len(corr)}.",
+        causas: Dict[str, int] = {}
+        for d in corr:
+            if d["descartada"]:
+                k = d.get("motivo_descarte") or "sin causa"
+                causas[k] = causas.get(k, 0) + 1
+        detalle = ", ".join(f"{k} {v}" for k, v in sorted(causas.items())) or "ninguna"
+        L += ["", f"Correcciones emitidas: {len(corr)}; no llegaron a sonar: {perdidas} "
+              f"({_pct(perdidas / len(corr) if corr else None)}; por causa: {detalle}). "
+              "«sustituida»: llegó otra más reciente; «aviso»: el hueco lo tenía un aviso; "
+              "«caducada»: esperó más de 1 s (`MAX_ESPERA_FEEDBACK_S`). El p95 de arriba solo "
+              f"cuenta las que sonaron. Refuerzos: {len(dv) - len(corr)}.",
               "`[?]` No incluye la latencia del dispositivo de audio." if "sin audio" in R.get("voz", "") else "",
               ""]
 

@@ -67,6 +67,10 @@ AVISO_REANUDA = "Seguimos."
 AVISO_OTRO_EJERCICIO = "Ese movimiento no es el de ahora. Toca {nombre}."
 #: milisegundos sosteniendo el movimiento equivocado antes de avisar
 MOVIMIENTO_EQUIVOCADO_MS = 1000
+#: `motivo_silencio` mientras suena un aviso (anuncio del ejercicio,
+#: colocación...): la persona aún se está colocando y una corrección
+#: esperaría en la cola a que acabe el aviso
+MOTIVO_ANUNCIO = "anuncio"
 
 _IDEAL = {Plano.FRONTAL: 0.0, Plano.SAGITAL: 90.0}
 _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
@@ -360,15 +364,18 @@ class Sesion:
             return self._estado(p, res, aviso, lat, obs.orientacion,
                                angulos=obs.angulos)
 
-        t2 = time.perf_counter()
-        salida = p.motor.procesar(obs)
-        t3 = time.perf_counter()
-        lat["motor"] = (t3 - t2) * 1000
-        # El pipeline ya separa decisión (motor determinista) y verbalización
-        # (plantilla o LLM); la verbalización solo existe si hubo mensaje.
-        lat["decision"] = p.motor.ultimos_tiempos.decision_ms
-        if isinstance(salida, MensajeFeedback):
-            lat["verbalizacion"] = p.motor.ultimos_tiempos.verbalizacion_ms
+        if getattr(self.voz, "anunciando", False):
+            salida = Silencio(MOTIVO_ANUNCIO, t_ms)
+        else:
+            t2 = time.perf_counter()
+            salida = p.motor.procesar(obs)
+            t3 = time.perf_counter()
+            lat["motor"] = (t3 - t2) * 1000
+            # El pipeline ya separa decisión (motor determinista) y verbalización
+            # (plantilla o LLM); la verbalización solo existe si hubo mensaje.
+            lat["decision"] = p.motor.ultimos_tiempos.decision_ms
+            if isinstance(salida, MensajeFeedback):
+                lat["verbalizacion"] = p.motor.ultimos_tiempos.verbalizacion_ms
         for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento",
                       "motor", "decision", "verbalizacion"):
             if etapa not in lat:
@@ -407,9 +414,12 @@ class Sesion:
                   obs=None, seg: Optional[EstadoSegmento] = None, dtw=None,
                   salida=None) -> None:
         """Una entrada de `registro` por frame. Sin persona: `persona` False.
-        En pausa: `pausada` True y el motor no se llamó (`evaluado` False)."""
+        En pausa o durante un aviso (`MOTIVO_ANUNCIO`) el motor no se llamó
+        (`evaluado` False)."""
         if not self.registrar:
             return
+        evaluado = (salida is not None
+                    and getattr(salida, "motivo", None) != MOTIVO_ANUNCIO)
         mensaje = None
         if isinstance(salida, MensajeFeedback):
             err = salida.error
@@ -425,10 +435,10 @@ class Sesion:
             "persona": obs is not None,
             "pausada": p.pausa.pausada,
             "motivo_pausa": p.pausa.motivo,
-            "evaluado": salida is not None,
+            "evaluado": evaluado,
             "motivo_silencio": salida.motivo if isinstance(salida, Silencio) else None,
             "mensaje": mensaje,
-            "disparadas": list(p.motor.decision.disparadas) if salida is not None else [],
+            "disparadas": list(p.motor.decision.disparadas) if evaluado else [],
             "repeticion": seg.repeticion if seg else None,
             "fase": seg.fase if seg else None,
             "senal_valida": seg.senal_valida if seg else None,

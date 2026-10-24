@@ -4,11 +4,16 @@ Tiene un único hueco pendiente: si llega una frase nueva mientras otra
 espera, la más reciente la sustituye (un feedback de hace 3 s ya no sirve).
 Los avisos de la aplicación (cambio de ejercicio, fin de rutina) tienen más
 prioridad que las correcciones y no los pisa una corrección.
+Una corrección que lleva más de `MAX_ESPERA_FEEDBACK_S` esperando cuando el
+hueco queda libre se descarta sin sonar: llegaría tarde para la repetición
+que corrige. Los avisos no caducan. `anunciando` dice si suena o espera un
+aviso; la sesión no evalúa la técnica mientras tanto.
 Silenciada (ajuste de la interfaz), descarta todo lo que se le pide.
 
 `registro` guarda, por frase, cuándo se encoló, cuándo empezó a sonar y si
-se descartó (marcas de `time.perf_counter()`, en segundos). Con él el arnés
-del Informe 2 mide la latencia detección → inicio de voz.
+se descartó y por qué (`DESCARTE_*`; marcas de `time.perf_counter()`, en
+segundos). Con él el arnés del Informe 2 mide la latencia detección → inicio
+de voz.
 """
 
 from __future__ import annotations
@@ -25,6 +30,14 @@ from .motores import MotorVoz
 
 log = logging.getLogger(__name__)
 
+#: segundos que una corrección puede esperar en la cola antes de descartarse
+MAX_ESPERA_FEEDBACK_S = 1.0
+#: por qué no sonó una frase (`registro[i]["motivo_descarte"]`)
+DESCARTE_SUSTITUIDA = "sustituida"      # llegó otra más reciente al hueco
+DESCARTE_AVISO = "aviso"                # el hueco lo tenía un aviso
+DESCARTE_CADUCADA = "caducada"          # esperó más de MAX_ESPERA_FEEDBACK_S
+DESCARTE_SILENCIADA = "silenciada"      # la interfaz silenció la voz
+
 @dataclass(frozen=True)
 class Locucion:
     texto: str
@@ -35,19 +48,25 @@ class Locucion:
 
 
 class ColaVoz:
-    def __init__(self, motor: MotorVoz) -> None:
+    def __init__(self, motor: MotorVoz,
+                 max_espera_feedback_s: float = MAX_ESPERA_FEEDBACK_S) -> None:
         self.motor = motor
+        self.max_espera_feedback_s = max_espera_feedback_s
         self._cv = threading.Condition()
         self._pendiente: Optional[Locucion] = None
         self._hablando = False
+        self._prioridad_hablando: Optional[int] = None
         self._cerrada = False
         self._silenciada = False
         self.descartadas = 0
+        #: descartadas por causa (`DESCARTE_*`)
+        self.descartes: Dict[str, int] = {}
         #: (texto, segundos entre encolar y empezar a sonar)
         self.historial: List[tuple] = []
         #: una entrada por llamada a `decir`: texto, prioridad, t_encolado,
         #: t_inicio (empieza `hablar`), t_inicio_audio (empieza a sonar, si
-        #: el motor lo sabe; si no, = t_inicio), t_fin y descartada
+        #: el motor lo sabe; si no, = t_inicio), t_fin, descartada y
+        #: motivo_descarte
         self.registro: List[Dict[str, Any]] = []
         self._hilo = threading.Thread(target=self._bucle, name="estela-voz",
                                       daemon=True)
@@ -62,16 +81,14 @@ class ColaVoz:
             entrada = {"texto": texto, "prioridad": prioridad,
                        "t_encolado": ahora, "t_inicio": None,
                        "t_inicio_audio": None, "t_fin": None,
-                       "descartada": False}
+                       "descartada": False, "motivo_descarte": None}
             self.registro.append(entrada)
             p = self._pendiente
             if p is not None and p.prioridad > prioridad:
-                self.descartadas += 1
-                entrada["descartada"] = True
+                self._descarta(len(self.registro) - 1, DESCARTE_AVISO)
                 return False
             if p is not None:
-                self.descartadas += 1
-                self.registro[p.indice]["descartada"] = True
+                self._descarta(p.indice, DESCARTE_SUSTITUIDA)
             self._pendiente = Locucion(texto, prioridad, ahora,
                                        len(self.registro) - 1)
             self._cv.notify()
@@ -82,7 +99,7 @@ class ColaVoz:
         with self._cv:
             self._silenciada = silenciada
             if silenciada and self._pendiente is not None:
-                self.registro[self._pendiente.indice]["descartada"] = True
+                self._descarta(self._pendiente.indice, DESCARTE_SILENCIADA)
                 self._pendiente = None
 
     @property
@@ -97,6 +114,14 @@ class ColaVoz:
         lista = list(textos)
         threading.Thread(target=self.motor.precalentar, args=(lista,),
                          name="estela-voz-precalentado", daemon=True).start()
+
+    @property
+    def anunciando(self) -> bool:
+        """Suena o espera un aviso (cambio de ejercicio, pausa, colocación)."""
+        with self._cv:
+            return (self._prioridad_hablando == PRIORIDAD_AVISO
+                    or (self._pendiente is not None
+                        and self._pendiente.prioridad == PRIORIDAD_AVISO))
 
     @property
     def ocupada(self) -> bool:
@@ -116,7 +141,12 @@ class ColaVoz:
                 if self._cerrada and self._pendiente is None:
                     return
                 loc, self._pendiente = self._pendiente, None
+                if (loc.prioridad == PRIORIDAD_FEEDBACK and time.perf_counter()
+                        - loc.t_encolado > self.max_espera_feedback_s):
+                    self._descarta(loc.indice, DESCARTE_CADUCADA)
+                    continue
                 self._hablando = True
+                self._prioridad_hablando = loc.prioridad
             entrada = self.registro[loc.indice]
             try:
                 t_inicio = time.perf_counter()
@@ -133,6 +163,14 @@ class ColaVoz:
                 entrada["t_fin"] = time.perf_counter()
                 with self._cv:
                     self._hablando = False
+                    self._prioridad_hablando = None
+
+    def _descarta(self, indice: int, motivo: str) -> None:
+        """Con `_cv` tomado."""
+        self.descartadas += 1
+        self.descartes[motivo] = self.descartes.get(motivo, 0) + 1
+        self.registro[indice]["descartada"] = True
+        self.registro[indice]["motivo_descarte"] = motivo
 
     def cerrar(self, esperar: bool = True) -> None:
         if esperar:
@@ -144,4 +182,6 @@ class ColaVoz:
         self.motor.cerrar()
 
 
-__all__ = ["ColaVoz", "PRIORIDAD_FEEDBACK", "PRIORIDAD_AVISO"]
+__all__ = ["ColaVoz", "PRIORIDAD_FEEDBACK", "PRIORIDAD_AVISO", "MAX_ESPERA_FEEDBACK_S",
+           "DESCARTE_SUSTITUIDA", "DESCARTE_AVISO", "DESCARTE_CADUCADA",
+           "DESCARTE_SILENCIADA"]

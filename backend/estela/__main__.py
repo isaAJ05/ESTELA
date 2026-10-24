@@ -133,7 +133,8 @@ def main(argv=None) -> int:
     voz.precalentar(frases_de_rutina(rutina, catalogo))
 
     def cerrar_sesion(resumen: dict) -> None:
-        resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas}
+        resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas,
+                          "descartes": dict(voz.descartes)}
         _imprimir_resumen(resumen)
         if args.guardar_metricas:
             config.SESIONES.mkdir(exist_ok=True)
