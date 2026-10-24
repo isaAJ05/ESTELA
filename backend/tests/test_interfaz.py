@@ -113,7 +113,7 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
-        "guia", "motivoSilencio", "rutinaPersonalizada", "silenciarVoz"]
+        "guia", "motivoSilencio", "colocacion", "rutinaPersonalizada", "silenciarVoz"]
     json.dumps(d)
 
 
@@ -291,6 +291,8 @@ def nuevo_orquestador(catalogo, rutina, frames, bloquear=False, **kw):
         return e
 
     resumenes = []
+    # los esqueletos sintéticos no tienen coordenadas de imagen: sin colocación
+    kw.setdefault("colocacion", False)
     orq = Orquestador(rutina, catalogo, crear_estimador, abrir_fuente, VozFalsa(),
                       espejo=True, al_terminar=resumenes.append, **kw)
     return orq, creados, resumenes

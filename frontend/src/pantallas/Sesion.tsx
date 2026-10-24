@@ -1,6 +1,6 @@
-import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Check, Circle, DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Bridge, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
+import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonVoz } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
@@ -11,6 +11,8 @@ import { useCapacidad, useEstado } from '../estado/almacen'
 
 const MENSAJE_VISIBLE_MS = 4500
 const TRANSICION_VISIBLE_MS = 4000
+/** un motivo para no evaluar se mantiene en pantalla al menos esto, para que no parpadee */
+const MOTIVO_VISIBLE_MS = 800
 
 /** Lee un campo de la sesión en curso (re-renderiza solo si cambia). */
 function useSesion<K extends keyof EstadoSesion>(campo: K): EstadoSesion[K] | null {
@@ -22,6 +24,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   const pausaManual = useCapacidad('pausaManual')
   const pausada = useSesion('pausada')
   const silenciable = useCapacidad('silenciarVoz')
+  const conColocacion = useCapacidad('colocacion')
   const [confirmar, setConfirmar] = useState(false)
   const [depurar, setDepurar] = useState(false)
   const [angulos, setAngulos] = useState(() => {
@@ -60,7 +63,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
           {hayDatos ? <>
             <AvisoSesion />
             <BandaMensaje />
-            <Transicion />
+            {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
             <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
           </> : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
@@ -147,6 +150,7 @@ function PanelEjercicio() {
       </div>
 
       <Progreso completadas={completadas} objetivo={objetivo} unidad={unidad} />
+      <EstadoEvaluacion />
 
       <div className="panel-detalles">
         {incompletas > 0 && (
@@ -193,7 +197,8 @@ const AYUDA_AVISO: Partial<Record<TipoAviso, string>> = {
 function AvisoSesion() {
   const aviso = useSesion('aviso')
   const tipo = useSesion('avisoTipo')
-  if (!aviso || tipo === 'pausa') return null       // la pausa tiene su propia capa
+  const colocando = useSesion('colocacion') != null
+  if (!aviso || tipo === 'pausa' || colocando) return null   // la pausa y la colocación tienen su propia capa
   const icono = tipo === 'orientacion' ? <RotateCw />
     : tipo === 'encuadre' ? <ScanLine /> : tipo === 'sin_persona' ? <UserX /> : <Info />
   return (
@@ -274,6 +279,68 @@ function Transicion() {
         </p>
       </div>
     </div>
+  )
+}
+
+const COMPROBACIONES: [keyof Omit<ColocacionEstado, 'instruccion'>, string][] = [
+  ['persona', 'Te veo'],
+  ['orientacion', 'Orientación correcta'],
+  ['cuerpoEntero', 'Cuerpo entero en el encuadre'],
+]
+
+/** Al empezar cada ejercicio: cómo colocarse y qué se cumple ya. Empieza solo al cumplirse todo. */
+function Colocacion({ bridge }: { bridge: Bridge }) {
+  const c = useEstado((s) => s.estado?.sesion?.colocacion ?? null,
+    (a, b) => a?.persona === b?.persona && a?.orientacion === b?.orientacion
+      && a?.cuerpoEntero === b?.cuerpoEntero && a?.instruccion === b?.instruccion)
+  const paso = useSesion('paso') ?? 0
+  const info = useEstado((s) => s.plan?.pasos[paso - 1] ?? null)
+  if (!c || !info) return null
+  return (
+    <div className="capa-colocacion" role="dialog" aria-labelledby="titulo-colocacion">
+      <div className="tarjeta tarjeta-colocacion">
+        {info.guia
+          ? <GuiaAnimada puntos={info.guia} ejercicioId={info.skillId} animar={false} />
+          : <Figura skillId={info.skillId} tam={120} />}
+        <div>
+          <span className="etiqueta etiqueta-marca">{paso === 1 ? 'Empezamos' : 'Siguiente ejercicio'}</span>
+          <h2 id="titulo-colocacion">{info.nombre}</h2>
+          {c.instruccion && <p>{c.instruccion}</p>}
+          <ul className="comprobaciones">
+            {COMPROBACIONES.map(([clave, texto]) => (
+              <li key={clave} className={c[clave] ? 'cumplida' : ''}>
+                {c[clave] ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
+                <span>{texto}</span>
+                <span className="solo-lector">{c[clave] ? 'cumplido' : 'pendiente'}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="acciones">
+            <Boton onClick={() => void bridge.listo()}><Play />Listo, empezar</Boton>
+            <span className="colocacion-nota">Empieza solo cuando todo esté en verde.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Si ESTELA está evaluando la técnica ahora y, si no, por qué (prueba de usabilidad). */
+function EstadoEvaluacion() {
+  const ev = useEstado((s) => s.estado?.sesion?.evaluacion ?? null,
+    (a, b) => a?.evaluando === b?.evaluando && a?.motivo === b?.motivo)
+  const [motivo, setMotivo] = useState<string | null>(null)
+  useEffect(() => {
+    if (ev?.motivo) { setMotivo(ev.motivo); return }
+    const t = setTimeout(() => setMotivo(null), MOTIVO_VISIBLE_MS)
+    return () => clearTimeout(t)
+  }, [ev?.motivo])
+  if (!ev) return null
+  return (
+    <p className={`estado-evaluacion ${motivo ? 'sin-evaluar' : 'evaluando'}`} role="status">
+      <i aria-hidden="true" />
+      {motivo ? <span>Sin evaluar · {motivo}</span> : <span>Evaluando tu técnica</span>}
+    </p>
   )
 }
 

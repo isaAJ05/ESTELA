@@ -68,6 +68,9 @@ class Api:
     def reiniciar(self) -> None:
         self._orq.reiniciar()
 
+    def listo(self) -> None:
+        self._orq.listo()
+
     def terminar(self) -> None:
         self._orq.terminar()
 

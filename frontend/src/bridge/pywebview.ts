@@ -10,6 +10,8 @@ interface ApiPython {
   terminar(): Promise<void>
   volver_al_inicio(): Promise<void>
   salir(): Promise<void>
+  // solo con la capacidad «colocacion»
+  listo?(): Promise<void>
   // solo con la capacidad «silenciarVoz»
   configurar?(ajustes: AjustesPython): Promise<void>
   // aún no existen en Python (capacidad «pausaManual»)
@@ -45,6 +47,7 @@ export function bridgePywebview(api: ApiPython): Bridge {
     iniciar: (opciones) => api.iniciar(opciones ?? null),
     siguiente: () => api.siguiente(),
     reiniciar: () => api.reiniciar(),
+    listo: async () => { await api.listo?.() },
     terminar: () => api.terminar(),
     volverAlInicio: () => api.volver_al_inicio(),
     salir: () => api.salir(),

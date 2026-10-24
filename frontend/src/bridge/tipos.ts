@@ -86,6 +86,20 @@ export interface Feedback {
   direccion: string | null
 }
 
+/** Fase de colocación al empezar un ejercicio (capacidad «colocacion»). */
+export interface Colocacion {
+  instruccion: string | null
+  persona: boolean
+  orientacion: boolean
+  cuerpoEntero: boolean
+}
+
+/** Si la sesión evalúa la técnica en este momento y, si no, por qué. */
+export interface Evaluacion {
+  evaluando: boolean
+  motivo: string | null
+}
+
 export interface EstadoSesion {
   ejercicio: string
   ejercicioId: string
@@ -116,6 +130,9 @@ export interface EstadoSesion {
     otros: { nombre: string; grados: number }[]
   } | null
   terminada: boolean
+  /** null fuera de la fase de colocación */
+  colocacion?: Colocacion | null
+  evaluacion?: Evaluacion | null
   // Aún sin backend: llegan null (ver Capacidades).
   correctas: number | null
   conError: number | null
@@ -217,6 +234,8 @@ export interface Bridge {
   volverAlInicio(): Promise<void>
   salir(): Promise<void>
   configurar(ajustes: AjustesPython): Promise<void>
+  /** Termina la fase de colocación (capacidad «colocacion»). */
+  listo(): Promise<void>
   /** Solo con la capacidad «pausaManual». */
   pausar(): Promise<void>
   reanudar(): Promise<void>

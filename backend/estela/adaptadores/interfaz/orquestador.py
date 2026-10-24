@@ -67,7 +67,8 @@ class Orquestador:
                  abrir_fuente: Callable[[], Fuente], voz: Any, *,
                  espejo: bool, fuente: str = "camara",
                  al_terminar: Optional[Callable[[Dict[str, Any]], None]] = None,
-                 verbalizador: Any = None, sin_dtw: bool = False) -> None:
+                 verbalizador: Any = None, sin_dtw: bool = False,
+                 colocacion: bool = True) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`."""
@@ -83,6 +84,7 @@ class Orquestador:
         self._al_terminar = al_terminar
         self._verbalizador = verbalizador
         self._sin_dtw = sin_dtw
+        self._colocacion = colocacion
 
         self._cv = threading.Condition()
         self._version = 0
@@ -158,6 +160,10 @@ class Orquestador:
     def reiniciar(self) -> None:
         self._comandos.put("reiniciar")
 
+    def listo(self) -> None:
+        """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
+        self._comandos.put("listo")
+
     def terminar(self) -> None:
         """Termina la sesión en curso y pasa al resumen."""
         self._comandos.put("terminar")
@@ -202,7 +208,8 @@ class Orquestador:
             return
 
         sesion = Sesion(self.rutina, self.catalogo, estimador, self._voz,
-                        self._verbalizador, sin_dtw=self._sin_dtw)
+                        self._verbalizador, sin_dtw=self._sin_dtw,
+                        colocacion=self._colocacion)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
         motivo = contrato.FIN_CIERRE
@@ -258,6 +265,8 @@ class Orquestador:
                     return True
             elif cmd == "reiniciar":
                 sesion.reiniciar_ejercicio()
+            elif cmd == "listo":
+                sesion.terminar_colocacion()
 
 
 __all__ = ["Orquestador", "INICIO", "PREPARANDO", "SESION", "RESUMEN", "ERROR"]

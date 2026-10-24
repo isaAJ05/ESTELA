@@ -59,6 +59,8 @@ def _argumentos(argv=None) -> argparse.Namespace:
                    help="sin interfaz gráfica (pruebas con vídeo)")
     p.add_argument("--sin-dtw", action="store_true",
                    help="desactivar la comparación con la referencia DTW")
+    p.add_argument("--sin-colocacion", action="store_true",
+                   help="empezar a contar sin la fase de colocación de cada ejercicio")
     p.add_argument("--umbrales", choices=("absolutos", "referencia"), default="absolutos",
                    help="«referencia»: las reglas con forma relativa se miden contra la "
                         "referencia del ejercicio (EXP-006); defecto «absolutos»")
@@ -172,7 +174,8 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
         abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True),
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
-        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw)
+        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw,
+        colocacion=not args.sin_colocacion)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:
@@ -189,7 +192,8 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     fuente = _abrir_fuente(args, tiempo_real=not args.sin_ventana)
     espejo = args.video is None
 
-    sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw)
+    sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw,
+                    colocacion=not args.sin_colocacion)
     ventana = not args.sin_ventana
     if ventana:
         import cv2

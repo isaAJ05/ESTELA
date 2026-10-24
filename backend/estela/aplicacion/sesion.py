@@ -71,6 +71,16 @@ MOVIMIENTO_EQUIVOCADO_MS = 1000
 #: colocación...): la persona aún se está colocando y una corrección
 #: esperaría en la cola a que acabe el aviso
 MOTIVO_ANUNCIO = "anuncio"
+#: Fase de colocación (T29): al empezar cada ejercicio no se cuenta ni se
+#: corrige hasta que hay persona, la orientación es la del ejercicio y se ve
+#: el cuerpo entero durante `COLOCACION_ESTABLE_MS` seguidos (o se pulsa
+#: «Listo»). Una comprobación que falla reinicia la espera.
+COLOCACION_ESTABLE_MS = 1500
+AVISO_COLOCADA = "Ya te veo bien. Empieza cuando quieras."
+#: cuerpo entero = de cada grupo se ve al menos un punto (de perfil, el lado
+#: lejano puede quedar tapado): nariz, hombros, caderas, rodillas y tobillos
+_CUERPO_ENTERO = ((0,), (11, 12), (23, 24), (25, 26), (27, 28))
+_VISIBILIDAD_MINIMA = 0.5
 
 _IDEAL = {Plano.FRONTAL: 0.0, Plano.SAGITAL: 90.0}
 _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
@@ -99,6 +109,17 @@ def _preparar_guia(referencia: Optional[Mapping[str, Any]]
     guia[:, :, :2] = puntos
     guia[:, :, 3] = 1.0
     return guia, fps
+
+
+def _cuerpo_entero(imagen: Optional[np.ndarray]) -> bool:
+    """Se ve al menos un punto de cada grupo de `_CUERPO_ENTERO`, dentro del
+    frame y con visibilidad suficiente (landmarks de imagen, 0..1)."""
+    if imagen is None:
+        return False
+    def visible(i: int) -> bool:
+        x, y, vis = float(imagen[i, 0]), float(imagen[i, 1]), float(imagen[i, -1])
+        return vis >= _VISIBILIDAD_MINIMA and 0.0 <= x <= 1.0 and 0.0 <= y <= 1.0
+    return all(any(visible(i) for i in grupo) for grupo in _CUERPO_ENTERO)
 
 
 def _guia_actual(paso: _Paso, t_ms: int) -> Optional[np.ndarray]:
@@ -143,6 +164,11 @@ class EstadoFrame:
     angulos_importantes: Tuple[str, ...] = ()
     #: postura de referencia del frame actual, en formato (33, 4)
     guia: Optional[np.ndarray] = None
+    #: fase de colocación: qué hacer y qué se cumple ya
+    #: (persona, orientacion, cuerpo_entero)
+    colocando: bool = False
+    instruccion: Optional[str] = None
+    comprobaciones: Optional[Dict[str, bool]] = None
 
 
 class _SaltoCadera:
@@ -194,6 +220,11 @@ class _Paso:
     #: EXP-010: ¿está haciendo este ejercicio? None si no hay referencias
     reconocedor: Optional[ReconocedorEjercicio] = None
     ult_aviso_otro_ms: Optional[int] = None
+    colocando: bool = False
+    #: desde cuándo se cumplen las tres comprobaciones sin interrupción
+    colocado_desde: Optional[int] = None
+    comprobaciones: Dict[str, bool] = field(default_factory=lambda: {
+        "persona": False, "orientacion": False, "cuerpo_entero": False})
 
 
 class Sesion:
@@ -201,7 +232,7 @@ class Sesion:
                  estimador: Estimador, voz: Voz,
                  verbalizador: Optional[Verbalizador] = None,
                  sin_dtw: bool = False, reconocer: bool = True,
-                 registrar: bool = False) -> None:
+                 registrar: bool = False, colocacion: bool = False) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
@@ -209,6 +240,9 @@ class Sesion:
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
         self.sin_dtw = sin_dtw
         self.reconocer = reconocer
+        #: fase de colocación al empezar cada ejercicio (la aplicación la
+        #: activa; las pruebas y el arnés del Informe 2 empiezan a contar ya)
+        self.colocacion = colocacion
         self.registrar = registrar
         #: un dict por frame (solo con `registrar`); ver `_registra`
         self.registro: List[Dict[str, Any]] = []
@@ -263,7 +297,8 @@ class Sesion:
                                  registro=RegistroRepeticiones(ej),
                                  guia=guia, guia_fps=guia_fps,
                                  reconocedor=(reconocedor_para(ej.skill.skill_id)
-                                              if self.reconocer else None)))
+                                              if self.reconocer else None),
+                                 colocando=self.colocacion))
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -273,6 +308,37 @@ class Sesion:
     def _anuncio(ej: Ejercicio, reps: int) -> str:
         colocacion = _COLOCACION.get(ej.skill.orientacion_preferida, "")
         return f"Ahora, {ej.skill.nombre.lower()}. {reps} {ej.unidad}. {colocacion}".strip()
+
+    def terminar_colocacion(self) -> None:
+        """Da por terminada la colocación (botón «Listo» de la interfaz)."""
+        p = self.paso_actual
+        if p is not None and p.colocando:
+            self._fin_colocacion(p, self._t_ms)
+
+    def _fin_colocacion(self, p: _Paso, t_ms: int) -> None:
+        p.colocando = False
+        p.inicio_ms = t_ms               # la duración cuenta desde aquí
+        self._mal_orientada_desde = None
+        self._ult_senal_ms = None
+        self.voz.decir(AVISO_COLOCADA, PRIORIDAD_AVISO)
+
+    def _coloca(self, p: _Paso, skill, res: ResultadoPose, obs, t_ms: int
+                ) -> Optional[str]:
+        """Un frame de la fase de colocación. Devuelve el aviso que mostrar."""
+        orientacion = self._orientacion_ok(skill, obs.orientacion)
+        cuerpo = _cuerpo_entero(res.imagen)
+        p.comprobaciones = {"persona": True, "orientacion": orientacion,
+                            "cuerpo_entero": cuerpo}
+        aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
+                 or self._revisa_encuadre(cuerpo, t_ms))
+        if not (orientacion and cuerpo):
+            p.colocado_desde = None
+            return aviso
+        if p.colocado_desde is None:
+            p.colocado_desde = t_ms
+        if t_ms - p.colocado_desde >= COLOCACION_ESTABLE_MS:
+            self._fin_colocacion(p, t_ms)
+        return None
 
     def siguiente(self) -> None:
         """Salta al siguiente ejercicio (tecla de la interfaz)."""
@@ -304,6 +370,14 @@ class Sesion:
         self.latencias.anota("pose", res.latencia_ms)
         lat = {"pose": res.latencia_ms}
 
+        if res.muestra is None and p.colocando:
+            # colocándose es normal salir del encuadre: ni pausa ni aviso
+            self.frames_sin_persona += 1
+            p.colocado_desde = None
+            p.comprobaciones = {"persona": False, "orientacion": False,
+                                "cuerpo_entero": False}
+            self._registra(p, t_ms, lat)
+            return self._estado(p, None, None, lat)
         if res.muestra is None:
             self.frames_sin_persona += 1
             p.segmentador.interrumpir()
@@ -323,6 +397,13 @@ class Sesion:
         obs = observacion_desde_pose(res.muestra, skill.skill_id)
         obs = p.salto.aplicar(obs, res.imagen)
         t1 = time.perf_counter()
+        if p.colocando:
+            lat["geometria"] = (t1 - t0) * 1000
+            self.latencias.anota("geometria", lat["geometria"])
+            aviso = self._coloca(p, skill, res, obs, t_ms)
+            self._registra(p, t_ms, lat, obs=obs)
+            return self._estado(p, res, aviso, lat, obs.orientacion,
+                                angulos=obs.angulos)
         seg = p.segmentador.actualizar(obs)
         p.seg = seg
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
@@ -577,7 +658,15 @@ class Sesion:
             motivo_silencio=motivo_silencio,
             angulos=dict(angulos) if angulos else None,
             angulos_importantes=tuple(p.ejercicio.skill.angulos_requeridos),
-            guia=_guia_actual(p, self._t_ms))
+            guia=_guia_actual(p, self._t_ms),
+            colocando=p.colocando,
+            instruccion=(self._instruccion(p.ejercicio) if p.colocando else None),
+            comprobaciones=dict(p.comprobaciones) if p.colocando else None)
+
+    @staticmethod
+    def _instruccion(ej: Ejercicio) -> str:
+        colocacion = _COLOCACION.get(ej.skill.orientacion_preferida, "Colócate frente a la cámara.")
+        return f"{colocacion} Aléjate hasta que se te vea de la cabeza a los pies."
 
     # -- resumen ------------------------------------------------------------
 
@@ -640,6 +729,7 @@ def frases_de_rutina(rutina: Rutina, catalogo: Mapping[str, Ejercicio],
     frases.add(AVISO_ENCUADRE)
     frases.update(AVISO_PAUSA.values())
     frases.add(AVISO_REANUDA)
+    frases.add(AVISO_COLOCADA)
     for paso in rutina.pasos:
         ej = catalogo[paso.skill_id]
         frases.add(Sesion._anuncio(ej, paso.repeticiones))
