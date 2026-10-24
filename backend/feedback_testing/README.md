@@ -84,7 +84,7 @@ Qué corre y qué sale:
 | Detección → inicio de voz | `ColaVoz.registro`; voz `auto` = Piper sin altavoz (sintetiza y espera lo que dura el audio) | No incluye la latencia del dispositivo de audio; `--voz piper` suena de verdad |
 | Silencios por causa | `Sesion(registrar=True)`: motivo por frame | Sin persona, pausa y `MOTIVO_*` |
 | MediaPipe lite / full / heavy (EXP-004) | Ritmo máximo, mismos vídeos | Latencia, capacidad en FPS, % frames con persona, jitter en la plancha mantenida |
-| DTW clásico frente a banda (EXP-010) | Réplica fuera de línea de la corrida «cola» | Latencia según longitud del prefijo y diferencias de resultado |
+| DTW incremental sin banda frente a banda (EXP-010) | Réplica fuera de línea de la corrida «cola» | Latencia según longitud del prefijo y diferencias de resultado |
 | Plantilla frente a LLM (EXP-001) | `runner.py` sobre el banco sintético | F sale pendiente sin `llama-server` (solo en la Mac) |
 | RTF de Piper | `frases_de_rutina` | |
 | Precisión, recobrado, F1, sobrecorrección, mensajes correctos, κ | Solo con anotaciones | Vídeo a ritmo máximo sin descarte (determinista) |

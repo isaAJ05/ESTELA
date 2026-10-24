@@ -24,8 +24,8 @@ Qué corre:
 2. **Variantes de MediaPipe** lite / full / heavy (EXP-004) a ritmo máximo:
    latencia de pose, capacidad en FPS, % de frames con persona y jitter en la
    plancha mantenida.
-3. **DTW clásico frente a banda Sakoe-Chiba** (EXP-010): se repiten las
-   observaciones de la corrida principal por los dos alineadores.
+3. **DTW incremental sin banda frente a banda Sakoe-Chiba** (EXP-010): se
+   repiten las observaciones de la corrida principal por los dos alineadores.
 4. **Plantilla frente a LLM** (EXP-001) con el banco sintético de `runner.py`;
    la condición F necesita `llama-server` (solo en la Mac).
 5. **RTF de Piper** sobre `frases_de_rutina`.
@@ -512,7 +512,6 @@ def _nuevo_estimador(modelo: str):
 
 def reproducir_video(cv2, video: Video, catalogo, modelo: str, politica: str,
                      ritmo: str, motor_voz: MotorVoz, max_s: Optional[float] = None,
-                     banda_dtw: Optional[int] = None,
                      tramo_ms: Optional[Tuple[int, int]] = None) -> Corrida:
     """Pasa un vídeo por una `Sesion` de un solo ejercicio.
 
@@ -526,7 +525,7 @@ def reproducir_video(cv2, video: Video, catalogo, modelo: str, politica: str,
     est, calentamiento = _nuevo_estimador(modelo)
     cola = ColaVoz(motor_voz)
     rutina = rutina_de_un_ejercicio(video.ejercicio_id, OBJETIVO_SIN_FIN, catalogo)
-    sesion = Sesion(rutina, catalogo, est, cola, banda_dtw=banda_dtw, registrar=True)
+    sesion = Sesion(rutina, catalogo, est, cola, registrar=True)
     frame_ini = int(math.ceil(tramo_ms[0] * video.fps / 1000.0)) if tramo_ms else 0
     frame_fin = int(tramo_ms[1] * video.fps / 1000.0) if tramo_ms else None
     if max_s is not None:
@@ -668,22 +667,23 @@ def jitter_plancha(c: Corrida, medidas: Sequence[str], ventana: int = 15
 
 def replicar_dtw(corridas: Sequence[Corrida], catalogo,
                  bandas_frac: Sequence[float]) -> Dict[str, Any]:
-    """EXP-010: repite las observaciones de cada corrida por el DTW clásico y
-    por las bandas, frame a frame, con las mismas llamadas que hace la sesión
-    (todo frame con persona, también en pausa). La banda en frames es
-    `fracción × longitud de la referencia` (mínimo 1)."""
+    """EXP-010: repite las observaciones de cada corrida por el DTW incremental
+    sin banda y con las bandas, frame a frame, con las mismas llamadas que hace
+    la sesión (todo frame con persona, también en pausa). La banda en frames
+    es `fracción × longitud de la referencia` (mínimo 1) y se pasa como
+    `dtw.banda` de la referencia, igual que en `referencia.json`."""
     acum: Dict[str, Dict[str, Any]] = {}
     global_: Dict[str, Tuple[List[int], List[float]]] = {}
     for c in corridas:
         ref = catalogo[c.ejercicio_id].referencia
-        clasico = AlineadorDTW(ref)
+        clasico = AlineadorDTW(_con_banda(ref, None))
         if not clasico.disponible:
             acum.setdefault(c.ejercicio_id, {"disponible": False})
             continue
         m = clasico.longitud_referencia
-        variantes: Dict[str, AlineadorDTW] = {"clásico": clasico}
+        variantes: Dict[str, AlineadorDTW] = {"sin banda": clasico}
         for f in bandas_frac:
-            variantes[f"banda {f:.0%}"] = AlineadorDTW(ref, max(1, round(f * m)))
+            variantes[f"banda {f:.0%}"] = AlineadorDTW(_con_banda(ref, max(1, round(f * m))))
         d = acum.setdefault(c.ejercicio_id, {
             "disponible": True, "longitud_referencia": m,
             "variantes": {k: {"banda": al.banda, "longitud": [], "latencia_ms": [],
@@ -694,8 +694,10 @@ def replicar_dtw(corridas: Sequence[Corrida], catalogo,
             med = e.get("medidas")
             if not med:
                 continue
-            obs = SimpleNamespace(repeticion=e["repeticion"], angulos=med["angulos"],
-                                  distancias=med["distancias"])
+            conf = med["confianza"]
+            obs = SimpleNamespace(repeticion=e["repeticion"], t_ms=e["t_ms"],
+                                  angulos=med["angulos"], distancias=med["distancias"],
+                                  confianza_de=lambda n, conf=conf: float(conf.get(n, 0.0)))
             resultados = {}
             for k, al in variantes.items():
                 t0 = time.perf_counter()
@@ -712,9 +714,9 @@ def replicar_dtw(corridas: Sequence[Corrida], catalogo,
                     v["con_resultado"] += 1
                     v["progreso_1"] += int(r.progreso == 1.0)
                 resultados[k] = r
-            base = resultados["clásico"]
+            base = resultados["sin banda"]
             for k, r in resultados.items():
-                if k == "clásico" or base is None or r is None:
+                if k == "sin banda" or base is None or r is None:
                     continue
                 v = d["variantes"][k]
                 v["dif_progreso"].append(abs(r.progreso - base.progreso))
@@ -745,6 +747,14 @@ def replicar_dtw(corridas: Sequence[Corrida], catalogo,
                    "variantes": filas}
     res["_global"] = {k: mi.latencia_por_longitud(lon, lat) for k, (lon, lat) in global_.items()}
     return res
+
+
+def _con_banda(ref: Optional[Mapping[str, Any]], banda: Optional[int]
+               ) -> Optional[Dict[str, Any]]:
+    """Copia de la referencia con `dtw.banda` cambiada (None = sin banda)."""
+    if ref is None:
+        return None
+    return {**ref, "dtw": {**(ref.get("dtw") or {}), "banda": banda}}
 
 
 def llm_disponible(url: str = URL_LLM, timeout: float = 0.5) -> Tuple[bool, str]:
@@ -1073,7 +1083,7 @@ def ejecutar(op: Opciones) -> Dict[str, Any]:
     # -- DTW (EXP-010) -----------------------------------------------------------
     base = [c for c in corridas if c.politica == "cola"] or corridas
     if base:
-        _log("EXP-010: réplica DTW clásico frente a banda")
+        _log("EXP-010: réplica DTW sin banda frente a banda")
         R["dtw"] = replicar_dtw(base, catalogo, op.bandas_frac)
 
     # -- anotaciones -------------------------------------------------------------
@@ -1432,7 +1442,7 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
 
     # -- DTW
     if R.get("dtw"):
-        L += ["## 8. DTW clásico frente a banda Sakoe-Chiba (EXP-010)", "",
+        L += ["## 8. DTW incremental sin banda frente a banda Sakoe-Chiba (EXP-010)", "",
               "Réplica fuera de línea de las observaciones de la corrida «cola» (modelo "
               f"{R['opciones']['modelo']}), con las mismas llamadas que hace la sesión. Banda en frames "
               f"= fracción × longitud de la referencia ({', '.join(_n(f, 2) for f in R['opciones']['bandas_frac'])}).", "",
@@ -1464,13 +1474,10 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
                     tramo = f"{f['desde']}–{f['hasta'] if f['hasta'] is not None else '∞'}"
                     L.append(f"| {tramo} | {nombre} | {f['n']} | {_n(f['media'], 2)} | "
                              f"{_n(f['p50'], 2)} | {_n(f['p95'], 2)} | {_n(f['max'], 2)} |")
-        L += ["", "`[F]` Con el DTW actual el camino termina siempre en la última celda (n, m): `progreso` "
-              "sale 1,0 y `angulos_ref` es el último frame de la referencia en todos los frames con resultado "
-              "(columna «progreso = 1»). Hoy no cambia ninguna decisión porque ninguna regla usa `desviacion` "
-              "(EXP-009 §9). La banda no lo corrige: solo recorta celdas. `[R]` Un DTW de extremo abierto "
-              "(mínimo sobre la última fila) es el paso previo a usar la referencia; queda para el equipo.",
-              "", "`[I]` Si el segmentador no cierra la repetición (antes de la primera, en pausa o sin "
-              "conteo), el prefijo crece sin límite y el coste del DTW clásico con él.", ""]
+        L += ["", "El DTW es incremental y de final abierto: cada frame actualiza una columna de la "
+              "matriz en O(m) y se reinicia en cada repetición, así que la latencia no debería crecer con el "
+              "prefijo (columna «ms por frame de prefijo»). La banda se centra en el instante que tocaría al "
+              "ritmo de la referencia; las columnas «Δ» comparan cada banda con la variante sin banda.", ""]
 
     # -- EXP-001
     if R.get("exp001"):

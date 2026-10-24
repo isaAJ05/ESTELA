@@ -120,18 +120,19 @@ def test_jitter_en_la_plancha(R):
     assert j["tronco_inclinacion"] >= 0
 
 
-def test_dtw_clasico_frente_a_banda(R):
+def test_dtw_sin_banda_frente_a_banda(R):
     _salta_si(R, "pose")
     dtw = {k: v for k, v in R.get("dtw", {}).items() if not k.startswith("_")}
     con_ref = {k: v for k, v in dtw.items() if v["disponible"]}
     if not con_ref:
         pytest.skip("pendiente de medición: ningún vídeo de un ejercicio con referencia DTW")
     for ej, d in con_ref.items():
-        clasico = d["variantes"]["clásico"]
+        sin_banda = d["variantes"]["sin banda"]
+        assert sin_banda["frames"] > 0, ej
         for nombre, v in d["variantes"].items():
-            # la banda nunca calcula más celdas que el clásico
-            if nombre != "clásico" and v["latencia"]["n"]:
-                assert v["latencia"]["media"] <= clasico["latencia"]["media"] * 1.5, (ej, nombre)
+            # la banda nunca calcula más celdas que la variante sin banda
+            if nombre != "sin banda" and v["latencia"]["n"]:
+                assert v["latencia"]["media"] <= sin_banda["latencia"]["media"] * 1.5, (ej, nombre)
 
 
 def test_exp001_plantilla(R):
