@@ -23,7 +23,7 @@ la interfaz no las muestra. Para activarlas:
 capacidad          campo                               tarea
 =================  ==================================  =====================
 nivel              EstadoFrame.nivel                   T22.a
-correctasConError  EstadoFrame.correctas / con_error   T29.a
+correctasConError  EstadoFrame.correctas / con_error   T29.a (hecho)
                    y en cada paso del resumen
 guia               EstadoFrame.guia (33×[x, y, vis])   T14
 resumenTexto       resumen["resumen_texto"]            T27 (LLM rol B)
@@ -85,7 +85,7 @@ VERSION = 1
 
 CAPACIDADES: Dict[str, bool] = {
     "nivel": False,
-    "correctasConError": False,
+    "correctasConError": True,
     "guia": True,
     "resumenTexto": False,
     "motivoSilencio": True,
@@ -319,9 +319,9 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "terminada": estado.terminada,
         "colocacion": colocacion_a_dict(estado),
         "evaluacion": evaluacion(estado),
-        # aún sin backend (ver CAPACIDADES): llegan null
         "correctas": opcional("correctas"),
         "conError": opcional("con_error"),
+        # aún sin backend (ver CAPACIDADES): llega null
         "nivel": opcional("nivel"),
         "guia": _puntos(np.asarray(guia)) if guia is not None else None,
         "depuracion": {

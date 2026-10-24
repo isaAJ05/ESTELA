@@ -35,6 +35,7 @@ from typing import Any, Deque, Dict, List, Mapping, Optional, Set, Tuple
 import numpy as np
 
 from ..dominio.feedback.contrato import ErrorTipificado, MensajeFeedback, Plano, Severidad, Silencio
+from ..dominio.feedback.motor.decision import CALIDAD_CON_ERROR, CALIDAD_CORRECTA
 from ..dominio.feedback.motor.geometria import observacion_desde_pose
 from ..dominio.feedback.pipeline import MotorFeedback
 from ..dominio.feedback.verbalizador.base import Verbalizador
@@ -164,6 +165,10 @@ class EstadoFrame:
     angulos_importantes: Tuple[str, ...] = ()
     #: postura de referencia del frame actual, en formato (33, 4)
     guia: Optional[np.ndarray] = None
+    #: repeticiones (o segundos, en la plancha) correctas y con error según
+    #: el motor, aunque no se dijera nada (T29.a); las no evaluadas no suman
+    correctas: Optional[int] = None
+    con_error: Optional[int] = None
     #: fase de colocación: qué hacer y qué se cumple ya
     #: (persona, orientacion, cuerpo_entero)
     colocando: bool = False
@@ -220,6 +225,9 @@ class _Paso:
     #: EXP-010: ¿está haciendo este ejercicio? None si no hay referencias
     reconocedor: Optional[ReconocedorEjercicio] = None
     ult_aviso_otro_ms: Optional[int] = None
+    #: unidades completadas por repetición del motor: 1 por repetición, o los
+    #: segundos de cada bloque en un ejercicio isométrico
+    unidades: Dict[int, int] = field(default_factory=dict)
     colocando: bool = False
     #: desde cuándo se cumplen las tres comprobaciones sin interrupción
     colocado_desde: Optional[int] = None
@@ -278,6 +286,7 @@ class Sesion:
         actual = self.paso_actual
         if actual is not None:
             actual.fin_ms = self._t_ms
+            actual.motor.decision.cerrar_repeticion()
             if actual.registro is not None:
                 actual.registro.cerrar(self._t_ms)
             self.voz.decir(f"Muy bien, terminaste {actual.ejercicio.skill.nombre.lower()}.",
@@ -351,6 +360,7 @@ class Sesion:
             p.motor.reiniciar()
             p.segmentador.reiniciar()
             p.seg = None
+            p.unidades.clear()
             if p.alineador is not None:
                 p.alineador.reiniciar()
 
@@ -406,6 +416,8 @@ class Sesion:
                                 angulos=obs.angulos)
         seg = p.segmentador.actualizar(obs)
         p.seg = seg
+        if seg.evento == EVENTO_COMPLETA and seg.repeticion:
+            p.unidades[seg.repeticion] = p.unidades.get(seg.repeticion, 0) + 1
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
         t2 = time.perf_counter()
         lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
@@ -640,6 +652,7 @@ class Sesion:
                                mensajes_emitidos=self._mensajes_emitidos,
                                feedback=self._ultimo_feedback)
         seg = p.seg
+        correctas, con_error = self._calidad(p)
         return EstadoFrame(
             ejercicio=p.ejercicio.skill.nombre,
             ejercicio_id=p.ejercicio.skill.skill_id, paso=self._i + 1,
@@ -659,9 +672,19 @@ class Sesion:
             angulos=dict(angulos) if angulos else None,
             angulos_importantes=tuple(p.ejercicio.skill.angulos_requeridos),
             guia=_guia_actual(p, self._t_ms),
+            correctas=correctas, con_error=con_error,
             colocando=p.colocando,
             instruccion=(self._instruccion(p.ejercicio) if p.colocando else None),
             comprobaciones=dict(p.comprobaciones) if p.colocando else None)
+
+    @staticmethod
+    def _calidad(p: _Paso) -> Tuple[int, int]:
+        """(correctas, con error) entre las unidades completadas cuya
+        repetición ya cerró el motor."""
+        calidad = p.motor.decision.calidad_por_repeticion
+        correctas = sum(n for r, n in p.unidades.items() if calidad.get(r) == CALIDAD_CORRECTA)
+        con_error = sum(n for r, n in p.unidades.items() if calidad.get(r) == CALIDAD_CON_ERROR)
+        return correctas, con_error
 
     @staticmethod
     def _instruccion(ej: Ejercicio) -> str:
@@ -674,7 +697,8 @@ class Sesion:
         if p.registro is None:
             return []
         p.registro.cerrar(p.fin_ms if p.fin_ms is not None else self._t_ms)
-        return list(p.registro.filas)
+        calidad = p.motor.decision.calidad_por_repeticion
+        return [{**f, "calidad": calidad.get(f["rep"])} for f in p.registro.filas]
 
     def resumen(self) -> Dict[str, Any]:
 
@@ -683,12 +707,15 @@ class Sesion:
             seg = p.seg
             fin_ms = p.fin_ms if p.fin_ms is not None else self._t_ms
             pausa_ms = p.pausa.tiempo_pausado_ms(fin_ms)
+            correctas, con_error = self._calidad(p)
             pasos.append({
                 "skill_id": p.ejercicio.skill.skill_id,
                 "objetivo": p.objetivo,
                 "unidad": p.ejercicio.unidad,
                 "completadas": seg.completadas if seg else 0,
                 "incompletas": seg.incompletas if seg else 0,
+                "correctas": correctas,
+                "con_error": con_error,
                 # tiempo activo: sin contar las pausas
                 "duracion_s": (round((fin_ms - p.inicio_ms - pausa_ms) / 1000.0, 1)
                                if p.inicio_ms is not None else 0.0),

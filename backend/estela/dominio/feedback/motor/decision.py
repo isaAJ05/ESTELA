@@ -45,6 +45,11 @@ _Candidato = Tuple[Regla, float, float, Medida, Condicion]
 #: con menos, un solo frame ruidoso decidiría la mediana
 MIN_MUESTRAS_MEDIANA = 3
 
+#: resultado de una repetición en `MotorDecision.calidad_por_repeticion`
+CALIDAD_CORRECTA = "correcta"
+CALIDAD_CON_ERROR = "con_error"
+CALIDAD_NO_EVALUADA = "no_evaluada"
+
 
 def escala_relativa(condicion: Condicion, sigma: Optional[float]) -> float:
     """`max(σ_ref, ruido)` de una condición relativa; 0 si no hay ninguno."""
@@ -167,6 +172,11 @@ class MotorDecision:
         #: observación, antes de la política de silencio (detección cruda para
         #: las métricas del Informe 2). No interviene en ninguna decisión.
         self.disparadas: Tuple[str, ...] = ()
+        #: resultado de cada repetición cerrada (`CALIDAD_*`), con el mismo
+        #: criterio que la racha de refuerzo: con error si alguna regla
+        #: detectó un error (se dijera o no); correcta si ninguna lo detectó y
+        #: todas las aplicables se comprobaron; si no, no evaluada (T29.a)
+        self.calidad_por_repeticion: Dict[int, str] = {}
 
     # -- utilidades internas ------------------------------------------------
 
@@ -203,6 +213,13 @@ class MotorDecision:
         felicitaba aunque hubiera un error que la cámara no veía (EXP-001 §8.4,
         M8′ = 39,5 %).
         """
+        if self._repeticion_actual and self._rep_sucia:
+            self.calidad_por_repeticion[self._repeticion_actual] = CALIDAD_CON_ERROR
+        elif self._repeticion_actual and self._rep_aplicables \
+                and self._rep_aplicables <= self._rep_comprobadas:
+            self.calidad_por_repeticion[self._repeticion_actual] = CALIDAD_CORRECTA
+        elif self._repeticion_actual:
+            self.calidad_por_repeticion[self._repeticion_actual] = CALIDAD_NO_EVALUADA
         if self._repeticion_actual is None or not self._rep_aplicables:
             return
         if self._rep_sucia:
@@ -210,6 +227,12 @@ class MotorDecision:
         elif self._rep_aplicables <= self._rep_comprobadas:
             self._refuerzo.repeticiones_limpias_consecutivas += 1
             self._racha_cerrada_pendiente = True
+
+    def cerrar_repeticion(self) -> None:
+        """Cierra la repetición en curso (fin del ejercicio) para que tenga
+        resultado en `calidad_por_repeticion`."""
+        self._cierra_repeticion_anterior()
+        self._repeticion_actual = None
 
     def _anota(self, obs: Observacion) -> None:
         for nombre, valor in obs.angulos.items():
@@ -574,7 +597,9 @@ class MotorDecision:
         self._rep_disparadas = set()
         self._racha_cerrada_pendiente = False
         self.disparadas = ()
+        self.calidad_por_repeticion = {}
 
 
-__all__ = ["MotorDecision", "Decision", "plano_observable"]
+__all__ = ["MotorDecision", "Decision", "plano_observable", "CALIDAD_CORRECTA",
+           "CALIDAD_CON_ERROR", "CALIDAD_NO_EVALUADA"]
 

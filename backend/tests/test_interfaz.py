@@ -113,7 +113,8 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
-        "guia", "motivoSilencio", "colocacion", "rutinaPersonalizada", "silenciarVoz"]
+        "correctasConError", "guia", "motivoSilencio", "colocacion", "rutinaPersonalizada",
+        "silenciarVoz"]
     json.dumps(d)
 
 
@@ -155,8 +156,8 @@ def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
     assert d["ejercicioId"] == ZANCADA and d["completadas"] == 1
     assert len(d["puntos"]) == 33 and len(d["puntos"][0]) == 3
     assert d["depuracion"]["fps"] == 30.0
-    for futuro in ("correctas", "conError", "nivel"):
-        assert d[futuro] is None
+    assert d["nivel"] is None                       # aún sin backend
+    assert isinstance(d["correctas"], int) and isinstance(d["conError"], int)
     assert d["guia"] is None  # la zancada de prueba no tiene referencia
     # el motor sí corrió en este frame: dice por qué no habló
     assert d["depuracion"]["motivoSilencio"] is not None
@@ -265,7 +266,8 @@ def test_resumen_para_la_interfaz(catalogo, rutina):
     assert r["rutina"] == "Prueba"
     assert r["pasos"][0]["nombre"].startswith("Zancada atrás estática")
     assert r["pasos"][0]["completadas"] == 2
-    assert r["pasos"][0]["correctas"] is None and r["resumenTexto"] is None
+    p0 = r["pasos"][0]
+    assert p0["correctas"] + p0["conError"] <= p0["completadas"] and r["resumenTexto"] is None
     assert r["duracionTotalS"] == round(sum(p["duracionS"] for p in r["pasos"]), 1)
     # panel técnico de T29: abstenciones por paso y latencia p50/p95 por etapa
     assert isinstance(r["pasos"][0]["abstenciones"], dict)

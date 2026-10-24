@@ -144,6 +144,8 @@ interface PasoHecho {
   paso: PasoRutina
   completadas: number
   incompletas: number
+  correctas: number
+  conError: number
   duracionS: number
   pausaS: number
   pausas: number
@@ -178,7 +180,7 @@ export function bridgeSimulado(): Bridge {
   const empezarPaso = () => {
     reloj = 0
     colocadoEn = null
-    actual = { paso: pasos[i], completadas: 0, incompletas: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
+    actual = { paso: pasos[i], completadas: 0, incompletas: 0, correctas: 0, conError: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
     hechos.push(actual)
   }
 
@@ -190,7 +192,7 @@ export function bridgeSimulado(): Bridge {
       duracionTotalS: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 10) / 10,
       pasos: hechos.map((h) => ({
         skillId: h.paso.skillId, nombre: h.paso.nombre, unidad: h.paso.unidad, objetivo: h.paso.objetivo,
-        completadas: h.completadas, incompletas: h.incompletas, correctas: null, conError: null,
+        completadas: h.completadas, incompletas: h.incompletas, correctas: h.correctas, conError: h.conError,
         duracionS: Math.round(h.duracionS * 10) / 10, pausas: h.pausas, pausaS: h.pausaS, mensajes: h.mensajes,
         abstenciones: { evidencia_insuficiente: h.completadas > 0 ? 2 : 0 },
       })),
@@ -237,6 +239,12 @@ export function bridgeSimulado(): Bridge {
     actual.completadas = Math.min(paso.objetivo,
       paso.unidad === 'segundos' ? Math.floor(activo) : Math.floor(activo / SEG_POR_REP))
     if (paso.skillId === 'marcha_rodillas' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
+    // cada repetición (o segundo) nueva: con error si es de las que llevan corrección
+    for (let k = antes + 1; k <= actual.completadas; k++) {
+      const conError = paso.unidad === 'segundos' ? k > 6 && k <= 10 : [2, 4].includes(k)
+      if (conError) actual.conError++
+      else actual.correctas++
+    }
     if (paso.unidad === 'repeticiones' && actual.completadas !== antes && [2, 4].includes(actual.completadas)) {
       const lista = MENSAJES[paso.skillId] ?? []
       const fb = lista[(actual.completadas / 2 - 1) % Math.max(lista.length, 1)]
@@ -260,7 +268,7 @@ export function bridgeSimulado(): Bridge {
       aviso, avisoTipo, ultimoMensaje, mensajesEmitidos, feedback, pausada: enPausa,
       motivoPausa: enPausa ? 'sin_persona' : null,
       puntos: enPausa ? null : esqueleto(paso.skillId, (activo / SEG_POR_REP) % 1),
-      terminada: false, correctas: null, conError: null, nivel: null, guia: null,
+      terminada: false, correctas: actual.correctas, conError: actual.conError, nivel: null, guia: null,
       colocacion: null,
       evaluacion: enPausa ? { evaluando: false, motivo: 'En pausa' }
         : anuncio ? { evaluando: false, motivo: 'Escuchando una indicación' } : { evaluando: true, motivo: null },
@@ -281,7 +289,7 @@ export function bridgeSimulado(): Bridge {
       fase: 'colocacion', persona, orientacionGrados: paso.orientacion === 'perfil' ? 88 : 4,
       aviso: null, avisoTipo: null, ultimoMensaje, mensajesEmitidos, feedback, pausada: false, motivoPausa: null,
       puntos: persona ? esqueleto(paso.skillId, 0) : null,
-      terminada: false, correctas: null, conError: null, nivel: null, guia: null,
+      terminada: false, correctas: 0, conError: 0, nivel: null, guia: null,
       colocacion: { instruccion: `Colócate ${vista} a la cámara. Aléjate hasta que se te vea de la cabeza a los pies.`,
                     persona, orientacion, cuerpoEntero },
       evaluacion: { evaluando: false, motivo: 'Colocándote' },
@@ -327,7 +335,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true },
+    capacidades: { nivel: false, correctasConError: true, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -348,7 +356,7 @@ export function bridgeSimulado(): Bridge {
     }),
     iniciar,
     siguiente: async () => { if (fase === 'sesion') avanzar() },
-    reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; reloj = 0; colocadoEn = null } },
+    reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; actual.correctas = 0; actual.conError = 0; reloj = 0; colocadoEn = null } },
     listo: async () => { if (fase === 'sesion' && colocadoEn === null) colocadoEn = reloj },
     terminar: async () => { if (fase === 'sesion') cerrar(false) },
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
