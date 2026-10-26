@@ -232,3 +232,28 @@ def test_la_rutina_por_defecto_carga_los_ejercicios(catalogo):
                    "marcha_rodillas", "plancha"]
     plancha = rutina.pasos[-1]
     assert catalogo[plancha.skill_id].unidad == "segundos" and plancha.repeticiones == 20
+
+# ---------------------------------------------------------------------------
+# Ángulos para la interfaz: solo los de keypoints bien vistos
+# ---------------------------------------------------------------------------
+
+class EstimadorSinPiernas(EstimadorFalso):
+    """Piernas fuera de cuadro: MediaPipe las inventa con visibilidad baja."""
+
+    def estimar(self, frame, t_ms):
+        mundo = esqueleto_perfil(float(frame), self.tronco)
+        for lado in ("left", "right"):
+            for parte in ("knee", "ankle"):
+                mundo[IDX[f"{lado}_{parte}"], 3] = 0.1
+        return ResultadoPose(muestra_desde_arrays(t_ms, mundo, mundo), mundo, 1.0)
+
+
+def test_la_interfaz_no_recibe_angulos_de_keypoints_mal_vistos(catalogo):
+    s = Sesion(rutina_de_un_ejercicio("marcha_rodillas", 5, catalogo), catalogo,
+               EstimadorSinPiernas(tronco=10), VozFalsa())
+    angulos = [e.angulos for e in correr(s, [170.0] * 30) if e.angulos]
+    assert angulos
+    for a in angulos:
+        assert "tronco_inclinacion" in a
+        assert not {"rodilla_izq", "rodilla_der", "abduccion_cadera_izq",
+                    "abduccion_cadera_der"} & a.keys()

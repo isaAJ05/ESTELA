@@ -42,7 +42,7 @@ from ..dominio.feedback.verbalizador.base import Verbalizador
 from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 
 from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador, leer_senal
-from .dtw import Comparador, comparador_de_referencia
+from .dtw import CONFIANZA_MINIMA, Comparador, comparador_de_referencia
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
 from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
@@ -121,6 +121,17 @@ def _cuerpo_entero(imagen: Optional[np.ndarray]) -> bool:
         x, y, vis = float(imagen[i, 0]), float(imagen[i, 1]), float(imagen[i, -1])
         return vis >= _VISIBILIDAD_MINIMA and 0.0 <= x <= 1.0 and 0.0 <= y <= 1.0
     return all(any(visible(i) for i in grupo) for grupo in _CUERPO_ENTERO)
+
+
+def _angulos_visibles(obs) -> Dict[str, float]:
+    """Ángulos del frame para la interfaz, sin los de keypoints mal vistos.
+
+    Con las piernas fuera de cuadro MediaPipe sigue devolviendo rodillas
+    inventadas, y la abducción de cadera salía en pantalla con valores
+    absurdos (-154°). Se usa el mismo corte que el DTW.
+    """
+    return {n: v for n, v in obs.angulos.items()
+            if obs.confianza_de(n) >= CONFIANZA_MINIMA}
 
 
 def _guia_actual(paso: _Paso, t_ms: int) -> Optional[np.ndarray]:
@@ -413,7 +424,7 @@ class Sesion:
             aviso = self._coloca(p, skill, res, obs, t_ms)
             self._registra(p, t_ms, lat, obs=obs)
             return self._estado(p, res, aviso, lat, obs.orientacion,
-                                angulos=obs.angulos)
+                                angulos=_angulos_visibles(obs))
         seg = p.segmentador.actualizar(obs)
         p.seg = seg
         if seg.evento == EVENTO_COMPLETA and seg.repeticion:
@@ -455,7 +466,7 @@ class Sesion:
                      or AVISO_PAUSA[p.pausa.motivo])
             self._registra(p, t_ms, lat, obs=obs, seg=seg, dtw=dtw)
             return self._estado(p, res, aviso, lat, obs.orientacion,
-                               angulos=obs.angulos)
+                               angulos=_angulos_visibles(obs))
 
         if getattr(self.voz, "anunciando", False):
             salida = Silencio(MOTIVO_ANUNCIO, t_ms)
@@ -494,7 +505,7 @@ class Sesion:
                  or self._revisa_otro_ejercicio(p, otro_ejercicio, t_ms))
         estado = self._estado(p, res, aviso, lat, obs.orientacion,
                               salida.motivo if isinstance(salida, Silencio) else None,
-                              angulos=obs.angulos)
+                              angulos=_angulos_visibles(obs))
 
         if seg.evento == EVENTO_COMPLETA and seg.completadas >= p.objetivo:
             self._avanzar()
