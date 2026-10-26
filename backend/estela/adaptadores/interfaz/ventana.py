@@ -110,7 +110,9 @@ def abrir(orquestador: Orquestador, dist: Path, depurar: bool = False) -> None:
         background_color="#0E0D16")
     api._ventana = ventana
     ventana.events.closed += lambda: orquestador.cerrar()
-    icono = indice.parent / "icono.ico"
+    # GTK (gdk-pixbuf) no carga el .ico comprimido de Windows: «Compressed
+    # icons are not supported», y la ventana no llega a abrirse
+    icono = indice.parent / ("icono.ico" if sys.platform == "win32" else "favicon.png")
     _identificar_en_barra_de_tareas()
     ventana.events.shown += lambda: _identificar_ventana("ESTELA")
     webview.start(http_server=True, debug=depurar, private_mode=True,
