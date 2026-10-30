@@ -80,6 +80,7 @@ PLANO_DE_ANGULO: Dict[str, Plano] = {
     "tobillo_izq": Plano.SAGITAL,
     "tobillo_der": Plano.SAGITAL,
     "tronco_inclinacion": Plano.SAGITAL,
+    "inclinacion_sagital_tronco": Plano.SAGITAL,
     "valgo_rodilla_izq": Plano.FRONTAL,
     "valgo_rodilla_der": Plano.FRONTAL,
     "separacion_pies": Plano.FRONTAL,
@@ -186,6 +187,46 @@ def inclinacion_tronco(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optiona
     vertical = tuple([0.0, -1.0] + ([0.0] if len(v) == 3 else []))
     cos = max(-1.0, min(1.0, _punto(v, vertical) / n))
     return math.degrees(math.acos(cos))
+
+
+#: Adelanto mínimo de la nariz sobre las orejas, en escalas de tronco, para
+#: saber hacia dónde mira la persona. Por debajo la medida no se calcula.
+#: `[?]` Provisional: en perfil puro la nariz va ~0,2 escalas por delante de
+#: las orejas, y de frente ~0.
+NARIZ_DELANTE_MINIMO = 0.08
+
+
+def inclinacion_sagital_tronco(kps: Dict[str, Keypoint]) -> Optional[float]:
+    """Inclinación del tronco hacia delante o hacia atrás, con signo, en grados.
+
+    Ángulo del vector cadera media → hombro medio respecto a la vertical,
+    solo con (x, y): es una medida para vista de perfil y la z, la componente
+    menos fiable, mezclaría la inclinación lateral. Positivo = hacia delante;
+    negativo = hacia atrás. «Delante» es hacia donde apunta la nariz respecto
+    a las orejas; si la nariz no se adelanta lo bastante (persona de frente),
+    devuelve None en lugar de adivinar el signo. Plano sagital.
+
+    A diferencia de `tronco_inclinacion` (sin signo y con z), distingue
+    echarse atrás de encorvarse. `[F]` En 6 vídeos correctos de marcha
+    (2026-10-30), con la pierna arriba, vale de −13,7° a +7,6°, mientras que
+    `tronco_inclinacion` llega a un p95 de 23,4° en uno de ellos.
+    """
+    req = ("left_shoulder", "right_shoulder", "left_hip", "right_hip",
+           "left_ear", "right_ear", "nose")
+    if any(k not in kps for k in req):
+        return None
+    hombro = punto_medio(_coords(kps["left_shoulder"], False),
+                         _coords(kps["right_shoulder"], False))
+    cadera = punto_medio(_coords(kps["left_hip"], False),
+                         _coords(kps["right_hip"], False))
+    oreja = punto_medio(_coords(kps["left_ear"], False),
+                        _coords(kps["right_ear"], False))
+    v = _resta(hombro, cadera)
+    esc = _norma(v)
+    delante = kps["nose"].x - oreja[0]
+    if esc < 1e-9 or abs(delante) < NARIZ_DELANTE_MINIMO * esc:
+        return None
+    return math.degrees(math.atan2(math.copysign(1.0, delante) * v[0], -v[1]))
 
 
 def orientacion_camara(kps: Dict[str, Keypoint]) -> Optional[float]:
@@ -697,6 +738,8 @@ def observacion_desde_pose(
          hombros + caderas + ("left_ear", "right_ear")),
         ("cabeza_mirada", cabeza_mirada(kps),
          hombros + caderas + ("left_ear", "right_ear", "nose")),
+        ("inclinacion_sagital_tronco", inclinacion_sagital_tronco(kps),
+         hombros + caderas + ("left_ear", "right_ear", "nose")),
         ("abduccion_cadera_izq", abduccion_cadera(kps, "izq"),
          ("left_hip", "left_knee", "right_hip")),
         ("abduccion_cadera_der", abduccion_cadera(kps, "der"),
@@ -766,6 +809,7 @@ def observacion_desde_pose(
 __all__ = [
     "ANGULOS_TERNA", "ANGULOS_MEDIOS", "PLANO_DE_ANGULO", "KP_REQUERIDOS",
     "angulo_entre", "punto_medio", "escala_corporal", "inclinacion_tronco",
+    "inclinacion_sagital_tronco",
     "orientacion_camara", "desviacion_lateral_rodilla", "separacion_pies",
     "separacion_pies_hombros",
     "rotacion_tronco", "azimut_cadera",

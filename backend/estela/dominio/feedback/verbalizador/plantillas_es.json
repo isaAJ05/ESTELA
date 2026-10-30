@@ -19,6 +19,24 @@
     "alta": ["Endereza bien el {segmento}, sin irte hacia delante ni hacia atrás."]
   },
 
+  "tronco_hacia_atras": {
+    "leve": ["Mantén el {segmento} erguido, sin echarte atrás.", "Lleva el pecho un poco al frente."],
+    "moderada": ["No eches el {segmento} hacia atrás al subir.", "Mantén el {segmento} recto, no te eches atrás."],
+    "alta": ["Endereza el {segmento}, te estás echando muy atrás."]
+  },
+
+  "tronco_hacia_delante": {
+    "leve": ["Sube un poco el pecho.", "Mantén el {segmento} un poco más erguido."],
+    "moderada": ["Endereza el {segmento}, pecho arriba.", "No encorves el {segmento} al subir."],
+    "alta": ["Endereza bien el {segmento}, te estás encorvando."]
+  },
+
+  "ritmo_muy_rapido": {
+    "leve": ["Un poco más despacio, sube cada {segmento} con control."],
+    "moderada": ["Más despacio, marcha sin trotar.", "Baja el ritmo, cada {segmento} con calma."],
+    "alta": ["Mucho más despacio, esto es marcha, no carrera."]
+  },
+
   "valgo_rodilla": {
     "leve": ["Abre un poco la {segmento} {lado}.", "Lleva la {segmento} {lado} algo más hacia fuera."],
     "moderada": ["Abre la {segmento} {lado} hacia fuera.", "La {segmento} {lado} se te va hacia dentro."],

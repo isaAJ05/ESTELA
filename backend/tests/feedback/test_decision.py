@@ -330,6 +330,39 @@ class TestSkillsActuales(unittest.TestCase):
         m.observar(self._obs(skill_id, 1000, 1, **kw))
         return m.observar(self._obs(skill_id, 2000, 2, **kw))
 
+    def test_marcha_tronco_atras_y_delante_son_errores_distintos(self):
+        for incl, error_id in ((-20.0, "tronco_hacia_atras"),
+                               (20.0, "tronco_hacia_delante")):
+            d = self._dos_repeticiones(
+                "marcha_rodillas", fase="apoyo_izq", orientacion=90.0,
+                angulos={"inclinacion_sagital_tronco": incl})
+            self.assertIsInstance(d, ErrorTipificado, error_id)
+            self.assertEqual(d.error_id, error_id)
+        d = self._dos_repeticiones(
+            "marcha_rodillas", fase="apoyo_izq", orientacion=90.0,
+            angulos={"inclinacion_sagital_tronco": -10.0})
+        self.assertIsInstance(d, Silencio)
+
+    def _marcha_con_periodo(self, periodo_ms, pasos=4):
+        m = MotorDecision(SKILLS["marcha_rodillas"])
+        return [m.observar(self._obs(
+            "marcha_rodillas", rep * periodo_ms, rep,
+            "apoyo_izq" if rep % 2 else "apoyo_der", orientacion=90.0,
+            distancias={"periodo_paso_ms": float(periodo_ms)}))
+            for rep in range(1, pasos + 1)]
+
+    def test_marcha_ritmo_rapido_necesita_dos_pasos_seguidos(self):
+        ds = self._marcha_con_periodo(200)
+        self.assertIsInstance(ds[0], Silencio)
+        self.assertEqual(ds[0].motivo, MOTIVO_EVIDENCIA_INSUFICIENTE)
+        self.assertIsInstance(ds[1], ErrorTipificado)
+        self.assertEqual(ds[1].error_id, "ritmo_muy_rapido")
+        self.assertEqual(ds[1].magnitud, 50.0)
+
+    def test_marcha_ritmo_normal_no_corrige(self):
+        ds = self._marcha_con_periodo(400, pasos=6)
+        self.assertTrue(all(isinstance(d, Silencio) for d in ds))
+
     def test_abduccion_tronco_hacia_el_lado_contrario(self):
         for skill_id, incl, error_id, lado in (
                 ("abduccion_cadera_izq", -15.0, "tronco_inclinado_der", Lado.DERECHO),

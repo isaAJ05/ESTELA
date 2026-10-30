@@ -169,6 +169,9 @@ class EstadoSegmento:
     evento: Optional[str] = None
     #: False si en este frame la señal faltaba o no era confiable
     senal_valida: bool = True
+    #: solo `alternante`, en el frame en que una repetición cuenta: ms desde el
+    #: inicio de la anterior que contó. None en el resto de frames
+    periodo_ms: Optional[int] = None
 
 
 class Segmentador:
@@ -243,6 +246,12 @@ class SegmentadorAlternante(Segmentador):
     `transicion` (fase silenciada): las reglas de altura de rodilla usan el
     mínimo de la repetición y, evaluadas mientras la pierna aún sube, darían
     un falso «rodilla baja».
+
+    También mide el ritmo (`periodo_ms`): el tiempo entre los inicios de dos
+    repeticiones que **cuentan**, sin las incompletas de en medio. `[F]` Con
+    todas las repeticiones, en vídeos correctos de marcha los pasos cortos
+    (100–200 ms) venían en pareja con una repetición fantasma que no contaba,
+    y una regla de ritmo corregía a quien lo hacía bien (2026-10-30).
     """
 
     def __init__(self, senal_izq: Union[str, Sequence[str]],
@@ -263,9 +272,17 @@ class SegmentadorAlternante(Segmentador):
         self._ultimo: Optional[str] = None
         self._alterna = True
         self._rep = self._completadas = self._incompletas = 0
+        #: inicio de la repetición en curso y de la última que contó
+        self._t_inicio: Optional[int] = None
+        self._t_inicio_contada: Optional[int] = None
+
+    def interrumpir(self) -> None:
+        # Tras un hueco (pausa, sin persona) el ritmo empieza de cero.
+        self._t_inicio = self._t_inicio_contada = None
 
     def actualizar(self, obs: Observacion) -> EstadoSegmento:
         evento_final: Optional[str] = None
+        periodo: Optional[int] = None
         lado_evento = ""
         validas = 0
         for lado in ("izq", "der"):
@@ -283,10 +300,14 @@ class SegmentadorAlternante(Segmentador):
                 self._rep += 1
                 self._alterna = not (self.alternar and lado == self._ultimo)
                 self._ultimo = lado
+                self._t_inicio = obs.t_ms
             elif evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA):
                 self._activo = None
                 if evento == EVENTO_COMPLETA:
                     self._completadas += 1
+                    if self._t_inicio is not None and self._t_inicio_contada is not None:
+                        periodo = self._t_inicio - self._t_inicio_contada
+                    self._t_inicio_contada = self._t_inicio
                 else:
                     self._incompletas += 1
             if evento is not None:
@@ -305,13 +326,14 @@ class SegmentadorAlternante(Segmentador):
                 fase = self._fase_arriba[self._activo]
         return EstadoSegmento(fase, self._rep, self._completadas,
                               self._incompletas, evento_final,
-                              senal_valida=validas > 0)
+                              senal_valida=validas > 0, periodo_ms=periodo)
 
     def reiniciar(self) -> None:
         for c in self._ciclos.values():
             c.reiniciar()
         self._activo = None
         self._ultimo, self._alterna = None, True
+        self._t_inicio = self._t_inicio_contada = None
         self._rep = self._completadas = self._incompletas = 0
 
 

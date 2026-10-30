@@ -88,7 +88,6 @@ La regla que manda tiene que evaluarse **antes** en la repetición (en una fase 
 | `desviacion` | `nombre`, `fn` opcional (`mediana`) | Valor (ángulo o distancia) menos `angulos_ref[nombre]`, o el valor que entregue percepción. Con `fn: mediana`, la mediana de los frames de la repetición en curso en que la regla aplica (desde 3 muestras). Necesita la referencia alineada (DTW); sin ella, abstención `dtw_no_disponible` o respaldo absoluto (ver `relativa`). |
 | `agregado` | `fn` (`min`\|`max`\|`rango`\|`media`), `nombre`, `ventana` (`repeticion`) | Agregado acumulado dentro de la repetición actual. |
 | `asimetria` | `nombres` (exactamente 2) | Valor absoluto de la diferencia entre las dos medidas. |
-
 ### `condicion`
 
 | `op` | Campos | Error cuando |
@@ -194,6 +193,7 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `codo_*`, `hombro_*`, `cadera_*`, `rodilla_*` (`_izq`, `_der`, `_media`/`_medio`) | ángulo | sagital (hombro: frontal) | Ángulo articular de la terna; 180 = extendido |
 | `tobillo_izq`, `_der` | ángulo | sagital | Rodilla–tobillo–punta del pie. Sin regla todavía (EXP-009) |
 | `tronco_inclinacion` | ángulo | sagital | Tronco respecto a la vertical, sin signo |
+| `inclinacion_sagital_tronco` | ángulo | sagital | Tronco respecto a la vertical, con signo y solo (x, y): + = hacia delante, − = hacia atrás. «Delante» = hacia donde apunta la nariz; si no se distingue (de frente), no se calcula |
 | `inclinacion_lateral` | ángulo | frontal | Tronco hacia los lados, con signo: + = hacia la izquierda de la persona |
 | `oblicuidad_pelvis`, `oblicuidad_hombros` | ángulo | frontal | Línea de caderas / hombros respecto a la horizontal: + = lado izquierdo más alto |
 | `inclinacion_lateral_tronco` | ángulo | frontal | Componente frontal de la inclinación del tronco; + = hacia la izquierda |

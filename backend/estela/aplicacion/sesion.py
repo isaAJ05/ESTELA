@@ -325,6 +325,10 @@ class Sesion:
         seg = p.segmentador.actualizar(obs)
         p.seg = seg
         obs = replace(obs, fase=seg.fase, repeticion=seg.repeticion)
+        if seg.periodo_ms is not None:
+            # Ritmo (marcha): sale del segmentador, no de la pose.
+            obs = replace(obs, distancias={**obs.distancias, "periodo_paso_ms": float(seg.periodo_ms)},
+                          confianza={**obs.confianza, "periodo_paso_ms": 1.0})
         t2 = time.perf_counter()
         lat.update(geometria=(t1 - t0) * 1000, segmentacion=(t2 - t1) * 1000)
         if p.alineador is not None:

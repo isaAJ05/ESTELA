@@ -152,6 +152,44 @@ def test_marcha_ignora_la_otra_pierna_mientras_una_esta_arriba():
     assert e.repeticion == 1 and e.fase == "apoyo_der"
 
 
+def test_marcha_periodo_entre_pasos_que_cuentan():
+    """El ritmo salta las repeticiones fantasma: con ellas, un paso normal se
+    partía en dos «pasos» muy cortos (2026-10-30)."""
+    seg = seg_marcha()
+    t, periodos = 0, []
+
+    def paso(izq, der):
+        nonlocal t
+        for a, b in zip(izq, der):
+            e = seg.actualizar(obs(t, {"cadera_izq": a, "cadera_der": b}))
+            if e.periodo_ms is not None:
+                periodos.append(e.periodo_ms)
+            t += 30
+
+    quieto = [170.0] * 14
+    paso(marcha(80), quieto)                 # cuenta: aún sin periodo
+    paso(quieto, marcha(80))                 # cuenta: 14 frames después
+    paso([170.0] * 4, rampa(170, 140, 2) + rampa(140, 170, 2))   # fantasma
+    paso(marcha(80), quieto)                 # cuenta
+    assert periodos == [14 * 30, (14 + 4) * 30]
+
+
+def test_marcha_periodo_se_reinicia_tras_un_hueco():
+    seg = seg_marcha()
+    t = 0
+    for lado in ("izq", "der"):
+        for v in marcha(80):
+            seg.actualizar(obs(t, {"cadera_izq": v if lado == "izq" else 170.0,
+                                   "cadera_der": v if lado == "der" else 170.0}))
+            t += 30
+        seg.interrumpir()
+    estados = []
+    for v in marcha(80):
+        estados.append(seg.actualizar(obs(t, {"cadera_izq": v, "cadera_der": 170.0})))
+        t += 30
+    assert all(e.periodo_ms is None for e in estados)
+
+
 def test_desde_dict_valida_fases_contra_el_skill():
     d = {"tipo": "ciclo", "senal": "angulos.rodilla_media", "reposo": 155,
          "extremo": 110, "margen_retorno": 10, "fases": ["a", "b", "c", "d"]}

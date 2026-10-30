@@ -109,6 +109,35 @@ class TestMedidasT17(unittest.TestCase):
         self.assertIsNone(g.longitud_paso(kps))
 
 
+class TestInclinacionSagital(unittest.TestCase):
+    """`inclinacion_sagital_tronco`: tronco hacia delante (+) o atrás (−)."""
+
+    def _perfil(self, hombro_x, mirando_derecha=True, nariz=0.1):
+        # De perfil: caderas en x=0, hombros a 0,5 por encima; «delante» es
+        # hacia donde va la nariz respecto a las orejas.
+        s = 1.0 if mirando_derecha else -1.0
+        return {"left_hip": kp(0.0, 0.0), "right_hip": kp(0.0, 0.0),
+                "left_shoulder": kp(s * hombro_x, -0.5),
+                "right_shoulder": kp(s * hombro_x, -0.5),
+                "left_ear": kp(s * hombro_x, -0.7), "right_ear": kp(s * hombro_x, -0.7),
+                "nose": kp(s * (hombro_x + nariz), -0.68)}
+
+    def test_vertical_da_cero(self):
+        self.assertAlmostEqual(g.inclinacion_sagital_tronco(self._perfil(0.0)), 0.0,
+                               places=6)
+
+    def test_signo_no_depende_de_hacia_donde_mire(self):
+        esperado = math.degrees(math.atan2(0.1, 0.5))
+        for derecha in (True, False):
+            self.assertAlmostEqual(
+                g.inclinacion_sagital_tronco(self._perfil(0.1, derecha)), esperado, places=6)
+            self.assertAlmostEqual(
+                g.inclinacion_sagital_tronco(self._perfil(-0.1, derecha)), -esperado, places=6)
+
+    def test_de_frente_no_adivina_el_signo(self):
+        self.assertIsNone(g.inclinacion_sagital_tronco(self._perfil(0.1, nariz=0.0)))
+
+
 class TestMedidasADR004(unittest.TestCase):
     """Medidas añadidas con los 33 puntos existentes (ADR-006)."""
 
