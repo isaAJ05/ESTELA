@@ -34,7 +34,8 @@ from ..dominio.feedback.pipeline import MotorFeedback
 from ..dominio.feedback.verbalizador.base import Verbalizador
 from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 
-from ..dominio.conteo.segmentador import EVENTO_COMPLETA, EstadoSegmento, Segmentador, leer_senal
+from ..dominio.conteo.segmentador import (EVENTO_COMPLETA, EVENTO_INCOMPLETA, EstadoSegmento,
+                                          Segmentador, leer_senal)
 from .dtw import Comparador, comparador_de_referencia
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
@@ -190,13 +191,16 @@ class Sesion:
     def __init__(self, rutina: Rutina, catalogo: Mapping[str, Ejercicio],
                  estimador: Estimador, voz: Voz,
                  verbalizador: Optional[Verbalizador] = None,
-                 sin_dtw: bool = False, reconocer: bool = True) -> None:
+                 sin_dtw: bool = False, reconocer: bool = False) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
         self.voz = voz
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
         self.sin_dtw = sin_dtw
+        #: aviso «ese movimiento no es el de ahora» (EXP-010). Desactivado por
+        #: defecto hasta medirlo con vídeos propios; se cambia en plena sesión
+        #: con `activar_reconocimiento`.
         self.reconocer = reconocer
         self.latencias = Latencias()
         self.frames = 0
@@ -274,6 +278,16 @@ class Sesion:
             if p.alineador is not None:
                 p.alineador.reiniciar()
 
+    def activar_reconocimiento(self, activo: bool) -> None:
+        """Enciende o apaga el aviso de EXP-010 desde la interfaz. Al
+        encenderlo, el reconocedor empieza de cero (con su calentamiento)."""
+        self.reconocer = activo
+        p = self.paso_actual
+        if p is None:
+            return
+        p.reconocedor = reconocedor_para(p.ejercicio.skill.skill_id) if activo else None
+        p.ult_aviso_otro_ms = None
+
     # -- bucle --------------------------------------------------------------
 
     def procesar(self, frame: np.ndarray, t_ms: int) -> EstadoFrame:
@@ -325,7 +339,8 @@ class Sesion:
         otro_ejercicio = False
         if p.reconocedor is not None:
             t_rec = time.perf_counter()
-            otro_ejercicio = p.reconocedor.actualizar(obs)
+            otro_ejercicio = p.reconocedor.actualizar(
+                obs, seg.evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA))
             lat["reconocimiento"] = (time.perf_counter() - t_rec) * 1000
 
         # La inactividad se vigila desde la primera repetición (o el primer

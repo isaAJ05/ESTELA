@@ -1,7 +1,7 @@
 import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
-import { BotonVoz } from '../componentes/ajustes'
+import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
@@ -100,6 +100,7 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
           </Boton>
         )}
         <BotonVoz bridge={bridge} />
+        <BotonReconocer bridge={bridge} />
         <Boton variante={angulos ? 'primario' : 'suave'} onClick={alternarAngulos} atajo="A"
                title="Mostrar u ocultar los ángulos (A)" aria-label="Mostrar ángulos" aria-pressed={angulos}>
           <DraftingCompass /><span className="solo-ancho">Ángulos</span>

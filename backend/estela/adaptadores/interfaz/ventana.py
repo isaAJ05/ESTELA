@@ -58,9 +58,12 @@ class Api:
         return self._orq.iniciar(rutina)
 
     def configurar(self, ajustes: Optional[Dict[str, Any]] = None) -> None:
-        # {"voz": false} silencia las indicaciones habladas
+        # {"voz": false} silencia las indicaciones habladas;
+        # {"reconocer": true} activa el aviso «no es el ejercicio» (EXP-010)
         voz = (ajustes or {}).get("voz")
-        self._orq.configurar(voz=voz if isinstance(voz, bool) else None)
+        reconocer = (ajustes or {}).get("reconocer")
+        self._orq.configurar(voz=voz if isinstance(voz, bool) else None,
+                             reconocer=reconocer if isinstance(reconocer, bool) else None)
 
     def siguiente(self) -> None:
         self._orq.siguiente()

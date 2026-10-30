@@ -113,7 +113,7 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
-        "guia", "motivoSilencio", "rutinaPersonalizada", "silenciarVoz"]
+        "guia", "motivoSilencio", "rutinaPersonalizada", "silenciarVoz", "reconocerEjercicio"]
     json.dumps(d)
 
 
@@ -384,6 +384,38 @@ def test_configurar_silencia_y_reactiva_la_voz(catalogo, rutina):
     assert not cola.silenciada
     Api(nuevo_orquestador(catalogo, rutina, [])[0]).configurar({"voz": False})  # voz sin silenciar()
     cola.cerrar(esperar=False)
+
+
+def test_reconocimiento_empieza_apagado_y_se_activa_desde_la_interfaz(catalogo):
+    rutina = rutina_de_un_ejercicio("jumping_jacks", 999, catalogo)
+    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    assert not s.reconocer and s.paso_actual.reconocedor is None
+    s.activar_reconocimiento(True)
+    assert s.paso_actual.reconocedor is not None
+    s.activar_reconocimiento(False)
+    assert s.paso_actual.reconocedor is None
+
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True)
+    api = Api(orq)
+    api.configurar({"reconocer": "sí"})            # solo booleanos
+    assert not orq._reconocer
+    api.configurar({"reconocer": True})            # antes de empezar: vale para la sesión
+    orq.iniciar()
+    e = esperar_fase(orq, SESION)
+    while e["sesion"] is None:
+        e = orq.estado(e["version"], 1.0) or e
+    assert e["sesion"]["depuracion"]["latenciaMs"].get("reconocimiento") is not None
+    api.configurar({"reconocer": False})           # en plena sesión
+    v = e["version"]
+    for _ in range(50):                            # el comando se aplica entre frames
+        e = orq.estado(v, 1.0) or e
+        v = e["version"]
+        if "reconocimiento" not in e["sesion"]["depuracion"]["latenciaMs"]:
+            break
+    assert "reconocimiento" not in e["sesion"]["depuracion"]["latenciaMs"]
+    orq.terminar()
+    esperar_fase(orq, RESUMEN)
+    orq.cerrar()
 
 
 def test_rutina_personalizada_respeta_el_orden_y_terminar_libera_recursos(catalogo, rutina):

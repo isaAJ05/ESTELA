@@ -59,6 +59,9 @@ def _argumentos(argv=None) -> argparse.Namespace:
                    help="sin interfaz gráfica (pruebas con vídeo)")
     p.add_argument("--sin-dtw", action="store_true",
                    help="desactivar la comparación con la referencia DTW")
+    p.add_argument("--reconocer", action="store_true",
+                   help="avisar si el movimiento no es el ejercicio elegido (EXP-010); "
+                        "solo con --interfaz opencv: en la ventana se activa desde la sesión")
     p.add_argument("--umbrales", choices=("absolutos", "referencia"), default="absolutos",
                    help="«referencia»: las reglas con forma relativa se miden contra la "
                         "referencia del ejercicio (EXP-006); defecto «absolutos»")
@@ -188,7 +191,8 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     fuente = _abrir_fuente(args, tiempo_real=not args.sin_ventana)
     espejo = args.video is None
 
-    sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw)
+    sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw,
+                    reconocer=args.reconocer)
     ventana = not args.sin_ventana
     if ventana:
         import cv2

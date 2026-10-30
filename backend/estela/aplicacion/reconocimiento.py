@@ -21,6 +21,11 @@ Cómo decide, cada frame:
   se parece claramente más (coste < `TAU_SI` y < `RATIO` × el del elegido).
   Si no hay otro claro, solo cuenta con movimiento (`ACTIVIDAD_MIN`): quedarse
   quieta no es «otro ejercicio».
+* Si el segmentador del elegido cerró una repetición (o un segundo de
+  plancha) en los últimos `VENTANA_MS`, el caso «no se parece» no avisa: solo
+  el de «otro se parece claramente más». Es la variante de `+seg` que EXP-010
+  §7.3 propuso para cortar falsas alarmas cuando la usuaria hace el ejercicio
+  a su manera; `[?]` sin medir todavía.
 * El estado tiene que durar `SOSTENIDO_MS`, y nada se decide en los primeros
   `CALENTAMIENTO_MS`.
 
@@ -199,11 +204,16 @@ class ReconocedorEjercicio:
         self._esc_act = np.array([ESCALA_MIN.get(m, ESCALA_MIN_ANGULO) for m in MEDIDAS])
         self._t0: Optional[int] = None
         self._desde: Optional[int] = None
+        self._ult_propio: Optional[int] = None
 
-    def actualizar(self, obs) -> bool:
+    def actualizar(self, obs, cuenta_propio: bool = False) -> bool:
+        """`cuenta_propio`: el segmentador del ejercicio elegido cerró una
+        repetición (completa o no) en este frame."""
         t = obs.t_ms
         if self._t0 is None:
             self._t0 = t
+        if cuenta_propio:
+            self._ult_propio = t
         x = vector_comun(obs)
         coste = {}
         for clase, comps in self._comps.items():
@@ -217,20 +227,26 @@ class ReconocedorEjercicio:
         while t - self._recientes[0][0] > ACTIVIDAD_VENTANA_MS:
             self._recientes.popleft()
 
-        if t - self._t0 < CALENTAMIENTO_MS or not self.equivocado(coste, self.actividad()):
+        propio_reciente = self._ult_propio is not None and t - self._ult_propio <= VENTANA_MS
+        if (t - self._t0 < CALENTAMIENTO_MS
+                or not self.equivocado(coste, self.actividad(), propio_reciente)):
             self._desde = None
             return False
         if self._desde is None:
             self._desde = t
         return t - self._desde >= SOSTENIDO_MS
 
-    def equivocado(self, coste: Mapping[str, float], actividad: float) -> bool:
-        """La regla de `dtw_multi+rel` (EXP-010 §10), sin nombrar el otro ejercicio."""
+    def equivocado(self, coste: Mapping[str, float], actividad: float,
+                   propio_reciente: bool = False) -> bool:
+        """La regla de `dtw_multi+rel` (EXP-010 §10), sin nombrar el otro
+        ejercicio. Con `propio_reciente`, solo avisa si otro es claro."""
         propio = coste[self.clase]
         otros = [v for c, v in coste.items() if c != self.clase]
         otro = min(otros) if otros else math.inf
         claro = otro < TAU_SI and otro < RATIO * propio
         if not (propio > TAU_NO or claro):
+            return False
+        if propio_reciente and not claro:
             return False
         return claro or actividad >= ACTIVIDAD_MIN
 

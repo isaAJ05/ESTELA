@@ -30,6 +30,8 @@ export interface Capacidades {
   rutinaPersonalizada?: boolean
   /** la usuaria puede silenciar las indicaciones habladas (`configurar`) */
   silenciarVoz?: boolean
+  /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
+  reconocerEjercicio?: boolean
 }
 
 export interface PasoRutina {
@@ -203,6 +205,8 @@ export interface OpcionesInicio {
 /** Ajustes que Python aplica en cualquier fase (capacidad «silenciarVoz»). */
 export interface AjustesPython {
   voz?: boolean
+  /** capacidad «reconocerEjercicio»; empieza desactivado */
+  reconocer?: boolean
 }
 
 /** Lo que la interfaz puede pedirle a Python. */

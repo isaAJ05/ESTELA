@@ -47,6 +47,10 @@ indicaciones habladas (la sesión sigue igual: solo se deja de hablar) y
 `{"voz": true}` las reactiva. Se puede llamar en cualquier fase. El tema y el
 tamaño del texto son solo de la interfaz y no llegan a Python.
 
+Con la capacidad `reconocerEjercicio`, `configurar({"reconocer": true})` activa
+el aviso «ese movimiento no es el de ahora» (EXP-010) en la sesión en curso y
+en las siguientes. Empieza desactivado.
+
 Feedback
 --------
 `feedback` lleva la última indicación del motor ya tipada (no solo el texto):
@@ -83,6 +87,7 @@ CAPACIDADES: Dict[str, bool] = {
     "avisoLuz": False,
     "rutinaPersonalizada": True,
     "silenciarVoz": True,
+    "reconocerEjercicio": True,
 }
 
 #: límites del objetivo que puede elegir la usuaria, por unidad
