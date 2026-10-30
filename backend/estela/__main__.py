@@ -158,6 +158,13 @@ def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool):
     return FuenteCamara(args.camara)
 
 
+def _abrir_video(ruta: str):
+    """Vídeo elegido en la interfaz («Probar con un vídeo»): se reproduce a
+    velocidad normal para ver y oír el feedback como en una sesión."""
+    from .adaptadores.captura.fuente import FuenteVideo
+    return FuenteVideo(ruta, tiempo_real=True)
+
+
 def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     """Interfaz de escritorio: la sesión corre en un hilo del orquestador y
     la ventana ocupa el hilo principal."""
@@ -171,7 +178,8 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
         abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True),
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
-        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw)
+        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw,
+        abrir_video=_abrir_video)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:

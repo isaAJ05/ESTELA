@@ -30,6 +30,8 @@ export interface Capacidades {
   rutinaPersonalizada?: boolean
   /** la usuaria puede silenciar las indicaciones habladas (`configurar`) */
   silenciarVoz?: boolean
+  /** se puede analizar un vídeo elegido en el inicio (prueba del equipo) */
+  probarVideo?: boolean
 }
 
 export interface PasoRutina {
@@ -186,6 +188,11 @@ export interface Estado {
   resumen: Resumen | null
   /** JPEG en base64 del último frame (sin espejo), o null */
   frame: string | null
+  /** fuente de la sesión actual o la última (puede ser un vídeo de prueba) */
+  fuente?: 'camara' | 'video'
+  espejo?: boolean
+  /** nombre del vídeo de prueba, o null */
+  video?: string | null
 }
 
 export interface PasoElegido {
@@ -198,6 +205,8 @@ export interface OpcionesInicio {
   /** rutina elegida por la usuaria; sin ella se repite la última */
   nombre?: string
   pasos?: PasoElegido[]
+  /** ruta de un vídeo a analizar en lugar de la cámara (capacidad «probarVideo») */
+  video?: string
 }
 
 /** Ajustes que Python aplica en cualquier fase (capacidad «silenciarVoz»). */
@@ -217,6 +226,8 @@ export interface Bridge {
   volverAlInicio(): Promise<void>
   salir(): Promise<void>
   configurar(ajustes: AjustesPython): Promise<void>
+  /** Diálogo para elegir un vídeo de prueba: su ruta, o null si se cancela. */
+  elegirVideo(): Promise<string | null>
   /** Solo con la capacidad «pausaManual». */
   pausar(): Promise<void>
   reanudar(): Promise<void>

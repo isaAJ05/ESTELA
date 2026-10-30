@@ -29,6 +29,7 @@ import logging
 import queue
 import threading
 import time
+from pathlib import Path
 from typing import Any, Callable, Dict, Mapping, Optional
 
 import numpy as np
@@ -46,6 +47,9 @@ INICIO, PREPARANDO, SESION, RESUMEN, ERROR = (
 #: ancho del frame que se envía a la ventana (solo para verlo)
 ANCHO_VIDEO = 640
 CALIDAD_JPEG = 70
+
+#: `iniciar(video=...)` por defecto: repetir con la misma fuente que la última vez
+_IGUAL: Any = object()
 
 
 def _jpeg_base64(frame: Any, ancho: int = ANCHO_VIDEO) -> Optional[str]:
@@ -67,10 +71,15 @@ class Orquestador:
                  abrir_fuente: Callable[[], Fuente], voz: Any, *,
                  espejo: bool, fuente: str = "camara",
                  al_terminar: Optional[Callable[[Dict[str, Any]], None]] = None,
-                 verbalizador: Any = None, sin_dtw: bool = False) -> None:
+                 verbalizador: Any = None, sin_dtw: bool = False,
+                 abrir_video: Optional[Callable[[str], Fuente]] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
-        tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`."""
+        tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`.
+
+        Con `abrir_video`, `iniciar(video=ruta)` analiza un vídeo elegido en la
+        interfaz en lugar de `abrir_fuente` (herramienta de prueba del equipo
+        para revisar qué errores detecta el motor)."""
         self.rutina = rutina
         #: la rutina de `rutina`: la que se describe en `info()`
         self._rutina_base = rutina
@@ -83,6 +92,9 @@ class Orquestador:
         self._al_terminar = al_terminar
         self._verbalizador = verbalizador
         self._sin_dtw = sin_dtw
+        self._abrir_video = abrir_video
+        #: vídeo elegido en la interfaz para la sesión actual, o None
+        self._video: Optional[str] = None
 
         self._cv = threading.Condition()
         self._version = 0
@@ -102,7 +114,14 @@ class Orquestador:
     def info(self) -> Dict[str, Any]:
         d = contrato.info(self._rutina_base, self.catalogo, self._espejo)
         d["fuente"] = self._fuente
+        d["capacidades"]["probarVideo"] = self._abrir_video is not None
         return d
+
+    def _fuente_actual(self) -> Dict[str, Any]:
+        """De dónde salen los frames de la sesión actual (o la última)."""
+        if self._video is None:
+            return {"fuente": self._fuente, "espejo": self._espejo, "video": None}
+        return {"fuente": "video", "espejo": False, "video": Path(self._video).name}
 
     @property
     def fase(self) -> str:
@@ -117,10 +136,12 @@ class Orquestador:
                 return None
             version, fase, error = self._version, self._fase, self._error
             estado, fps, frame, resumen = self._estado, self._fps, self._frame, self._resumen
+            fuente = self._fuente_actual()
         return {
             "version": version,
             "fase": fase,
             "error": error,
+            **fuente,
             "sesion": (contrato.estado_a_dict(estado, fps)
                        if estado is not None and fase == SESION else None),
             "resumen": resumen if fase == RESUMEN else None,
@@ -129,13 +150,19 @@ class Orquestador:
 
     # -- comandos (cualquier hilo) -------------------------------------------
 
-    def iniciar(self, rutina: Optional[Rutina] = None) -> bool:
+    def iniciar(self, rutina: Optional[Rutina] = None, video: Optional[str] = _IGUAL) -> bool:
         """Empieza una sesión nueva desde el inicio, el resumen o un error.
         Con `rutina`, la usa a partir de ahora («Repetir rutina» repite la
-        última); sin ella, repite la que había."""
+        última); sin ella, repite la que había. `video` es la ruta de un
+        vídeo a analizar o None para la fuente normal; sin él, se repite la
+        fuente de la última sesión."""
         with self._cv:
             if self._fase not in (INICIO, RESUMEN, ERROR):
                 return False
+            if video is not _IGUAL:
+                if video is not None and self._abrir_video is None:
+                    return False
+                self._video = video
             if rutina is not None and rutina != self.rutina:
                 self.rutina = rutina
                 if hasattr(self._voz, "precalentar"):
@@ -188,7 +215,8 @@ class Orquestador:
 
     def _correr(self) -> None:
         try:
-            fuente = self._abrir_fuente()
+            fuente = (self._abrir_video(self._video) if self._video is not None
+                      else self._abrir_fuente())
         except Exception as e:                 # cámara ocupada, vídeo inexistente…
             log.error("No se pudo abrir la fuente: %s", e)
             self._publicar(fase=ERROR, error={"tipo": "fuente", "mensaje": str(e)})

@@ -48,6 +48,9 @@ class Api:
         # `opciones` trae lo que elige la usuaria en el inicio: la rutina
         # personalizada en "pasos" y, cuando exista la capacidad «nivel»
         # (T22.a), {"nivel": "avanzado"}, que hoy no se usa.
+        # Sin `opciones` («Repetir rutina») se repite también la fuente; con
+        # ellas, {"video": ruta} analiza ese vídeo y sin "video" se usa la
+        # fuente normal.
         rutina = None
         if opciones and opciones.get("pasos"):
             try:
@@ -55,7 +58,22 @@ class Api:
             except RutinaInvalida as e:
                 log.warning("Rutina de la interfaz rechazada: %s", e)
                 return False
-        return self._orq.iniciar(rutina)
+        if opciones is None:
+            return self._orq.iniciar(rutina)
+        video = opciones.get("video")
+        return self._orq.iniciar(rutina, video=video if isinstance(video, str) else None)
+
+    def elegir_video(self) -> Optional[str]:
+        """Diálogo del sistema para elegir un vídeo de prueba. Devuelve la
+        ruta o None si se cancela. El vídeo se lee donde está: no se copia."""
+        if self._ventana is None:
+            return None
+        import webview
+        rutas = self._ventana.create_file_dialog(
+            webview.FileDialog.OPEN, allow_multiple=False,
+            file_types=("Vídeos (*.mp4;*.mov;*.avi;*.mkv;*.webm)",
+                        "Todos los archivos (*.*)"))
+        return str(rutas[0]) if rutas else None
 
     def configurar(self, ajustes: Optional[Dict[str, Any]] = None) -> None:
         # {"voz": false} silencia las indicaciones habladas

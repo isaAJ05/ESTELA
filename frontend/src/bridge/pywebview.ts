@@ -12,6 +12,8 @@ interface ApiPython {
   salir(): Promise<void>
   // solo con la capacidad «silenciarVoz»
   configurar?(ajustes: AjustesPython): Promise<void>
+  // solo con la capacidad «probarVideo»
+  elegir_video?(): Promise<string | null>
   // aún no existen en Python (capacidad «pausaManual»)
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
@@ -49,6 +51,7 @@ export function bridgePywebview(api: ApiPython): Bridge {
     volverAlInicio: () => api.volver_al_inicio(),
     salir: () => api.salir(),
     configurar: async (ajustes) => { await api.configurar?.(ajustes) },
+    elegirVideo: async () => (await api.elegir_video?.()) ?? null,
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

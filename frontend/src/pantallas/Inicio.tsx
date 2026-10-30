@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
+import { AlertTriangle, ArrowLeft, ArrowRight, FileVideo, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
@@ -34,10 +34,11 @@ function textoError(tipo: 'fuente' | 'modelo', fuente: 'camara' | 'video') {
 export function Inicio({ bridge }: { bridge: Bridge }) {
   const base = useEstado((s) => s.info?.rutina ?? null)
   const catalogo = useEstado((s) => s.info?.catalogo ?? SIN_CATALOGO)
-  const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
+  const fuente = useEstado((s) => s.estado?.fuente ?? s.info?.fuente ?? 'camara')
   const fase = useEstado((s) => s.estado?.fase ?? 'inicio')
   const errorApp = useEstado((s) => s.estado?.error ?? null)
   const conNivel = useCapacidad('nivel')
+  const probarVideo = useCapacidad('probarVideo')
   const personalizable = useCapacidad('rutinaPersonalizada') && catalogo.length > 0
   const [nivel, setNivel] = useState<Nivel>('principiante')
   const [seccion, setSeccion] = useState<Seccion>('bienvenida')
@@ -80,11 +81,16 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     : rechazada ? { titulo: 'No se pudo iniciar esta rutina', ayuda: 'Revisa los ejercicios y sus objetivos.' }
     : null
 
-  const comenzar = async () => {
-    const opciones = conNivel ? { nivel } : undefined
+  // sin `video` se usa la cámara (no se repite un vídeo de prueba anterior)
+  const comenzar = async (video?: string) => {
+    const opciones = { ...(conNivel ? { nivel } : {}), ...(video ? { video } : {}) }
     if (!personalizable) { void bridge.iniciar(opciones); return }
     if (avisos.length > 0) return
     setRechazada(!(await iniciarRutina(bridge, { nombre, pasos: plan }, opciones)))
+  }
+  const comenzarConVideo = async () => {
+    const ruta = await bridge.elegirVideo()
+    if (ruta) await comenzar(ruta)
   }
 
   return (
@@ -145,7 +151,8 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
       ) : (
         <Bienvenida nombre={nombre} plan={plan} estimadoS={personalizable ? estimadoS : null}
           personalizable={personalizable} preparando={preparando} error={error} avisos={avisos}
-          alPersonalizar={() => setSeccion('rutina')} alComenzar={() => void comenzar()}
+          fuente={fuente} alPersonalizar={() => setSeccion('rutina')} alComenzar={() => void comenzar()}
+          alProbarVideo={probarVideo ? () => void comenzarConVideo() : null}
           nivel={conNivel ? <SelectorNivel nivel={nivel} alCambiar={setNivel} /> : null} />
       )}
     </main>
@@ -153,7 +160,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
 }
 
 function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error, avisos,
-                      alPersonalizar, alComenzar, nivel }: {
+                      fuente, alPersonalizar, alComenzar, alProbarVideo, nivel }: {
   nombre: string
   plan: PasoRutina[]
   estimadoS: number | null
@@ -161,8 +168,11 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
   preparando: boolean
   error: { titulo: string; ayuda: string } | null
   avisos: string[]
+  fuente: 'camara' | 'video'
   alPersonalizar: () => void
   alComenzar: () => void
+  /** «Probar con un vídeo», solo con la capacidad «probarVideo» */
+  alProbarVideo: (() => void) | null
   nivel: ReactNode
 }) {
   return (
@@ -196,9 +206,14 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
             )}
             <Boton variante={personalizable ? 'secundario' : 'primario'} onClick={alComenzar}
                    disabled={preparando || avisos.length > 0}>
-              {preparando ? <><Loader2 className="girando" />Preparando la cámara…</>
+              {preparando ? <><Loader2 className="girando" />{fuente === 'video' ? 'Abriendo el vídeo…' : 'Preparando la cámara…'}</>
                 : <><Play />{personalizable ? 'Empezar ya' : 'Comenzar sesión'}</>}
             </Boton>
+            {alProbarVideo && (
+              <Boton variante="suave" onClick={alProbarVideo} disabled={preparando || avisos.length > 0}>
+                <FileVideo />Probar con un vídeo
+              </Boton>
+            )}
           </div>
         )}
         <p className="descargo">

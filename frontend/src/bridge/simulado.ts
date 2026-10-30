@@ -315,6 +315,7 @@ export function bridgeSimulado(): Bridge {
       }, 500)
     }),
     iniciar,
+    elegirVideo: async () => null,
     siguiente: async () => { if (fase === 'sesion') avanzar() },
     reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; reloj = 0 } },
     terminar: async () => { if (fase === 'sesion') cerrar(false) },

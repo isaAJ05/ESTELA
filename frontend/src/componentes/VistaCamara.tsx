@@ -41,7 +41,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
   const repintar = useRef<() => void>(() => {})
   useEffect(() => { verAngulos.current = mostrarAngulos; repintar.current() }, [mostrarAngulos])
   const conexiones = useEstado((s) => s.info?.conexiones ?? null)
-  const espejo = useEstado((s) => s.info?.espejo ?? true)
+  const espejo = useEstado((s) => s.estado?.espejo ?? s.info?.espejo ?? true)
 
   useEffect(() => {
     const canvas = lienzo.current

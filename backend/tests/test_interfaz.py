@@ -370,6 +370,49 @@ def test_iniciar_con_rutina_personalizada_y_repetirla(catalogo, rutina):
     assert len(orq.info()["rutina"]["pasos"]) == 2
 
 
+def test_probar_con_un_video_elegido_en_la_interfaz(catalogo, rutina):
+    videos = []
+
+    def abrir_video(ruta):
+        videos.append(ruta)
+        return FuenteLista(secuencia_zancadas(1))
+
+    orq, creados, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(1),
+                                        abrir_video=abrir_video)
+    api = Api(orq)
+    assert orq.info()["capacidades"]["probarVideo"]
+    assert api.iniciar({"video": "C:/pruebas/plancha.mp4"})
+    fin = esperar_fase(orq, RESUMEN)
+    assert videos == ["C:/pruebas/plancha.mp4"] and creados["fuentes"] == []
+    assert (fin["fuente"], fin["espejo"], fin["video"]) == ("video", False, "plancha.mp4")
+    # «Repetir rutina» repite el mismo vídeo; empezar desde el inicio vuelve a la cámara
+    assert api.iniciar(None)
+    esperar_fase(orq, RESUMEN)
+    assert len(videos) == 2 and creados["fuentes"] == []
+    assert api.iniciar({})
+    fin = esperar_fase(orq, RESUMEN)
+    assert len(creados["fuentes"]) == 1
+    assert (fin["fuente"], fin["espejo"], fin["video"]) == ("camara", True, None)
+
+
+def test_sin_abrir_video_no_se_ofrece_ni_se_acepta(catalogo, rutina):
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(1))
+    assert not orq.info()["capacidades"]["probarVideo"]
+    assert not orq.iniciar(video="x.mp4")
+    assert orq.fase == INICIO
+    assert Api(orq).elegir_video() is None      # sin ventana
+
+
+def test_video_que_no_abre_da_error_de_fuente(catalogo, rutina):
+    def abrir_video(ruta):
+        raise RuntimeError(f"no se pudo abrir el vídeo {ruta}")
+
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [], abrir_video=abrir_video)
+    assert orq.iniciar(video="roto.mp4")
+    e = esperar_fase(orq, ERROR)
+    assert e["error"]["tipo"] == "fuente" and e["fuente"] == "video"
+
+
 def test_configurar_silencia_y_reactiva_la_voz(catalogo, rutina):
     cola = ColaVoz(VozTexto())
     orq = Orquestador(rutina, catalogo, EstimadorCerrable, lambda: FuenteLista([], False),

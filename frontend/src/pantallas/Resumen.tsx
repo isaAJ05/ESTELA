@@ -10,7 +10,8 @@ import { useCapacidad, useEstado } from '../estado/almacen'
 export function Resumen({ bridge }: { bridge: Bridge }) {
   const resumen = useEstado((s) => s.estado?.resumen ?? null)
   const plan = useEstado((s) => s.plan?.pasos ?? SIN_PASOS)
-  const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
+  const fuente = useEstado((s) => s.estado?.fuente ?? s.info?.fuente ?? 'camara')
+  const video = useEstado((s) => s.estado?.video ?? null)
   const conTexto = useCapacidad('resumenTexto')
   const [tecnico, setTecnico] = useState(false)
   useEffect(() => {
@@ -36,7 +37,7 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
 
       <section className="resumen-cuerpo">
         <div className="resumen-cabeza">
-          <span className="etiqueta etiqueta-marca">{resumen.rutina}</span>
+          <span className="etiqueta etiqueta-marca">{resumen.rutina}{video && ` · vídeo ${video}`}</span>
           <h1>{resumen.terminada ? <>Muy bien,<br /><em>hoy te moviste.</em></> : <>Hasta aquí<br /><em>por hoy.</em></>}</h1>
           <p className="resumen-cifras">
             <span><strong>{duracion(resumen.duracionTotalS)}</strong> en movimiento</span>
@@ -56,7 +57,7 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
             <p className="resumen-texto"><Sparkles aria-hidden="true" />{resumen.resumenTexto}</p>
           )}
           <div className="acciones">
-            <Boton onClick={() => void bridge.iniciar()}><RotateCcw />Repetir rutina</Boton>
+            <Boton onClick={() => void bridge.iniciar()}><RotateCcw />{video ? 'Repetir con el vídeo' : 'Repetir rutina'}</Boton>
             <Boton variante="secundario" onClick={() => void bridge.volverAlInicio()}><ListChecks />Configurar otra rutina</Boton>
             <Boton variante="suave" onClick={() => void bridge.salir()}><LogOut />Salir</Boton>
           </div>
