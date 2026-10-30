@@ -176,6 +176,12 @@ class _EntreRepeticiones:
       anteriores| / esa mediana. Un ciclo va de un inicio de repetición al
       siguiente. Necesita `RITMO_CICLOS` ciclos previos; un ciclo de más de
       `RITMO_MAX_CICLO_MS` es un descanso y reinicia el historial.
+    * `pies_juntos`: mínimo de `separacion_pies_hombros` en el mismo reposo
+      que `brazos_abajo`. Alto = los pies no volvieron a juntarse al cerrar.
+    * `desfase_brazos_pies`: en la última repetición completa, tiempo entre
+      el máximo de `hombro_medio` (brazos arriba) y el de
+      `separacion_pies_hombros` (pies abiertos), como fracción de la
+      duración de la repetición. 0 = brazos y pies llegan a la vez.
     """
     CONFIANZA = 0.5
     RITMO_CICLOS = 3
@@ -186,27 +192,62 @@ class _EntreRepeticiones:
         self._ciclos: Deque[int] = deque(maxlen=self.RITMO_CICLOS + 1)
         self._en_reposo = True
         self._brazos: Optional[float] = None
+        self._pies: Optional[float] = None
+        #: (valor, t_ms) del máximo de brazos y de pies en la repetición en curso
+        self._pico_brazos: Optional[Tuple[float, int]] = None
+        self._pico_pies: Optional[Tuple[float, int]] = None
+        self._desfase: Optional[float] = None
         self._publicadas: Dict[str, float] = {}
+
+    def _valor(self, obs, nombre: str) -> Optional[float]:
+        v = obs.angulos.get(nombre, obs.distancias.get(nombre))
+        if v is None or obs.confianza.get(nombre, 0.0) < self.CONFIANZA:
+            return None
+        return v
+
+    @staticmethod
+    def _pico(pico: Optional[Tuple[float, int]], v: Optional[float], t_ms: int):
+        return pico if v is None or (pico is not None and pico[0] >= v) else (v, t_ms)
 
     def aplicar(self, obs, seg: EstadoSegmento):
         if seg.evento == EVENTO_INICIO:
             self._publicadas = self._al_iniciar(obs.t_ms)
         elif seg.evento in (EVENTO_COMPLETA, EVENTO_INCOMPLETA):
-            self._en_reposo, self._brazos = True, None
-        v = obs.angulos.get("apertura_brazos")
-        if (self._en_reposo and v is not None
-                and obs.confianza.get("apertura_brazos", 0.0) >= self.CONFIANZA):
-            self._brazos = v if self._brazos is None else min(self._brazos, v)
+            self._desfase = (self._calcula_desfase(obs.t_ms)
+                             if seg.evento == EVENTO_COMPLETA else None)
+            self._en_reposo, self._brazos, self._pies = True, None, None
+        brazos = self._valor(obs, "apertura_brazos")
+        pies = self._valor(obs, "separacion_pies_hombros")
+        if self._en_reposo:
+            if brazos is not None:
+                self._brazos = brazos if self._brazos is None else min(self._brazos, brazos)
+            if pies is not None:
+                self._pies = pies if self._pies is None else min(self._pies, pies)
+        else:
+            self._pico_brazos = self._pico(self._pico_brazos,
+                                           self._valor(obs, "hombro_medio"), obs.t_ms)
+            self._pico_pies = self._pico(self._pico_pies, pies, obs.t_ms)
         if not self._publicadas:
             return obs
         return replace(obs, distancias={**obs.distancias, **self._publicadas},
                        confianza={**obs.confianza, **{k: 1.0 for k in self._publicadas}})
 
+    def _calcula_desfase(self, t_fin: int) -> Optional[float]:
+        if (self._ultimo_inicio is None or self._pico_brazos is None
+                or self._pico_pies is None or t_fin <= self._ultimo_inicio):
+            return None
+        return abs(self._pico_brazos[1] - self._pico_pies[1]) / (t_fin - self._ultimo_inicio)
+
     def _al_iniciar(self, t_ms: int) -> Dict[str, float]:
         publicadas: Dict[str, float] = {}
         if self._brazos is not None:
             publicadas["brazos_abajo"] = self._brazos
-        self._en_reposo, self._brazos = False, None
+        if self._pies is not None:
+            publicadas["pies_juntos"] = self._pies
+        if self._desfase is not None:
+            publicadas["desfase_brazos_pies"] = self._desfase
+        self._en_reposo, self._brazos, self._pies, self._desfase = False, None, None, None
+        self._pico_brazos = self._pico_pies = None
         if self._ultimo_inicio is not None:
             ciclo = t_ms - self._ultimo_inicio
             if ciclo > self.RITMO_MAX_CICLO_MS:

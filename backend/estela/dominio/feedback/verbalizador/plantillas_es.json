@@ -152,9 +152,9 @@
   },
 
   "salto_insuficiente": {
-    "leve": ["Salta un poco más, despega los {segmento_pl} del suelo."],
-    "moderada": ["Salta en cada repetición, despega los {segmento_pl} del suelo."],
-    "alta": ["Estás abriendo sin saltar, despega los {segmento_pl} del suelo."]
+    "leve": ["Salta un poco más, despega {art_pl} {segmento_pl} del suelo."],
+    "moderada": ["Salta en cada repetición, despega {art_pl} {segmento_pl} del suelo."],
+    "alta": ["Estás abriendo sin saltar, despega {art_pl} {segmento_pl} del suelo."]
   },
 
   "hombros_retrasados": {
@@ -201,6 +201,24 @@
     "leve": ["Intenta mantener el mismo ritmo en cada salto."],
     "moderada": ["Mantén un ritmo constante, sin acelerar ni frenar."],
     "alta": ["Busca un ritmo constante: todos los saltos al mismo paso."]
+  },
+
+  "pies_no_se_juntan": {
+    "leve": ["Al cerrar, junta un poco más los {segmento_pl}."],
+    "moderada": ["Junta los {segmento_pl} del todo en cada cierre."],
+    "alta": ["Vuelve a juntar los {segmento_pl} al cerrar, se quedan abiertos."]
+  },
+
+  "brazos_piernas_desincronizados": {
+    "leve": ["Sube los {segmento_pl} justo cuando abres al saltar."],
+    "moderada": ["Coordina los {segmento_pl} con el salto: arriba cuando abres."],
+    "alta": ["Los {segmento_pl} van a destiempo: súbelos a la vez que abres."]
+  },
+
+  "asimetria_piernas": {
+    "leve": ["Abre las dos {segmento_pl} un poco más parejas."],
+    "moderada": ["Abre las dos {segmento_pl} por igual."],
+    "alta": ["Una {segmento} se abre mucho más: ábrelas por igual."]
   },
 
   "_generico": {

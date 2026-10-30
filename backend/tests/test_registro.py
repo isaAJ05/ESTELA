@@ -26,7 +26,7 @@ def obs(t, angulos=None, distancias=None):
 
 def test_una_fila_por_repeticion_con_su_rango(catalogo, tmp_path):
     reg = RegistroRepeticiones(catalogo["jumping_jacks"])
-    assert "separacion_pies_hombros" in reg.medidas and "codo_medio" in reg.medidas
+    assert "separacion_pies_hombros" in reg.medidas and "abduccion_cadera_izq" in reg.medidas
     pasos = [(0, 1, EVENTO_INICIO, 60), (100, 1, None, 150), (200, 1, EVENTO_COMPLETA, 40),
              (300, 2, EVENTO_INICIO, 60), (400, 2, EVENTO_INCOMPLETA, 40)]
     for t, rep, ev, hombro in pasos:

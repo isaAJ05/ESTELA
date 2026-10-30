@@ -23,9 +23,12 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "angulos_requeridos": ["rodilla_media", "tronco_inclinacion"],
 
   "politica_silencio": { … },
-  "reglas": [ … ]
+  "reglas": [ … ],
+  "reglas_desactivadas": [ … ]      // opcional: reglas guardadas pero que el motor no carga
 }
 ```
+
+`reglas_desactivadas` es la forma de «comentar» una regla, porque JSON no admite comentarios: el cargador no lee esta lista, así que la regla no se evalúa, no se valida y no cuenta para el refuerzo. Cada regla lleva un `motivo_desactivacion` con la evidencia; para reactivarla se devuelve a `reglas`. Ejemplo: `codos_flexionados` en jumping jacks.
 
 ## `politica_silencio`
 
@@ -213,6 +216,8 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `apertura_brazos` | ángulo | frontal | Cadera–hombro–**muñeca**, media de los dos lados; 0 = brazos pegados al cuerpo. A diferencia de `hombro_*`, ve la mano lejos de la cadera aunque el codo esté pegado |
 | `salto_cadera` | distancia | frontal | Cadera sobre el suelo en la imagen, en longitudes de tronco (`sesion._SaltoCadera`) |
 | `brazos_abajo` | ángulo (en `distancias`) | frontal | Mínimo de `apertura_brazos` entre la repetición anterior y esta (`sesion._EntreRepeticiones`). Se publica durante la repetición siguiente: el aviso llega con una de retraso |
+| `pies_juntos` | distancia | frontal | Mínimo de `separacion_pies_hombros` en el mismo reposo que `brazos_abajo` (`sesion._EntreRepeticiones`); alto = los pies no se juntaron al cerrar. Llega con una repetición de retraso |
+| `desfase_brazos_pies` | distancia | frontal | En la última repetición completa, \|instante del máximo de `hombro_medio` − instante del máximo de `separacion_pies_hombros`\| / duración de la repetición (`sesion._EntreRepeticiones`); 0 = brazos y pies llegan a la vez. Llega con una repetición de retraso |
 | `ritmo_irregular` | distancia | cualquiera | \|último ciclo − mediana de los 3 anteriores\| / mediana (`sesion._EntreRepeticiones`). Falta en las 4 primeras repeticiones y tras un descanso de más de 3 s |
 
 ## Referencias offline
