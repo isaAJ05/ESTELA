@@ -1,0 +1,114 @@
+@startuml flujo-por-fotograma
+' Flujo de un fotograma en la fase en vivo (SegundoInforme §10.4).
+' Diagrama de secuencia: orden de las llamadas y qué hilo ejecuta cada parte.
+' Sigue a Sesion.procesar (aplicacion/sesion.py) y a Orquestador._correr
+' (adaptadores/interfaz/orquestador.py). No necesita Graphviz.
+
+title ESTELA — Flujo de un fotograma en la fase en vivo
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 230
+
+participant "Cámara\n(hilo propio)" as CAM
+participant "Orquestador\n(hilo de sesión)" as ORQ
+participant "Sesión" as SES
+participant "Estimador\nde pose" as EP
+participant "Geometría" as GEO
+participant "Segmentador" as SEG
+participant "Alineador\nDTW" as DTW
+participant "Reconocedor\nde ejercicio" as REC
+participant "Detector\nde pausa" as PAU
+participant "Motor de\nfeedback" as MF
+participant "Cola de voz\n(hilo propio)" as VOZ
+
+note over CAM
+  Guarda solo el último fotograma:
+  los que no se alcanzaron a leer
+  se descartan (RF-02).
+end note
+note over VOZ
+  Un solo hueco pendiente: la frase
+  nueva sustituye a la que esperaba,
+  salvo que esta sea un aviso y la
+  nueva una corrección.
+end note
+
+loop mientras la sesión esté activa
+  ORQ -> ORQ : aplicar comandos pendientes\n(siguiente, reiniciar o terminar)
+  ORQ -> CAM : leer()
+  note right of ORQ : espera hasta que haya\nun fotograma nuevo
+  CAM --> ORQ : (fotograma, t_ms)
+  ORQ -> SES : procesar(fotograma, t_ms)
+  SES -> EP : estimar(fotograma, t_ms)
+  EP --> SES : ResultadoPose\n(puntos y latencia)
+
+  alt no se detecta a la persona
+    SES -> SEG : interrumpir()
+    SES -> PAU : actualizar(t_ms, sin persona)
+    PAU --> SES : evento de pausa, si empieza una
+    opt empieza una pausa
+      SES ->> VOZ : decir(aviso de pausa, prioridad de aviso)
+    end
+    SES --> ORQ : EstadoFrame con aviso\n(sin persona o pausa)
+
+  else hay persona
+    SES -> GEO : observacion_desde_pose(muestra)
+    GEO --> SES : Observacion\n(ángulos, distancias, confianza, orientación)
+    SES -> SEG : actualizar(observación)
+    SEG --> SES : fase, repetición y conteo
+
+    opt DTW activo (sin --sin-dtw)
+      SES -> DTW : actualizar(observación)
+      DTW --> SES : ángulo y σ de referencia,\nprogreso y coste
+    end
+
+    SES -> SES : registrar la repetición
+
+    opt hay referencias de reconocimiento
+      SES -> REC : actualizar(observación)
+      REC --> SES : ¿lleva 3 s haciendo\notro ejercicio?
+    end
+
+    SES -> PAU : actualizar(t_ms, progreso,\norientación correcta, otro ejercicio)
+    PAU --> SES : evento: empieza la pausa,\nse reanuda o nada
+    note right of PAU
+      Hacer otro ejercicio no cuenta
+      como inactividad: no pausa y
+      quita una pausa por inactividad.
+    end note
+    opt empieza o termina una pausa
+      SES ->> VOZ : decir(aviso de pausa o «Seguimos.»,\nprioridad de aviso)
+    end
+
+    alt sesión en pausa (ausencia o inactividad)
+      note over SES, MF : el motor de feedback no se invoca
+    else sesión activa
+      SES -> MF : procesar(observación)
+      MF -> MF : decisión determinista\n(abstención, reglas, política de silencio)
+      alt hay error o refuerzo
+        MF -> MF : verbalizar\n(plantilla; modelo de lenguaje si se inyecta)
+        MF --> SES : MensajeFeedback
+        SES ->> VOZ : decir(texto, prioridad de corrección)
+      else se calla
+        MF --> SES : Silencio(motivo)
+      end
+    end
+
+    SES -> SES : elegir el aviso de operación que aplique:\norientación, encuadre y, si está activa,\nmovimiento equivocado (EXP-009) u otro ejercicio (EXP-010)
+    opt el aviso se sostiene y no se dijo en los últimos 15 s
+      SES ->> VOZ : decir(aviso, prioridad de aviso)
+    end
+
+    opt sesión activa y se completó el objetivo del ejercicio
+      SES -> SES : pasar al siguiente ejercicio
+      SES ->> VOZ : decir(«Muy bien, terminaste…» y\nanuncio del siguiente o fin de la rutina)
+    end
+    SES --> ORQ : EstadoFrame\n(aviso, mensaje o motivo de silencio, latencias)
+  end
+
+  ORQ -> ORQ : publicar(estado, fotograma)\n(la interfaz lo recoge por sondeo largo)
+end
+@enduml

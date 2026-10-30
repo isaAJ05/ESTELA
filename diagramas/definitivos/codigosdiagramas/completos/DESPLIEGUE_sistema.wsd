@@ -1,0 +1,49 @@
+@startuml DESPLIEGUE_sistema
+' Diagrama de despliegue de ESTELA (SegundoInforme §12).
+' Dónde se ejecuta cada componente y por qué conexión se comunican. No describe
+' los módulos internos del código (eso lo hace interaccion-modulos.wsd).
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de despliegue
+
+left to right direction
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 30
+skinparam ranksep 90
+
+node "Cámara web\n«dispositivo»\n(integrada o USB)" as CAMD
+node "Salida de audio\n«dispositivo»\n(altavoces o audífonos)" as AUD
+
+node "Computador de la usuaria «dispositivo»\nWindows 10/11, Linux o macOS" as PC {
+  node "Python 3.10+ en entorno virtual\n«entorno de ejecución»" as PY {
+    artifact "estela\n(backend/, python -m estela)" as EST
+    artifact "MediaPipe, OpenCV, NumPy, Pillow,\nPiper, sounddevice, pywebview" as LIBS
+  }
+  node "Motor web del sistema «entorno de ejecución»\nWebView2 (Windows) · WKWebView (macOS)\nWebKitGTK o Qt (Linux)" as WEB {
+    artifact "frontend/dist\n(interfaz React compilada)" as DIST
+  }
+  node "llama-server\n«proceso opcional; solo EXP-001»" as LLAMA
+  folder "Archivos locales" as FS {
+    artifact "modelos/\npose_landmarker_*.task\nvoces/*.onnx" as MOD
+    artifact "skills, referencias\ny rutinas (JSON)" as CONF
+    artifact "sesiones/\nmétricas JSON y CSV\n(con --guardar-metricas)" as SES
+  }
+}
+
+CAMD --> PY : fotogramas\n(OpenCV)
+AUD <-- PY : voz\n(sounddevice, o pw-play,\npaplay, aplay, afplay)
+PY <--> WEB : HTTP 127.0.0.1 (archivos de la interfaz)\n+ puente JavaScript de pywebview
+PY ..> LLAMA : HTTP 127.0.0.1:8080
+PY --> MOD : lee
+PY --> CONF : lee
+PY --> SES : escribe
+
+legend bottom left
+  Equipo de validación previsto: Mac Studio M2 Ultra.
+  Sin contenedores (necesita la cámara y el audio) ni servidores propios:
+  durante la sesión ningún dato sale del equipo.
+endlegend
+@enduml

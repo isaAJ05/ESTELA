@@ -1,0 +1,60 @@
+@startuml ARQUITECTURA_sistema
+' Diagrama de arquitectura de ESTELA (SegundoInforme §10.2).
+' Vista de alto nivel: actores, componentes principales y servicios externos,
+' sin abrir los módulos internos (eso lo hace interaccion-modulos.wsd) ni
+' detallar dónde se ejecuta cada cosa (eso lo hace despliegue.wsd).
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de arquitectura
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam ArrowFontSize 11
+skinparam nodesep 40
+skinparam ranksep 130
+skinparam rectangle {
+  BorderStyle dashed
+}
+
+actor "Usuaria" as USU
+actor "Equipo de desarrollo" as DEV
+
+rectangle "Equipo de la usuaria — todo se ejecuta en local, sin servicios en la nube" as EQ {
+  node "Altavoces" as ALT
+  node "Cámara web" as CAM
+  component "Interfaz de escritorio\n(React en ventana pywebview)" as UI
+  component "Núcleo de análisis en tiempo real\n(Python: sesión, pose, conteo,\ncomparación, decisión y voz)" as NUC
+  component "Piper TTS\n«biblioteca de terceros»" as PIP
+  component "llama-server\n«proceso opcional»" as LLM
+  component "MediaPipe Pose Landmarker\n«biblioteca de terceros»" as MP
+  folder "Métricas de sesión\n(JSON y CSV, opcional; sin video)" as MET
+  folder "Configuración de ejercicios\n(skills, referencias y rutinas, JSON)" as CONF
+}
+
+artifact "Videos de referencia\n(fuera del repositorio)" as VID
+component "Preparación offline\n(scripts de referencias)" as OFF
+
+' ----------------------------------------------------------- usuaria
+USU <-- ALT : correcciones y\navisos en español
+USU --> CAM : hace el ejercicio\nfrente a ella
+USU --> UI : elige la rutina,\nve su progreso
+
+' --------------------------------------------------- flujo en sesión
+ALT <-- NUC : voz sintetizada
+CAM --> NUC : fotogramas\n(solo en memoria)
+UI <--> NUC : comandos /\nestado (JSON)
+NUC --> PIP : frase → audio
+NUC ..> LLM : error ya tipificado →\nfrase (solo EXP-001)
+NUC --> MP : fotograma → 33 puntos
+NUC --> MET : escribe
+NUC --> CONF : lee
+
+' ------------------------------------------------------------ offline
+DEV --> OFF : ejecuta
+VID --> OFF
+OFF --> CONF : genera\nreferencias
+
+@enduml

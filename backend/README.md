@@ -50,5 +50,5 @@ adaptadores  ──►  aplicacion  ──►  dominio
 | `tests/` | Tests de la aplicación (`tests/feedback/`: del módulo de feedback) |
 | `feedback_testing/` | Banco sintético y métricas de EXP-001 y EXP-002 |
 | `rutinas/` | Rutinas de entrenamiento (JSON) |
-| `scripts/` | Descarga de modelos; `crear_referencia.py` genera la referencia de un ejercicio a partir de un vídeo (`estela/dominio/feedback/skills/referencias/`) |
+| `scripts/` | Descarga de modelos; `crear_referencia.py` genera la referencia de un ejercicio a partir de un vídeo (`estela/dominio/feedback/skills/referencias/`); `crear_referencias_reconocimiento.py` genera `referencias/reconocimiento.json`, con el que la sesión avisa si el movimiento no es el ejercicio elegido (EXP-010) |
 | `modelos/`, `sesiones/` | Modelos descargados y métricas guardadas (ignorados por git) |

@@ -213,7 +213,8 @@ def test_la_plancha_se_compara_con_su_postura_media():
     r = comparador.actualizar(o)
     medias = dict(zip(plancha["medidas"], plancha["postura"]["media"]))
     assert r.angulos_ref == pytest.approx(medias) and r.progreso is None
-    assert r.sigma_ref["alineacion_cadera"] == pytest.approx(0.061)
+    sigmas = dict(zip(plancha["medidas"], plancha["postura"]["sigma"]))
+    assert r.sigma_ref == pytest.approx(sigmas)
     assert comparador.actualizar(Observacion(t_ms=1, ejercicio_id="plancha", angulos={},
                                              confianza={}, repeticion=0)) is None
     assert comparador.motivos == {ALINEADO: 1, SIN_REPETICION: 1}

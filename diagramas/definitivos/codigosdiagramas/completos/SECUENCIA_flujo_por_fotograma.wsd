@@ -1,0 +1,81 @@
+@startuml SECUENCIA_flujo_por_fotograma
+' Flujo de un fotograma en la fase en vivo (SegundoInforme §10.4).
+' Es el diagrama v1 más el reconocimiento del ejercicio (EXP-010); la versión
+' corta para diapositivas está en diapositivas/.
+' Diagrama de secuencia: se ve el orden de las llamadas y qué hilo ejecuta cada parte.
+' No necesita Graphviz.
+
+title ESTELA — Flujo de un fotograma en la fase en vivo
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+participant "Cámara\n(hilo propio)" as CAM
+participant "Orquestador\n(hilo de sesión)" as ORQ
+participant "Sesión" as SES
+participant "Estimador\nde pose" as EP
+participant "Geometría" as GEO
+participant "Segmentador" as SEG
+participant "Alineador\nDTW" as DTW
+participant "Reconocedor\nde ejercicio" as REC
+participant "Motor de\nfeedback" as MF
+participant "Cola de voz\n(hilo propio)" as VOZ
+
+note over CAM
+  Guarda solo el último fotograma:
+  los que no se alcanzaron a leer
+  se descartan (RF-02).
+end note
+
+loop mientras la sesión esté activa
+  ORQ -> CAM : leer()
+  CAM --> ORQ : (fotograma, t_ms)
+  ORQ -> SES : procesar(fotograma, t_ms)
+  SES -> EP : estimar(fotograma, t_ms)
+  EP --> SES : ResultadoPose\n(puntos y latencia)
+
+  alt no se detecta a la persona
+    SES --> ORQ : EstadoFrame con aviso\n(sin persona o pausa)
+  else hay persona
+    SES -> GEO : observacion_desde_pose(puntos)
+    GEO --> SES : Observacion\n(ángulos, confianza, plano)
+    SES -> SEG : actualizar(observación)
+    SEG --> SES : fase y repetición
+
+    opt DTW activo (sin --sin-dtw)
+      SES -> DTW : actualizar(observación)
+      DTW --> SES : ángulo de referencia,\nprogreso y coste
+    end
+
+    opt hay referencias de reconocimiento
+      SES -> REC : actualizar(observación)
+      REC --> SES : ¿lleva 3 s haciendo\notro ejercicio?
+    end
+
+    SES -> SES : registrar la repetición y vigilar la pausa\n(hacer otro ejercicio no cuenta como inactividad)
+
+    alt sesión en pausa (ausencia o inactividad)
+      SES -> VOZ : decir(aviso de pausa, prioridad de aviso)\n(al empezar la pausa)
+    else sesión activa
+      SES -> MF : procesar(observación)
+      MF -> MF : decisión determinista\n(abstención, reglas, política de silencio)
+      alt hay error o refuerzo
+        MF -> MF : verbalizar\n(plantilla; modelo de lenguaje si se inyecta)
+        MF --> SES : MensajeFeedback
+        SES -> VOZ : decir(texto, prioridad de corrección)
+      else se calla
+        MF --> SES : Silencio(motivo)
+      end
+      opt hace otro ejercicio
+        SES -> VOZ : decir(«Ese movimiento no es el de ahora.\nToca …», prioridad de aviso)
+      end
+    end
+    SES --> ORQ : EstadoFrame\n(mensaje o motivo de silencio, latencias)
+  end
+
+  ORQ -> ORQ : publicar el estado\n(la interfaz lo recoge por sondeo largo)
+end
+
+@enduml

@@ -1,0 +1,47 @@
+@startuml SECUENCIA_flujo_por_fotograma_corto
+' Versión corta de SECUENCIA_flujo_por_fotograma.wsd para diapositivas.
+
+title ESTELA — Flujo de un fotograma
+
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+participant "Cámara" as CAM
+participant "Sesión" as SES
+participant "Pose\n(MediaPipe)" as EP
+participant "Medidas\ny conteo" as MED
+participant "Comparación\n(DTW y\nreconocimiento)" as CMP
+participant "Motor de\nfeedback" as MF
+participant "Voz" as VOZ
+
+loop cada fotograma (solo el más reciente)
+  CAM -> SES : fotograma
+  SES -> EP : estimar
+  EP --> SES : 33 puntos
+  alt hay persona
+    SES -> MED : medir
+    MED --> SES : ángulos, fase y repetición
+    SES -> CMP : comparar con la referencia
+    CMP --> SES : desviación y ¿otro ejercicio?
+    alt sesión activa
+      SES -> MF : decidir
+      alt hay error
+        MF --> SES : frase de corrección
+        SES ->> VOZ : decir
+      else se calla
+        MF --> SES : silencio
+      end
+      opt hace otro ejercicio
+        SES ->> VOZ : «Ese movimiento no es el de ahora»
+      end
+    else en pausa
+      note over SES, MF : no se corrige
+    end
+  else no hay persona
+    SES ->> VOZ : aviso de pausa
+  end
+end
+@enduml
