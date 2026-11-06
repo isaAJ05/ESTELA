@@ -1,4 +1,4 @@
-import { Check, Circle, DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Check, Circle, DraftingCompass, Footprints, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
@@ -194,6 +194,7 @@ const AYUDA_AVISO: Partial<Record<TipoAviso, string>> = {
   orientacion: 'Gira suavemente hasta que te vea como en la figura.',
   encuadre: 'Retrocede hasta que se vea de la cabeza a los pies.',
   sin_persona: 'Ponte frente a la cámara para continuar.',
+  movimiento: 'Mira la figura guía: ese es el movimiento que toca.',
 }
 
 function AvisoSesion() {
@@ -202,7 +203,8 @@ function AvisoSesion() {
   const colocando = useSesion('colocacion') != null
   if (!aviso || tipo === 'pausa' || colocando) return null   // la pausa y la colocación tienen su propia capa
   const icono = tipo === 'orientacion' ? <RotateCw />
-    : tipo === 'encuadre' ? <ScanLine /> : tipo === 'sin_persona' ? <UserX /> : <Info />
+    : tipo === 'encuadre' ? <ScanLine /> : tipo === 'sin_persona' ? <UserX />
+    : tipo === 'movimiento' ? <Footprints /> : <Info />
   return (
     <div className="escenario-arriba">
       <Aviso tipo={tipo === 'sin_persona' ? 'cuidado' : 'info'} icono={icono} titulo={aviso}>

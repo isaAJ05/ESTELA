@@ -175,6 +175,9 @@ class EstadoFrame:
     #: ángulos medidos en este frame (grados), los mismos que usa el motor;
     #: solo para mostrarlos en la interfaz
     angulos: Optional[Dict[str, float]] = None
+    #: el aviso es «ese movimiento no es el de ahora» (EXP-010) o el de
+    #: `movimiento_equivocado` de la segmentación (p. ej. la otra pierna)
+    otro_movimiento: bool = False
     #: los ángulos que importan en este ejercicio (`angulos_requeridos` de la skill)
     angulos_importantes: Tuple[str, ...] = ()
     #: postura de referencia del frame actual, en formato (33, 4)
@@ -536,12 +539,16 @@ class Sesion:
                                "repeticion": seg.repeticion})
 
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
-                 or self._revisa_encuadre(seg.senal_valida, t_ms)
-                 or self._revisa_movimiento_equivocado(p, obs, seg, t_ms)
-                 or self._revisa_otro_ejercicio(p, otro_ejercicio, t_ms))
+                 or self._revisa_encuadre(seg.senal_valida, t_ms))
+        otro_movimiento = False
+        if aviso is None:
+            aviso = (self._revisa_movimiento_equivocado(p, obs, seg, t_ms)
+                     or self._revisa_otro_ejercicio(p, otro_ejercicio, t_ms))
+            otro_movimiento = aviso is not None
         estado = self._estado(p, res, aviso, lat, obs.orientacion,
                               salida.motivo if isinstance(salida, Silencio) else None,
-                              angulos=_angulos_visibles(obs))
+                              angulos=_angulos_visibles(obs),
+                              otro_movimiento=otro_movimiento)
 
         if seg.evento == EVENTO_COMPLETA and seg.completadas >= p.objetivo:
             self._avanzar()
@@ -691,7 +698,8 @@ class Sesion:
                 aviso: Optional[str], lat: Dict[str, float],
                 orientacion: Optional[float] = None,
                 motivo_silencio: Optional[str] = None,
-                angulos: Optional[Dict[str, float]] = None) -> EstadoFrame:
+                angulos: Optional[Dict[str, float]] = None,
+                otro_movimiento: bool = False) -> EstadoFrame:
         if p is None:
             return EstadoFrame("", "", len(self.rutina.pasos), len(self.rutina.pasos),
                                0, 0, 0, "", False, None, None, self._ultimo_mensaje,
@@ -717,6 +725,7 @@ class Sesion:
             feedback=self._ultimo_feedback,
             motivo_silencio=motivo_silencio,
             angulos=dict(angulos) if angulos else None,
+            otro_movimiento=otro_movimiento,
             angulos_importantes=tuple(p.ejercicio.skill.angulos_requeridos),
             guia=_guia_actual(p, self._t_ms),
             correctas=correctas, con_error=con_error,

@@ -5,7 +5,8 @@ export type Unidad = 'repeticiones' | 'segundos'
 export type Orientacion = 'frente' | 'perfil'
 export type Nivel = 'principiante' | 'avanzado'
 export type Fase = 'inicio' | 'preparando' | 'sesion' | 'resumen' | 'error'
-export type TipoAviso = 'encuadre' | 'sin_persona' | 'orientacion' | 'pausa' | 'otro'
+/** `movimiento`: no es el ejercicio de ahora (EXP-010) o es la otra pierna */
+export type TipoAviso = 'encuadre' | 'sin_persona' | 'orientacion' | 'pausa' | 'movimiento' | 'otro'
 /** `usuaria`: pulsó «Pausar»; solo se quita con `reanudar` */
 export type MotivoPausa = 'sin_persona' | 'inactividad' | 'usuaria'
 export type Lado = 'izquierdo' | 'derecho' | 'bilateral' | 'na'

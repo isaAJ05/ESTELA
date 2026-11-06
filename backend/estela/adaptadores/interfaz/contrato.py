@@ -316,7 +316,8 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "orientacionGrados": (round(estado.orientacion, 1)
                               if estado.orientacion is not None else None),
         "aviso": estado.aviso,
-        "avisoTipo": tipo_aviso(estado.aviso),
+        "avisoTipo": ("movimiento" if opcional("otro_movimiento")
+                      else tipo_aviso(estado.aviso)),
         "ultimoMensaje": estado.ultimo_mensaje,
         "mensajesEmitidos": estado.mensajes_emitidos,
         "feedback": feedback_a_dict(opcional("feedback")),

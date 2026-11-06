@@ -240,6 +240,21 @@ def test_estado_recoge_un_campo_nuevo_del_backend(catalogo, rutina):
     assert (d["correctas"], d["conError"]) == (3, 1)
 
 
+def test_aviso_de_otro_movimiento_tiene_su_tipo(catalogo, rutina):
+    """El aviso de la otra pierna lo escribe cada skill: el tipo sale de dónde
+    se generó, no del texto."""
+    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    s._revisa_movimiento_equivocado = lambda *a: "Ahora toca la pierna derecha."
+    estado = correr(s, secuencia_zancadas(1))[-1]
+    assert estado.otro_movimiento
+    d = contrato.estado_a_dict(estado)
+    assert d["aviso"] == "Ahora toca la pierna derecha." and d["avisoTipo"] == "movimiento"
+    assert d["evaluacion"]["evaluando"]            # el motor sigue evaluando
+
+    sin = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    assert not correr(sin, secuencia_zancadas(1))[-1].otro_movimiento
+
+
 def test_pausa_y_mensajes_se_exponen(catalogo, rutina):
     voz = VozFalsa()
     s = Sesion(rutina, catalogo, EstimadorFalso(tronco=70), voz)
