@@ -49,12 +49,10 @@ Algunas partes de la interfaz ya están hechas pero ocultas, porque dependen de 
 | Capacidad | Qué muestra |
 |---|---|
 | `nivel` | selector de nivel en el inicio |
-| `correctasConError` | correctas y con error |
-| `guia` | movimiento de referencia animado |
 | `resumenTexto` | resumen en lenguaje natural |
-| `pausaManual` | botón y tecla de pausa |
+| `avisoLuz` | (sin interfaz todavía) aviso de poca luz |
 
-`motivoSilencio` (motivo de silencio en la capa de depuración, tecla D) ya está activa.
+Ya activas: `correctasConError`, `guia`, `motivoSilencio`, `pausaManual` (botón y espacio; la pausa de la usuaria solo se quita con «Reanudar»), `colocacion`, `rutinaPersonalizada`, `silenciarVoz`, `elegirCamara` (en Ajustes, antes de empezar) y `reconocerEjercicio`.
 
 Cada una se activa en `CAPACIDADES` de `backend/estela/adaptadores/interfaz/contrato.py`. Ahí está también la tabla con el campo que debe mandar el backend y la tarea correspondiente.
 
@@ -87,6 +85,7 @@ Todos los tamaños están en `rem` y la raíz crece con la ventana (`estilos/bas
 
 | Tecla | Acción |
 |---|---|
+| `Espacio` | pausar o reanudar |
 | `N` | siguiente ejercicio |
 | `R` | reiniciar el ejercicio |
 | `Esc` | terminar (pide confirmación) |
