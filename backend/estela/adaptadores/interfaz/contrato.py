@@ -57,6 +57,12 @@ la usuaria pulsa «Listo» (`listo()`). `evaluacion` dice en cada frame si la
 sesión está evaluando la técnica y, si no, por qué (prueba de usabilidad del
 Informe 2 §13.3: «el contador se detiene y no sé por qué»).
 
+Reconocimiento del ejercicio
+----------------------------
+Con la capacidad `reconocerEjercicio`, `configurar({"reconocer": true})` activa
+el aviso «ese movimiento no es el de ahora» (EXP-010) en la sesión en curso y
+en las siguientes. Empieza desactivado.
+
 Feedback
 --------
 `feedback` lleva la última indicación del motor ya tipada (no solo el texto):
@@ -94,6 +100,7 @@ CAPACIDADES: Dict[str, bool] = {
     "avisoLuz": False,
     "rutinaPersonalizada": True,
     "silenciarVoz": True,
+    "reconocerEjercicio": True,
 }
 
 #: límites del objetivo que puede elegir la usuaria, por unidad

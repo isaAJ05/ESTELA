@@ -50,13 +50,22 @@ def _obs(t_ms, medidas):
                        confianza={k: 1.0 for k in medidas})
 
 
-def _avisos(elegido, movimiento, segundos=12, periodo_s=1.0):
+def _sentadilla(fase):    # no se parece a ninguna referencia ni a otra clase
+    a = math.sin(math.pi * fase)
+    return {**BASE, "codo_medio": 170 - 110 * a, "tronco_inclinacion": 5 + 40 * a,
+            "cadera_izq": 175 - 80 * a, "cadera_der": 175 - 80 * a,
+            "rodilla_izq": 175 - 80 * a, "rodilla_der": 175 - 80 * a}
+
+
+def _avisos(elegido, movimiento, segundos=12, periodo_s=1.0, cuenta_propio=False):
+    """`cuenta_propio`: el segmentador del elegido cierra una repetición por periodo."""
     rec = R.ReconocedorEjercicio(elegido, _refs())
     salida = []
     for i in range(segundos * FPS):
         t = round(i * 1000 / FPS)
         fase = (i / FPS / periodo_s) % 1.0
-        salida.append(rec.actualizar(_obs(t, movimiento(fase))))
+        cierra = cuenta_propio and i % round(periodo_s * FPS) == 0
+        salida.append(rec.actualizar(_obs(t, movimiento(fase)), cierra))
     return salida
 
 
@@ -79,6 +88,24 @@ def test_a_otro_ritmo_sigue_siendo_el_mismo_ejercicio():
 
 def test_quieta_no_es_otro_ejercicio():
     assert not any(_avisos("jumping_jacks", lambda f: BASE))
+
+
+def test_si_su_segmentador_cuenta_no_avisa_no_reconocido():
+    """Variante `+seg` de EXP-010 §7.3: el elegido se hace «a su manera» (no se
+    parece a ninguna referencia) pero su segmentador cuenta repeticiones."""
+    assert any(_avisos("jumping_jacks", _sentadilla))
+    assert not any(_avisos("jumping_jacks", _sentadilla, cuenta_propio=True))
+
+
+def test_si_otro_se_parece_claramente_mas_avisa_aunque_su_segmentador_cuente():
+    """El segmentador de abducción cuenta las aperturas de un jumping jack
+    (EXP-010 §11): el caso «claro» no se calla."""
+    rec = R.ReconocedorEjercicio("jumping_jacks", _refs())
+    coste = {"jumping_jacks": 2.0, "marcha_rodillas": 0.3}
+    assert rec.equivocado(coste, actividad=1.0, propio_reciente=True)
+    coste = {"jumping_jacks": 2.0, "marcha_rodillas": 1.5}
+    assert rec.equivocado(coste, actividad=1.0)
+    assert not rec.equivocado(coste, actividad=1.0, propio_reciente=True)
 
 
 def test_sin_referencias_o_sin_clase_no_hay_reconocedor(tmp_path):

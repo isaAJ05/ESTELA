@@ -68,7 +68,8 @@ class Orquestador:
                  espejo: bool, fuente: str = "camara",
                  al_terminar: Optional[Callable[[Dict[str, Any]], None]] = None,
                  verbalizador: Any = None, sin_dtw: bool = False,
-                 colocacion: bool = True) -> None:
+                 colocacion: bool = True,
+                 reconocer: bool = False) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`."""
@@ -85,6 +86,8 @@ class Orquestador:
         self._verbalizador = verbalizador
         self._sin_dtw = sin_dtw
         self._colocacion = colocacion
+        #: aviso de EXP-010; la interfaz lo cambia con `configurar`
+        self._reconocer = reconocer
 
         self._cv = threading.Condition()
         self._version = 0
@@ -168,10 +171,15 @@ class Orquestador:
         """Termina la sesión en curso y pasa al resumen."""
         self._comandos.put("terminar")
 
-    def configurar(self, voz: Optional[bool] = None) -> None:
-        """Ajustes de la interfaz que se pueden cambiar en cualquier momento."""
+    def configurar(self, voz: Optional[bool] = None,
+                   reconocer: Optional[bool] = None) -> None:
+        """Ajustes de la interfaz que se pueden cambiar en cualquier momento.
+        `reconocer` vale para la sesión en curso y para las siguientes."""
         if voz is not None and hasattr(self._voz, "silenciar"):
             self._voz.silenciar(not voz)
+        if reconocer is not None:
+            self._reconocer = reconocer
+            self._comandos.put("reconocer")
 
     def volver_al_inicio(self) -> None:
         with self._cv:
@@ -209,7 +217,8 @@ class Orquestador:
 
         sesion = Sesion(self.rutina, self.catalogo, estimador, self._voz,
                         self._verbalizador, sin_dtw=self._sin_dtw,
-                        colocacion=self._colocacion)
+                        colocacion=self._colocacion,
+                        reconocer=self._reconocer)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
         motivo = contrato.FIN_CIERRE
@@ -267,6 +276,9 @@ class Orquestador:
                 sesion.reiniciar_ejercicio()
             elif cmd == "listo":
                 sesion.terminar_colocacion()
+            elif cmd == "reconocer":
+                if sesion.reconocer != self._reconocer:
+                    sesion.activar_reconocimiento(self._reconocer)
 
 
 __all__ = ["Orquestador", "INICIO", "PREPARANDO", "SESION", "RESUMEN", "ERROR"]

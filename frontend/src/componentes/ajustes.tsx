@@ -1,4 +1,4 @@
-import { Monitor, Moon, Settings, Sun, Volume2, VolumeX, X } from 'lucide-react'
+import { Monitor, Moon, ScanEye, Settings, Sun, Volume2, VolumeX, X } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import type { Bridge } from '../bridge/tipos'
 import { useCapacidad } from '../estado/almacen'
@@ -42,6 +42,20 @@ export function BotonVoz({ bridge }: { bridge: Bridge }) {
     <Boton variante={voz ? 'suave' : 'secundario'} onClick={() => cambiarAjustes({ voz: !voz }, bridge)} atajo="V"
            title={voz ? 'Silenciar la voz (V)' : 'Activar la voz (V)'} aria-label="Indicaciones habladas" aria-pressed={voz}>
       {voz ? <Volume2 /> : <VolumeX />}<span className="solo-ancho">{voz ? 'Voz' : 'Sin voz'}</span>
+    </Boton>
+  )
+}
+
+/** Activar o desactivar el aviso «ese movimiento no es el de ahora» (EXP-010).
+ *  Empieza desactivado: el reconocimiento aún puede saltar con el ejercicio correcto. */
+export function BotonReconocer({ bridge }: { bridge: Bridge }) {
+  const { reconocer } = useAjustes()
+  if (!useCapacidad('reconocerEjercicio')) return null
+  return (
+    <Boton variante={reconocer ? 'primario' : 'suave'} onClick={() => cambiarAjustes({ reconocer: !reconocer }, bridge)}
+           title={reconocer ? 'Dejar de avisar si haces otro ejercicio' : 'Avisar si haces otro ejercicio (en pruebas)'}
+           aria-label="Reconocer el ejercicio" aria-pressed={reconocer}>
+      <ScanEye /><span className="solo-ancho">Reconocer</span>
     </Boton>
   )
 }

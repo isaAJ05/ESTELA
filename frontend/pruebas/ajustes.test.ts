@@ -11,8 +11,13 @@ test('sin nada guardado o corrupto: valores por defecto', () => {
 
 test('se conserva lo válido y se descarta lo desconocido', () => {
   assert.deepEqual(leerAjustes('{"tema":"claro","voz":false,"texto":"grande"}'),
-    { tema: 'claro', voz: false, texto: 'grande' })
+    { tema: 'claro', voz: false, texto: 'grande', reconocer: false })
   assert.deepEqual(leerAjustes('{"tema":"rosa","voz":"no","texto":42}'), AJUSTES_POR_DEFECTO)
+})
+
+test('el reconocimiento del ejercicio siempre empieza desactivado', () => {
+  assert.equal(AJUSTES_POR_DEFECTO.reconocer, false)
+  assert.equal(leerAjustes('{"reconocer":true}').reconocer, false)
 })
 
 test('«sistema» sigue al sistema operativo', () => {

@@ -335,7 +335,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: true, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
