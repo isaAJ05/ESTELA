@@ -32,6 +32,8 @@ export interface Capacidades {
   rutinaPersonalizada?: boolean
   /** la usuaria puede silenciar las indicaciones habladas (`configurar`) */
   silenciarVoz?: boolean
+  /** la usuaria puede elegir la cámara antes de empezar (`camaras`, `configurar`) */
+  elegirCamara?: boolean
   /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
   reconocerEjercicio?: boolean
 }
@@ -229,9 +231,24 @@ export interface OpcionesInicio {
   pasos?: PasoElegido[]
 }
 
+/** Una cámara que OpenCV puede abrir. */
+export interface Camara {
+  indice: number
+  nombre: string
+}
+
+/** Cámaras disponibles y la elegida (capacidad «elegirCamara»). */
+export interface Camaras {
+  lista: Camara[]
+  /** null: la de defecto (`--camara`) */
+  elegida: number | null
+}
+
 /** Ajustes que Python aplica en cualquier fase (capacidad «silenciarVoz»). */
 export interface AjustesPython {
   voz?: boolean
+  /** cámara de la próxima sesión (capacidad «elegirCamara») */
+  camara?: number
   /** capacidad «reconocerEjercicio»; empieza desactivado */
   reconocer?: boolean
 }
@@ -248,6 +265,8 @@ export interface Bridge {
   volverAlInicio(): Promise<void>
   salir(): Promise<void>
   configurar(ajustes: AjustesPython): Promise<void>
+  /** Cámaras que se pueden elegir; null con un vídeo o con la cámara en uso. Tarda: abre cada una. */
+  camaras(): Promise<Camaras | null>
   /** Termina la fase de colocación (capacidad «colocacion»). */
   listo(): Promise<void>
   /** Solo con la capacidad «pausaManual». */

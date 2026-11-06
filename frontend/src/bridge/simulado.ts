@@ -166,6 +166,7 @@ export function bridgeSimulado(): Bridge {
   let sesion: EstadoSesion | null = null
   let reloj = 0                // segundos simulados dentro del paso
   let colocadoEn: number | null = null   // reloj al terminar la colocación
+  let camara: number | null = null
   let pausaUsuaria = false     // la usuaria pulsó «Pausar»: el reloj se detiene
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
@@ -345,7 +346,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, reconocerEjercicio: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -371,7 +372,12 @@ export function bridgeSimulado(): Bridge {
     terminar: async () => { if (fase === 'sesion') cerrar(false) },
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
-    configurar: async () => {},
+    configurar: async (ajustes) => { if (ajustes.camara !== undefined) camara = ajustes.camara },
+    camaras: async () => {
+      if (fase === 'sesion' || fase === 'preparando') return null
+      await new Promise((r) => setTimeout(r, 600))       // abrir cada cámara tarda
+      return { lista: [{ indice: 0, nombre: 'FaceTime HD Camera' }, { indice: 1, nombre: 'Cámara de iPhone' }], elegida: camara }
+    },
     pausar: async () => { if (fase === 'sesion' && actual && !pausaUsuaria) { pausaUsuaria = true; actual.pausas++ } },
     reanudar: async () => { pausaUsuaria = false },
   }

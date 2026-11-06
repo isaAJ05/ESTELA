@@ -59,11 +59,18 @@ class Api:
 
     def configurar(self, ajustes: Optional[Dict[str, Any]] = None) -> None:
         # {"voz": false} silencia las indicaciones habladas;
-        # {"reconocer": true} activa el aviso «no es el ejercicio» (EXP-010)
+        # {"reconocer": true} activa el aviso «no es el ejercicio» (EXP-010);
+        # {"camara": 1} elige la cámara de la próxima sesión
         voz = (ajustes or {}).get("voz")
         reconocer = (ajustes or {}).get("reconocer")
+        camara = (ajustes or {}).get("camara")
+        es_indice = isinstance(camara, int) and not isinstance(camara, bool) and camara >= 0
         self._orq.configurar(voz=voz if isinstance(voz, bool) else None,
-                             reconocer=reconocer if isinstance(reconocer, bool) else None)
+                             reconocer=reconocer if isinstance(reconocer, bool) else None,
+                             camara=camara if es_indice else None)
+
+    def camaras(self) -> Optional[Dict[str, Any]]:
+        return self._orq.camaras()
 
     def siguiente(self) -> None:
         self._orq.siguiente()

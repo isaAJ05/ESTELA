@@ -1,4 +1,4 @@
-import type { AjustesPython, Bridge, Estado, Info, OpcionesInicio } from './tipos'
+import type { AjustesPython, Bridge, Camaras, Estado, Info, OpcionesInicio } from './tipos'
 
 // Métodos de `backend/estela/adaptadores/interfaz/ventana.py:Api`, publicados por pywebview.
 interface ApiPython {
@@ -14,6 +14,8 @@ interface ApiPython {
   listo?(): Promise<void>
   // solo con la capacidad «silenciarVoz»
   configurar?(ajustes: AjustesPython): Promise<void>
+  // solo con la capacidad «elegirCamara»
+  camaras?(): Promise<Camaras | null>
   // solo con la capacidad «pausaManual»
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
@@ -52,6 +54,7 @@ export function bridgePywebview(api: ApiPython): Bridge {
     volverAlInicio: () => api.volver_al_inicio(),
     salir: () => api.salir(),
     configurar: async (ajustes) => { await api.configurar?.(ajustes) },
+    camaras: async () => (await api.camaras?.()) ?? null,
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

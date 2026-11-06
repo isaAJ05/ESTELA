@@ -33,6 +33,7 @@ pausaManual        comando `pausar`/`reanudar`;        T29 (hecho)
 colocacion         EstadoFrame.colocando / instruccion  T29 (hecho)
                    / comprobaciones; comando `listo`
 avisoLuz           (aviso de poca luz)                 —
+elegirCamara       `camaras()`; `configurar({"camara"})` T29 (hecho)
 =================  ==================================  =====================
 
 Rutina de entrenamiento
@@ -48,6 +49,11 @@ Con la capacidad `silenciarVoz`, `configurar({"voz": false})` silencia las
 indicaciones habladas (la sesión sigue igual: solo se deja de hablar) y
 `{"voz": true}` las reactiva. Se puede llamar en cualquier fase. El tema y el
 tamaño del texto son solo de la interfaz y no llegan a Python.
+
+Con `elegirCamara`, `camaras()` devuelve `{"lista": [{"indice", "nombre"}],
+"elegida"}` (o null con un vídeo o con la cámara en uso) y
+`configurar({"camara": 1})` elige la cámara de la próxima sesión. Vale hasta
+cerrar la aplicación.
 
 Colocación y evaluación
 -----------------------
@@ -101,6 +107,7 @@ CAPACIDADES: Dict[str, bool] = {
     "avisoLuz": False,
     "rutinaPersonalizada": True,
     "silenciarVoz": True,
+    "elegirCamara": True,
     "reconocerEjercicio": True,
 }
 

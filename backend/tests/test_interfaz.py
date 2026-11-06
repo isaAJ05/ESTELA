@@ -114,7 +114,7 @@ def test_info_describe_la_rutina(catalogo, rutina):
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
         "correctasConError", "guia", "motivoSilencio", "pausaManual", "colocacion",
-        "rutinaPersonalizada", "silenciarVoz", "reconocerEjercicio"]
+        "rutinaPersonalizada", "silenciarVoz", "elegirCamara", "reconocerEjercicio"]
     json.dumps(d)
 
 
@@ -414,6 +414,74 @@ def test_configurar_silencia_y_reactiva_la_voz(catalogo, rutina):
     assert not cola.silenciada
     Api(nuevo_orquestador(catalogo, rutina, [])[0]).configurar({"voz": False})  # voz sin silenciar()
     cola.cerrar(esperar=False)
+
+
+def test_elegir_camara_desde_la_interfaz(catalogo, rutina):
+    abiertas = []
+    orq = None
+
+    def abrir_fuente():
+        abiertas.append(orq.camara)
+        return FuenteLista([170.0] * 5, False)
+
+    orq = Orquestador(rutina, catalogo, EstimadorCerrable, abrir_fuente, VozFalsa(),
+                      espejo=True, colocacion=False, camara=0,
+                      listar_camaras=lambda: [{"indice": 0, "nombre": "Cámara 1"},
+                                              {"indice": 2, "nombre": "iPhone"}])
+    api = Api(orq)
+    assert api.camaras() == {"lista": [{"indice": 0, "nombre": "Cámara 1"},
+                                       {"indice": 2, "nombre": "iPhone"}], "elegida": 0}
+    for malo in (True, -1, "2", 1.5):              # solo índices enteros
+        api.configurar({"camara": malo})
+    assert orq.camara == 0
+    api.configurar({"camara": 2})
+    assert api.camaras()["elegida"] == 2
+    orq.iniciar()
+    esperar_fase(orq, RESUMEN)                     # el vídeo falso se acaba
+    assert abiertas == [2]
+    orq.cerrar()
+
+    # con un vídeo no hay nada que elegir
+    sin, _, _ = nuevo_orquestador(catalogo, rutina, [])
+    Api(sin).configurar({"camara": 1})
+    assert Api(sin).camaras() is None and sin.camara is None
+
+
+def test_no_se_listan_camaras_con_la_sesion_en_curso(catalogo, rutina):
+    llamadas = []
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True,
+                                  listar_camaras=lambda: llamadas.append(1) or [])
+    orq.iniciar()
+    esperar_fase(orq, SESION)
+    assert orq.camaras() is None and llamadas == []
+    orq.terminar()
+    esperar_fase(orq, RESUMEN)
+    assert orq.camaras() == {"lista": [], "elegida": None}
+    orq.cerrar()
+
+
+def test_listar_camaras_solo_trae_las_que_abren(monkeypatch):
+    from estela.adaptadores.captura import fuente
+
+    class Cap:
+        def __init__(self, i):
+            self.i = i
+            self.liberada = False
+
+        def isOpened(self):
+            return self.i in (0, 2)
+
+        def release(self):
+            self.liberada = True
+
+    creadas = []
+    monkeypatch.setattr(fuente.cv2, "VideoCapture", lambda i: creadas.append(Cap(i)) or creadas[-1])
+    monkeypatch.setattr(fuente, "_nombre_camara", lambda i: "Integrated Camera" if i == 0 else None)
+    assert fuente.listar_camaras(4) == [{"indice": 0, "nombre": "Integrated Camera"},
+                                        {"indice": 2, "nombre": "Cámara 3"}]
+    assert all(c.liberada for c in creadas) and len(creadas) == 4
+    monkeypatch.setattr(fuente, "_nombre_camara", lambda i: "ACER HD")
+    assert [c["nombre"] for c in fuente.listar_camaras(4)] == ["ACER HD", "ACER HD (3)"]
 
 
 def test_reconocimiento_empieza_apagado_y_se_activa_desde_la_interfaz(catalogo):
