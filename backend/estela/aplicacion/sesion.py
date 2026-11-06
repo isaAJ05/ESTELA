@@ -46,7 +46,8 @@ from ..dominio.conteo.segmentador import (EVENTO_COMPLETA, EVENTO_INCOMPLETA, Es
 from .dtw import CONFIANZA_MINIMA, Comparador, comparador_de_referencia
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
-from .pausa import EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, DetectorPausa
+from .pausa import (EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, USUARIA,
+                    DetectorPausa)
 from .reconocimiento import ReconocedorEjercicio, reconocedor_para
 from .registro import RegistroRepeticiones
 from .rutina import Ejercicio, Rutina
@@ -63,7 +64,8 @@ SIN_SENAL_S = 2.0
 AVISO_ENCUADRE = "Aléjate un poco: necesito verte el cuerpo entero."
 AVISO_SIN_PERSONA = "No te veo: colócate dentro del encuadre."
 AVISO_PAUSA = {SIN_PERSONA: "Pausa. No te veo: vuelve al encuadre para seguir.",
-               INACTIVIDAD: "Pausa. Cuando quieras, sigue con el ejercicio."}
+               INACTIVIDAD: "Pausa. Cuando quieras, sigue con el ejercicio.",
+               USUARIA: "En pausa."}
 AVISO_REANUDA = "Seguimos."
 #: aviso de EXP-010: no nombra el ejercicio que parece, solo el que toca
 AVISO_OTRO_EJERCICIO = "Ese movimiento no es el de ahora. Toca {nombre}."
@@ -161,7 +163,7 @@ class EstadoFrame:
     terminada: bool
     unidad: str = "repeticiones"       # o "segundos" en ejercicios isométricos
     pausada: bool = False
-    motivo_pausa: Optional[str] = None  # pausa.SIN_PERSONA o pausa.INACTIVIDAD
+    motivo_pausa: Optional[str] = None  # pausa.SIN_PERSONA, INACTIVIDAD o USUARIA
     #: correcciones y refuerzos emitidos en toda la sesión; cambia cada vez que
     #: hay un `ultimo_mensaje` nuevo, aunque el texto se repita
     mensajes_emitidos: int = 0
@@ -379,6 +381,18 @@ class Sesion:
             if p.alineador is not None:
                 p.alineador.reiniciar()
 
+    def pausar(self) -> None:
+        """Pausa pedida por la usuaria: no se cuenta ni se corrige hasta que
+        llame a `reanudar` (no se retoma sola)."""
+        p = self.paso_actual
+        if p is not None:
+            self._anuncia_pausa(p, p.pausa.pausar_usuaria(self._t_ms))
+
+    def reanudar(self) -> None:
+        p = self.paso_actual
+        if p is not None:
+            self._anuncia_pausa(p, p.pausa.reanudar_usuaria(self._t_ms))
+
     def activar_reconocimiento(self, activo: bool) -> None:
         """Enciende o apaga el aviso de EXP-010 desde la interfaz. Al
         encenderlo, el reconocedor empieza de cero (con su calentamiento)."""
@@ -405,6 +419,13 @@ class Sesion:
         self.latencias.anota("pose", res.latencia_ms)
         lat = {"pose": res.latencia_ms}
 
+        if p.pausa.motivo == USUARIA:
+            # en pausa a mano solo se dibuja el esqueleto
+            if res.muestra is None:
+                self.frames_sin_persona += 1
+            self._registra(p, t_ms, lat)
+            return self._estado(p, res if res.muestra is not None else None,
+                                AVISO_PAUSA[USUARIA], lat)
         if res.muestra is None and p.colocando:
             # colocándose es normal salir del encuadre: ni pausa ni aviso
             self.frames_sin_persona += 1

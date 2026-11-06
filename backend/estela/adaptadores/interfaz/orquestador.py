@@ -167,6 +167,13 @@ class Orquestador:
         """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
         self._comandos.put("listo")
 
+    def pausar(self) -> None:
+        """Pausa pedida por la usuaria (botón o espacio); no se quita sola."""
+        self._comandos.put("pausar")
+
+    def reanudar(self) -> None:
+        self._comandos.put("reanudar")
+
     def terminar(self) -> None:
         """Termina la sesión en curso y pasa al resumen."""
         self._comandos.put("terminar")
@@ -276,6 +283,10 @@ class Orquestador:
                 sesion.reiniciar_ejercicio()
             elif cmd == "listo":
                 sesion.terminar_colocacion()
+            elif cmd == "pausar":
+                sesion.pausar()
+            elif cmd == "reanudar":
+                sesion.reanudar()
             elif cmd == "reconocer":
                 if sesion.reconocer != self._reconocer:
                     sesion.activar_reconocimiento(self._reconocer)

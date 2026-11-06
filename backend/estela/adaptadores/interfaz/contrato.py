@@ -25,10 +25,11 @@ capacidad          campo                               tarea
 nivel              EstadoFrame.nivel                   T22.a
 correctasConError  EstadoFrame.correctas / con_error   T29.a (hecho)
                    y en cada paso del resumen
-guia               EstadoFrame.guia (33×[x, y, vis])   T14
+guia               EstadoFrame.guia (33×[x, y, vis])   T14 (hecho)
 resumenTexto       resumen["resumen_texto"]            T27 (LLM rol B)
 motivoSilencio     EstadoFrame.motivo_silencio         T29 (hecho)
-pausaManual        (comando `pausar`/`reanudar`)       —
+pausaManual        comando `pausar`/`reanudar`;        T29 (hecho)
+                   motivoPausa «usuaria»
 colocacion         EstadoFrame.colocando / instruccion  T29 (hecho)
                    / comprobaciones; comando `listo`
 avisoLuz           (aviso de poca luz)                 —
@@ -95,7 +96,7 @@ CAPACIDADES: Dict[str, bool] = {
     "guia": True,
     "resumenTexto": False,
     "motivoSilencio": True,
-    "pausaManual": False,
+    "pausaManual": True,
     "colocacion": True,
     "avisoLuz": False,
     "rutinaPersonalizada": True,

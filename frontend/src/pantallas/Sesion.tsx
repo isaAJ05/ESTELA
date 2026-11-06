@@ -1,6 +1,6 @@
 import { Check, Circle, DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
+import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
@@ -22,7 +22,7 @@ function useSesion<K extends keyof EstadoSesion>(campo: K): EstadoSesion[K] | nu
 export function Sesion({ bridge }: { bridge: Bridge }) {
   const hayDatos = useEstado((s) => s.estado?.sesion != null)
   const pausaManual = useCapacidad('pausaManual')
-  const pausada = useSesion('pausada')
+  const pausada = useSesion('motivoPausa') === 'usuaria'
   const silenciable = useCapacidad('silenciarVoz')
   const conColocacion = useCapacidad('colocacion')
   const [confirmar, setConfirmar] = useState(false)
@@ -87,7 +87,8 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
   const paso = useSesion('paso') ?? 1
   const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
   const pausaManual = useCapacidad('pausaManual')
-  const pausada = useSesion('pausada')
+  // una pausa automática se quita sola; el botón la convierte en pausa a mano
+  const pausada = useSesion('motivoPausa') === 'usuaria'
   return (
     <header className="cabecera cabecera-sesion">
       <Marca />
@@ -345,23 +346,30 @@ function EstadoEvaluacion() {
   )
 }
 
+const TEXTO_PAUSA: Record<MotivoPausa, { titulo: string; detalle: string }> = {
+  sin_persona: { titulo: 'Pausa · No te veo',
+                 detalle: 'Vuelve al encuadre y seguimos donde ibas. Tus repeticiones están guardadas.' },
+  inactividad: { titulo: 'Pausa · Cuando quieras, sigue',
+                 detalle: 'Tu progreso está guardado. Retoma el ejercicio y seguimos contando.' },
+  usuaria: { titulo: 'Pausa',
+             detalle: 'Tu progreso está guardado. Pulsa «Reanudar» (o espacio) cuando quieras seguir.' },
+}
+
 function Pausa({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void }) {
   const pausada = useSesion('pausada')
   const motivo = useSesion('motivoPausa')
   const pausaManual = useCapacidad('pausaManual')
   if (!pausada) return null
-  const sinPersona = motivo === 'sin_persona'
+  const texto = TEXTO_PAUSA[motivo ?? 'inactividad']
   return (
     <div className="capa-pausa" role="alertdialog" aria-labelledby="titulo-pausa">
       <div className="tarjeta tarjeta-pausa">
         <div className="icono-pausa"><Pause /></div>
         <span className="etiqueta">Sesión en pausa</span>
-        <h2 id="titulo-pausa">{sinPersona ? 'Pausa · No te veo' : 'Pausa · Cuando quieras, sigue'}</h2>
-        <p>{sinPersona
-          ? 'Vuelve al encuadre y seguimos donde ibas. Tus repeticiones están guardadas.'
-          : 'Tu progreso está guardado. Retoma el ejercicio y seguimos contando.'}</p>
+        <h2 id="titulo-pausa">{texto.titulo}</h2>
+        <p>{texto.detalle}</p>
         <div className="acciones">
-          {pausaManual && <Boton onClick={() => void bridge.reanudar()}><Play />Reanudar</Boton>}
+          {pausaManual && motivo === 'usuaria' && <Boton onClick={() => void bridge.reanudar()}><Play />Reanudar</Boton>}
           <Boton variante="secundario" onClick={alTerminar}><Square />Terminar</Boton>
         </div>
       </div>

@@ -113,8 +113,8 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
-        "correctasConError", "guia", "motivoSilencio", "colocacion", "rutinaPersonalizada",
-        "silenciarVoz", "reconocerEjercicio"]
+        "correctasConError", "guia", "motivoSilencio", "pausaManual", "colocacion",
+        "rutinaPersonalizada", "silenciarVoz", "reconocerEjercicio"]
     json.dumps(d)
 
 
@@ -417,6 +417,32 @@ def test_reconocimiento_empieza_apagado_y_se_activa_desde_la_interfaz(catalogo):
         if "reconocimiento" not in e["sesion"]["depuracion"]["latenciaMs"]:
             break
     assert "reconocimiento" not in e["sesion"]["depuracion"]["latenciaMs"]
+    orq.terminar()
+    esperar_fase(orq, RESUMEN)
+    orq.cerrar()
+
+
+def test_pausar_y_reanudar_desde_la_interfaz(catalogo):
+    rutina = rutina_de_un_ejercicio("jumping_jacks", 999, catalogo)
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True)
+    api = Api(orq)
+    orq.iniciar()
+    e = esperar_fase(orq, SESION)
+
+    def hasta(condicion):
+        nonlocal e
+        for _ in range(100):                       # el comando se aplica entre frames
+            e = orq.estado(e["version"], 1.0) or e
+            if e["sesion"] is not None and condicion(e["sesion"]):
+                return e["sesion"]
+        raise AssertionError(e["sesion"])
+
+    api.pausar()
+    s = hasta(lambda s: s["pausada"])
+    assert s["motivoPausa"] == "usuaria" and s["avisoTipo"] == "pausa"
+    assert s["evaluacion"] == {"evaluando": False, "motivo": contrato.NO_EVALUA_PAUSA}
+    api.reanudar()
+    hasta(lambda s: not s["pausada"])
     orq.terminar()
     esperar_fase(orq, RESUMEN)
     orq.cerrar()

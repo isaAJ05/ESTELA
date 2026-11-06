@@ -6,7 +6,8 @@ export type Orientacion = 'frente' | 'perfil'
 export type Nivel = 'principiante' | 'avanzado'
 export type Fase = 'inicio' | 'preparando' | 'sesion' | 'resumen' | 'error'
 export type TipoAviso = 'encuadre' | 'sin_persona' | 'orientacion' | 'pausa' | 'otro'
-export type MotivoPausa = 'sin_persona' | 'inactividad'
+/** `usuaria`: pulsó «Pausar»; solo se quita con `reanudar` */
+export type MotivoPausa = 'sin_persona' | 'inactividad' | 'usuaria'
 export type Lado = 'izquierdo' | 'derecho' | 'bilateral' | 'na'
 export type Severidad = 'leve' | 'moderada' | 'alta'
 

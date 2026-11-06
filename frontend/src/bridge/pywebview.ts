@@ -14,7 +14,7 @@ interface ApiPython {
   listo?(): Promise<void>
   // solo con la capacidad «silenciarVoz»
   configurar?(ajustes: AjustesPython): Promise<void>
-  // aún no existen en Python (capacidad «pausaManual»)
+  // solo con la capacidad «pausaManual»
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
 }

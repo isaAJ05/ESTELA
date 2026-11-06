@@ -74,6 +74,12 @@ class Api:
     def listo(self) -> None:
         self._orq.listo()
 
+    def pausar(self) -> None:
+        self._orq.pausar()
+
+    def reanudar(self) -> None:
+        self._orq.reanudar()
+
     def terminar(self) -> None:
         self._orq.terminar()
 

@@ -166,6 +166,7 @@ export function bridgeSimulado(): Bridge {
   let sesion: EstadoSesion | null = null
   let reloj = 0                // segundos simulados dentro del paso
   let colocadoEn: number | null = null   // reloj al terminar la colocación
+  let pausaUsuaria = false     // la usuaria pulsó «Pausar»: el reloj se detiene
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
   let ultimoMensaje: string | null = null
@@ -179,6 +180,7 @@ export function bridgeSimulado(): Bridge {
 
   const empezarPaso = () => {
     reloj = 0
+    pausaUsuaria = false
     colocadoEn = null
     actual = { paso: pasos[i], completadas: 0, incompletas: 0, correctas: 0, conError: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
     hechos.push(actual)
@@ -218,6 +220,12 @@ export function bridgeSimulado(): Bridge {
   const tic = (dt: number) => {
     if (!actual) return
     const paso = actual.paso
+    if (pausaUsuaria) {
+      actual.pausaS = Math.round((actual.pausaS + dt) * 10) / 10
+      if (sesion) sesion = { ...sesion, pausada: true, motivoPausa: 'usuaria', aviso: 'En pausa.', avisoTipo: 'pausa',
+                             evaluacion: { evaluando: false, motivo: 'En pausa' } }
+      return
+    }
     reloj += dt
     if (colocadoEn === null && reloj >= COLOCACION_S) colocadoEn = reloj
     if (colocadoEn === null) {
@@ -335,7 +343,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -362,7 +370,7 @@ export function bridgeSimulado(): Bridge {
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
     configurar: async () => {},
-    pausar: async () => {},
-    reanudar: async () => {},
+    pausar: async () => { if (fase === 'sesion' && actual && !pausaUsuaria) { pausaUsuaria = true; actual.pausas++ } },
+    reanudar: async () => { pausaUsuaria = false },
   }
 }

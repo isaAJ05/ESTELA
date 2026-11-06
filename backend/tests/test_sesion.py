@@ -17,6 +17,7 @@ from estela.aplicacion.rutina import (RutinaInvalida, cargar_catalogo, cargar_ru
 from estela.aplicacion.sesion import (AVISO_PAUSA, AVISO_REANUDA, Sesion,
                                   frases_de_rutina)
 from estela.adaptadores.voz.cola import PRIORIDAD_AVISO
+from estela.aplicacion.pausa import USUARIA
 
 IDX = {n: i for i, n in enumerate(NOMBRES_MEDIAPIPE)}
 
@@ -199,6 +200,29 @@ def test_plancha_no_suma_el_tiempo_sin_persona(catalogo):
                EstimadorPlanchaConHuecos(), VozFalsa())
     estados = correr(s, [0.0] * 30 + [float("nan")] * 30 + [0.0] * 30)
     assert estados[-1].completadas <= 5            # ~2 s + ~3 s, no ~8 s
+
+
+def test_pausa_de_la_usuaria_detiene_el_conteo_hasta_reanudar(catalogo):
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio("plancha", 99, catalogo), catalogo,
+               EstimadorPlancha(), voz)
+    t = iter(range(0, 10**7, 100))
+    for _ in range(40):                            # 4 s en posición
+        e = s.procesar(0.0, next(t))
+    antes = e.completadas
+    s.pausar()
+    assert (AVISO_PAUSA[USUARIA], PRIORIDAD_AVISO) in voz.dichas
+    for _ in range(60):                            # 6 s en posición, en pausa
+        e = s.procesar(0.0, next(t))
+    assert e.pausada and e.motivo_pausa == USUARIA and e.aviso == AVISO_PAUSA[USUARIA]
+    assert e.completadas == antes and e.landmarks is not None
+    s.reanudar()
+    assert (AVISO_REANUDA, PRIORIDAD_AVISO) in voz.dichas
+    for _ in range(40):
+        e = s.procesar(0.0, next(t))
+    assert not e.pausada and e.completadas > antes
+    paso = s.resumen()["pasos"][0]
+    assert paso["pausas_sesion"] == 1 and 5.5 <= paso["pausa_s"] <= 6.5
 
 
 def test_plancha_quieta_en_posicion_no_se_pausa(catalogo):
