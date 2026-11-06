@@ -288,6 +288,17 @@ def test_resumen_para_la_interfaz(catalogo, rutina):
     assert isinstance(r["pasos"][0]["abstenciones"], dict)
     assert r["tecnico"]["frames"] == s.frames
     assert {"p50Ms", "p95Ms", "n"} <= set(r["tecnico"]["latencias"]["pose"])
+    # y lo que antes solo salía por consola: DTW, umbrales y voz
+    assert p0["umbrales"] == "absolutos" and isinstance(p0["respaldos"], dict)
+    assert p0["dtw"] is None or sum(p0["dtw"].values()) > 0
+    assert r["tecnico"]["voz"] is None
+    con_voz = {**s.resumen(), "voz": {"motor": "texto", "descartadas": 2,
+                                      "descartes": {"caducada": 2}}}
+    assert contrato.resumen_a_dict(con_voz, catalogo)["tecnico"]["voz"] == {
+        "motor": "texto", "descartadas": 2, "descartes": {"caducada": 2}}
+    sin_dtw = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa(), sin_dtw=True)
+    correr(sin_dtw, secuencia_zancadas(1))
+    assert contrato.resumen_a_dict(sin_dtw.resumen(), catalogo)["pasos"][0]["dtw"] is None
     texto = json.dumps(r)
     assert "puntos" not in texto and "landmarks" not in texto
 

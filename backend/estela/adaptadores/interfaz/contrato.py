@@ -441,6 +441,11 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
                          for m in p["mensajes"]],
             # veces que el motor no corrigió, por motivo (panel técnico)
             "abstenciones": dict(p.get("abstenciones", {})),
+            # panel técnico: umbrales «absolutos» o «referencia», frames con
+            # respaldo absoluto por regla y frames por resultado del DTW
+            "umbrales": p.get("umbrales"),
+            "respaldos": dict(p.get("respaldos") or {}),
+            "dtw": dict(p["dtw"]) if p.get("dtw") is not None else None,
         })
     return {
         "rutina": resumen["rutina"],
@@ -455,6 +460,11 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
             "framesSinPersona": resumen.get("frames_sin_persona", 0),
             "latencias": {etapa: {"p50Ms": v["p50_ms"], "p95Ms": v["p95_ms"], "n": v["n"]}
                           for etapa, v in resumen.get("latencias", {}).items()},
+            # frases que la cola de voz descartó (lo añade `__main__` al cerrar)
+            "voz": ({"motor": resumen["voz"]["motor"],
+                     "descartadas": resumen["voz"]["descartadas"],
+                     "descartes": dict(resumen["voz"].get("descartes", {}))}
+                    if resumen.get("voz") else None),
         },
     }
 

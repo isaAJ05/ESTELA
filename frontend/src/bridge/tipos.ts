@@ -174,6 +174,12 @@ export interface PasoResumen {
   mensajes: MensajeResumen[]
   /** veces que el motor no corrigió, por motivo (panel técnico) */
   abstenciones: Record<string, number>
+  /** panel técnico: umbrales absolutos o relativos a la referencia */
+  umbrales?: 'absolutos' | 'referencia' | null
+  /** frames en que cada regla relativa usó su respaldo absoluto */
+  respaldos?: Record<string, number>
+  /** frames por resultado del DTW; null con --sin-dtw */
+  dtw?: Record<string, number> | null
 }
 
 /** completada · usuaria (pulsó terminar) · fuente (vídeo acabado o cámara perdida) · cierre · error */
@@ -191,6 +197,8 @@ export interface Resumen {
     frames: number
     framesSinPersona: number
     latencias: Record<string, { p50Ms: number; p95Ms: number; n: number }>
+    /** frases que la cola de voz descartó, por motivo */
+    voz?: { motor: string; descartadas: number; descartes: Record<string, number> } | null
   }
 }
 

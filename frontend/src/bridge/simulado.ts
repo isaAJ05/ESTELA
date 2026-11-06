@@ -197,6 +197,7 @@ export function bridgeSimulado(): Bridge {
         completadas: h.completadas, incompletas: h.incompletas, correctas: h.correctas, conError: h.conError,
         duracionS: Math.round(h.duracionS * 10) / 10, pausas: h.pausas, pausaS: h.pausaS, mensajes: h.mensajes,
         abstenciones: { evidencia_insuficiente: h.completadas > 0 ? 2 : 0 },
+        umbrales: 'absolutos', respaldos: {}, dtw: { alineado: Math.round(h.duracionS * 27), sin_referencia: 0 },
       })),
       resumenTexto: null,
       motivoFin: terminada ? 'completada' : 'usuaria',
@@ -204,6 +205,7 @@ export function bridgeSimulado(): Bridge {
         frames: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 30),
         framesSinPersona: 120,
         latencias: { pose: { p50Ms: 18.2, p95Ms: 24.9, n: 4200 }, total: { p50Ms: 19.1, p95Ms: 26.3, n: 4200 } },
+        voz: { motor: 'simulada', descartadas: 1, descartes: { caducada: 1 } },
       },
     }
     fase = 'resumen'
