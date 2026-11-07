@@ -283,14 +283,14 @@ a { color: inherit; }
 .garantias span { color: var(--suave); font-size: 0.92rem; line-height: 1.5; }
 
 /* -- nosotras ------------------------------------------------------------ */
-.nosotras { display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, 1fr); gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
+.nosotras { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: clamp(2.5rem, 6vw, 5rem); align-items: center; }
 @media (max-width: 900px) { .nosotras { grid-template-columns: minmax(0, 1fr); } }
 .grupal { position: relative; margin: 0; min-width: 0; }
-.grupal::before { content: ""; position: absolute; inset: 8% -4% -6% 6%; border-radius: 2rem; background: radial-gradient(closest-side, rgba(128,107,255,.55), transparent); filter: blur(30px); }
-.grupal-marco { position: relative; padding: 3px; border-radius: 1.9rem; background: linear-gradient(135deg, var(--lila), var(--amarillo) 55%, var(--violeta)); transform: rotate(-2deg); transition: transform .4s cubic-bezier(.2,.8,.2,1); box-shadow: 0 40px 90px -30px rgba(0,0,0,.85); }
+.grupal::before { content: ""; position: absolute; inset: 8% 6% -6% -4%; border-radius: 2rem; background: radial-gradient(closest-side, rgba(128,107,255,.55), transparent); filter: blur(30px); }
+.grupal-marco { position: relative; padding: 3px; border-radius: 1.9rem; background: linear-gradient(135deg, var(--lila), var(--amarillo) 55%, var(--violeta)); transform: rotate(2deg); transition: transform .4s cubic-bezier(.2,.8,.2,1); box-shadow: 0 40px 90px -30px rgba(0,0,0,.85); }
 .grupal:hover .grupal-marco { transform: rotate(0deg) scale(1.01); }
-.grupal img { display: block; width: 100%; height: auto; aspect-ratio: 1280 / 851; object-fit: cover; border-radius: 1.75rem; }
-.grupal figcaption { position: absolute; left: 1.2rem; bottom: 1.2rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.85rem; border-radius: 999px; background: rgba(14,13,22,.78); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-family: var(--f-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; color: var(--texto); transform: rotate(-2deg); }
+.grupal img { display: block; width: 100%; height: auto; aspect-ratio: 1400 / 980; object-fit: cover; border-radius: 1.75rem; }
+.grupal figcaption { position: absolute; left: 1.2rem; bottom: 1.2rem; display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.85rem; border-radius: 999px; background: rgba(14,13,22,.78); border: 1px solid rgba(255,255,255,.1); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); font-family: var(--f-mono); font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; color: var(--texto); transform: rotate(2deg); }
 .grupal figcaption::before { content: ""; width: 0.45rem; height: 0.45rem; border-radius: 50%; background: var(--amarillo); box-shadow: 0 0 10px var(--amarillo); }
 .historia { display: grid; gap: 1.25rem; min-width: 0; }
 .historia h2 { font-size: clamp(2.2rem, 4.8vw, 3.5rem); }
@@ -568,16 +568,12 @@ a { color: inherit; }
 
   <section class="seccion" id="nosotras" style="padding-top:0">
     <div class="contenedor nosotras">
-      <figure class="grupal">
-        <div class="grupal-marco"><img src="assets/equipo/todas.jpeg" alt="Natalia, Isabella y Paula acostadas sobre una colchoneta azul, con las cabezas juntas, sonriendo a la cámara." width="1280" height="851" loading="lazy"></div>
-        <figcaption>NIP Creations</figcaption>
-      </figure>
       <div class="historia">
         <span class="etiqueta">Acerca de nosotras</span>
         <h2>Somos <b>N</b>atalia, <b>I</b>sabella y <b>P</b>aula.</h2>
         <p>Nos une la curiosidad por la tecnología, las ganas de aprender y el deseo de crear algo que pueda generar <strong>un impacto positivo en las personas</strong>. Queríamos un reto que nos inspirara a innovar y que nos obligara a aprender cosas que nunca habíamos tocado.</p>
-        <p>Así nació <strong>ESTELA</strong>, una idea que busca acercar la tecnología al bienestar, acompañando a las personas mientras aprenden a moverse mejor. Nos preguntamos qué pasa cuando alguien empieza a moverse por su cuenta, sin nadie al lado que le diga cómo lo está haciendo, y si un computador y una cámara podían acompañarla en su idioma, en el momento justo y sin que su imagen saliera de su casa.</p>
-        <p class="remate">Una estela es la luz que deja una estrella a su paso. Creemos que cada proyecto deja una huella, y ESTELA representa la nuestra: todo lo que soñamos, aprendimos y construimos juntas.</p>
+        <p>Así nació <strong>ESTELA</strong>, una idea que acerca la tecnología al bienestar y acompaña a las personas mientras aprenden a moverse mejor.</p>
+        <p class="remate">Cada proyecto deja una huella, y ESTELA es la nuestra: todo lo que soñamos, aprendimos y construimos juntas.</p>
         <p class="lema"><svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6L12 22.5l-2.6-7.9L1.5 12l7.9-2.6z"/></svg>Tres historias, una idea y una estela que apenas comienza.</p>
         <ul class="firmas" aria-label="Equipo">
           <li><b>N</b>atalia Carpintero</li>
@@ -585,6 +581,10 @@ a { color: inherit; }
           <li><b>P</b>aula Nuñez</li>
         </ul>
       </div>
+      <figure class="grupal">
+        <div class="grupal-marco"><img src="assets/equipo/girls2.jpeg" alt="Natalia, Isabella y Paula acostadas sobre una colchoneta azul, con las cabezas juntas, sonriendo a la cámara." width="1400" height="980" loading="lazy"></div>
+        <figcaption>NIP Creations</figcaption>
+      </figure>
     </div>
   </section>
 
