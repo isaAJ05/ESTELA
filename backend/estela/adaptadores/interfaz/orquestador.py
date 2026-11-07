@@ -34,7 +34,7 @@ import queue
 import threading
 import time
 from datetime import date, datetime
-from typing import Any, Callable, Dict, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 import numpy as np
 
@@ -75,11 +75,19 @@ class Orquestador:
                  espejo: bool, fuente: str = "camara",
                  al_terminar: Optional[Callable[[Dict[str, Any]], None]] = None,
                  verbalizador: Any = None, sin_dtw: bool = False,
+                 colocacion: bool = True,
                  reconocer: bool = False,
+                 camara: Optional[int] = None,
+                 listar_camaras: Optional[Callable[[], List[Dict[str, Any]]]] = None,
                  perfiles: Optional[Perfiles] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`.
+
+        `camara` es el índice que `abrir_fuente` debe usar (lo lee de
+        `self.camara`); la interfaz lo cambia con `configurar` entre sesiones.
+        Sin `listar_camaras` (p. ej. con un vídeo) no se puede elegir.
+
         `perfiles`: perfiles y sus historiales (None: no se guarda nada ni
         se ofrecen perfiles ni panel de progreso)."""
         self.rutina = rutina
@@ -94,6 +102,7 @@ class Orquestador:
         self._al_terminar = al_terminar
         self._verbalizador = verbalizador
         self._sin_dtw = sin_dtw
+        self._colocacion = colocacion
         #: aviso de EXP-010; la interfaz lo cambia con `configurar`
         self._reconocer = reconocer
         self._perfiles = perfiles
@@ -102,6 +111,9 @@ class Orquestador:
         self._perfil_elegido = False
         #: el perfil de la sesión en curso, fijado al iniciarla
         self._perfil_sesion: Optional[str] = None
+        #: cámara de la próxima sesión; la interfaz la cambia con `configurar`
+        self.camara = camara
+        self._listar_camaras = listar_camaras
 
         self._cv = threading.Condition()
         self._version = 0
@@ -124,6 +136,13 @@ class Orquestador:
         d["capacidades"]["historial"] = self._perfiles is not None
         d["capacidades"]["perfiles"] = self._perfiles is not None
         return d
+
+    def camaras(self) -> Optional[Dict[str, Any]]:
+        """Cámaras que se pueden elegir y la elegida, o None si no se puede
+        elegir (vídeo) o hay una sesión usando la cámara."""
+        if self._listar_camaras is None or self._fase in (PREPARANDO, SESION):
+            return None
+        return {"lista": self._listar_camaras(), "elegida": self.camara}
 
     def historial(self, hoy: Optional[date] = None) -> Optional[Dict[str, Any]]:
         """Panel «Mi progreso» del perfil activo, o None (sin perfiles o invitada)."""
@@ -270,17 +289,35 @@ class Orquestador:
     def siguiente(self) -> None:
         self._comandos.put("siguiente")
 
+    def anterior(self) -> None:
+        self._comandos.put("anterior")
+
     def reiniciar(self) -> None:
         self._comandos.put("reiniciar")
+
+    def listo(self) -> None:
+        """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
+        self._comandos.put("listo")
+
+    def pausar(self) -> None:
+        """Pausa pedida por la usuaria (botón o espacio); no se quita sola."""
+        self._comandos.put("pausar")
+
+    def reanudar(self) -> None:
+        self._comandos.put("reanudar")
 
     def terminar(self) -> None:
         """Termina la sesión en curso y pasa al resumen."""
         self._comandos.put("terminar")
 
     def configurar(self, voz: Optional[bool] = None,
-                   reconocer: Optional[bool] = None) -> None:
+                   reconocer: Optional[bool] = None,
+                   camara: Optional[int] = None) -> None:
         """Ajustes de la interfaz que se pueden cambiar en cualquier momento.
-        `reconocer` vale para la sesión en curso y para las siguientes."""
+        `reconocer` vale para la sesión en curso y para las siguientes;
+        `camara`, desde la próxima sesión."""
+        if camara is not None and self._listar_camaras is not None:
+            self.camara = camara
         if voz is not None and hasattr(self._voz, "silenciar"):
             self._voz.silenciar(not voz)
         if reconocer is not None:
@@ -323,6 +360,7 @@ class Orquestador:
 
         sesion = Sesion(self.rutina, self.catalogo, estimador, self._voz,
                         self._verbalizador, sin_dtw=self._sin_dtw,
+                        colocacion=self._colocacion,
                         reconocer=self._reconocer)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
@@ -396,8 +434,16 @@ class Orquestador:
                 sesion.siguiente()
                 if sesion.terminada:
                     return True
+            elif cmd == "anterior":
+                sesion.anterior()
             elif cmd == "reiniciar":
                 sesion.reiniciar_ejercicio()
+            elif cmd == "listo":
+                sesion.terminar_colocacion()
+            elif cmd == "pausar":
+                sesion.pausar()
+            elif cmd == "reanudar":
+                sesion.reanudar()
             elif cmd == "reconocer":
                 if sesion.reconocer != self._reconocer:
                     sesion.activar_reconocimiento(self._reconocer)

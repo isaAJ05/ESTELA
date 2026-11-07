@@ -185,6 +185,9 @@
 .opcion-ajuste span { display: block; max-width: 18rem; color: var(--color-texto-sutil); font-size: 0.875rem; }
 .segmentos button { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.5rem 0.875rem; font-size: 0.9375rem; }
 .segmentos svg { width: 1rem; height: 1rem; }
+.segmentos { flex-wrap: wrap; }
+.opcion-ajuste .camara-unica { display: inline-flex; align-items: center; gap: 0.375rem; max-width: none; color: var(--color-texto); font-size: 0.9375rem; }
+.camara-unica svg { width: 1rem; height: 1rem; }
 
 .interruptor {
   position: relative; flex: 0 0 auto; width: 3.25rem; height: 1.875rem; padding: 0;

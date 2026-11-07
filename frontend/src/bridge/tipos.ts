@@ -5,8 +5,10 @@ export type Unidad = 'repeticiones' | 'segundos'
 export type Orientacion = 'frente' | 'perfil'
 export type Nivel = 'principiante' | 'avanzado'
 export type Fase = 'inicio' | 'preparando' | 'sesion' | 'resumen' | 'error'
-export type TipoAviso = 'encuadre' | 'sin_persona' | 'orientacion' | 'pausa' | 'otro'
-export type MotivoPausa = 'sin_persona' | 'inactividad'
+/** `movimiento`: no es el ejercicio de ahora (EXP-010) o es la otra pierna */
+export type TipoAviso = 'encuadre' | 'sin_persona' | 'orientacion' | 'pausa' | 'movimiento' | 'otro'
+/** `usuaria`: pulsó «Pausar»; solo se quita con `reanudar` */
+export type MotivoPausa = 'sin_persona' | 'inactividad' | 'usuaria'
 export type Lado = 'izquierdo' | 'derecho' | 'bilateral' | 'na'
 export type Severidad = 'leve' | 'moderada' | 'alta'
 
@@ -30,12 +32,18 @@ export interface Capacidades {
   rutinaPersonalizada?: boolean
   /** la usuaria puede silenciar las indicaciones habladas (`configurar`) */
   silenciarVoz?: boolean
+  /** la usuaria puede elegir la cámara antes de empezar (`camaras`, `configurar`) */
+  elegirCamara?: boolean
   /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
   reconocerEjercicio?: boolean
   /** las sesiones se guardan en este equipo y hay panel «Mi progreso» (ADR-008) */
   historial?: boolean
   /** varias personas en el equipo, cada una con su historial (ADR-009) */
   perfiles?: boolean
+  /** se puede volver al ejercicio anterior (`anterior`) */
+  pasoAnterior?: boolean
+  /** brazo derecho arriba 3 s pausa o reanuda; llega `gesto` con el progreso */
+  gestoPausa?: boolean
 }
 
 export interface PasoRutina {
@@ -92,6 +100,20 @@ export interface Feedback {
   direccion: string | null
 }
 
+/** Fase de colocación al empezar un ejercicio (capacidad «colocacion»). */
+export interface Colocacion {
+  instruccion: string | null
+  persona: boolean
+  orientacion: boolean
+  cuerpoEntero: boolean
+}
+
+/** Si la sesión evalúa la técnica en este momento y, si no, por qué. */
+export interface Evaluacion {
+  evaluando: boolean
+  motivo: string | null
+}
+
 export interface EstadoSesion {
   ejercicio: string
   ejercicioId: string
@@ -122,6 +144,11 @@ export interface EstadoSesion {
     otros: { nombre: string; grados: number }[]
   } | null
   terminada: boolean
+  /** null fuera de la fase de colocación */
+  colocacion?: Colocacion | null
+  evaluacion?: Evaluacion | null
+  /** gesto de pausa en curso (capacidad «gestoPausa»); null si no hay */
+  gesto?: { progreso: number; accion: 'pausar' | 'reanudar' } | null
   // Aún sin backend: llegan null (ver Capacidades).
   correctas: number | null
   conError: number | null
@@ -159,6 +186,12 @@ export interface PasoResumen {
   mensajes: MensajeResumen[]
   /** veces que el motor no corrigió, por motivo (panel técnico) */
   abstenciones: Record<string, number>
+  /** panel técnico: umbrales absolutos o relativos a la referencia */
+  umbrales?: 'absolutos' | 'referencia' | null
+  /** frames en que cada regla relativa usó su respaldo absoluto */
+  respaldos?: Record<string, number>
+  /** frames por resultado del DTW; null con --sin-dtw */
+  dtw?: Record<string, number> | null
 }
 
 /** completada · usuaria (pulsó terminar) · fuente (vídeo acabado o cámara perdida) · cierre · error */
@@ -178,6 +211,8 @@ export interface Resumen {
     frames: number
     framesSinPersona: number
     latencias: Record<string, { p50Ms: number; p95Ms: number; n: number }>
+    /** frases que la cola de voz descartó, por motivo */
+    voz?: { motor: string; descartadas: number; descartes: Record<string, number> } | null
   }
 }
 
@@ -308,9 +343,24 @@ export interface OpcionesInicio {
   pasos?: PasoElegido[]
 }
 
+/** Una cámara que OpenCV puede abrir. */
+export interface Camara {
+  indice: number
+  nombre: string
+}
+
+/** Cámaras disponibles y la elegida (capacidad «elegirCamara»). */
+export interface Camaras {
+  lista: Camara[]
+  /** null: la de defecto (`--camara`) */
+  elegida: number | null
+}
+
 /** Ajustes que Python aplica en cualquier fase (capacidad «silenciarVoz»). */
 export interface AjustesPython {
   voz?: boolean
+  /** cámara de la próxima sesión (capacidad «elegirCamara») */
+  camara?: number
   /** capacidad «reconocerEjercicio»; empieza desactivado */
   reconocer?: boolean
 }
@@ -322,6 +372,8 @@ export interface Bridge {
   estado(desde: number): Promise<Estado | null>
   iniciar(opciones?: OpcionesInicio): Promise<boolean>
   siguiente(): Promise<void>
+  /** Vuelve al ejercicio anterior y lo empieza de cero (capacidad «pasoAnterior»). */
+  anterior(): Promise<void>
   reiniciar(): Promise<void>
   terminar(): Promise<void>
   volverAlInicio(): Promise<void>
@@ -339,6 +391,10 @@ export interface Bridge {
   borrarPerfil(id: string): Promise<boolean>
   /** Guarda en ese perfil la rutina de «Mi rutina» (Python la valida como en `iniciar`). */
   guardarRutina(perfilId: string, pasos: PasoElegido[]): Promise<ResultadoPerfil>
+  /** Cámaras que se pueden elegir; null con un vídeo o con la cámara en uso. Tarda: abre cada una. */
+  camaras(): Promise<Camaras | null>
+  /** Termina la fase de colocación (capacidad «colocacion»). */
+  listo(): Promise<void>
   /** Solo con la capacidad «pausaManual». */
   pausar(): Promise<void>
   reanudar(): Promise<void>

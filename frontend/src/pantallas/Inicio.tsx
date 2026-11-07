@@ -31,7 +31,7 @@ export function irAProgreso(bridge: Bridge): void {
 
 const SIN_CATALOGO: EjercicioCatalogo[] = []
 
-function textoError(tipo: 'fuente' | 'modelo', fuente: 'camara' | 'video') {
+function textoError(tipo: 'fuente' | 'modelo', fuente: 'camara' | 'video', elegirCamara: boolean) {
   if (tipo === 'modelo') {
     return { titulo: 'No se pudo preparar el reconocimiento de movimiento',
              ayuda: 'Falta el modelo de pose. Ejecuta: python scripts/descargar_modelos.py' }
@@ -39,7 +39,8 @@ function textoError(tipo: 'fuente' | 'modelo', fuente: 'camara' | 'video') {
   return fuente === 'video'
     ? { titulo: 'No se pudo abrir el vídeo', ayuda: 'Revisa la ruta del archivo.' }
     : { titulo: 'No se detecta la cámara',
-        ayuda: 'Comprueba que esté conectada y que ninguna otra aplicación la esté usando.' }
+        ayuda: 'Comprueba que esté conectada y que ninguna otra aplicación la esté usando.'
+          + (elegirCamara ? ' También puedes elegir otra cámara en Ajustes.' : '') }
 }
 
 /**
@@ -54,6 +55,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
   const fase = useEstado((s) => s.estado?.fase ?? 'inicio')
   const errorApp = useEstado((s) => s.estado?.error ?? null)
   const conNivel = useCapacidad('nivel')
+  const elegirCamara = useCapacidad('elegirCamara')
   const personalizable = useCapacidad('rutinaPersonalizada') && catalogo.length > 0
   const conHistorial = useCapacidad('historial')
   const conPerfiles = useCapacidad('perfiles')
@@ -120,7 +122,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     ? [...problemas(sel.filter((p) => !invalidos.has(p.skillId)), catalogo),
        ...(sel.some((p) => invalidos.has(p.skillId)) ? ['Corrige los objetivos marcados en rojo.'] : [])]
     : base ? [] : ['Cargando la rutina…']
-  const error = errorApp ? textoError(errorApp.tipo, fuente)
+  const error = errorApp ? textoError(errorApp.tipo, fuente, elegirCamara)
     : rechazada ? { titulo: 'No se pudo iniciar esta rutina', ayuda: 'Revisa los ejercicios y sus objetivos.' }
     : null
 

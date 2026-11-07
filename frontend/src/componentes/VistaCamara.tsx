@@ -26,6 +26,11 @@ const NOMBRE_ANGULO: Record<string, string> = {
   abduccion_cadera_der: 'Abducción cadera der.',
   cabeza_adelantada: 'Cabeza',
 }
+// En los jumping jacks la abducción es la apertura de piernas: con su nombre
+// técnico parecía el ejercicio de abducción de cadera.
+const NOMBRE_ANGULO_EJERCICIO: Record<string, Record<string, string>> = {
+  jumping_jacks: { abduccion_cadera_izq: 'Apertura pierna izq.', abduccion_cadera_der: 'Apertura pierna der.' },
+}
 
 // Hacia dónde corregir (`Direccion` del backend), en corto para la etiqueta.
 const FLECHA: Record<string, string> = {
@@ -60,6 +65,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
     let imagen: HTMLImageElement | null = null
     let puntos: Punto[] | null = null
     let angulos: EstadoSesion['angulos'] = null
+    let ejercicioId = ''
     let pendiente = true
     repintar.current = () => { pendiente = true }
     // articulaciones de la última corrección y hasta cuándo se resaltan
@@ -176,7 +182,8 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
       const otros = angulos.otros.filter((a) => todos || fallo(a.nombre))
       otros.forEach((a, k) => {
         const f = fallo(a.nombre)
-        texto(`${NOMBRE_ANGULO[a.nombre] ?? a.nombre} ${a.grados}°${f ? f.detalle : ''}`,
+        const nombre = NOMBRE_ANGULO_EJERCICIO[ejercicioId]?.[a.nombre] ?? NOMBRE_ANGULO[a.nombre] ?? a.nombre
+        texto(`${nombre} ${a.grados}°${f ? f.detalle : ''}`,
               Math.max(x0, 0) + tam * 0.6, Math.min(y0 + h, canvas.height) - tam * (1 + 1.4 * (otros.length - 1 - k)),
               f ? Math.round(tam * 1.15) : tam, f ? f.color : articulacion, 1)
       })
@@ -257,6 +264,7 @@ export function VistaCamara({ mostrarAngulos = false }: { mostrarAngulos?: boole
         imagen = img
         puntos = nuevos
         angulos = sesion?.angulos ?? null
+        ejercicioId = sesion?.ejercicioId ?? ''
         pendiente = true
       }
       if (!jpeg) return aplicar(null)

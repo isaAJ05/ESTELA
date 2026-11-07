@@ -1,6 +1,6 @@
 import type {
-  AjustesPython, Bridge, DatosPerfil, Estado, EstadoPerfiles, Info, OpcionesInicio, PasoElegido, Progreso,
-  ResultadoPerfil,
+  AjustesPython, Bridge, Camaras, DatosPerfil, Estado, EstadoPerfiles, Info, OpcionesInicio, PasoElegido,
+  Progreso, ResultadoPerfil,
 } from './tipos'
 
 // Métodos de `backend/estela/adaptadores/interfaz/ventana.py:Api`, publicados por pywebview.
@@ -13,6 +13,8 @@ interface ApiPython {
   terminar(): Promise<void>
   volver_al_inicio(): Promise<void>
   salir(): Promise<void>
+  // solo con la capacidad «colocacion»
+  listo?(): Promise<void>
   // solo con la capacidad «silenciarVoz»
   configurar?(ajustes: AjustesPython): Promise<void>
   // solo con la capacidad «historial»
@@ -25,7 +27,11 @@ interface ApiPython {
   editar_perfil?(id: string, datos: DatosPerfil): Promise<ResultadoPerfil>
   borrar_perfil?(id: string): Promise<boolean>
   guardar_rutina?(perfilId: string, pasos: PasoElegido[]): Promise<ResultadoPerfil>
-  // aún no existen en Python (capacidad «pausaManual»)
+  // solo con la capacidad «elegirCamara»
+  camaras?(): Promise<Camaras | null>
+  // solo con la capacidad «pasoAnterior»
+  anterior?(): Promise<void>
+  // solo con la capacidad «pausaManual»
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
 }
@@ -59,7 +65,9 @@ export function bridgePywebview(api: ApiPython): Bridge {
     estado: (desde) => api.estado(desde),
     iniciar: (opciones) => api.iniciar(opciones ?? null),
     siguiente: () => api.siguiente(),
+    anterior: async () => { await api.anterior?.() },
     reiniciar: () => api.reiniciar(),
+    listo: async () => { await api.listo?.() },
     terminar: () => api.terminar(),
     volverAlInicio: () => api.volver_al_inicio(),
     salir: () => api.salir(),
@@ -72,6 +80,7 @@ export function bridgePywebview(api: ApiPython): Bridge {
     editarPerfil: async (id, datos) => (await api.editar_perfil?.(id, datos)) ?? SIN_PERFILES,
     borrarPerfil: async (id) => (await api.borrar_perfil?.(id)) ?? false,
     guardarRutina: async (perfilId, pasos) => (await api.guardar_rutina?.(perfilId, pasos)) ?? SIN_PERFILES,
+    camaras: async () => (await api.camaras?.()) ?? null,
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

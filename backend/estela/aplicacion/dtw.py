@@ -113,9 +113,19 @@ class AlineadorDTW:
     def disponible(self) -> bool:
         return bool(self._nombres) and len(self._media) > 0
 
+    @property
+    def longitud_prefijo(self) -> int:
+        """Frames alineados de la repetición en curso (para el arnés)."""
+        return self._frames
+
+    @property
+    def longitud_referencia(self) -> int:
+        return len(self._media)
+
     def reiniciar(self) -> None:
         self._repeticion: Optional[int] = None
         self._t0_ms = 0
+        self._frames = 0
         #: última columna: coste acumulado y longitud del camino por frame de
         #: la referencia (None antes del primer frame de la repetición)
         self._acumulado: Optional[List[float]] = None
@@ -145,6 +155,7 @@ class AlineadorDTW:
         if columna is None:
             return None, SIN_CAMINO
         self._acumulado, self._longitud, j = columna
+        self._frames += 1
 
         coste = self._acumulado[j] / self._longitud[j]
         if self.coste_maximo is not None and coste > self.coste_maximo:
