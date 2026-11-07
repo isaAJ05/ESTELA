@@ -43,7 +43,8 @@
 *, *::before, *::after { box-sizing: border-box; }
 body { margin: 0; }
 img { max-width: 100%; }
-html { scroll-behavior: smooth; }
+/* el menú es fijo: al saltar a una sección se deja su altura libre arriba */
+html { scroll-behavior: smooth; scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 5.5rem); }
 body {
   background: var(--noche);
   color: var(--texto);
@@ -427,9 +428,9 @@ a { color: inherit; }
     </div>
   </section>
 
-  <section class="seccion" id="como">
+  <section class="seccion">
     <div class="contenedor">
-      <div class="seccion-cabeza">
+      <div class="seccion-cabeza" id="como">
         <span class="etiqueta">Cómo funciona</span>
         <h2>De la cámara a tu oído, en seis pasos.</h2>
         <p>Cada fotograma recorre el mismo camino dentro de tu equipo. La decisión de qué decir la toma un motor de reglas; la voz solo la pone en palabras.</p>
