@@ -1,4 +1,4 @@
-import { Check, Circle, DraftingCompass, Footprints, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
@@ -25,6 +25,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   const pausada = useSesion('motivoPausa') === 'usuaria'
   const silenciable = useCapacidad('silenciarVoz')
   const conColocacion = useCapacidad('colocacion')
+  const { hayAnterior, haySiguiente } = useNavegacion()
   const [confirmar, setConfirmar] = useState(false)
   const [depurar, setDepurar] = useState(false)
   const [angulos, setAngulos] = useState(() => {
@@ -41,7 +42,8 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
       const k = e.key.toLowerCase()
       if (k === 'escape') setConfirmar((c) => !c)
       else if (confirmar) return
-      else if (k === 'n') void bridge.siguiente()
+      else if (k === 'n') { if (haySiguiente) void bridge.siguiente() }
+      else if (k === 'p') { if (hayAnterior) void bridge.anterior() }
       else if (k === 'r') void bridge.reiniciar()
       else if (k === 'd') setDepurar((d) => !d)
       else if (k === 'a') alternarAngulos()
@@ -50,7 +52,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
     }
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
-  }, [bridge, confirmar, pausaManual, pausada, silenciable])
+  }, [bridge, confirmar, pausaManual, pausada, silenciable, hayAnterior, haySiguiente])
 
   return (
     <main className="pantalla pantalla-sesion">
@@ -65,6 +67,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
             <BandaMensaje />
             {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
             <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
+            <GestoPausa />
           </> : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
           )}
@@ -87,6 +90,8 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
   const paso = useSesion('paso') ?? 1
   const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
   const pausaManual = useCapacidad('pausaManual')
+  const conAnterior = useCapacidad('pasoAnterior')
+  const { hayAnterior, haySiguiente } = useNavegacion()
   // una pausa automática se quita sola; el botón la convierte en pausa a mano
   const pausada = useSesion('motivoPausa') === 'usuaria'
   return (
@@ -109,21 +114,37 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
                title="Mostrar u ocultar los ángulos (A)" aria-label="Mostrar ángulos" aria-pressed={angulos}>
           <DraftingCompass /><span className="solo-ancho">Ángulos</span>
         </Boton>
+        {/* anterior · reiniciar · siguiente: solo el ícono; el nombre va en el
+            title (tooltip) y en aria-label */}
+        {conAnterior && (
+          <Boton variante="suave" onClick={() => void bridge.anterior()} atajo="P" disabled={!hayAnterior}
+                 title="Volver al ejercicio anterior (P)" aria-label="Ejercicio anterior">
+            <SkipBack />
+          </Boton>
+        )}
         <Boton variante="suave" onClick={() => void bridge.reiniciar()} atajo="R"
                title="Reiniciar este ejercicio (R)" aria-label="Reiniciar este ejercicio">
-          <RotateCcw /><span className="solo-ancho">Reiniciar</span>
+          <RotateCcw />
         </Boton>
-        <Boton variante="suave" onClick={() => void bridge.siguiente()} atajo="N"
+        <Boton variante="suave" onClick={() => void bridge.siguiente()} atajo="N" disabled={!haySiguiente}
                title="Pasar al siguiente ejercicio (N)" aria-label="Siguiente ejercicio">
-          <SkipForward /><span className="solo-ancho">Siguiente</span>
+          <SkipForward />
         </Boton>
         <Boton variante="secundario" onClick={alTerminar} atajo="Escape"
                title="Terminar la rutina (Esc)" aria-label="Terminar la rutina">
-          <Square /><span className="solo-ancho">Terminar</span>
+          <Square />
         </Boton>
       </nav>
     </header>
   )
+}
+
+/** Se puede ir al anterior salvo en el primero, y al siguiente salvo en el último. */
+function useNavegacion() {
+  const paso = useSesion('paso') ?? 1
+  const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
+  const conAnterior = useCapacidad('pasoAnterior')
+  return { hayAnterior: conAnterior && paso > 1, haySiguiente: paso < total }
 }
 
 function PanelEjercicio() {
@@ -361,6 +382,7 @@ function Pausa({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void 
   const pausada = useSesion('pausada')
   const motivo = useSesion('motivoPausa')
   const pausaManual = useCapacidad('pausaManual')
+  const conGesto = useCapacidad('gestoPausa')
   if (!pausada) return null
   const texto = TEXTO_PAUSA[motivo ?? 'inactividad']
   return (
@@ -370,11 +392,26 @@ function Pausa({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void 
         <span className="etiqueta">Sesión en pausa</span>
         <h2 id="titulo-pausa">{texto.titulo}</h2>
         <p>{texto.detalle}</p>
+        {conGesto && <p className="pausa-gesto"><Hand aria-hidden="true" />También puedes seguir manteniendo el brazo derecho arriba 3 segundos.</p>}
         <div className="acciones">
           {pausaManual && motivo === 'usuaria' && <Boton onClick={() => void bridge.reanudar()}><Play />Reanudar</Boton>}
           <Boton variante="secundario" onClick={alTerminar}><Square />Terminar</Boton>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Brazo derecho arriba (capacidad «gestoPausa»): cuánto falta para pausar o reanudar. */
+function GestoPausa() {
+  const gesto = useEstado((s) => s.estado?.sesion?.gesto ?? null,
+    (a, b) => a?.progreso === b?.progreso && a?.accion === b?.accion)
+  if (!useCapacidad('gestoPausa') || !gesto) return null
+  return (
+    <div className="gesto-pausa" role="status">
+      <Hand aria-hidden="true" />
+      <span>Mantén el brazo arriba para {gesto.accion === 'reanudar' ? 'seguir' : 'pausar'}</span>
+      <i className="gesto-barra" aria-hidden="true"><i style={{ width: `${Math.round(gesto.progreso * 100)}%` }} /></i>
     </div>
   )
 }

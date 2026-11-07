@@ -184,7 +184,7 @@ export function bridgeSimulado(): Bridge {
     pausaUsuaria = false
     colocadoEn = null
     actual = { paso: pasos[i], completadas: 0, incompletas: 0, correctas: 0, conError: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
-    hechos.push(actual)
+    hechos[i] = actual           // al volver con «anterior», el intento nuevo sustituye al viejo
   }
 
   const cerrar = (terminada: boolean) => {
@@ -346,7 +346,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, reconocerEjercicio: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, reconocerEjercicio: true, pasoAnterior: true, gestoPausa: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -366,7 +366,8 @@ export function bridgeSimulado(): Bridge {
       }, 500)
     }),
     iniciar,
-    siguiente: async () => { if (fase === 'sesion') avanzar() },
+    siguiente: async () => { if (fase === 'sesion' && i < pasos.length - 1) avanzar() },
+    anterior: async () => { if (fase === 'sesion' && i > 0) { i--; empezarPaso() } },
     reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; actual.correctas = 0; actual.conError = 0; reloj = 0; colocadoEn = null } },
     listo: async () => { if (fase === 'sesion' && colocadoEn === null) colocadoEn = reloj },
     terminar: async () => { if (fase === 'sesion') cerrar(false) },

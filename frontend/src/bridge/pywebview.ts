@@ -16,6 +16,8 @@ interface ApiPython {
   configurar?(ajustes: AjustesPython): Promise<void>
   // solo con la capacidad «elegirCamara»
   camaras?(): Promise<Camaras | null>
+  // solo con la capacidad «pasoAnterior»
+  anterior?(): Promise<void>
   // solo con la capacidad «pausaManual»
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
@@ -48,6 +50,7 @@ export function bridgePywebview(api: ApiPython): Bridge {
     estado: (desde) => api.estado(desde),
     iniciar: (opciones) => api.iniciar(opciones ?? null),
     siguiente: () => api.siguiente(),
+    anterior: async () => { await api.anterior?.() },
     reiniciar: () => api.reiniciar(),
     listo: async () => { await api.listo?.() },
     terminar: () => api.terminar(),

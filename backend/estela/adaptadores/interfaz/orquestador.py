@@ -176,6 +176,9 @@ class Orquestador:
     def siguiente(self) -> None:
         self._comandos.put("siguiente")
 
+    def anterior(self) -> None:
+        self._comandos.put("anterior")
+
     def reiniciar(self) -> None:
         self._comandos.put("reiniciar")
 
@@ -299,6 +302,8 @@ class Orquestador:
                 sesion.siguiente()
                 if sesion.terminada:
                     return True
+            elif cmd == "anterior":
+                sesion.anterior()
             elif cmd == "reiniciar":
                 sesion.reiniciar_ejercicio()
             elif cmd == "listo":

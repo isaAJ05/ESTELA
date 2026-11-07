@@ -114,7 +114,8 @@ def test_info_describe_la_rutina(catalogo, rutina):
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
         "correctasConError", "guia", "motivoSilencio", "pausaManual", "colocacion",
-        "rutinaPersonalizada", "silenciarVoz", "elegirCamara", "reconocerEjercicio"]
+        "rutinaPersonalizada", "silenciarVoz", "elegirCamara", "reconocerEjercicio",
+        "pasoAnterior", "gestoPausa"]
     json.dumps(d)
 
 
@@ -370,6 +371,22 @@ def test_siguiente_y_terminar_desde_la_interfaz(catalogo, rutina):
     assert fin["resumen"]["motivoFin"] == "usuaria"
     assert [p["skillId"] for p in fin["resumen"]["pasos"]] == [ZANCADA, "plancha"]
     assert len(resumenes) == 1
+
+
+def test_anterior_desde_la_interfaz(catalogo, rutina):
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True)
+    orq.iniciar()
+    e = esperar_fase(orq, SESION)
+    orq.siguiente()
+    while e["sesion"] is None or e["sesion"]["paso"] != 2:
+        e = orq.estado(e["version"], 1.0) or e
+    orq.anterior()
+    while e["sesion"]["paso"] != 1:
+        e = orq.estado(e["version"], 1.0) or e
+    assert e["sesion"]["ejercicioId"] == ZANCADA
+    assert orq.info()["capacidades"]["pasoAnterior"]
+    orq.terminar()
+    orq.cerrar()
 
 
 def test_repetir_rutina_abre_fuente_y_estimador_nuevos(catalogo, rutina):

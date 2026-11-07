@@ -34,6 +34,8 @@ colocacion         EstadoFrame.colocando / instruccion  T29 (hecho)
                    / comprobaciones; comando `listo`
 avisoLuz           (aviso de poca luz)                 —
 elegirCamara       `camaras()`; `configurar({"camara"})` T29 (hecho)
+pasoAnterior       comando `anterior`                  T29 (hecho)
+gestoPausa         EstadoFrame.gesto                   T29 (hecho)
 =================  ==================================  =====================
 
 Rutina de entrenamiento
@@ -63,6 +65,14 @@ entero) y la sesión no cuenta ni corrige hasta que se cumplen 1,5 s seguidos o
 la usuaria pulsa «Listo» (`listo()`). `evaluacion` dice en cada frame si la
 sesión está evaluando la técnica y, si no, por qué (prueba de usabilidad del
 Informe 2 §13.3: «el contador se detiene y no sé por qué»).
+
+Navegación y gesto de pausa
+---------------------------
+Con `pasoAnterior`, `anterior()` vuelve al ejercicio anterior y lo empieza
+desde cero; en el primero no hace nada, y `siguiente()` no hace nada en el
+último (para acabar está `terminar()`). Con `gestoPausa`, mantener el brazo
+derecho arriba 3 s pausa la sesión o la reanuda (`aplicacion/gesto.py`);
+`gesto` dice cuánto lleva y qué hará al completarse.
 
 Reconocimiento del ejercicio
 ----------------------------
@@ -109,6 +119,8 @@ CAPACIDADES: Dict[str, bool] = {
     "silenciarVoz": True,
     "elegirCamara": True,
     "reconocerEjercicio": True,
+    "pasoAnterior": True,
+    "gestoPausa": True,
 }
 
 #: límites del objetivo que puede elegir la usuaria, por unidad
@@ -337,6 +349,8 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "evaluacion": evaluacion(estado),
         "correctas": opcional("correctas"),
         "conError": opcional("con_error"),
+        # brazo derecho arriba: {"progreso": 0–1, "accion": "pausar" | "reanudar"}
+        "gesto": opcional("gesto"),
         # aún sin backend (ver CAPACIDADES): llega null
         "nivel": opcional("nivel"),
         "guia": _puntos(np.asarray(guia)) if guia is not None else None,

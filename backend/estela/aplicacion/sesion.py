@@ -44,6 +44,7 @@ from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 from ..dominio.conteo.segmentador import (EVENTO_COMPLETA, EVENTO_INCOMPLETA, EstadoSegmento,
                                           Segmentador, leer_senal)
 from .dtw import CONFIANZA_MINIMA, Comparador, comparador_de_referencia
+from .gesto import DetectorGesto
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
 from .pausa import (EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, USUARIA,
@@ -191,6 +192,9 @@ class EstadoFrame:
     colocando: bool = False
     instruccion: Optional[str] = None
     comprobaciones: Optional[Dict[str, bool]] = None
+    #: gesto de pausa en curso (brazo derecho arriba, `gesto.py`):
+    #: {"progreso": 0–1, "accion": "pausar" | "reanudar"}, o None
+    gesto: Optional[Dict[str, Any]] = None
 
 
 class _SaltoCadera:
@@ -288,6 +292,7 @@ class Sesion:
         self._ult_senal_ms: Optional[int] = None
         self._ult_aviso_encuadre_ms: Optional[int] = None
         self._t_ms = 0
+        self._gesto = DetectorGesto()
         self._avanzar()
 
     # -- rutina -------------------------------------------------------------
@@ -303,31 +308,43 @@ class Sesion:
         return self._pasos[self._i]
 
     def _avanzar(self) -> None:
+        self._ir_a(self._i + 1, felicitar=True)
+
+    def _ir_a(self, i: int, felicitar: bool) -> None:
+        """Cierra el paso actual y empieza el paso `i` de la rutina desde cero.
+        Si ese paso ya se había hecho (se volvió con `anterior`), el intento
+        nuevo sustituye al anterior en el resumen."""
         actual = self.paso_actual
         if actual is not None:
             actual.fin_ms = self._t_ms
             actual.motor.decision.cerrar_repeticion()
             if actual.registro is not None:
                 actual.registro.cerrar(self._t_ms)
-            self.voz.decir(f"Muy bien, terminaste {actual.ejercicio.skill.nombre.lower()}.",
-                           PRIORIDAD_AVISO)
-        self._i += 1
+            if felicitar:
+                self.voz.decir(f"Muy bien, terminaste {actual.ejercicio.skill.nombre.lower()}.",
+                               PRIORIDAD_AVISO)
+        self._i = i
+        self._gesto.reiniciar()
         if self.terminada:
             self.voz.decir("Rutina terminada. Buen trabajo.", PRIORIDAD_AVISO)
             return
         p = self.rutina.pasos[self._i]
         ej = self.catalogo[p.skill_id]
         guia, guia_fps = _preparar_guia(ej.referencia)
-        self._pasos.append(_Paso(ej, p.repeticiones,
-                                 MotorFeedback(ej.skill, self.verbalizador),
-                                 ej.nuevo_segmentador(),
-                                 alineador=(None if self.sin_dtw
-                                            else comparador_de_referencia(ej.referencia)),
-                                 registro=RegistroRepeticiones(ej),
-                                 guia=guia, guia_fps=guia_fps,
-                                 reconocedor=(reconocedor_para(ej.skill.skill_id)
-                                              if self.reconocer else None),
-                                 colocando=self.colocacion))
+        nuevo = _Paso(ej, p.repeticiones,
+                      MotorFeedback(ej.skill, self.verbalizador),
+                      ej.nuevo_segmentador(),
+                      alineador=(None if self.sin_dtw
+                                 else comparador_de_referencia(ej.referencia)),
+                      registro=RegistroRepeticiones(ej),
+                      guia=guia, guia_fps=guia_fps,
+                      reconocedor=(reconocedor_para(ej.skill.skill_id)
+                                   if self.reconocer else None),
+                      colocando=self.colocacion)
+        if self._i < len(self._pasos):
+            self._pasos[self._i] = nuevo
+        else:
+            self._pasos.append(nuevo)
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
@@ -370,9 +387,16 @@ class Sesion:
         return None
 
     def siguiente(self) -> None:
-        """Salta al siguiente ejercicio (tecla de la interfaz)."""
-        if not self.terminada:
+        """Salta al siguiente ejercicio (tecla de la interfaz). En el último
+        no hace nada: para acabar está «Terminar»."""
+        if self._i < len(self.rutina.pasos) - 1:
             self._avanzar()
+
+    def anterior(self) -> None:
+        """Vuelve al ejercicio anterior y lo empieza desde cero. En el primero
+        no hace nada."""
+        if 0 < self._i < len(self.rutina.pasos):
+            self._ir_a(self._i - 1, felicitar=False)
 
     def reiniciar_ejercicio(self) -> None:
         p = self.paso_actual
@@ -421,6 +445,11 @@ class Sesion:
         res = self.estimador.estimar(frame, t_ms)
         self.latencias.anota("pose", res.latencia_ms)
         lat = {"pose": res.latencia_ms}
+
+        # brazo derecho arriba 3 s: pausa o reanuda (también la pausa a mano)
+        if self._gesto.actualizar(t_ms, res.imagen if res.muestra is not None else None):
+            self._anuncia_pausa(p, p.pausa.reanudar_gesto(t_ms) if p.pausa.pausada
+                                else p.pausa.pausar_usuaria(t_ms))
 
         if p.pausa.motivo == USUARIA:
             # en pausa a mano solo se dibuja el esqueleto
@@ -731,7 +760,15 @@ class Sesion:
             correctas=correctas, con_error=con_error,
             colocando=p.colocando,
             instruccion=(self._instruccion(p.ejercicio) if p.colocando else None),
-            comprobaciones=dict(p.comprobaciones) if p.colocando else None)
+            comprobaciones=dict(p.comprobaciones) if p.colocando else None,
+            gesto=self._estado_gesto(p))
+
+    def _estado_gesto(self, p: _Paso) -> Optional[Dict[str, Any]]:
+        progreso = self._gesto.progreso(self._t_ms)
+        if progreso is None:
+            return None
+        return {"progreso": round(progreso, 2),
+                "accion": "reanudar" if p.pausa.pausada else "pausar"}
 
     @staticmethod
     def _calidad(p: _Paso) -> Tuple[int, int]:

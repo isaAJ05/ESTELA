@@ -52,7 +52,7 @@ Algunas partes de la interfaz ya están hechas pero ocultas, porque dependen de 
 | `resumenTexto` | resumen en lenguaje natural |
 | `avisoLuz` | (sin interfaz todavía) aviso de poca luz |
 
-Ya activas: `correctasConError`, `guia`, `motivoSilencio`, `pausaManual` (botón y espacio; la pausa de la usuaria solo se quita con «Reanudar»), `colocacion`, `rutinaPersonalizada`, `silenciarVoz`, `elegirCamara` (en Ajustes, antes de empezar) y `reconocerEjercicio`.
+Ya activas: `correctasConError`, `guia`, `motivoSilencio`, `pausaManual` (botón y espacio; la pausa de la usuaria solo se quita con «Reanudar»), `colocacion`, `rutinaPersonalizada`, `silenciarVoz`, `elegirCamara` (en Ajustes, antes de empezar), `reconocerEjercicio`, `pasoAnterior` (botón ⏮; anterior y siguiente se desactivan en el primer y el último ejercicio) y `gestoPausa` (brazo derecho arriba 3 s pausa o reanuda, también la pausa del botón; se ve una barra con lo que falta).
 
 Cada una se activa en `CAPACIDADES` de `backend/estela/adaptadores/interfaz/contrato.py`. Ahí está también la tabla con el campo que debe mandar el backend y la tarea correspondiente.
 
@@ -86,7 +86,8 @@ Todos los tamaños están en `rem` y la raíz crece con la ventana (`estilos/bas
 | Tecla | Acción |
 |---|---|
 | `Espacio` | pausar o reanudar |
-| `N` | siguiente ejercicio |
+| `N` | siguiente ejercicio (no en el último) |
+| `P` | ejercicio anterior (no en el primero) |
 | `R` | reiniciar el ejercicio |
 | `Esc` | terminar (pide confirmación) |
 | `D` | en la sesión: FPS, latencia por etapa, fase y orientación. En el resumen: panel técnico con abstenciones del motor y latencia p50/p95 |

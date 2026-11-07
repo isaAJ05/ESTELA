@@ -41,7 +41,7 @@ export function BotonVoz({ bridge }: { bridge: Bridge }) {
   return (
     <Boton variante={voz ? 'suave' : 'secundario'} onClick={() => cambiarAjustes({ voz: !voz }, bridge)} atajo="V"
            title={voz ? 'Silenciar la voz (V)' : 'Activar la voz (V)'} aria-label="Indicaciones habladas" aria-pressed={voz}>
-      {voz ? <Volume2 /> : <VolumeX />}<span className="solo-ancho">{voz ? 'Voz' : 'Sin voz'}</span>
+      {voz ? <Volume2 /> : <VolumeX />}
     </Boton>
   )
 }

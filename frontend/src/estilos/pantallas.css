@@ -229,6 +229,20 @@
 .tarjeta-pausa .acciones { justify-content: center; margin-top: var(--espacio-5); }
 .icono-pausa { display: grid; place-items: center; width: 4rem; height: 4rem; margin: 0 auto var(--espacio-4); border-radius: 50%; color: var(--color-violeta-suave); background: rgba(128, 107, 255, 0.14); }
 .icono-pausa svg { width: 1.625rem; height: 1.625rem; }
+.tarjeta-pausa .pausa-gesto { display: flex; align-items: center; justify-content: center; gap: var(--espacio-2); margin-top: var(--espacio-3); font-size: 1rem; }
+.tarjeta-pausa .pausa-gesto svg { width: 1.1em; height: 1.1em; flex: none; color: var(--color-violeta-suave); }
+
+/* gesto de pausa en curso: encima de todo lo del escenario, también de la pausa */
+.gesto-pausa {
+  position: absolute; top: var(--espacio-5); left: 50%; transform: translateX(-50%); z-index: 2;
+  display: flex; align-items: center; gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-5); border-radius: var(--radio-lg);
+  border: 1px solid rgba(169, 157, 255, 0.45); background: rgba(36, 30, 70, 0.92); box-shadow: var(--sombra-brillo);
+  color: #fff; font-size: clamp(1.125rem, 1.6vw, 1.5rem); font-weight: 650; pointer-events: none;
+}
+.gesto-pausa svg { width: 1.3em; height: 1.3em; color: var(--color-violeta-suave); }
+.gesto-barra { display: block; width: 6rem; height: 0.5rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
+.gesto-barra i { display: block; height: 100%; background: var(--color-violeta); transition: width 0.1s linear; }
 
 .capa-dialogo { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: var(--espacio-5); background: var(--color-velo); backdrop-filter: blur(0.25rem); }
 .tarjeta-confirmar { width: min(32.5rem, 100%); text-align: center; border-color: rgba(244, 163, 64, 0.3); }

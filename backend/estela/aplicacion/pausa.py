@@ -22,6 +22,9 @@ Dos motivos:
                  solo con `reanudar_usuaria`. Si ya había una pausa automática,
                  la misma pausa pasa a este motivo.
 
+El gesto del brazo derecho arriba (`gesto.py`) pausa con motivo ``usuaria``
+y reanuda cualquier pausa (`reanudar_gesto`).
+
 Hacer otro ejercicio no es inactividad (EXP-010): mientras el reconocedor ve
 otro movimiento (`otro_ejercicio`), la espera de inactividad no corre, y una
 pausa por inactividad en curso se quita. Así solo queda el aviso «ese
@@ -99,6 +102,13 @@ class DetectorPausa:
 
     def reanudar_usuaria(self, t_ms: int) -> Optional[str]:
         if self.motivo != USUARIA:
+            return None
+        return self._reanudar(t_ms, None)
+
+    def reanudar_gesto(self, t_ms: int) -> Optional[str]:
+        """Reanuda cualquier pausa: la usuaria pidió seguir con el gesto
+        (`gesto.py`), aunque la pausa fuera automática."""
+        if not self.pausada:
             return None
         return self._reanudar(t_ms, None)
 

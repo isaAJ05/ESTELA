@@ -36,6 +36,10 @@ export interface Capacidades {
   elegirCamara?: boolean
   /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
   reconocerEjercicio?: boolean
+  /** se puede volver al ejercicio anterior (`anterior`) */
+  pasoAnterior?: boolean
+  /** brazo derecho arriba 3 s pausa o reanuda; llega `gesto` con el progreso */
+  gestoPausa?: boolean
 }
 
 export interface PasoRutina {
@@ -139,6 +143,8 @@ export interface EstadoSesion {
   /** null fuera de la fase de colocación */
   colocacion?: Colocacion | null
   evaluacion?: Evaluacion | null
+  /** gesto de pausa en curso (capacidad «gestoPausa»); null si no hay */
+  gesto?: { progreso: number; accion: 'pausar' | 'reanudar' } | null
   // Aún sin backend: llegan null (ver Capacidades).
   correctas: number | null
   conError: number | null
@@ -260,6 +266,8 @@ export interface Bridge {
   estado(desde: number): Promise<Estado | null>
   iniciar(opciones?: OpcionesInicio): Promise<boolean>
   siguiente(): Promise<void>
+  /** Vuelve al ejercicio anterior y lo empieza de cero (capacidad «pasoAnterior»). */
+  anterior(): Promise<void>
   reiniciar(): Promise<void>
   terminar(): Promise<void>
   volverAlInicio(): Promise<void>

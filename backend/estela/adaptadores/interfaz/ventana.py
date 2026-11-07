@@ -75,6 +75,9 @@ class Api:
     def siguiente(self) -> None:
         self._orq.siguiente()
 
+    def anterior(self) -> None:
+        self._orq.anterior()
+
     def reiniciar(self) -> None:
         self._orq.reiniciar()
 
