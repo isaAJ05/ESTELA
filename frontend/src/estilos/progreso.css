@@ -1,0 +1,134 @@
+/* Panel «Mi progreso» (ADR-008). Una sola serie en el color de la marca;
+   rejilla y ejes en tonos de línea, textos con los tokens de texto. */
+
+.progreso-cuerpo {
+  flex: 1;
+  display: grid; gap: var(--espacio-5); align-content: start;
+  width: min(77.5rem, 100%); margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3.5rem) var(--espacio-7);
+}
+.progreso-cuerpo h2 { font-size: 1.25rem; letter-spacing: -0.02em; }
+.progreso-cabeza { display: grid; gap: var(--espacio-3); }
+.progreso-cabeza h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); letter-spacing: -0.05em; line-height: 1; }
+.progreso-cabeza h1 em { color: var(--color-violeta-suave); font-style: normal; }
+.progreso-privacidad {
+  display: flex; align-items: flex-start; gap: var(--espacio-2); max-width: 46rem;
+  color: var(--color-texto-suave); font-size: 0.9375rem;
+}
+.progreso-privacidad svg { flex: none; width: 1.125rem; height: 1.125rem; margin-top: 0.15rem; color: var(--color-violeta-suave); }
+.progreso-cargando { display: flex; align-items: center; gap: var(--espacio-2); color: var(--color-texto-suave); }
+.progreso-sub { margin-top: 0.125rem; color: var(--color-texto-sutil); font-size: 0.875rem; }
+.texto-peligro { color: var(--color-peligro); }
+
+.progreso-vacio { display: grid; justify-items: center; gap: var(--espacio-2); padding: var(--espacio-7) var(--espacio-5); text-align: center; }
+.progreso-vacio svg { width: 2.5rem; height: 2.5rem; color: var(--color-violeta-suave); }
+.progreso-vacio p { max-width: 30rem; color: var(--color-texto-suave); }
+
+/* -- cifras ---------------------------------------------------------------- */
+.progreso-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--espacio-4); }
+.cifra { display: grid; gap: 0.25rem; padding: var(--espacio-4) var(--espacio-5); }
+.cifra-etiqueta { display: flex; align-items: center; gap: var(--espacio-2); color: var(--color-texto-suave); font-size: 0.875rem; font-weight: 650; }
+.cifra-etiqueta svg { width: 1rem; height: 1rem; color: var(--color-violeta-suave); }
+.cifra strong { color: var(--color-texto); font-size: 1.875rem; font-weight: 650; letter-spacing: -0.03em; line-height: 1.15; }
+.cifra-extra { color: var(--color-texto-sutil); font-size: 0.875rem; }
+
+/* -- gráfico de semanas ------------------------------------------------------ */
+.progreso-semanas { display: grid; gap: var(--espacio-3); }
+.grafico-semanas { position: relative; width: 100%; }
+.grafico-semanas svg { display: block; overflow: visible; }
+.eje-rejilla { stroke: var(--color-linea); stroke-width: 1; }
+.eje-base { stroke: var(--color-borde); stroke-width: 1; }
+.eje-texto { fill: var(--color-texto-sutil); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+.columna path { fill: var(--color-violeta); transition: fill var(--duracion-corta); }
+.columna.activa path { fill: var(--color-violeta-hover); }
+.columna-zona { fill: transparent; }
+.columna:focus { outline: none; }
+.columna:focus-visible .columna-zona { fill: var(--color-relleno); }
+.columna-valor { fill: var(--color-texto); font-size: 0.8125rem; font-weight: 700; }
+.columna.actual .eje-texto { fill: var(--color-texto-suave); font-weight: 700; }
+.grafico-tooltip {
+  position: absolute; transform: translateX(-50%); pointer-events: none;
+  display: grid; gap: 0.125rem; padding: var(--espacio-2) var(--espacio-3);
+  border: 1px solid var(--color-borde); border-radius: var(--radio-sm);
+  background: var(--color-cristal-alto); box-shadow: var(--sombra-suave);
+  white-space: nowrap; font-size: 0.875rem;
+}
+.grafico-tooltip strong { color: var(--color-texto); }
+.grafico-tooltip span { color: var(--color-texto-suave); }
+.grafico-tabla summary { width: fit-content; color: var(--color-violeta-suave); font-size: 0.875rem; font-weight: 700; cursor: pointer; }
+.grafico-tabla table { margin-top: var(--espacio-2); border-collapse: collapse; font-size: 0.875rem; font-variant-numeric: tabular-nums; }
+.grafico-tabla th, .grafico-tabla td { padding: 0.25rem var(--espacio-4) 0.25rem 0; text-align: left; }
+.grafico-tabla th { color: var(--color-texto-sutil); font-weight: 650; }
+.grafico-tabla td { color: var(--color-texto-suave); }
+
+/* -- por ejercicio ----------------------------------------------------------- */
+.progreso-ejercicios { display: grid; gap: var(--espacio-3); }
+.rejilla-progreso { display: grid; grid-template-columns: repeat(auto-fill, minmax(19rem, 1fr)); gap: var(--espacio-4); }
+.tarjeta-progreso { display: grid; gap: var(--espacio-4); align-content: start; }
+.tarjeta-progreso header { display: flex; align-items: center; gap: var(--espacio-3); }
+.tarjeta-progreso header strong { display: block; color: var(--color-texto); }
+.tarjeta-progreso header span { color: var(--color-texto-sutil); font-size: 0.875rem; }
+.progreso-marcas { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--espacio-2); margin: 0; }
+/* la cifra queda abajo aunque la etiqueta ocupe dos líneas */
+.progreso-marcas div { display: grid; grid-template-rows: 1fr auto; gap: 0.125rem; align-items: end; }
+.progreso-marcas dt { color: var(--color-texto-sutil); font-size: 0.75rem; font-weight: 650; }
+.progreso-marcas dd { margin: 0; color: var(--color-texto); font-size: 1.125rem; font-weight: 700; }
+
+/* columnas pequeñas: las anteriores en tono suave, la última en acento */
+.recientes { display: flex; align-items: flex-end; gap: 2px; height: 2.25rem; border-bottom: 1px solid var(--color-borde); }
+.recientes i { flex: 1; max-width: 1rem; border-radius: 3px 3px 0 0; background: var(--color-relleno-fuerte); }
+.recientes i.actual { background: var(--color-violeta); }
+
+.progreso-indicaciones { display: grid; gap: var(--espacio-2); }
+.progreso-indicaciones p { color: var(--color-texto-suave); font-size: 0.9375rem; }
+.progreso-indicaciones ul { display: grid; gap: var(--espacio-2); margin: 0; padding: 0; list-style: none; }
+.progreso-indicaciones li { display: grid; gap: 0.125rem; }
+.progreso-indicaciones q { color: var(--color-texto); font-weight: 650; }
+.progreso-indicaciones li span { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+
+/* -- sesiones recientes --------------------------------------------------------- */
+.progreso-historial ol { display: grid; margin: var(--espacio-3) 0 0; padding: 0; list-style: none; }
+.progreso-historial > ol > li + li { border-top: 1px solid var(--color-linea); }
+.fila-sesion summary {
+  display: grid; grid-template-columns: 11rem minmax(0, 1fr) 4.5rem 13rem 1.25rem; align-items: center; gap: var(--espacio-3);
+  padding: var(--espacio-3) 0; color: var(--color-texto-suave); font-size: 0.9375rem; cursor: pointer; list-style: none;
+}
+.fila-sesion summary::-webkit-details-marker { display: none; }
+.fila-sesion-fecha { color: var(--color-texto); font-weight: 650; font-variant-numeric: tabular-nums; }
+.fila-sesion-rutina { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila-sesion .flecha { width: 1.125rem; height: 1.125rem; transition: transform var(--duracion-corta); }
+.fila-sesion[open] .flecha { transform: rotate(180deg); }
+.fila-sesion ul { display: grid; gap: var(--espacio-1); margin: 0 0 var(--espacio-3); padding: 0 0 0 11.75rem; list-style: none; font-size: 0.9375rem; }
+.fila-sesion ul li { display: flex; justify-content: space-between; gap: var(--espacio-4); max-width: 30rem; color: var(--color-texto-suave); }
+.fila-sesion ul b { color: var(--color-texto); font-variant-numeric: tabular-nums; }
+.fila-sesion ul b.texto-exito { color: var(--color-exito); }
+.fila-sesion-nota { color: var(--color-texto-sutil) !important; font-size: 0.8125rem; }
+
+.progreso-historial .enlace-editar { margin-top: var(--espacio-2); }
+.girada { transform: rotate(180deg); }
+
+.progreso-borrar { display: grid; gap: var(--espacio-2); justify-items: start; }
+
+/* -- resumen de la semana en el inicio --------------------------------------------- */
+.inicio-lateral { display: grid; gap: var(--espacio-4); align-content: center; }
+.resumen-semana { display: grid; gap: var(--espacio-3); padding: var(--espacio-4) var(--espacio-5); }
+.resumen-semana-datos { display: grid; grid-template-columns: 1.4fr 1fr; gap: var(--espacio-5); }
+.resumen-semana-datos > div { display: grid; gap: 0.25rem; align-content: start; }
+.resumen-semana strong {
+  display: flex; align-items: center; gap: var(--espacio-2);
+  color: var(--color-texto); font-size: 1.5rem; font-weight: 650; letter-spacing: -0.03em; line-height: 1.15;
+}
+.resumen-semana strong svg { width: 1.25rem; height: 1.25rem; }
+.resumen-semana .enlace-editar { margin-top: 0; }
+
+@media (max-width: 64rem) {
+  .progreso-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 56rem) {
+  .fila-sesion summary { grid-template-columns: minmax(0, 1fr) auto 1.25rem; }
+  .fila-sesion summary > span:nth-child(2), .fila-sesion summary > span:nth-child(4) { display: none; }
+  .fila-sesion ul { padding-left: 0; }
+}
+
+/* botones dentro de un aviso (p. ej. «Ver mi progreso» en el resumen): en una línea */
+.aviso .boton { flex: none; white-space: nowrap; }

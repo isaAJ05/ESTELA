@@ -1,0 +1,149 @@
+/* Perfiles (ADR-009): avatar, «¿Quién entrena hoy?» y «Mi perfil».
+   Las iniciales van en tinta casi negra sobre el color (contraste ≥ 6,5:1 en
+   todos); el nombre va siempre al lado, así que el color nunca es lo único. */
+
+[data-color="violeta"] { --avatar: #9d8cff; }
+[data-color="naranja"] { --avatar: #f2a65a; }
+[data-color="turquesa"] { --avatar: #4fc7b0; }
+[data-color="rosa"] { --avatar: #f290bb; }
+[data-color="azul"] { --avatar: #6fb0ff; }
+[data-color="mostaza"] { --avatar: #e3c55a; }
+
+.avatar {
+  display: inline-grid; place-items: center; flex: none;
+  width: 2.75rem; height: 2.75rem; border-radius: 50%;
+  background: var(--avatar, var(--color-relleno-fuerte)); color: #171329;
+  font-weight: 800; letter-spacing: -0.02em; line-height: 1; user-select: none;
+}
+.avatar-sm { width: 1.875rem; height: 1.875rem; font-size: 0.75rem; }
+.avatar-md { font-size: 1rem; }
+.avatar-lg { width: 4.5rem; height: 4.5rem; font-size: 1.5rem; }
+.avatar-xl { width: 6rem; height: 6rem; font-size: 2rem; }
+.avatar-vacio { background: var(--color-relleno-fuerte); color: var(--color-texto-suave); }
+.avatar-vacio svg { width: 45%; height: 45%; }
+/* en el tema claro el círculo se distingue poco del blanco: un borde fino */
+[data-tema="claro"] .avatar:not(.avatar-vacio) { box-shadow: inset 0 0 0 1px rgba(27, 21, 48, 0.18); }
+
+/* -- chip de la cabecera ------------------------------------------------------- */
+.chip-perfil {
+  display: inline-flex; align-items: center; gap: var(--espacio-2);
+  max-width: 14rem; padding: 0.25rem 0.875rem 0.25rem 0.25rem;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
+  background: var(--color-cristal); color: var(--color-texto); font: inherit; font-weight: 700; cursor: pointer;
+  transition: border-color var(--duracion-corta);
+}
+.chip-perfil:hover, .chip-perfil.activa { border-color: var(--color-violeta); }
+.chip-perfil-nombre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* -- secciones ------------------------------------------------------------------ */
+.perfiles-cuerpo {
+  flex: 1;
+  display: grid; gap: var(--espacio-5); align-content: start;
+  width: min(62rem, 100%); margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3.5rem) var(--espacio-7);
+}
+.perfiles-cuerpo h2 { font-size: 1.25rem; letter-spacing: -0.02em; }
+.perfiles-cabeza { display: grid; gap: var(--espacio-3); }
+.perfiles-cabeza h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); letter-spacing: -0.05em; line-height: 1; }
+.perfiles-cabeza h1 em { color: var(--color-violeta-suave); font-style: normal; }
+.perfil-titulo { display: flex; align-items: center; gap: var(--espacio-4); }
+/* solo la fecha: un selector «span» a secas también pintaría las iniciales del avatar */
+.perfil-titulo > div > span { color: var(--color-texto-sutil); font-size: 0.9375rem; }
+
+/* «¿Quién entrena hoy?»: composición centrada, como una pantalla de entrada */
+.perfiles-selector { justify-items: center; align-content: center; gap: var(--espacio-6); text-align: center; }
+.perfiles-selector .perfiles-cabeza { justify-items: center; }
+.perfiles-selector .perfiles-cabeza h1 { font-size: clamp(2.75rem, 5vw, 4.25rem); letter-spacing: -0.06em; }
+.perfiles-sub { max-width: 32rem; color: var(--color-texto-suave); font-size: 1.125rem; }
+.perfiles-selector .tarjeta-formulario { width: 100%; text-align: left; }
+.perfiles-privacidad { max-width: 34rem; color: var(--color-texto-sutil); font-size: 0.875rem; text-align: left; }
+.perfiles-privacidad svg { color: var(--color-texto-sutil); }
+
+.rejilla-perfiles {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: var(--espacio-4);
+  margin: 0; padding: 0; list-style: none;
+}
+.rejilla-perfiles li { width: 13.5rem; }
+.tarjeta-perfil {
+  display: grid; justify-items: center; gap: var(--espacio-2); width: 100%; height: 100%;
+  padding: var(--espacio-6) var(--espacio-4) var(--espacio-5); color: var(--color-texto); font: inherit; text-align: center; cursor: pointer;
+  transition: border-color var(--duracion-corta), transform var(--duracion-corta), box-shadow var(--duracion-corta);
+}
+.tarjeta-perfil .avatar { transition: transform var(--duracion-corta); }
+.tarjeta-perfil:hover { border-color: var(--color-violeta); transform: translateY(-3px); box-shadow: var(--sombra-suave), var(--sombra-brillo); }
+.tarjeta-perfil:hover .avatar { transform: scale(1.04); }
+.tarjeta-perfil:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 2px; }
+.tarjeta-perfil strong { margin-top: var(--espacio-1); font-size: 1.125rem; overflow-wrap: anywhere; }
+.tarjeta-perfil span:not(.avatar) { color: var(--color-texto-sutil); font-size: 0.875rem; }
+.tarjeta-perfil.actual { border-color: rgba(128, 107, 255, 0.55); }
+.tarjeta-perfil-nuevo { border-style: dashed; background: transparent; box-shadow: none; }
+
+/* «Mi perfil»: formulario a la izquierda; opciones y zona de borrado al lado */
+.perfil-rejilla { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(16rem, 1fr); gap: var(--espacio-5); align-items: start; }
+.perfil-rejilla .tarjeta-formulario { max-width: none; }
+.perfil-lateral { display: grid; gap: var(--espacio-4); }
+.perfil-opciones, .zona-cuidado { display: grid; gap: var(--espacio-3); justify-items: start; }
+.perfil-opciones h2, .zona-cuidado h2 { font-size: 1.0625rem !important; }
+.perfil-opciones-botones { display: grid; gap: var(--espacio-2); width: 100%; }
+.perfil-opciones-botones .boton { justify-content: flex-start; }
+.meta-actual { display: flex; align-items: center; gap: var(--espacio-2); color: var(--color-texto-suave); font-weight: 650; }
+.meta-actual svg { width: 1.125rem; height: 1.125rem; color: var(--color-violeta-suave); }
+.zona-cuidado { border-color: rgba(233, 133, 145, 0.28); background: var(--color-superficie); box-shadow: none; }
+.zona-cuidado > p { color: var(--color-texto-suave); font-size: 0.9375rem; }
+.zona-cuidado .aviso { flex-wrap: wrap; width: 100%; }
+.zona-cuidado .aviso .acciones { width: 100%; }
+.zona-cuidado .aviso .boton { margin-left: 0; }
+
+.enlace-sin-perfil { color: var(--color-texto-suave); }
+.enlace-sin-perfil span { color: var(--color-texto-sutil); font-weight: 600; }
+.perfil-invitado { display: grid; gap: var(--espacio-4); }
+.perfil-invitado p { color: var(--color-texto-suave); }
+
+/* -- formulario ----------------------------------------------------------------- */
+.tarjeta-formulario { display: grid; gap: var(--espacio-4); max-width: 38rem; }
+.formulario-perfil { display: grid; gap: var(--espacio-5); }
+.formulario-perfil-vista { display: flex; }
+.formulario-perfil-nota { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.campo { display: grid; gap: var(--espacio-2); margin: 0; padding: 0; border: 0; min-width: 0; }
+.campo > span:first-child, .campo legend { padding: 0; color: var(--color-texto); font-size: 0.9375rem; font-weight: 700; }
+.campo legend { margin-bottom: var(--espacio-2); }
+.campo-ayuda { color: var(--color-texto-sutil); font-size: 0.875rem; }
+.campo input {
+  width: 100%; max-width: 24rem; padding: 0.75rem 1rem;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-sm);
+  background: var(--color-hundido); color: var(--color-texto); font: inherit; font-size: 1.0625rem;
+}
+.campo input:focus { outline: none; border-color: var(--color-violeta); box-shadow: 0 0 0 3px rgba(128, 107, 255, 0.25); }
+.campo input[aria-invalid="true"] { border-color: var(--color-peligro); }
+
+.muestras { display: flex; flex-wrap: wrap; gap: var(--espacio-3); }
+.muestra {
+  display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0;
+  border: 2px solid transparent; border-radius: 50%; background: var(--avatar); color: #171329; cursor: pointer;
+  box-shadow: 0 0 0 2px var(--color-superficie);
+}
+.muestra svg { width: 1.25rem; height: 1.25rem; }
+.muestra[aria-checked="true"] { box-shadow: 0 0 0 2px var(--color-superficie), 0 0 0 4px var(--color-texto); }
+.muestra:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 4px; }
+
+.opciones-meta { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+.opciones-meta button {
+  min-width: 2.75rem; height: 2.75rem; padding: 0 var(--espacio-3);
+  border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
+  background: var(--color-superficie-elevada); color: var(--color-texto-suave); font: inherit; font-weight: 700; cursor: pointer;
+}
+.opciones-meta button:hover { color: var(--color-texto); border-color: var(--color-violeta); }
+.opciones-meta button.activo { background: var(--color-morado); border-color: var(--color-violeta); color: var(--color-sobre-morado); }
+
+/* -- meta semanal en «Mi progreso» (medidor: relleno en acento, pista del mismo tono más suave) -- */
+.medidor { display: block; height: 0.5rem; margin: 0.25rem 0 0.125rem; border-radius: var(--radio-pildora); background: rgba(128, 107, 255, 0.18); overflow: hidden; }
+.medidor i { display: block; height: 100%; border-radius: inherit; background: var(--color-violeta); }
+.cifra-extra svg { width: 0.9rem; height: 0.9rem; vertical-align: -0.1rem; }
+
+@media (max-width: 56rem) {
+  .perfil-rejilla { grid-template-columns: 1fr; }
+}
+@media (max-width: 40rem) {
+  .chip-perfil-nombre { display: none; }
+  .chip-perfil { padding-right: 0.25rem; }
+}

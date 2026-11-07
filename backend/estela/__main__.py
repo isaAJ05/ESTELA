@@ -67,6 +67,9 @@ def _argumentos(argv=None) -> argparse.Namespace:
                         "referencia del ejercicio (EXP-006); defecto «absolutos»")
     p.add_argument("--guardar-metricas", action="store_true",
                    help="guardar el resumen (solo métricas derivadas) en sesiones/")
+    p.add_argument("--sin-historial", action="store_true",
+                   help="sin perfiles ni historial de «Mi progreso» (ADR-008, "
+                        "ADR-009); con --video nunca se guardan")
     p.add_argument("-v", "--verbose", action="store_true")
     return p.parse_args(argv)
 
@@ -167,14 +170,18 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     from .adaptadores.pose.estimador import EstimadorPose
     from .adaptadores.interfaz.orquestador import Orquestador
     from .adaptadores.interfaz.ventana import abrir
+    from .aplicacion.perfiles import Perfiles
 
+    # un vídeo no es una sesión de la usuaria: no entra en ningún historial
+    perfiles = (None if args.sin_historial or args.video
+                else Perfiles(config.HISTORIAL))
     orquestador = Orquestador(
         rutina, catalogo,
         crear_estimador=lambda: EstimadorPose(config.modelo_pose(args.modelo)),
         abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True),
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
-        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw)
+        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw, perfiles=perfiles)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:

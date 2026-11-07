@@ -98,9 +98,14 @@ python -m estela --voz texto                       # sin audio
 python -m estela --modelo lite                     # pose más rápida y menos precisa
 python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas
 python -m estela --interfaz opencv                 # ventana simple de OpenCV, para pruebas y mediciones
+python -m estela --sin-historial                   # sin perfiles ni «Mi progreso»
 ```
 
 Por defecto se abre la interfaz de escritorio, que empieza en la pantalla de inicio. La sesión arranca con **Comenzar sesión**. Al terminar se muestra el resumen, que también se imprime en la consola. Desde el resumen se puede repetir la rutina sin cerrar la ventana.
+
+Al abrir, la aplicación pregunta **¿Quién entrena hoy?**: se elige un perfil, se crea uno (nombre, color y meta semanal) o se entrena sin perfil. Cada perfil recuerda la rutina que armó en **Mi rutina**. Cada sesión con la cámara se guarda en el historial del perfil elegido, en `backend/historial/`, que está ignorado por git, y se ve en la pestaña **Mi progreso**. Sin perfil no se guarda nada.
+
+Solo se guardan la fecha, el objetivo, lo completado, la duración, las pausas y las indicaciones que se dijeron. No se guardan imágenes, la postura ni datos del cuerpo. Los perfiles no tienen contraseña. El historial se borra desde «Mi progreso» y el perfil completo desde «Mi perfil». Con `--video` o `--sin-historial` no hay perfiles ni historial (ADR-008, ADR-009).
 
 Teclas en la interfaz: `n` siguiente ejercicio · `r` reiniciar el ejercicio · `Esc` terminar · `d` datos de depuración (FPS y latencia por etapa).
 Teclas en la ventana de OpenCV: `q` salir · `n` siguiente ejercicio · `r` reiniciar el ejercicio.

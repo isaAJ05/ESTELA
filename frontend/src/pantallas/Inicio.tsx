@@ -5,13 +5,29 @@ import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { textoVista } from '../componentes/Figura'
 import { FiguraEjercicio, ResumenRutina, TarjetaEjercicio, textoEstimado, textoObjetivo } from '../componentes/rutina'
+import { ChipPerfil } from '../componentes/perfil'
+import { PanelPerfil, SelectorPerfil } from './Perfiles'
+import { PanelProgreso, ResumenSemana } from './Progreso'
 import { iniciarRutina, useCapacidad, useEstado } from '../estado/almacen'
+import { guardarRutinaDiferido, guardarRutinaYa, perfilActivo, usePerfiles } from '../estado/perfiles'
 import {
-  alternar, cargarGuardada, estimarSegundos, fijarObjetivo, guardar, iguales, mover, planDe, problemas,
-  seleccionDe, type Seleccion,
+  alternar, cargarGuardada, estimarSegundos, fijarObjetivo, guardar, iguales, leerSeleccion, mover, planDe,
+  problemas, seleccionDe, type Seleccion,
 } from '../estado/rutina'
 
-type Seccion = 'bienvenida' | 'rutina'
+/** «Mi rutina» de quien entrena sin perfil: solo mientras la aplicación está abierta. */
+let rutinaSinPerfil: Seleccion | null = null
+
+type Seccion = 'bienvenida' | 'rutina' | 'progreso' | 'perfil'
+
+/** Sección con la que abrir el inicio la próxima vez (p. ej. «Ver mi progreso» en el resumen). */
+let seccionPendiente: Seccion | null = null
+
+/** Vuelve al inicio directamente en «Mi progreso». */
+export function irAProgreso(bridge: Bridge): void {
+  seccionPendiente = 'progreso'
+  void bridge.volverAlInicio()
+}
 
 const SIN_CATALOGO: EjercicioCatalogo[] = []
 
@@ -39,8 +55,20 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
   const errorApp = useEstado((s) => s.estado?.error ?? null)
   const conNivel = useCapacidad('nivel')
   const personalizable = useCapacidad('rutinaPersonalizada') && catalogo.length > 0
+  const conHistorial = useCapacidad('historial')
+  const conPerfiles = useCapacidad('perfiles')
+  const perfiles = usePerfiles()
+  const activo = perfilActivo(perfiles)
+  const sinPerfil = conPerfiles && perfiles?.elegido === true && activo === null
+  // el progreso es de un perfil: sin perfil no hay panel
+  const conProgreso = conHistorial && (!conPerfiles || activo !== null)
+  // «Cambiar de perfil» vuelve a preguntar quién entrena sin tocar Python
+  const [cambiando, setCambiando] = useState(false)
+  const preguntar = conPerfiles && perfiles !== null && (!perfiles.elegido || cambiando)
   const [nivel, setNivel] = useState<Nivel>('principiante')
-  const [seccion, setSeccion] = useState<Seccion>('bienvenida')
+  // sin limpiar aquí: StrictMode llama dos veces al inicializador
+  const [seccion, setSeccion] = useState<Seccion>(() => seccionPendiente ?? 'bienvenida')
+  useEffect(() => { seccionPendiente = null }, [])
   const [rechazada, setRechazada] = useState(false)
   const preparando = fase === 'preparando'
 
@@ -49,16 +77,32 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
   // campos de objetivo con un valor escrito que no vale
   const [invalidos, setInvalidos] = useState<ReadonlySet<string>>(new Set())
 
-  // la selección se arma cuando llega el catálogo: la última guardada o la recomendada
+  // De quién es «Mi rutina» (ADR-009): del perfil que entrena (se guarda en
+  // Python), de quien entrena sin perfil (solo en memoria) o, sin la capacidad
+  // «perfiles», del navegador como antes. null: aún no se sabe quién entrena.
+  const deQuien = !conPerfiles ? 'navegador' : activo ? activo.id : perfiles?.elegido ? 'sin-perfil' : null
+  const rutinaDelPerfil = activo?.rutina ?? null
+
+  // al llegar el catálogo o cambiar quién entrena, se carga su rutina (o la recomendada)
   useEffect(() => {
-    if (seleccion === null && catalogo.length > 0) setSeleccion(cargarGuardada(catalogo) ?? recomendada)
-  }, [catalogo, recomendada, seleccion])
+    if (deQuien === null || catalogo.length === 0) return
+    guardarRutinaYa()                      // lo pendiente del perfil anterior no se pierde
+    setInvalidos(new Set())
+    setRechazada(false)
+    setSeleccion(deQuien === 'navegador' ? cargarGuardada(catalogo)
+      : deQuien === 'sin-perfil' ? rutinaSinPerfil
+      : leerSeleccion(rutinaDelPerfil, catalogo))
+    // solo al cambiar de persona o de catálogo: la rutina del perfil se lee en ese momento
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [deQuien, catalogo])
 
   const sel = seleccion ?? recomendada
   const cambiar = (nueva: Seleccion) => {
     setSeleccion(nueva)
     setRechazada(false)
-    guardar(nueva)
+    if (!conPerfiles) guardar(nueva)
+    else if (activo) guardarRutinaDiferido(bridge, activo.id, nueva)
+    else rutinaSinPerfil = nueva
   }
   const validar = (skillId: string, valido: boolean) => setInvalidos((prev) => {
     if (valido === !prev.has(skillId)) return prev
@@ -81,34 +125,69 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     : null
 
   const comenzar = async () => {
+    guardarRutinaYa()                      // la rutina con la que se entrena queda guardada
     const opciones = conNivel ? { nivel } : undefined
     if (!personalizable) { void bridge.iniciar(opciones); return }
     if (avisos.length > 0) return
     setRechazada(!(await iniciarRutina(bridge, { nombre, pasos: plan }, opciones)))
   }
 
+  if (preguntar || (conPerfiles && perfiles === null)) {
+    return (
+      <main className="pantalla pantalla-inicio">
+        <header className="cabecera">
+          <Marca />
+          <div className="cabecera-derecha"><ControlesCabecera bridge={bridge} /></div>
+        </header>
+        {perfiles && (
+          <SelectorPerfil bridge={bridge} estado={perfiles}
+                          alElegir={() => { setCambiando(false); setSeccion('bienvenida') }} />
+        )}
+      </main>
+    )
+  }
+
   return (
     <main className="pantalla pantalla-inicio">
       <header className="cabecera">
         <Marca />
-        {personalizable && (
+        {(personalizable || conProgreso) && (
           <nav className="navegacion" aria-label="Secciones">
             <button className={seccion === 'bienvenida' ? 'activa' : undefined}
                     aria-current={seccion === 'bienvenida' ? 'page' : undefined}
                     onClick={() => setSeccion('bienvenida')}>Inicio</button>
-            <button className={seccion === 'rutina' ? 'activa' : undefined}
-                    aria-current={seccion === 'rutina' ? 'page' : undefined}
-                    onClick={() => setSeccion('rutina')}>
-              Mi rutina <span className="navegacion-cuenta">{sel.length}</span>
-            </button>
+            {personalizable && (
+              <button className={seccion === 'rutina' ? 'activa' : undefined}
+                      aria-current={seccion === 'rutina' ? 'page' : undefined}
+                      onClick={() => setSeccion('rutina')}>
+                Mi rutina <span className="navegacion-cuenta">{sel.length}</span>
+              </button>
+            )}
+            {conProgreso && (
+              <button className={seccion === 'progreso' ? 'activa' : undefined}
+                      aria-current={seccion === 'progreso' ? 'page' : undefined}
+                      onClick={() => setSeccion('progreso')}>
+                Mi progreso
+              </button>
+            )}
           </nav>
         )}
         <div className="cabecera-derecha">
+          {conPerfiles && perfiles?.elegido && (
+            <ChipPerfil perfil={activo} activa={seccion === 'perfil'} onClick={() => setSeccion('perfil')} />
+          )}
           <ControlesCabecera bridge={bridge} />
         </div>
       </header>
 
-      {seccion === 'rutina' && personalizable ? (
+      {seccion === 'perfil' && conPerfiles && perfiles ? (
+        <PanelPerfil bridge={bridge} estado={perfiles} alVolver={() => setSeccion('bienvenida')}
+                     alCambiar={() => setCambiando(true)}
+                     alProgreso={conProgreso ? () => setSeccion('progreso') : undefined} />
+      ) : seccion === 'progreso' && conProgreso ? (
+        // key: al cambiar de perfil se vuelve a pedir su historial
+        <PanelProgreso key={activo?.id ?? 'sin'} bridge={bridge} alVolver={() => setSeccion('bienvenida')} />
+      ) : seccion === 'rutina' && personalizable ? (
         <section className="elegir-cuerpo">
           <div className="elegir-catalogo">
             <button className="enlace-volver" onClick={() => setSeccion('bienvenida')}>
@@ -143,18 +222,25 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
             extra={conNivel && <SelectorNivel nivel={nivel} alCambiar={setNivel} />} />
         </section>
       ) : (
-        <Bienvenida nombre={nombre} plan={plan} estimadoS={personalizable ? estimadoS : null}
+        <Bienvenida nombre={nombre} saludo={activo?.nombre ?? null} sinPerfil={sinPerfil}
+          plan={plan} estimadoS={personalizable ? estimadoS : null}
           personalizable={personalizable} preparando={preparando} error={error} avisos={avisos}
           alPersonalizar={() => setSeccion('rutina')} alComenzar={() => void comenzar()}
-          nivel={conNivel ? <SelectorNivel nivel={nivel} alCambiar={setNivel} /> : null} />
+          nivel={conNivel ? <SelectorNivel nivel={nivel} alCambiar={setNivel} /> : null}
+          semana={conProgreso && activo
+            ? <ResumenSemana key={activo.id} bridge={bridge} alVer={() => setSeccion('progreso')} />
+            : null} />
       )}
     </main>
   )
 }
 
-function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error, avisos,
-                      alPersonalizar, alComenzar, nivel }: {
+function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable, preparando, error, avisos,
+                      alPersonalizar, alComenzar, nivel, semana }: {
   nombre: string
+  /** nombre del perfil que entrena (ADR-009) */
+  saludo: string | null
+  sinPerfil: boolean
   plan: PasoRutina[]
   estimadoS: number | null
   personalizable: boolean
@@ -164,11 +250,13 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
   alPersonalizar: () => void
   alComenzar: () => void
   nivel: ReactNode
+  /** meta y racha del perfil (ADR-009); null sin perfil o sin historial */
+  semana: ReactNode
 }) {
   return (
     <section className="inicio-cuerpo">
       <div className="inicio-texto">
-        <span className="etiqueta etiqueta-marca">Sesión de hoy</span>
+        <span className="etiqueta etiqueta-marca">{saludo ? `Hola, ${saludo} · Sesión de hoy` : 'Sesión de hoy'}</span>
         <h1>Tu sesión,<br /><em>a tu ritmo.</em></h1>
         <p className="inicio-proposito">
           Analizo tus movimientos en tiempo real y te doy indicaciones por voz para ayudarte a mejorar tu técnica.
@@ -191,21 +279,26 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
 
         {!error && (
           <div className="acciones">
-            {personalizable && (
-              <Boton onClick={alPersonalizar} disabled={preparando}><SlidersHorizontal />Personalizar mi rutina</Boton>
-            )}
-            <Boton variante={personalizable ? 'secundario' : 'primario'} onClick={alComenzar}
-                   disabled={preparando || avisos.length > 0}>
+            {/* empezar es lo principal del inicio; personalizar queda como alternativa */}
+            <Boton onClick={alComenzar} disabled={preparando || avisos.length > 0}>
               {preparando ? <><Loader2 className="girando" />Preparando la cámara…</>
-                : <><Play />{personalizable ? 'Empezar ya' : 'Comenzar sesión'}</>}
+                : <><Play />Comenzar sesión</>}
             </Boton>
+            {personalizable && (
+              <Boton variante="secundario" onClick={alPersonalizar} disabled={preparando}>
+                <SlidersHorizontal />Personalizar rutina
+              </Boton>
+            )}
           </div>
         )}
+        {sinPerfil && <p className="campo-ayuda">Entrenas sin perfil: esta sesión no se guardará.</p>}
         <p className="descargo">
           ESTELA te da indicaciones sobre tu técnica; no reemplaza a un profesional ni hace diagnósticos.
         </p>
       </div>
 
+      <div className="inicio-lateral">
+      {semana}
       <article className="tarjeta tarjeta-rutina">
         <span className="etiqueta">
           {plural(plan.length, 'ejercicio', 'ejercicios')}{estimadoS != null && plan.length > 0 && ` · ${textoEstimado(estimadoS)}`}
@@ -233,6 +326,7 @@ function Bienvenida({ nombre, plan, estimadoS, personalizable, preparando, error
           </button>
         )}
       </article>
+      </div>
     </section>
   )
 }

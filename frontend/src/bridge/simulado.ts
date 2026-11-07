@@ -5,10 +5,12 @@
 // Parámetros de la URL: ?simulado            fuerza el simulador en el build
 //                       ?velocidad=4         acelera el tiempo
 //                       ?escena=resumen|error empieza en esa fase
+//                       ?escena=progreso-vacio  «Mi progreso» sin sesiones
+//                       ?escena=sin-perfiles    primera vez: aún no hay perfiles
 
 import type {
-  Bridge, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio, PasoRutina,
-  Punto, Resumen, Severidad,
+  Bridge, DatosPerfil, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio,
+  PasoRutina, Perfil, Progreso, Punto, Resumen, ResultadoPerfil, Severidad,
 } from './tipos'
 
 const PASOS: PasoRutina[] = [
@@ -36,6 +38,94 @@ const CATALOGO: EjercicioCatalogo[] = PASOS.filter((p) => !p.skillId.startsWith(
   minimo: p.unidad === 'segundos' ? 5 : 1,
   maximo: p.unidad === 'segundos' ? 180 : 50,
 }))
+
+const VACIO: Progreso = {
+  totalSesiones: 0, totalDuracionS: 0, diasActivos: 0, diasActivos7: 0, diasSemanaActual: 0, metaSemanal: null,
+  rachaDias: 0, primeraFecha: null, semanas: [], ejercicios: [], sesiones: [],
+}
+
+// Perfiles en memoria, con las mismas reglas que `backend/estela/aplicacion/perfiles.py`.
+const COLORES = ['violeta', 'naranja', 'turquesa', 'rosa', 'azul', 'mostaza']
+const MAX_PERFILES = 8
+const MAX_NOMBRE = 30
+
+function limpiarPerfil(d: DatosPerfil, otros: Perfil[], base?: Perfil): Omit<Perfil, 'id' | 'creado' | 'rutina'> | string {
+  const nombre = (d.nombre ?? base?.nombre ?? '').trim().split(/\s+/).filter(Boolean).join(' ')
+  if (!nombre) return 'Escribe un nombre o apodo.'
+  if (nombre.length > MAX_NOMBRE) return `El nombre puede tener hasta ${MAX_NOMBRE} caracteres.`
+  if (otros.some((p) => p.nombre.toLowerCase() === nombre.toLowerCase())) return 'Ya hay un perfil con ese nombre.'
+  const color = d.color ?? base?.color ?? COLORES[0]
+  if (!COLORES.includes(color)) return 'Elige uno de los colores disponibles.'
+  const metaSemanal = 'metaSemanal' in d ? d.metaSemanal ?? null : base?.metaSemanal ?? null
+  if (metaSemanal != null && (metaSemanal < 1 || metaSemanal > 7)) return 'La meta debe estar entre 1 y 7 días por semana.'
+  return { nombre, color, metaSemanal }
+}
+
+const iso = (d: Date) => {
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}T${dos(d.getHours())}:${dos(d.getMinutes())}:00`
+}
+
+/** Historial inventado de unas semanas, con huecos, para ver el panel sin Python. */
+function progresoSimulado(hoy = new Date()): Progreso {
+  const dia = (hace: number, hora = 8) => new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - hace, hora, 15)
+  const haceDias = [0, 1, 2, 4, 6, 9, 10, 13, 16, 20, 23, 27, 30, 34, 41, 48]
+  const lunes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ((hoy.getDay() + 6) % 7))
+  const semanas = Array.from({ length: 8 }, (_, k) => {
+    const inicio = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() - 7 * (7 - k))
+    const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 7)
+    const n = haceDias.filter((h) => { const d = dia(h); return d >= inicio && d < fin }).length
+    return { inicio: iso(inicio).slice(0, 10), sesiones: n, duracionS: n * (240 + 25 * k) }
+  })
+  const pasos = (k: number) => [
+    { skillId: 'jumping_jacks', nombre: 'Jumping jacks', unidad: 'repeticiones' as const, completadas: Math.min(10, 6 + (k % 5)), objetivo: 10 },
+    { skillId: 'marcha_rodillas', nombre: 'Marcha con elevación de rodillas', unidad: 'repeticiones' as const, completadas: 16, objetivo: 16 },
+    { skillId: 'plancha', nombre: 'Plancha', unidad: 'segundos' as const, completadas: 12 + (k % 9), objetivo: 20 },
+  ]
+  const sesiones = haceDias.map((h, k) => {
+    const ps = pasos(haceDias.length - k)
+    return {
+      fecha: iso(dia(h, 7 + (k % 3) * 5)), rutina: 'Rutina de entrenamiento', terminada: k !== 3,
+      duracionS: 240 + 17 * k, ejercicios: ps.length, completos: ps.filter((p) => p.completadas >= p.objetivo).length,
+      indicaciones: k % 4, pasos: ps,
+    }
+  })
+  const recientes = (sid: string) => sesiones.slice(0, 10).reverse().map((s) => {
+    const p = s.pasos.find((q) => q.skillId === sid)!
+    return { fecha: s.fecha, completadas: p.completadas, objetivo: p.objetivo }
+  })
+  const ejercicio = (sid: string, nombre: string, unidad: 'repeticiones' | 'segundos',
+                     frecuentes: Progreso['ejercicios'][number]['indicaciones']['frecuentes']) => {
+    const r = recientes(sid)
+    return {
+      skillId: sid, nombre, unidad, veces: sesiones.length, ultimaFecha: sesiones[0].fecha,
+      ultimo: { completadas: r.at(-1)!.completadas, objetivo: r.at(-1)!.objetivo },
+      mejor: Math.max(...r.map((x) => x.completadas)),
+      objetivoCumplido: sesiones.filter((s) => s.pasos.some((q) => q.skillId === sid && q.completadas >= q.objetivo)).length,
+      recientes: r, indicaciones: { sesiones: 5, frecuentes },
+    }
+  }
+  return {
+    totalSesiones: sesiones.length,
+    totalDuracionS: sesiones.reduce((a, s) => a + s.duracionS, 0),
+    diasActivos: sesiones.length,
+    diasActivos7: haceDias.filter((h) => h < 7).length,
+    diasSemanaActual: haceDias.filter((h) => h <= (hoy.getDay() + 6) % 7).length,
+    metaSemanal: null,
+    rachaDias: 3,
+    primeraFecha: sesiones.at(-1)!.fecha,
+    semanas,
+    ejercicios: [
+      ejercicio('jumping_jacks', 'Jumping jacks', 'repeticiones', [
+        { errorId: 'brazos_no_llegan_arriba', texto: 'Sube un poco más los brazos.', sesiones: 3, veces: 5 },
+        { errorId: 'codos_flexionados', texto: 'Estira los codos al abrir.', sesiones: 1, veces: 1 }]),
+      ejercicio('marcha_rodillas', 'Marcha con elevación de rodillas', 'repeticiones', []),
+      ejercicio('plancha', 'Plancha', 'segundos', [
+        { errorId: 'cadera_hundida', texto: 'Sube un poco la cadera.', sesiones: 4, veces: 7 }]),
+    ],
+    sesiones,
+  }
+}
 
 const CONEXIONES: [number, number][] = [
   [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24],
@@ -189,6 +279,7 @@ export function bridgeSimulado(): Bridge {
         abstenciones: { evidencia_insuficiente: h.completadas > 0 ? 2 : 0 },
       })),
       resumenTexto: null,
+      guardadaEnHistorial: activo ? hechos.some((h) => h.completadas > 0) : null,
       motivoFin: terminada ? 'completada' : 'usuaria',
       tecnico: {
         frames: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 30),
@@ -283,6 +374,27 @@ export function bridgeSimulado(): Bridge {
     return true
   }
 
+  let perfiles: Perfil[] = escena === 'sin-perfiles' ? [] : [
+    { id: 'pana', nombre: 'Ana', color: 'rosa', metaSemanal: 4, creado: '2026-09-19T07:15:00',
+      rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'marcha_rodillas', objetivo: 20 }] },
+    { id: 'pluis', nombre: 'Luis', color: 'azul', metaSemanal: null, creado: '2026-10-02T18:00:00', rutina: null },
+  ]
+  let activo: string | null = null
+  let elegido = false
+  // historial de cada perfil: Ana trae semanas de ejemplo, el resto empieza vacío
+  const historiales = new Map<string, Progreso>([['pana', escena === 'progreso-vacio' ? VACIO : progresoSimulado()]])
+  const cambiarPerfil = (id: string | null, d: DatosPerfil): ResultadoPerfil => {
+    const base = perfiles.find((p) => p.id === id)
+    if (id && !base) return { ok: false, error: 'Ese perfil ya no existe.' }
+    if (!id && perfiles.length >= MAX_PERFILES) return { ok: false, error: `Ya hay ${MAX_PERFILES} perfiles; borra uno para crear otro.` }
+    const limpio = limpiarPerfil(d, perfiles.filter((p) => p.id !== id), base)
+    if (typeof limpio === 'string') return { ok: false, error: limpio }
+    const perfil: Perfil = base ? { ...base, ...limpio } : { id: `p${Date.now().toString(36)}`, creado: iso(new Date()), rutina: null, ...limpio }
+    perfiles = base ? perfiles.map((p) => (p.id === id ? perfil : p)) : [...perfiles, perfil]
+    if (!base) { activo = perfil.id; elegido = true }
+    return { ok: true, perfil }
+  }
+
   if (escena === 'error') {
     fase = 'error'
     error = { tipo: 'fuente', mensaje: 'no se pudo abrir la cámara 0' }
@@ -295,7 +407,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
+    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true, historial: true, perfiles: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -321,6 +433,42 @@ export function bridgeSimulado(): Bridge {
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
     configurar: async () => {},
+    historial: async () => {
+      await new Promise((r) => setTimeout(r, 250))
+      const perfil = perfiles.find((p) => p.id === activo)
+      if (!perfil) return null
+      return { ...(historiales.get(perfil.id) ?? VACIO), metaSemanal: perfil.metaSemanal }
+    },
+    borrarHistorial: async () => { if (!activo) return false; historiales.delete(activo); return true },
+    perfiles: async () => ({ perfiles, activo, elegido, colores: COLORES, maxPerfiles: MAX_PERFILES, maxNombre: MAX_NOMBRE, meta: [1, 7] }),
+    elegirPerfil: async (id) => {
+      if (id !== null && !perfiles.some((p) => p.id === id)) return false
+      activo = id; elegido = true
+      return true
+    },
+    crearPerfil: async (d) => cambiarPerfil(null, d),
+    editarPerfil: async (id, d) => cambiarPerfil(id, d),
+    guardarRutina: async (id, pasos) => {
+      const base = perfiles.find((p) => p.id === id)
+      if (!base) return { ok: false, error: 'Ese perfil ya no existe.' }
+      for (const paso of pasos) {
+        const ej = CATALOGO.find((c) => c.skillId === paso.skillId)
+        if (!ej) return { ok: false, error: `ejercicio desconocido en la rutina: ${paso.skillId}` }
+        if (!(paso.objetivo >= ej.minimo && paso.objetivo <= ej.maximo)) {
+          return { ok: false, error: `el objetivo de '${paso.skillId}' debe estar entre ${ej.minimo} y ${ej.maximo} ${ej.unidad}` }
+        }
+      }
+      const perfil: Perfil = { ...base, rutina: pasos.map((x) => ({ skillId: x.skillId, objetivo: x.objetivo })) }
+      perfiles = perfiles.map((p) => (p.id === id ? perfil : p))
+      return { ok: true, perfil }
+    },
+    borrarPerfil: async (id) => {
+      if (!perfiles.some((p) => p.id === id)) return false
+      perfiles = perfiles.filter((p) => p.id !== id)
+      historiales.delete(id)
+      if (activo === id) { activo = null; elegido = false }
+      return true
+    },
     pausar: async () => {},
     reanudar: async () => {},
   }

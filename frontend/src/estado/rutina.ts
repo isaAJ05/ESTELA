@@ -106,21 +106,28 @@ export function iguales(a: Seleccion, b: Seleccion): boolean {
   return a.length === b.length && a.every((p, i) => p.skillId === b[i].skillId && p.objetivo === b[i].objetivo)
 }
 
-/** Última rutina armada (solo comodidad: si no hay almacenamiento, se usa la base). */
+/**
+ * Una rutina guardada (en el perfil o en el navegador) → selección válida hoy:
+ * descarta ejercicios que ya no están en el catálogo o repetidos y ajusta el
+ * objetivo a sus límites. null si no queda ninguno.
+ */
+export function leerSeleccion(datos: unknown, catalogo: readonly EjercicioCatalogo[]): Seleccion | null {
+  if (!Array.isArray(datos)) return null
+  const sel: Seleccion = []
+  for (const d of datos) {
+    const ej = catalogo.find((e) => e.skillId === d?.skillId)
+    if (ej && typeof d.objetivo === 'number' && Number.isFinite(d.objetivo) && !incluido(sel, ej.skillId)) {
+      sel.push({ skillId: ej.skillId, objetivo: limitar(d.objetivo, ej) })
+    }
+  }
+  return sel.length > 0 ? sel : null
+}
+
+/** Última rutina armada sin perfiles (solo comodidad: si no hay almacenamiento, se usa la base). */
 export function cargarGuardada(catalogo: readonly EjercicioCatalogo[]): Seleccion | null {
   try {
     const crudo = localStorage.getItem(CLAVE_GUARDADO)
-    if (!crudo) return null
-    const datos: unknown = JSON.parse(crudo)
-    if (!Array.isArray(datos)) return null
-    const sel: Seleccion = []
-    for (const d of datos) {
-      const ej = catalogo.find((e) => e.skillId === d?.skillId)
-      if (ej && typeof d.objetivo === 'number' && !incluido(sel, ej.skillId)) {
-        sel.push({ skillId: ej.skillId, objetivo: limitar(d.objetivo, ej) })
-      }
-    }
-    return sel.length > 0 ? sel : null
+    return crudo ? leerSeleccion(JSON.parse(crudo), catalogo) : null
   } catch {
     return null
   }

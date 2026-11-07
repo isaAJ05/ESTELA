@@ -20,6 +20,10 @@ conversión a JSON y la compresión JPEG del frame ocurren en el hilo de la
 interfaz, no en el de la sesión.
 
 Ningún frame se guarda: el JPEG se genera en memoria para la ventana local.
+Con `perfiles`, al terminar cada sesión se añade su registro mínimo
+(ADR-008) al historial del perfil que entrenaba (ADR-009), desde el hilo de
+la sesión y ya fuera del bucle por frame. Sin perfil elegido (invitada) no se
+guarda nada.
 """
 
 from __future__ import annotations
@@ -29,12 +33,15 @@ import logging
 import queue
 import threading
 import time
+from datetime import date, datetime
 from typing import Any, Callable, Dict, Mapping, Optional
 
 import numpy as np
 
+from ...aplicacion.historial import progreso, registro_de_sesion
+from ...aplicacion.perfiles import PerfilInvalido, Perfiles
 from ...aplicacion.puertos import Estimador, Fuente
-from ...aplicacion.rutina import Ejercicio, Rutina
+from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida
 from ...aplicacion.sesion import EstadoFrame, Sesion, frases_de_rutina
 from . import contrato
 
@@ -68,10 +75,13 @@ class Orquestador:
                  espejo: bool, fuente: str = "camara",
                  al_terminar: Optional[Callable[[Dict[str, Any]], None]] = None,
                  verbalizador: Any = None, sin_dtw: bool = False,
-                 reconocer: bool = False) -> None:
+                 reconocer: bool = False,
+                 perfiles: Optional[Perfiles] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
-        tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`."""
+        tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`.
+        `perfiles`: perfiles y sus historiales (None: no se guarda nada ni
+        se ofrecen perfiles ni panel de progreso)."""
         self.rutina = rutina
         #: la rutina de `rutina`: la que se describe en `info()`
         self._rutina_base = rutina
@@ -86,6 +96,12 @@ class Orquestador:
         self._sin_dtw = sin_dtw
         #: aviso de EXP-010; la interfaz lo cambia con `configurar`
         self._reconocer = reconocer
+        self._perfiles = perfiles
+        #: quién entrena; None con `elegido` = invitada
+        self._perfil_activo: Optional[str] = None
+        self._perfil_elegido = False
+        #: el perfil de la sesión en curso, fijado al iniciarla
+        self._perfil_sesion: Optional[str] = None
 
         self._cv = threading.Condition()
         self._version = 0
@@ -105,7 +121,101 @@ class Orquestador:
     def info(self) -> Dict[str, Any]:
         d = contrato.info(self._rutina_base, self.catalogo, self._espejo)
         d["fuente"] = self._fuente
+        d["capacidades"]["historial"] = self._perfiles is not None
+        d["capacidades"]["perfiles"] = self._perfiles is not None
         return d
+
+    def historial(self, hoy: Optional[date] = None) -> Optional[Dict[str, Any]]:
+        """Panel «Mi progreso» del perfil activo, o None (sin perfiles o invitada)."""
+        perfil = self._perfiles.obtener(self._perfil_activo) if self._perfiles else None
+        if perfil is None:
+            return None
+        registros = self._perfiles.historial_de(perfil["id"]).leer()
+        return contrato.progreso_a_dict(progreso(registros, hoy or date.today()),
+                                        self.catalogo, perfil.get("meta_semanal"))
+
+    def borrar_historial(self) -> bool:
+        """Vacía el historial del perfil activo (el perfil se queda)."""
+        if self._perfiles is None or self._perfiles.obtener(self._perfil_activo) is None:
+            return False
+        try:
+            self._perfiles.historial_de(self._perfil_activo).borrar()
+        except OSError:
+            log.exception("No se pudo borrar el historial")
+            return False
+        return True
+
+    # -- perfiles (cualquier hilo) ---------------------------------------------
+
+    def perfiles(self) -> Optional[Dict[str, Any]]:
+        if self._perfiles is None:
+            return None
+        lista = self._perfiles.listar()
+        if self._perfil_activo not in {p["id"] for p in lista}:
+            self._perfil_activo = None                 # se borró fuera de la app
+        return contrato.perfiles_a_dict(lista, self._perfil_activo, self._perfil_elegido)
+
+    def elegir_perfil(self, perfil_id: Optional[str]) -> bool:
+        """Quién entrena a partir de la próxima sesión; None = invitada."""
+        if self._perfiles is None:
+            return False
+        if perfil_id is not None and self._perfiles.obtener(perfil_id) is None:
+            return False
+        self._perfil_activo, self._perfil_elegido = perfil_id, True
+        return True
+
+    def crear_perfil(self, datos: Mapping[str, Any]) -> Dict[str, Any]:
+        """Crea el perfil y lo deja elegido: {"ok", "perfil"} o {"ok": False, "error"}."""
+        return self._cambiar_perfil(lambda p: p.crear(contrato.datos_de_perfil(datos)), elegir=True)
+
+    def editar_perfil(self, perfil_id: str, datos: Mapping[str, Any]) -> Dict[str, Any]:
+        return self._cambiar_perfil(lambda p: p.editar(perfil_id, contrato.datos_de_perfil(datos)))
+
+    def borrar_perfil(self, perfil_id: str) -> bool:
+        """Borra el perfil y su historial. Si era el activo, se vuelve a
+        preguntar quién entrena."""
+        if self._perfiles is None:
+            return False
+        try:
+            borrado = self._perfiles.borrar(perfil_id)
+        except (OSError, PerfilInvalido):
+            log.exception("No se pudo borrar el perfil")
+            return False
+        if borrado and perfil_id == self._perfil_activo:
+            self._perfil_activo, self._perfil_elegido = None, False
+        return borrado
+
+    def guardar_rutina(self, perfil_id: str, pasos: Any) -> Dict[str, Any]:
+        """Guarda en el perfil la rutina de «Mi rutina» ([{"skillId", "objetivo"}]).
+        Se valida igual que al iniciar una sesión; una lista vacía también vale
+        (el perfil quitó todos los ejercicios). Lleva el id del perfil para que
+        un guardado tardío no caiga en otro perfil si se cambió entretanto."""
+        if not isinstance(pasos, list):
+            return {"ok": False, "error": "La rutina no tiene el formato esperado."}
+        if pasos:
+            try:
+                rutina = contrato.rutina_desde_opciones({"pasos": pasos}, self.catalogo)
+            except (RutinaInvalida, AttributeError) as e:
+                return {"ok": False, "error": str(e) or "La rutina no es válida."}
+            limpios = [{"skill_id": p.skill_id, "objetivo": p.repeticiones} for p in rutina.pasos]
+        else:
+            limpios = []
+        return self._cambiar_perfil(lambda p: p.guardar_rutina(perfil_id, limpios))
+
+    def _cambiar_perfil(self, accion: Callable[[Perfiles], Dict[str, Any]],
+                        elegir: bool = False) -> Dict[str, Any]:
+        if self._perfiles is None:
+            return {"ok": False, "error": "Los perfiles no están disponibles."}
+        try:
+            perfil = accion(self._perfiles)
+        except PerfilInvalido as e:
+            return {"ok": False, "error": str(e)}
+        except OSError:
+            log.exception("No se pudo guardar el perfil")
+            return {"ok": False, "error": "No se pudo guardar el perfil en este equipo."}
+        if elegir:
+            self._perfil_activo, self._perfil_elegido = perfil["id"], True
+        return {"ok": True, "perfil": contrato.perfil_a_dict(perfil)}
 
     @property
     def fase(self) -> str:
@@ -146,6 +256,8 @@ class Orquestador:
             if self._hilo is not None:
                 self._hilo.join()
             self._parar.clear()
+            # la sesión se guarda en el perfil de ahora aunque se cambie durante ella
+            self._perfil_sesion = self._perfil_activo
             while not self._comandos.empty():
                 self._comandos.get_nowait()
             self._publicar(fase=PREPARANDO, error=None, estado=None, frame=None,
@@ -248,8 +360,27 @@ class Orquestador:
                 self._al_terminar(resumen)
             except Exception:
                 log.exception("Error al cerrar la sesión")
+        guardada = self._guardar(resumen, motivo)
         self._publicar(fase=RESUMEN, estado=None, frame=None,
-                       resumen=contrato.resumen_a_dict(resumen, self.catalogo, motivo))
+                       resumen=contrato.resumen_a_dict(resumen, self.catalogo, motivo,
+                                                       guardada))
+
+    def _guardar(self, resumen: Dict[str, Any], motivo: str) -> Optional[bool]:
+        """Añade la sesión al historial. False si no había nada que guardar
+        o falló la escritura; un fallo no impide ver el resumen."""
+        if self._perfiles is None or self._perfil_sesion is None:
+            return None                               # sin perfiles, o invitada
+        registro = registro_de_sesion(resumen, datetime.now(), motivo)
+        if registro is None:
+            return False
+        try:
+            if self._perfiles.obtener(self._perfil_sesion) is None:
+                return False                          # se borró durante la sesión
+            self._perfiles.historial_de(self._perfil_sesion).agregar(registro)
+        except OSError:
+            log.exception("No se pudo guardar la sesión en el historial")
+            return False
+        return True
 
     def _aplicar_comandos(self, sesion: Sesion) -> bool:
         """Aplica los comandos pendientes en el hilo de la sesión (que no es
