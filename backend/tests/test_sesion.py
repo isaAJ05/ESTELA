@@ -229,6 +229,6 @@ def test_la_rutina_por_defecto_carga_los_ejercicios(catalogo):
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
     ids = [p.skill_id for p in rutina.pasos]
     assert ids == ["jumping_jacks", "abduccion_cadera_izq", "abduccion_cadera_der",
-                   "marcha_rodillas", "plancha"]
+                   "zancada_atras_izq", "zancada_atras_der", "plancha"]
     plancha = rutina.pasos[-1]
     assert catalogo[plancha.skill_id].unidad == "segundos" and plancha.repeticiones == 20

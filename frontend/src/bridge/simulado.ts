@@ -15,7 +15,6 @@ const PASOS: PasoRutina[] = [
   { skillId: 'jumping_jacks', nombre: 'Jumping jacks', orientacion: 'frente', unidad: 'repeticiones', objetivo: 10, guia: null },
   { skillId: 'abduccion_cadera_izq', nombre: 'Abducción de cadera de pie, pierna izquierda', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8, guia: null },
   { skillId: 'abduccion_cadera_der', nombre: 'Abducción de cadera de pie, pierna derecha', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8, guia: null },
-  { skillId: 'marcha_rodillas', nombre: 'Marcha con elevación de rodillas', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 16, guia: null },
   { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
   { skillId: 'zancada_atras_der', nombre: 'Zancada atrás estática, pierna derecha atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
   { skillId: 'plancha', nombre: 'Plancha', orientacion: 'perfil', unidad: 'segundos', objetivo: 20, guia: null },
@@ -25,14 +24,15 @@ const DESCRIPCION: Record<string, string> = {
   jumping_jacks: 'Abre y cierra brazos y piernas a la vez, con un pequeño salto.',
   abduccion_cadera_izq: 'De pie, eleva la pierna izquierda hacia el lado sin inclinar el tronco.',
   abduccion_cadera_der: 'De pie, eleva la pierna derecha hacia el lado sin inclinar el tronco.',
-  marcha_rodillas: 'Marcha en el sitio subiendo las rodillas, con el tronco erguido.',
+  zancada_atras_izq: 'De perfil, con la pierna izquierda atrás y los pies quietos: baja hasta doblar las dos rodillas y vuelve a subir, con el tronco erguido.',
+  zancada_atras_der: 'De perfil, con la pierna derecha atrás y los pies quietos: baja hasta doblar las dos rodillas y vuelve a subir, con el tronco erguido.',
   plancha: 'Sostén el cuerpo en línea recta apoyado en antebrazos y puntas de los pies.',
 }
 
-const CATALOGO: EjercicioCatalogo[] = PASOS.filter((p) => !p.skillId.startsWith('zancada')).map((p) => ({
+const CATALOGO: EjercicioCatalogo[] = PASOS.map((p) => ({
   ...p,
   descripcion: DESCRIPCION[p.skillId] ?? null,
-  conteo: p.unidad === 'segundos' ? 'isometrico' : p.skillId === 'marcha_rodillas' ? 'alternante' : 'ciclo',
+  conteo: p.unidad === 'segundos' ? 'isometrico' : 'ciclo',
   minimo: p.unidad === 'segundos' ? 5 : 1,
   maximo: p.unidad === 'segundos' ? 180 : 50,
 }))
@@ -53,7 +53,6 @@ const MENSAJES: Record<string, Feedback[]> = {
   jumping_jacks: [correccion('Sube un poco más los brazos.', 'brazo', 'bilateral', 'moderada', [11, 12, 13, 14, 15, 16]), refuerzo('¡Vas muy bien!')],
   abduccion_cadera_izq: [correccion('Mantén el tronco recto, sin inclinarte.', 'tronco', 'na', 'leve', TRONCO)],
   abduccion_cadera_der: [correccion('Mantén el tronco recto, sin inclinarte.', 'tronco', 'na', 'leve', TRONCO)],
-  marcha_rodillas: [correccion('Sube un poco más las rodillas.', 'rodilla', 'bilateral', 'moderada', [25, 26]), correccion('Endereza un poco el tronco.', 'tronco', 'na', 'alta', TRONCO)],
   zancada_atras_izq: [correccion('Endereza un poco el tronco.', 'tronco', 'na', 'moderada', TRONCO), correccion('Baja un poco más la rodilla.', 'rodilla', 'derecho', 'leve', [26])],
   zancada_atras_der: [correccion('Endereza un poco el tronco.', 'tronco', 'na', 'moderada', TRONCO)],
   plancha: [correccion('Sube un poco la cadera.', 'cadera', 'bilateral', 'alta', [23, 24])],
@@ -224,7 +223,7 @@ export function bridgeSimulado(): Bridge {
     const antes = actual.completadas
     actual.completadas = Math.min(paso.objetivo,
       paso.unidad === 'segundos' ? Math.floor(activo) : Math.floor(activo / SEG_POR_REP))
-    if (paso.skillId === 'marcha_rodillas' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
+    if (paso.skillId === 'zancada_atras_izq' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
     if (paso.unidad === 'repeticiones' && actual.completadas !== antes && [2, 4].includes(actual.completadas)) {
       const lista = MENSAJES[paso.skillId] ?? []
       const fb = lista[(actual.completadas / 2 - 1) % Math.max(lista.length, 1)]

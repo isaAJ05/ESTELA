@@ -2,7 +2,7 @@
 
 Ejemplos:
      
-    python -m estela --ejercicio marcha_rodillas --repeticiones 8
+    python -m estela --ejercicio zancada_atras_izq --repeticiones 6
     python -m estela --ejercicio plancha --repeticiones 30          # segundos
     python -m estela --ejercicio abduccion_cadera --video ruta.mp4 --voz texto --sin-ventana
 
