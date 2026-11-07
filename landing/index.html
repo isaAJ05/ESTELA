@@ -632,10 +632,12 @@ a { color: inherit; }
   }
   medirCielo();
   addEventListener('resize', medirCielo);
+  // la estela no va pegada al puntero: un seguidor lo alcanza con suavidad
+  let objetivo = null, seguidor = null;
   addEventListener('pointermove', e => {
     if (quieto) return;
-    rastro.push({ x: e.clientX, y: e.clientY, vida: 1 });
-    if (rastro.length > 40) rastro.shift();
+    objetivo = { x: e.clientX, y: e.clientY };
+    if (!seguidor) seguidor = { ...objetivo };
   }, { passive: true });
 
   function lanzarFugaz() {
@@ -667,20 +669,27 @@ a { color: inherit; }
       c.fillStyle = `rgba(255,240,200,${fugaz.vida})`; c.beginPath(); c.arc(fugaz.x, fugaz.y, 1.8, 0, Math.PI * 2); c.fill();
       if (fugaz.vida <= 0 || fugaz.x < -50 || fugaz.y > H + 50) fugaz = null;
     }
-    for (const p of rastro) p.vida -= dt / 700;
+    if (objetivo && seguidor) {
+      const f = 1 - Math.exp(-dt / 140);
+      const nx = seguidor.x + (objetivo.x - seguidor.x) * f, ny = seguidor.y + (objetivo.y - seguidor.y) * f;
+      if (Math.hypot(nx - seguidor.x, ny - seguidor.y) > 0.4) rastro.push({ x: nx, y: ny, vida: 1 });
+      seguidor.x = nx; seguidor.y = ny;
+      if (rastro.length > 90) rastro.shift();
+    }
+    for (const p of rastro) p.vida -= dt / 1500;
     rastro = rastro.filter(p => p.vida > 0);
     for (let i = 1; i < rastro.length; i++) {
       const a = rastro[i - 1], b = rastro[i], k = Math.min(a.vida, b.vida);
       const mezcla = i / rastro.length;
-      c.strokeStyle = `rgba(${169 + 86 * mezcla | 0},${157 + 44 * mezcla | 0},${255 - 178 * mezcla | 0},${k * 0.75})`;
-      c.lineWidth = 0.5 + 3.5 * k * mezcla; c.lineCap = 'round';
+      c.strokeStyle = `rgba(${169 + 86 * mezcla | 0},${157 + 44 * mezcla | 0},${255 - 178 * mezcla | 0},${k * 0.8})`;
+      c.lineWidth = 0.4 + 2.2 * k * mezcla; c.lineCap = 'round';
       c.beginPath(); c.moveTo(a.x, a.y); c.lineTo(b.x, b.y); c.stroke();
     }
     const cabeza = rastro[rastro.length - 1];
     if (cabeza) {
-      const g = c.createRadialGradient(cabeza.x, cabeza.y, 0, cabeza.x, cabeza.y, 14);
+      const g = c.createRadialGradient(cabeza.x, cabeza.y, 0, cabeza.x, cabeza.y, 10);
       g.addColorStop(0, `rgba(255,214,120,${cabeza.vida * 0.9})`); g.addColorStop(1, 'rgba(255,214,120,0)');
-      c.fillStyle = g; c.beginPath(); c.arc(cabeza.x, cabeza.y, 14, 0, Math.PI * 2); c.fill();
+      c.fillStyle = g; c.beginPath(); c.arc(cabeza.x, cabeza.y, 10, 0, Math.PI * 2); c.fill();
     }
   }
 
