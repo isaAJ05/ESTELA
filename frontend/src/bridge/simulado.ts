@@ -62,6 +62,10 @@ const MENSAJES: Record<string, Feedback[]> = {
 const SEG_POR_REP = 2.4
 const PASO_CON_PAUSA = 1         // índice del paso donde se simula una pausa
 const PAUSA = { desdeRep: 3, duracionS: 4 }
+// colocación al empezar cada paso: se cumplen persona, orientación y cuerpo entero
+// en estos segundos y a los COLOCACION_S empieza a contar (o con «Listo»)
+const COLOCACION = { persona: 0.4, orientacion: 1.2, cuerpoEntero: 2.0 }
+const COLOCACION_S = 3.5
 
 // -- esqueleto sintético ------------------------------------------------------
 
@@ -140,6 +144,8 @@ interface PasoHecho {
   paso: PasoRutina
   completadas: number
   incompletas: number
+  correctas: number
+  conError: number
   duracionS: number
   pausaS: number
   pausas: number
@@ -159,6 +165,9 @@ export function bridgeSimulado(): Bridge {
   let resumen: Resumen | null = null
   let sesion: EstadoSesion | null = null
   let reloj = 0                // segundos simulados dentro del paso
+  let colocadoEn: number | null = null   // reloj al terminar la colocación
+  let camara: number | null = null
+  let pausaUsuaria = false     // la usuaria pulsó «Pausar»: el reloj se detiene
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
   let ultimoMensaje: string | null = null
@@ -172,8 +181,10 @@ export function bridgeSimulado(): Bridge {
 
   const empezarPaso = () => {
     reloj = 0
-    actual = { paso: pasos[i], completadas: 0, incompletas: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
-    hechos.push(actual)
+    pausaUsuaria = false
+    colocadoEn = null
+    actual = { paso: pasos[i], completadas: 0, incompletas: 0, correctas: 0, conError: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
+    hechos[i] = actual           // al volver con «anterior», el intento nuevo sustituye al viejo
   }
 
   const cerrar = (terminada: boolean) => {
@@ -184,9 +195,10 @@ export function bridgeSimulado(): Bridge {
       duracionTotalS: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 10) / 10,
       pasos: hechos.map((h) => ({
         skillId: h.paso.skillId, nombre: h.paso.nombre, unidad: h.paso.unidad, objetivo: h.paso.objetivo,
-        completadas: h.completadas, incompletas: h.incompletas, correctas: null, conError: null,
+        completadas: h.completadas, incompletas: h.incompletas, correctas: h.correctas, conError: h.conError,
         duracionS: Math.round(h.duracionS * 10) / 10, pausas: h.pausas, pausaS: h.pausaS, mensajes: h.mensajes,
         abstenciones: { evidencia_insuficiente: h.completadas > 0 ? 2 : 0 },
+        umbrales: 'absolutos', respaldos: {}, dtw: { alineado: Math.round(h.duracionS * 27), sin_referencia: 0 },
       })),
       resumenTexto: null,
       motivoFin: terminada ? 'completada' : 'usuaria',
@@ -194,6 +206,7 @@ export function bridgeSimulado(): Bridge {
         frames: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 30),
         framesSinPersona: 120,
         latencias: { pose: { p50Ms: 18.2, p95Ms: 24.9, n: 4200 }, total: { p50Ms: 19.1, p95Ms: 26.3, n: 4200 } },
+        voz: { motor: 'simulada', descartadas: 1, descartes: { caducada: 1 } },
       },
     }
     fase = 'resumen'
@@ -210,21 +223,39 @@ export function bridgeSimulado(): Bridge {
   const tic = (dt: number) => {
     if (!actual) return
     const paso = actual.paso
+    if (pausaUsuaria) {
+      actual.pausaS = Math.round((actual.pausaS + dt) * 10) / 10
+      if (sesion) sesion = { ...sesion, pausada: true, motivoPausa: 'usuaria', aviso: 'En pausa.', avisoTipo: 'pausa',
+                             evaluacion: { evaluando: false, motivo: 'En pausa' } }
+      return
+    }
     reloj += dt
+    if (colocadoEn === null && reloj >= COLOCACION_S) colocadoEn = reloj
+    if (colocadoEn === null) {
+      sesion = estadoColocando(paso)
+      return
+    }
+    const t = reloj - colocadoEn       // segundos desde que empezó a contar
     const enPausa = i === PASO_CON_PAUSA
-      && reloj >= PAUSA.desdeRep * SEG_POR_REP && reloj < PAUSA.desdeRep * SEG_POR_REP + PAUSA.duracionS
+      && t >= PAUSA.desdeRep * SEG_POR_REP && t < PAUSA.desdeRep * SEG_POR_REP + PAUSA.duracionS
     if (enPausa) {
       if (actual.pausas === 0) actual.pausas = 1
       actual.pausaS = Math.round((actual.pausaS + dt) * 10) / 10
     } else {
       actual.duracionS += dt
     }
-    const activo = reloj - (i === PASO_CON_PAUSA && reloj > PAUSA.desdeRep * SEG_POR_REP
-      ? Math.min(PAUSA.duracionS, reloj - PAUSA.desdeRep * SEG_POR_REP) : 0)
+    const activo = t - (i === PASO_CON_PAUSA && t > PAUSA.desdeRep * SEG_POR_REP
+      ? Math.min(PAUSA.duracionS, t - PAUSA.desdeRep * SEG_POR_REP) : 0)
     const antes = actual.completadas
     actual.completadas = Math.min(paso.objetivo,
       paso.unidad === 'segundos' ? Math.floor(activo) : Math.floor(activo / SEG_POR_REP))
     if (paso.skillId === 'marcha_rodillas' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
+    // cada repetición (o segundo) nueva: con error si es de las que llevan corrección
+    for (let k = antes + 1; k <= actual.completadas; k++) {
+      const conError = paso.unidad === 'segundos' ? k > 6 && k <= 10 : [2, 4].includes(k)
+      if (conError) actual.conError++
+      else actual.correctas++
+    }
     if (paso.unidad === 'repeticiones' && actual.completadas !== antes && [2, 4].includes(actual.completadas)) {
       const lista = MENSAJES[paso.skillId] ?? []
       const fb = lista[(actual.completadas / 2 - 1) % Math.max(lista.length, 1)]
@@ -232,18 +263,15 @@ export function bridgeSimulado(): Bridge {
         ultimoMensaje = fb.texto
         feedback = fb
         mensajesEmitidos++
-        actual.mensajes.push({ tMs: Math.round(reloj * 1000), texto: fb.texto, errorId: fb.errorId, segmento: fb.segmento,
+        actual.mensajes.push({ tMs: Math.round(t * 1000), texto: fb.texto, errorId: fb.errorId, segmento: fb.segmento,
                                lado: fb.lado, severidad: fb.severidad, repeticion: actual.completadas })
       }
     }
-    const cambiaOrientacion = i === 0 || pasos[i - 1].orientacion !== paso.orientacion
     let aviso: string | null = null
     let avisoTipo: EstadoSesion['avisoTipo'] = null
     if (enPausa) { aviso = 'Pausa. No te veo: vuelve al encuadre para seguir.'; avisoTipo = 'pausa' }
-    else if (cambiaOrientacion && reloj < 2.5) {
-      aviso = paso.orientacion === 'perfil' ? 'Colócate de perfil a la cámara.' : 'Colócate de frente a la cámara.'
-      avisoTipo = 'orientacion'
-    }
+    // tras el anuncio hablado de cada ejercicio, un momento sin evaluar
+    const anuncio = t < 1.2
     sesion = {
       ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: pasos.length,
       objetivo: paso.objetivo, unidad: paso.unidad, completadas: actual.completadas, incompletas: actual.incompletas,
@@ -251,10 +279,33 @@ export function bridgeSimulado(): Bridge {
       aviso, avisoTipo, ultimoMensaje, mensajesEmitidos, feedback, pausada: enPausa,
       motivoPausa: enPausa ? 'sin_persona' : null,
       puntos: enPausa ? null : esqueleto(paso.skillId, (activo / SEG_POR_REP) % 1),
-      terminada: false, correctas: null, conError: null, nivel: null, guia: null,
-      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 }, motivoSilencio: enPausa ? null : 'sin_error' },
+      terminada: false, correctas: actual.correctas, conError: actual.conError, nivel: null, guia: null,
+      colocacion: null,
+      evaluacion: enPausa ? { evaluando: false, motivo: 'En pausa' }
+        : anuncio ? { evaluando: false, motivo: 'Escuchando una indicación' } : { evaluando: true, motivo: null },
+      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 },
+                    motivoSilencio: enPausa ? null : anuncio ? 'anuncio' : 'sin_error' },
     }
     if (actual.completadas >= paso.objetivo) avanzar()
+  }
+
+  const estadoColocando = (paso: PasoRutina): EstadoSesion => {
+    const persona = reloj >= COLOCACION.persona
+    const orientacion = reloj >= COLOCACION.orientacion
+    const cuerpoEntero = reloj >= COLOCACION.cuerpoEntero
+    const vista = paso.orientacion === 'perfil' ? 'de perfil' : 'de frente'
+    return {
+      ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: pasos.length,
+      objetivo: paso.objetivo, unidad: paso.unidad, completadas: 0, incompletas: 0,
+      fase: 'colocacion', persona, orientacionGrados: paso.orientacion === 'perfil' ? 88 : 4,
+      aviso: null, avisoTipo: null, ultimoMensaje, mensajesEmitidos, feedback, pausada: false, motivoPausa: null,
+      puntos: persona ? esqueleto(paso.skillId, 0) : null,
+      terminada: false, correctas: 0, conError: 0, nivel: null, guia: null,
+      colocacion: { instruccion: `Colócate ${vista} a la cámara. Aléjate hasta que se te vea de la cabeza a los pies.`,
+                    persona, orientacion, cuerpoEntero },
+      evaluacion: { evaluando: false, motivo: 'Colocándote' },
+      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, total: 18.8 }, motivoSilencio: null },
+    }
   }
 
   const iniciar = async (opciones?: OpcionesInicio) => {
@@ -295,7 +346,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, reconocerEjercicio: true, pasoAnterior: true, gestoPausa: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -315,13 +366,20 @@ export function bridgeSimulado(): Bridge {
       }, 500)
     }),
     iniciar,
-    siguiente: async () => { if (fase === 'sesion') avanzar() },
-    reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; reloj = 0 } },
+    siguiente: async () => { if (fase === 'sesion' && i < pasos.length - 1) avanzar() },
+    anterior: async () => { if (fase === 'sesion' && i > 0) { i--; empezarPaso() } },
+    reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; actual.correctas = 0; actual.conError = 0; reloj = 0; colocadoEn = null } },
+    listo: async () => { if (fase === 'sesion' && colocadoEn === null) colocadoEn = reloj },
     terminar: async () => { if (fase === 'sesion') cerrar(false) },
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
-    configurar: async () => {},
-    pausar: async () => {},
-    reanudar: async () => {},
+    configurar: async (ajustes) => { if (ajustes.camara !== undefined) camara = ajustes.camara },
+    camaras: async () => {
+      if (fase === 'sesion' || fase === 'preparando') return null
+      await new Promise((r) => setTimeout(r, 600))       // abrir cada cámara tarda
+      return { lista: [{ indice: 0, nombre: 'FaceTime HD Camera' }, { indice: 1, nombre: 'Cámara de iPhone' }], elegida: camara }
+    },
+    pausar: async () => { if (fase === 'sesion' && actual && !pausaUsuaria) { pausaUsuaria = true; actual.pausas++ } },
+    reanudar: async () => { pausaUsuaria = false },
   }
 }

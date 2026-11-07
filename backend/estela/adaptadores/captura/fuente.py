@@ -22,7 +22,7 @@ from __future__ import annotations
 import threading
 import time
 from pathlib import Path
-from typing import Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 import cv2
 import numpy as np
@@ -108,4 +108,34 @@ class FuenteCamara:
         self._cap.release()
 
 
-__all__ = ["FuenteVideo", "FuenteCamara", "Frame"]
+def _nombre_camara(indice: int) -> Optional[str]:
+    """Nombre del dispositivo si el sistema lo da sin dependencias (Linux).
+    `[?]` En macOS OpenCV no da nombres y el orden de AVFoundation no se
+    puede cruzar con el índice sin PyObjC: queda «Cámara N»."""
+    try:
+        nombre = Path(f"/sys/class/video4linux/video{indice}/name").read_text().strip()
+    except OSError:
+        return None
+    # V4L lo corta a 31 caracteres y suele repetirlo tras «:»
+    return nombre.split(":")[0].strip() or None
+
+
+def listar_camaras(maximo: int = 5) -> List[Dict[str, Any]]:
+    """Índices de cámara que OpenCV puede abrir. Abre y cierra cada una, así
+    que tarda (~0,5–1 s por cámara) y no debe llamarse con una sesión en
+    curso."""
+    camaras = []
+    for i in range(maximo):
+        cap = cv2.VideoCapture(i)
+        try:
+            if cap.isOpened():
+                nombre = _nombre_camara(i) or f"Cámara {i + 1}"
+                if any(c["nombre"] == nombre for c in camaras):
+                    nombre = f"{nombre} ({i + 1})"   # p. ej. la cámara IR del mismo equipo
+                camaras.append({"indice": i, "nombre": nombre})
+        finally:
+            cap.release()
+    return camaras
+
+
+__all__ = ["FuenteVideo", "FuenteCamara", "Frame", "listar_camaras"]

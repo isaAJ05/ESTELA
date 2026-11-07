@@ -154,13 +154,18 @@ function FilaPendiente({ paso }: { paso: PasoRutina }) {
   )
 }
 
-/** Métricas para el equipo (tecla D): abstenciones del motor y latencia por etapa. */
+/** «motivo ×n, motivo ×n» o «—». */
+const conteos = (c: Record<string, number> | null | undefined) =>
+  Object.entries(c ?? {}).map(([motivo, n]) => `${motivo} ×${n}`).join(', ') || '—'
+
+/** Métricas para el equipo (tecla D): abstenciones del motor, DTW, umbrales, voz y latencia por etapa. */
 function PanelTecnico({ resumen }: { resumen: DatosResumen }) {
   const t = resumen.tecnico
   return (
     <section className="tarjeta panel-tecnico" aria-label="Datos técnicos de la sesión">
       <span className="etiqueta">Datos técnicos · tecla D para volver</span>
       <p>{t.frames} frames · {t.framesSinPersona} sin persona · fin: {resumen.motivoFin ?? '—'}</p>
+      {t.voz && <p>voz {t.voz.motor} · {t.voz.descartadas} descartadas{t.voz.descartadas ? ` (${conteos(t.voz.descartes)})` : ''}</p>}
       <table>
         <thead><tr><th>Etapa</th><th>p50</th><th>p95</th><th>n</th></tr></thead>
         <tbody>
@@ -170,14 +175,16 @@ function PanelTecnico({ resumen }: { resumen: DatosResumen }) {
         </tbody>
       </table>
       <table>
-        <thead><tr><th>Ejercicio</th><th>Completadas</th><th>Correcciones</th><th>Abstenciones</th></tr></thead>
+        <thead><tr><th>Ejercicio</th><th>Completadas</th><th>Correcciones</th><th>Abstenciones</th><th>DTW (frames)</th><th>Umbrales</th></tr></thead>
         <tbody>
           {resumen.pasos.map((p, i) => (
             <tr key={`${p.skillId}-${i}`}>
               <td>{p.skillId}</td>
               <td>{p.completadas} / {p.objetivo}</td>
               <td>{p.mensajes.filter((m) => m.errorId).length}</td>
-              <td>{Object.entries(p.abstenciones).map(([motivo, n]) => `${motivo} ×${n}`).join(', ') || '—'}</td>
+              <td>{conteos(p.abstenciones)}</td>
+              <td>{p.dtw === null ? 'desactivado' : conteos(p.dtw)}</td>
+              <td>{p.umbrales === 'referencia' ? `referencia · respaldo: ${conteos(p.respaldos)}` : (p.umbrales ?? '—')}</td>
             </tr>
           ))}
         </tbody>

@@ -23,14 +23,19 @@ la interfaz no las muestra. Para activarlas:
 capacidad          campo                               tarea
 =================  ==================================  =====================
 nivel              EstadoFrame.nivel                   T22.a
-correctasConError  EstadoFrame.correctas / con_error   T29.a
+correctasConError  EstadoFrame.correctas / con_error   T29.a (hecho)
                    y en cada paso del resumen
-guia               EstadoFrame.guia (33×[x, y, vis])   T14
+guia               EstadoFrame.guia (33×[x, y, vis])   T14 (hecho)
 resumenTexto       resumen["resumen_texto"]            T27 (LLM rol B)
 motivoSilencio     EstadoFrame.motivo_silencio         T29 (hecho)
-pausaManual        (comando `pausar`/`reanudar`)       —
-colocacion         (fase previa de colocación)         —
+pausaManual        comando `pausar`/`reanudar`;        T29 (hecho)
+                   motivoPausa «usuaria»
+colocacion         EstadoFrame.colocando / instruccion  T29 (hecho)
+                   / comprobaciones; comando `listo`
 avisoLuz           (aviso de poca luz)                 —
+elegirCamara       `camaras()`; `configurar({"camara"})` T29 (hecho)
+pasoAnterior       comando `anterior`                  T29 (hecho)
+gestoPausa         EstadoFrame.gesto                   T29 (hecho)
 =================  ==================================  =====================
 
 Rutina de entrenamiento
@@ -47,6 +52,30 @@ indicaciones habladas (la sesión sigue igual: solo se deja de hablar) y
 `{"voz": true}` las reactiva. Se puede llamar en cualquier fase. El tema y el
 tamaño del texto son solo de la interfaz y no llegan a Python.
 
+Con `elegirCamara`, `camaras()` devuelve `{"lista": [{"indice", "nombre"}],
+"elegida"}` (o null con un vídeo o con la cámara en uso) y
+`configurar({"camara": 1})` elige la cámara de la próxima sesión. Vale hasta
+cerrar la aplicación.
+
+Colocación y evaluación
+-----------------------
+Con `colocacion`, cada ejercicio empieza en una fase de colocación: `colocacion`
+lleva la instrucción y las tres comprobaciones (persona, orientación, cuerpo
+entero) y la sesión no cuenta ni corrige hasta que se cumplen 1,5 s seguidos o
+la usuaria pulsa «Listo» (`listo()`). `evaluacion` dice en cada frame si la
+sesión está evaluando la técnica y, si no, por qué (prueba de usabilidad del
+Informe 2 §13.3: «el contador se detiene y no sé por qué»).
+
+Navegación y gesto de pausa
+---------------------------
+Con `pasoAnterior`, `anterior()` vuelve al ejercicio anterior y lo empieza
+desde cero; en el primero no hace nada, y `siguiente()` no hace nada en el
+último (para acabar está `terminar()`). Con `gestoPausa`, mantener el brazo
+derecho arriba 3 s pausa la sesión o la reanuda (`aplicacion/gesto.py`);
+`gesto` dice cuánto lleva y qué hará al completarse.
+
+Reconocimiento del ejercicio
+----------------------------
 Con la capacidad `reconocerEjercicio`, `configurar({"reconocer": true})` activa
 el aviso «ese movimiento no es el de ahora» (EXP-010) en la sesión en curso y
 en las siguientes. Empieza desactivado.
@@ -66,28 +95,32 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
-from ...dominio.feedback.contrato import MensajeFeedback, Plano
+from ...dominio.feedback.contrato import (MOTIVO_CONFIANZA_BAJA, MOTIVO_PLANO_NO_OBSERVABLE,
+                                          MensajeFeedback, Plano)
 
 from ...dominio.feedback.motor.geometria import ANGULOS_MEDIOS, ANGULOS_TERNA
 from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
 from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida, rutina_desde_dict
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
-                             _COLOCACION, EstadoFrame)
+                             MOTIVO_ANUNCIO, _COLOCACION, EstadoFrame)
 
 VERSION = 1
 
 CAPACIDADES: Dict[str, bool] = {
     "nivel": False,
-    "correctasConError": False,
+    "correctasConError": True,
     "guia": True,
     "resumenTexto": False,
     "motivoSilencio": True,
-    "pausaManual": False,
-    "colocacion": False,
+    "pausaManual": True,
+    "colocacion": True,
     "avisoLuz": False,
     "rutinaPersonalizada": True,
     "silenciarVoz": True,
+    "elegirCamara": True,
     "reconocerEjercicio": True,
+    "pasoAnterior": True,
+    "gestoPausa": True,
 }
 
 #: límites del objetivo que puede elegir la usuaria, por unidad
@@ -114,6 +147,46 @@ def tipo_aviso(texto: Optional[str]) -> Optional[str]:
     if texto in AVISO_PAUSA.values():
         return "pausa"
     return "otro"
+
+
+#: por qué no se evalúa la técnica, en palabras de la usuaria
+NO_EVALUA_COLOCANDO = "Colocándote"
+NO_EVALUA_PAUSA = "En pausa"
+NO_EVALUA_SIN_PERSONA = "No te veo"
+_NO_EVALUA_AVISO = {"encuadre": "No te veo entera", "orientacion": "Orientación incorrecta",
+                    "sin_persona": NO_EVALUA_SIN_PERSONA}
+_NO_EVALUA_SILENCIO = {
+    MOTIVO_ANUNCIO: "Escuchando una indicación",
+    MOTIVO_CONFIANZA_BAJA: "No veo bien una parte del cuerpo",
+    MOTIVO_PLANO_NO_OBSERVABLE: "Desde aquí no se ve el movimiento",
+}
+
+
+def evaluacion(estado: EstadoFrame) -> Optional[Dict[str, Any]]:
+    """¿Se está evaluando la técnica en este frame? Si no, el motivo."""
+    if estado.terminada:
+        return None
+    motivo: Optional[str] = None
+    if getattr(estado, "colocando", False):
+        motivo = NO_EVALUA_COLOCANDO
+    elif estado.pausada:
+        motivo = NO_EVALUA_PAUSA
+    elif not estado.persona:
+        motivo = NO_EVALUA_SIN_PERSONA
+    else:
+        motivo = (_NO_EVALUA_AVISO.get(tipo_aviso(estado.aviso) or "")
+                  or _NO_EVALUA_SILENCIO.get(getattr(estado, "motivo_silencio", None) or ""))
+    return {"evaluando": motivo is None, "motivo": motivo}
+
+
+def colocacion_a_dict(estado: EstadoFrame) -> Optional[Dict[str, Any]]:
+    if not getattr(estado, "colocando", False):
+        return None
+    c = getattr(estado, "comprobaciones", None) or {}
+    return {"instruccion": getattr(estado, "instruccion", None),
+            "persona": bool(c.get("persona")),
+            "orientacion": bool(c.get("orientacion")),
+            "cuerpoEntero": bool(c.get("cuerpo_entero"))}
 
 
 def _puntos(lm: Optional[np.ndarray]) -> Optional[List[List[float]]]:
@@ -262,7 +335,8 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "orientacionGrados": (round(estado.orientacion, 1)
                               if estado.orientacion is not None else None),
         "aviso": estado.aviso,
-        "avisoTipo": tipo_aviso(estado.aviso),
+        "avisoTipo": ("movimiento" if opcional("otro_movimiento")
+                      else tipo_aviso(estado.aviso)),
         "ultimoMensaje": estado.ultimo_mensaje,
         "mensajesEmitidos": estado.mensajes_emitidos,
         "feedback": feedback_a_dict(opcional("feedback")),
@@ -271,9 +345,13 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "puntos": _puntos(estado.landmarks),
         "angulos": _angulos(opcional("angulos"), opcional("angulos_importantes") or ()),
         "terminada": estado.terminada,
-        # aún sin backend (ver CAPACIDADES): llegan null
+        "colocacion": colocacion_a_dict(estado),
+        "evaluacion": evaluacion(estado),
         "correctas": opcional("correctas"),
         "conError": opcional("con_error"),
+        # brazo derecho arriba: {"progreso": 0–1, "accion": "pausar" | "reanudar"}
+        "gesto": opcional("gesto"),
+        # aún sin backend (ver CAPACIDADES): llega null
         "nivel": opcional("nivel"),
         "guia": _puntos(np.asarray(guia)) if guia is not None else None,
         "depuracion": {
@@ -384,6 +462,11 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
                          for m in p["mensajes"]],
             # veces que el motor no corrigió, por motivo (panel técnico)
             "abstenciones": dict(p.get("abstenciones", {})),
+            # panel técnico: umbrales «absolutos» o «referencia», frames con
+            # respaldo absoluto por regla y frames por resultado del DTW
+            "umbrales": p.get("umbrales"),
+            "respaldos": dict(p.get("respaldos") or {}),
+            "dtw": dict(p["dtw"]) if p.get("dtw") is not None else None,
         })
     return {
         "rutina": resumen["rutina"],
@@ -398,6 +481,11 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
             "framesSinPersona": resumen.get("frames_sin_persona", 0),
             "latencias": {etapa: {"p50Ms": v["p50_ms"], "p95Ms": v["p95_ms"], "n": v["n"]}
                           for etapa, v in resumen.get("latencias", {}).items()},
+            # frases que la cola de voz descartó (lo añade `__main__` al cerrar)
+            "voz": ({"motor": resumen["voz"]["motor"],
+                     "descartadas": resumen["voz"]["descartadas"],
+                     "descartes": dict(resumen["voz"].get("descartes", {}))}
+                    if resumen.get("voz") else None),
         },
     }
 

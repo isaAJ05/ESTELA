@@ -9,7 +9,7 @@ import math
 import numpy as np
 import pytest
 
-from estela.adaptadores.pose.estimador import ResultadoPose
+from estela.aplicacion.puertos import ResultadoPose
 from estela.adaptadores.pose.landmarks import NOMBRES_MEDIAPIPE, muestra_desde_arrays
 from estela import config
 from estela.aplicacion.rutina import (RutinaInvalida, cargar_catalogo, cargar_rutina,
@@ -17,6 +17,7 @@ from estela.aplicacion.rutina import (RutinaInvalida, cargar_catalogo, cargar_ru
 from estela.aplicacion.sesion import (AVISO_PAUSA, AVISO_REANUDA, Sesion,
                                   frases_de_rutina)
 from estela.adaptadores.voz.cola import PRIORIDAD_AVISO
+from estela.aplicacion.pausa import USUARIA
 
 IDX = {n: i for i, n in enumerate(NOMBRES_MEDIAPIPE)}
 
@@ -201,6 +202,29 @@ def test_plancha_no_suma_el_tiempo_sin_persona(catalogo):
     assert estados[-1].completadas <= 5            # ~2 s + ~3 s, no ~8 s
 
 
+def test_pausa_de_la_usuaria_detiene_el_conteo_hasta_reanudar(catalogo):
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio("plancha", 99, catalogo), catalogo,
+               EstimadorPlancha(), voz)
+    t = iter(range(0, 10**7, 100))
+    for _ in range(40):                            # 4 s en posición
+        e = s.procesar(0.0, next(t))
+    antes = e.completadas
+    s.pausar()
+    assert (AVISO_PAUSA[USUARIA], PRIORIDAD_AVISO) in voz.dichas
+    for _ in range(60):                            # 6 s en posición, en pausa
+        e = s.procesar(0.0, next(t))
+    assert e.pausada and e.motivo_pausa == USUARIA and e.aviso == AVISO_PAUSA[USUARIA]
+    assert e.completadas == antes and e.landmarks is not None
+    s.reanudar()
+    assert (AVISO_REANUDA, PRIORIDAD_AVISO) in voz.dichas
+    for _ in range(40):
+        e = s.procesar(0.0, next(t))
+    assert not e.pausada and e.completadas > antes
+    paso = s.resumen()["pasos"][0]
+    assert paso["pausas_sesion"] == 1 and 5.5 <= paso["pausa_s"] <= 6.5
+
+
 def test_plancha_quieta_en_posicion_no_se_pausa(catalogo):
     voz = VozFalsa()
     s = Sesion(rutina_de_un_ejercicio("plancha", 99, catalogo), catalogo,
@@ -232,3 +256,28 @@ def test_la_rutina_por_defecto_carga_los_ejercicios(catalogo):
                    "marcha_rodillas", "plancha"]
     plancha = rutina.pasos[-1]
     assert catalogo[plancha.skill_id].unidad == "segundos" and plancha.repeticiones == 20
+
+# ---------------------------------------------------------------------------
+# Ángulos para la interfaz: solo los de keypoints bien vistos
+# ---------------------------------------------------------------------------
+
+class EstimadorSinPiernas(EstimadorFalso):
+    """Piernas fuera de cuadro: MediaPipe las inventa con visibilidad baja."""
+
+    def estimar(self, frame, t_ms):
+        mundo = esqueleto_perfil(float(frame), self.tronco)
+        for lado in ("left", "right"):
+            for parte in ("knee", "ankle"):
+                mundo[IDX[f"{lado}_{parte}"], 3] = 0.1
+        return ResultadoPose(muestra_desde_arrays(t_ms, mundo, mundo), mundo, 1.0)
+
+
+def test_la_interfaz_no_recibe_angulos_de_keypoints_mal_vistos(catalogo):
+    s = Sesion(rutina_de_un_ejercicio("marcha_rodillas", 5, catalogo), catalogo,
+               EstimadorSinPiernas(tronco=10), VozFalsa())
+    angulos = [e.angulos for e in correr(s, [170.0] * 30) if e.angulos]
+    assert angulos
+    for a in angulos:
+        assert "tronco_inclinacion" in a
+        assert not {"rodilla_izq", "rodilla_der", "abduccion_cadera_izq",
+                    "abduccion_cadera_der"} & a.keys()

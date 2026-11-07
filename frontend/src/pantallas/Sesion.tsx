@@ -1,6 +1,6 @@
-import { DraftingCompass, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
-import type { Bridge, EstadoSesion, Feedback, PasoRutina, TipoAviso } from '../bridge/tipos'
+import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
@@ -11,6 +11,8 @@ import { useCapacidad, useEstado } from '../estado/almacen'
 
 const MENSAJE_VISIBLE_MS = 4500
 const TRANSICION_VISIBLE_MS = 4000
+/** un motivo para no evaluar se mantiene en pantalla al menos esto, para que no parpadee */
+const MOTIVO_VISIBLE_MS = 800
 
 /** Lee un campo de la sesión en curso (re-renderiza solo si cambia). */
 function useSesion<K extends keyof EstadoSesion>(campo: K): EstadoSesion[K] | null {
@@ -20,8 +22,10 @@ function useSesion<K extends keyof EstadoSesion>(campo: K): EstadoSesion[K] | nu
 export function Sesion({ bridge }: { bridge: Bridge }) {
   const hayDatos = useEstado((s) => s.estado?.sesion != null)
   const pausaManual = useCapacidad('pausaManual')
-  const pausada = useSesion('pausada')
+  const pausada = useSesion('motivoPausa') === 'usuaria'
   const silenciable = useCapacidad('silenciarVoz')
+  const conColocacion = useCapacidad('colocacion')
+  const { hayAnterior, haySiguiente } = useNavegacion()
   const [confirmar, setConfirmar] = useState(false)
   const [depurar, setDepurar] = useState(false)
   const [angulos, setAngulos] = useState(() => {
@@ -38,7 +42,8 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
       const k = e.key.toLowerCase()
       if (k === 'escape') setConfirmar((c) => !c)
       else if (confirmar) return
-      else if (k === 'n') void bridge.siguiente()
+      else if (k === 'n') { if (haySiguiente) void bridge.siguiente() }
+      else if (k === 'p') { if (hayAnterior) void bridge.anterior() }
       else if (k === 'r') void bridge.reiniciar()
       else if (k === 'd') setDepurar((d) => !d)
       else if (k === 'a') alternarAngulos()
@@ -47,7 +52,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
     }
     window.addEventListener('keydown', tecla)
     return () => window.removeEventListener('keydown', tecla)
-  }, [bridge, confirmar, pausaManual, pausada, silenciable])
+  }, [bridge, confirmar, pausaManual, pausada, silenciable, hayAnterior, haySiguiente])
 
   return (
     <main className="pantalla pantalla-sesion">
@@ -60,8 +65,9 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
           {hayDatos ? <>
             <AvisoSesion />
             <BandaMensaje />
-            <Transicion />
+            {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
             <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
+            <GestoPausa />
           </> : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
           )}
@@ -84,7 +90,10 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
   const paso = useSesion('paso') ?? 1
   const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
   const pausaManual = useCapacidad('pausaManual')
-  const pausada = useSesion('pausada')
+  const conAnterior = useCapacidad('pasoAnterior')
+  const { hayAnterior, haySiguiente } = useNavegacion()
+  // una pausa automática se quita sola; el botón la convierte en pausa a mano
+  const pausada = useSesion('motivoPausa') === 'usuaria'
   return (
     <header className="cabecera cabecera-sesion">
       <Marca />
@@ -105,21 +114,37 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
                title="Mostrar u ocultar los ángulos (A)" aria-label="Mostrar ángulos" aria-pressed={angulos}>
           <DraftingCompass /><span className="solo-ancho">Ángulos</span>
         </Boton>
+        {/* anterior · reiniciar · siguiente: solo el ícono; el nombre va en el
+            title (tooltip) y en aria-label */}
+        {conAnterior && (
+          <Boton variante="suave" onClick={() => void bridge.anterior()} atajo="P" disabled={!hayAnterior}
+                 title="Volver al ejercicio anterior (P)" aria-label="Ejercicio anterior">
+            <SkipBack />
+          </Boton>
+        )}
         <Boton variante="suave" onClick={() => void bridge.reiniciar()} atajo="R"
                title="Reiniciar este ejercicio (R)" aria-label="Reiniciar este ejercicio">
-          <RotateCcw /><span className="solo-ancho">Reiniciar</span>
+          <RotateCcw />
         </Boton>
-        <Boton variante="suave" onClick={() => void bridge.siguiente()} atajo="N"
+        <Boton variante="suave" onClick={() => void bridge.siguiente()} atajo="N" disabled={!haySiguiente}
                title="Pasar al siguiente ejercicio (N)" aria-label="Siguiente ejercicio">
-          <SkipForward /><span className="solo-ancho">Siguiente</span>
+          <SkipForward />
         </Boton>
         <Boton variante="secundario" onClick={alTerminar} atajo="Escape"
                title="Terminar la rutina (Esc)" aria-label="Terminar la rutina">
-          <Square /><span className="solo-ancho">Terminar</span>
+          <Square />
         </Boton>
       </nav>
     </header>
   )
+}
+
+/** Se puede ir al anterior salvo en el primero, y al siguiente salvo en el último. */
+function useNavegacion() {
+  const paso = useSesion('paso') ?? 1
+  const total = useEstado((s) => s.estado?.sesion?.totalPasos ?? s.plan?.pasos.length ?? 0)
+  const conAnterior = useCapacidad('pasoAnterior')
+  return { hayAnterior: conAnterior && paso > 1, haySiguiente: paso < total }
 }
 
 function PanelEjercicio() {
@@ -148,6 +173,7 @@ function PanelEjercicio() {
       </div>
 
       <Progreso completadas={completadas} objetivo={objetivo} unidad={unidad} />
+      <EstadoEvaluacion />
 
       <div className="panel-detalles">
         {incompletas > 0 && (
@@ -189,14 +215,17 @@ const AYUDA_AVISO: Partial<Record<TipoAviso, string>> = {
   orientacion: 'Gira suavemente hasta que te vea como en la figura.',
   encuadre: 'Retrocede hasta que se vea de la cabeza a los pies.',
   sin_persona: 'Ponte frente a la cámara para continuar.',
+  movimiento: 'Mira la figura guía: ese es el movimiento que toca.',
 }
 
 function AvisoSesion() {
   const aviso = useSesion('aviso')
   const tipo = useSesion('avisoTipo')
-  if (!aviso || tipo === 'pausa') return null       // la pausa tiene su propia capa
+  const colocando = useSesion('colocacion') != null
+  if (!aviso || tipo === 'pausa' || colocando) return null   // la pausa y la colocación tienen su propia capa
   const icono = tipo === 'orientacion' ? <RotateCw />
-    : tipo === 'encuadre' ? <ScanLine /> : tipo === 'sin_persona' ? <UserX /> : <Info />
+    : tipo === 'encuadre' ? <ScanLine /> : tipo === 'sin_persona' ? <UserX />
+    : tipo === 'movimiento' ? <Footprints /> : <Info />
   return (
     <div className="escenario-arriba">
       <Aviso tipo={tipo === 'sin_persona' ? 'cuidado' : 'info'} icono={icono} titulo={aviso}>
@@ -278,26 +307,111 @@ function Transicion() {
   )
 }
 
+const COMPROBACIONES: [keyof Omit<ColocacionEstado, 'instruccion'>, string][] = [
+  ['persona', 'Te veo'],
+  ['orientacion', 'Orientación correcta'],
+  ['cuerpoEntero', 'Cuerpo entero en el encuadre'],
+]
+
+/** Al empezar cada ejercicio: cómo colocarse y qué se cumple ya. Empieza solo al cumplirse todo. */
+function Colocacion({ bridge }: { bridge: Bridge }) {
+  const c = useEstado((s) => s.estado?.sesion?.colocacion ?? null,
+    (a, b) => a?.persona === b?.persona && a?.orientacion === b?.orientacion
+      && a?.cuerpoEntero === b?.cuerpoEntero && a?.instruccion === b?.instruccion)
+  const paso = useSesion('paso') ?? 0
+  const info = useEstado((s) => s.plan?.pasos[paso - 1] ?? null)
+  if (!c || !info) return null
+  return (
+    <div className="capa-colocacion" role="dialog" aria-labelledby="titulo-colocacion">
+      <div className="tarjeta tarjeta-colocacion">
+        {info.guia
+          ? <GuiaAnimada puntos={info.guia} ejercicioId={info.skillId} animar={false} />
+          : <Figura skillId={info.skillId} tam={120} />}
+        <div>
+          <span className="etiqueta etiqueta-marca">{paso === 1 ? 'Empezamos' : 'Siguiente ejercicio'}</span>
+          <h2 id="titulo-colocacion">{info.nombre}</h2>
+          {c.instruccion && <p>{c.instruccion}</p>}
+          <ul className="comprobaciones">
+            {COMPROBACIONES.map(([clave, texto]) => (
+              <li key={clave} className={c[clave] ? 'cumplida' : ''}>
+                {c[clave] ? <Check aria-hidden="true" /> : <Circle aria-hidden="true" />}
+                <span>{texto}</span>
+                <span className="solo-lector">{c[clave] ? 'cumplido' : 'pendiente'}</span>
+              </li>
+            ))}
+          </ul>
+          <div className="acciones">
+            <Boton onClick={() => void bridge.listo()}><Play />Listo, empezar</Boton>
+            <span className="colocacion-nota">Empieza solo cuando todo esté en verde.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+/** Si ESTELA está evaluando la técnica ahora y, si no, por qué (prueba de usabilidad). */
+function EstadoEvaluacion() {
+  const ev = useEstado((s) => s.estado?.sesion?.evaluacion ?? null,
+    (a, b) => a?.evaluando === b?.evaluando && a?.motivo === b?.motivo)
+  const [motivo, setMotivo] = useState<string | null>(null)
+  useEffect(() => {
+    if (ev?.motivo) { setMotivo(ev.motivo); return }
+    const t = setTimeout(() => setMotivo(null), MOTIVO_VISIBLE_MS)
+    return () => clearTimeout(t)
+  }, [ev?.motivo])
+  if (!ev) return null
+  return (
+    <p className={`estado-evaluacion ${motivo ? 'sin-evaluar' : 'evaluando'}`} role="status">
+      <i aria-hidden="true" />
+      {motivo ? <span>Sin evaluar · {motivo}</span> : <span>Evaluando tu técnica</span>}
+    </p>
+  )
+}
+
+const TEXTO_PAUSA: Record<MotivoPausa, { titulo: string; detalle: string }> = {
+  sin_persona: { titulo: 'Pausa · No te veo',
+                 detalle: 'Vuelve al encuadre y seguimos donde ibas. Tus repeticiones están guardadas.' },
+  inactividad: { titulo: 'Pausa · Cuando quieras, sigue',
+                 detalle: 'Tu progreso está guardado. Retoma el ejercicio y seguimos contando.' },
+  usuaria: { titulo: 'Pausa',
+             detalle: 'Tu progreso está guardado. Pulsa «Reanudar» (o espacio) cuando quieras seguir.' },
+}
+
 function Pausa({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void }) {
   const pausada = useSesion('pausada')
   const motivo = useSesion('motivoPausa')
   const pausaManual = useCapacidad('pausaManual')
+  const conGesto = useCapacidad('gestoPausa')
   if (!pausada) return null
-  const sinPersona = motivo === 'sin_persona'
+  const texto = TEXTO_PAUSA[motivo ?? 'inactividad']
   return (
     <div className="capa-pausa" role="alertdialog" aria-labelledby="titulo-pausa">
       <div className="tarjeta tarjeta-pausa">
         <div className="icono-pausa"><Pause /></div>
         <span className="etiqueta">Sesión en pausa</span>
-        <h2 id="titulo-pausa">{sinPersona ? 'Pausa · No te veo' : 'Pausa · Cuando quieras, sigue'}</h2>
-        <p>{sinPersona
-          ? 'Vuelve al encuadre y seguimos donde ibas. Tus repeticiones están guardadas.'
-          : 'Tu progreso está guardado. Retoma el ejercicio y seguimos contando.'}</p>
+        <h2 id="titulo-pausa">{texto.titulo}</h2>
+        <p>{texto.detalle}</p>
+        {conGesto && <p className="pausa-gesto"><Hand aria-hidden="true" />También puedes seguir manteniendo el brazo derecho arriba 3 segundos.</p>}
         <div className="acciones">
-          {pausaManual && <Boton onClick={() => void bridge.reanudar()}><Play />Reanudar</Boton>}
+          {pausaManual && motivo === 'usuaria' && <Boton onClick={() => void bridge.reanudar()}><Play />Reanudar</Boton>}
           <Boton variante="secundario" onClick={alTerminar}><Square />Terminar</Boton>
         </div>
       </div>
+    </div>
+  )
+}
+
+/** Brazo derecho arriba (capacidad «gestoPausa»): cuánto falta para pausar o reanudar. */
+function GestoPausa() {
+  const gesto = useEstado((s) => s.estado?.sesion?.gesto ?? null,
+    (a, b) => a?.progreso === b?.progreso && a?.accion === b?.accion)
+  if (!useCapacidad('gestoPausa') || !gesto) return null
+  return (
+    <div className="gesto-pausa" role="status">
+      <Hand aria-hidden="true" />
+      <span>Mantén el brazo arriba para {gesto.accion === 'reanudar' ? 'seguir' : 'pausar'}</span>
+      <i className="gesto-barra" aria-hidden="true"><i style={{ width: `${Math.round(gesto.progreso * 100)}%` }} /></i>
     </div>
   )
 }

@@ -113,7 +113,9 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [11, 12] in d["conexiones"]
     # solo las que ya tienen backend; el resto la interfaz no las muestra
     assert [k for k, v in d["capacidades"].items() if v] == [
-        "guia", "motivoSilencio", "rutinaPersonalizada", "silenciarVoz", "reconocerEjercicio"]
+        "correctasConError", "guia", "motivoSilencio", "pausaManual", "colocacion",
+        "rutinaPersonalizada", "silenciarVoz", "elegirCamara", "reconocerEjercicio",
+        "pasoAnterior", "gestoPausa"]
     json.dumps(d)
 
 
@@ -155,8 +157,8 @@ def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
     assert d["ejercicioId"] == ZANCADA and d["completadas"] == 1
     assert len(d["puntos"]) == 33 and len(d["puntos"][0]) == 3
     assert d["depuracion"]["fps"] == 30.0
-    for futuro in ("correctas", "conError", "nivel"):
-        assert d[futuro] is None
+    assert d["nivel"] is None                       # aún sin backend
+    assert isinstance(d["correctas"], int) and isinstance(d["conError"], int)
     assert d["guia"] is None  # la zancada de prueba no tiene referencia
     # el motor sí corrió en este frame: dice por qué no habló
     assert d["depuracion"]["motivoSilencio"] is not None
@@ -239,6 +241,21 @@ def test_estado_recoge_un_campo_nuevo_del_backend(catalogo, rutina):
     assert (d["correctas"], d["conError"]) == (3, 1)
 
 
+def test_aviso_de_otro_movimiento_tiene_su_tipo(catalogo, rutina):
+    """El aviso de la otra pierna lo escribe cada skill: el tipo sale de dónde
+    se generó, no del texto."""
+    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    s._revisa_movimiento_equivocado = lambda *a: "Ahora toca la pierna derecha."
+    estado = correr(s, secuencia_zancadas(1))[-1]
+    assert estado.otro_movimiento
+    d = contrato.estado_a_dict(estado)
+    assert d["aviso"] == "Ahora toca la pierna derecha." and d["avisoTipo"] == "movimiento"
+    assert d["evaluacion"]["evaluando"]            # el motor sigue evaluando
+
+    sin = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    assert not correr(sin, secuencia_zancadas(1))[-1].otro_movimiento
+
+
 def test_pausa_y_mensajes_se_exponen(catalogo, rutina):
     voz = VozFalsa()
     s = Sesion(rutina, catalogo, EstimadorFalso(tronco=70), voz)
@@ -265,12 +282,24 @@ def test_resumen_para_la_interfaz(catalogo, rutina):
     assert r["rutina"] == "Prueba"
     assert r["pasos"][0]["nombre"].startswith("Zancada atrás estática")
     assert r["pasos"][0]["completadas"] == 2
-    assert r["pasos"][0]["correctas"] is None and r["resumenTexto"] is None
+    p0 = r["pasos"][0]
+    assert p0["correctas"] + p0["conError"] <= p0["completadas"] and r["resumenTexto"] is None
     assert r["duracionTotalS"] == round(sum(p["duracionS"] for p in r["pasos"]), 1)
     # panel técnico de T29: abstenciones por paso y latencia p50/p95 por etapa
     assert isinstance(r["pasos"][0]["abstenciones"], dict)
     assert r["tecnico"]["frames"] == s.frames
     assert {"p50Ms", "p95Ms", "n"} <= set(r["tecnico"]["latencias"]["pose"])
+    # y lo que antes solo salía por consola: DTW, umbrales y voz
+    assert p0["umbrales"] == "absolutos" and isinstance(p0["respaldos"], dict)
+    assert p0["dtw"] is None or sum(p0["dtw"].values()) > 0
+    assert r["tecnico"]["voz"] is None
+    con_voz = {**s.resumen(), "voz": {"motor": "texto", "descartadas": 2,
+                                      "descartes": {"caducada": 2}}}
+    assert contrato.resumen_a_dict(con_voz, catalogo)["tecnico"]["voz"] == {
+        "motor": "texto", "descartadas": 2, "descartes": {"caducada": 2}}
+    sin_dtw = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa(), sin_dtw=True)
+    correr(sin_dtw, secuencia_zancadas(1))
+    assert contrato.resumen_a_dict(sin_dtw.resumen(), catalogo)["pasos"][0]["dtw"] is None
     texto = json.dumps(r)
     assert "puntos" not in texto and "landmarks" not in texto
 
@@ -291,6 +320,8 @@ def nuevo_orquestador(catalogo, rutina, frames, bloquear=False, **kw):
         return e
 
     resumenes = []
+    # los esqueletos sintéticos no tienen coordenadas de imagen: sin colocación
+    kw.setdefault("colocacion", False)
     orq = Orquestador(rutina, catalogo, crear_estimador, abrir_fuente, VozFalsa(),
                       espejo=True, al_terminar=resumenes.append, **kw)
     return orq, creados, resumenes
@@ -342,6 +373,22 @@ def test_siguiente_y_terminar_desde_la_interfaz(catalogo, rutina):
     assert len(resumenes) == 1
 
 
+def test_anterior_desde_la_interfaz(catalogo, rutina):
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True)
+    orq.iniciar()
+    e = esperar_fase(orq, SESION)
+    orq.siguiente()
+    while e["sesion"] is None or e["sesion"]["paso"] != 2:
+        e = orq.estado(e["version"], 1.0) or e
+    orq.anterior()
+    while e["sesion"]["paso"] != 1:
+        e = orq.estado(e["version"], 1.0) or e
+    assert e["sesion"]["ejercicioId"] == ZANCADA
+    assert orq.info()["capacidades"]["pasoAnterior"]
+    orq.terminar()
+    orq.cerrar()
+
+
 def test_repetir_rutina_abre_fuente_y_estimador_nuevos(catalogo, rutina):
     orq, creados, resumenes = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(1))
     orq.iniciar()
@@ -386,6 +433,74 @@ def test_configurar_silencia_y_reactiva_la_voz(catalogo, rutina):
     cola.cerrar(esperar=False)
 
 
+def test_elegir_camara_desde_la_interfaz(catalogo, rutina):
+    abiertas = []
+    orq = None
+
+    def abrir_fuente():
+        abiertas.append(orq.camara)
+        return FuenteLista([170.0] * 5, False)
+
+    orq = Orquestador(rutina, catalogo, EstimadorCerrable, abrir_fuente, VozFalsa(),
+                      espejo=True, colocacion=False, camara=0,
+                      listar_camaras=lambda: [{"indice": 0, "nombre": "Cámara 1"},
+                                              {"indice": 2, "nombre": "iPhone"}])
+    api = Api(orq)
+    assert api.camaras() == {"lista": [{"indice": 0, "nombre": "Cámara 1"},
+                                       {"indice": 2, "nombre": "iPhone"}], "elegida": 0}
+    for malo in (True, -1, "2", 1.5):              # solo índices enteros
+        api.configurar({"camara": malo})
+    assert orq.camara == 0
+    api.configurar({"camara": 2})
+    assert api.camaras()["elegida"] == 2
+    orq.iniciar()
+    esperar_fase(orq, RESUMEN)                     # el vídeo falso se acaba
+    assert abiertas == [2]
+    orq.cerrar()
+
+    # con un vídeo no hay nada que elegir
+    sin, _, _ = nuevo_orquestador(catalogo, rutina, [])
+    Api(sin).configurar({"camara": 1})
+    assert Api(sin).camaras() is None and sin.camara is None
+
+
+def test_no_se_listan_camaras_con_la_sesion_en_curso(catalogo, rutina):
+    llamadas = []
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True,
+                                  listar_camaras=lambda: llamadas.append(1) or [])
+    orq.iniciar()
+    esperar_fase(orq, SESION)
+    assert orq.camaras() is None and llamadas == []
+    orq.terminar()
+    esperar_fase(orq, RESUMEN)
+    assert orq.camaras() == {"lista": [], "elegida": None}
+    orq.cerrar()
+
+
+def test_listar_camaras_solo_trae_las_que_abren(monkeypatch):
+    from estela.adaptadores.captura import fuente
+
+    class Cap:
+        def __init__(self, i):
+            self.i = i
+            self.liberada = False
+
+        def isOpened(self):
+            return self.i in (0, 2)
+
+        def release(self):
+            self.liberada = True
+
+    creadas = []
+    monkeypatch.setattr(fuente.cv2, "VideoCapture", lambda i: creadas.append(Cap(i)) or creadas[-1])
+    monkeypatch.setattr(fuente, "_nombre_camara", lambda i: "Integrated Camera" if i == 0 else None)
+    assert fuente.listar_camaras(4) == [{"indice": 0, "nombre": "Integrated Camera"},
+                                        {"indice": 2, "nombre": "Cámara 3"}]
+    assert all(c.liberada for c in creadas) and len(creadas) == 4
+    monkeypatch.setattr(fuente, "_nombre_camara", lambda i: "ACER HD")
+    assert [c["nombre"] for c in fuente.listar_camaras(4)] == ["ACER HD", "ACER HD (3)"]
+
+
 def test_reconocimiento_empieza_apagado_y_se_activa_desde_la_interfaz(catalogo):
     rutina = rutina_de_un_ejercicio("jumping_jacks", 999, catalogo)
     s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
@@ -413,6 +528,32 @@ def test_reconocimiento_empieza_apagado_y_se_activa_desde_la_interfaz(catalogo):
         if "reconocimiento" not in e["sesion"]["depuracion"]["latenciaMs"]:
             break
     assert "reconocimiento" not in e["sesion"]["depuracion"]["latenciaMs"]
+    orq.terminar()
+    esperar_fase(orq, RESUMEN)
+    orq.cerrar()
+
+
+def test_pausar_y_reanudar_desde_la_interfaz(catalogo):
+    rutina = rutina_de_un_ejercicio("jumping_jacks", 999, catalogo)
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True)
+    api = Api(orq)
+    orq.iniciar()
+    e = esperar_fase(orq, SESION)
+
+    def hasta(condicion):
+        nonlocal e
+        for _ in range(100):                       # el comando se aplica entre frames
+            e = orq.estado(e["version"], 1.0) or e
+            if e["sesion"] is not None and condicion(e["sesion"]):
+                return e["sesion"]
+        raise AssertionError(e["sesion"])
+
+    api.pausar()
+    s = hasta(lambda s: s["pausada"])
+    assert s["motivoPausa"] == "usuaria" and s["avisoTipo"] == "pausa"
+    assert s["evaluacion"] == {"evaluando": False, "motivo": contrato.NO_EVALUA_PAUSA}
+    api.reanudar()
+    hasta(lambda s: not s["pausada"])
     orq.terminar()
     esperar_fase(orq, RESUMEN)
     orq.cerrar()

@@ -1,4 +1,4 @@
-import type { AjustesPython, Bridge, Estado, Info, OpcionesInicio } from './tipos'
+import type { AjustesPython, Bridge, Camaras, Estado, Info, OpcionesInicio } from './tipos'
 
 // Métodos de `backend/estela/adaptadores/interfaz/ventana.py:Api`, publicados por pywebview.
 interface ApiPython {
@@ -10,9 +10,15 @@ interface ApiPython {
   terminar(): Promise<void>
   volver_al_inicio(): Promise<void>
   salir(): Promise<void>
+  // solo con la capacidad «colocacion»
+  listo?(): Promise<void>
   // solo con la capacidad «silenciarVoz»
   configurar?(ajustes: AjustesPython): Promise<void>
-  // aún no existen en Python (capacidad «pausaManual»)
+  // solo con la capacidad «elegirCamara»
+  camaras?(): Promise<Camaras | null>
+  // solo con la capacidad «pasoAnterior»
+  anterior?(): Promise<void>
+  // solo con la capacidad «pausaManual»
   pausar?(): Promise<void>
   reanudar?(): Promise<void>
 }
@@ -44,11 +50,14 @@ export function bridgePywebview(api: ApiPython): Bridge {
     estado: (desde) => api.estado(desde),
     iniciar: (opciones) => api.iniciar(opciones ?? null),
     siguiente: () => api.siguiente(),
+    anterior: async () => { await api.anterior?.() },
     reiniciar: () => api.reiniciar(),
+    listo: async () => { await api.listo?.() },
     terminar: () => api.terminar(),
     volverAlInicio: () => api.volver_al_inicio(),
     salir: () => api.salir(),
     configurar: async (ajustes) => { await api.configurar?.(ajustes) },
+    camaras: async () => (await api.camaras?.()) ?? null,
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

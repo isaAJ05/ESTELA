@@ -31,6 +31,7 @@ import sys
 import time
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from . import config
 
@@ -59,6 +60,8 @@ def _argumentos(argv=None) -> argparse.Namespace:
                    help="sin interfaz gráfica (pruebas con vídeo)")
     p.add_argument("--sin-dtw", action="store_true",
                    help="desactivar la comparación con la referencia DTW")
+    p.add_argument("--sin-colocacion", action="store_true",
+                   help="empezar a contar sin la fase de colocación de cada ejercicio")
     p.add_argument("--reconocer", action="store_true",
                    help="avisar si el movimiento no es el ejercicio elegido (EXP-010); "
                         "solo con --interfaz opencv: en la ventana se activa desde la sesión")
@@ -136,7 +139,8 @@ def main(argv=None) -> int:
     voz.precalentar(frases_de_rutina(rutina, catalogo))
 
     def cerrar_sesion(resumen: dict) -> None:
-        resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas}
+        resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas,
+                          "descartes": dict(voz.descartes)}
         _imprimir_resumen(resumen)
         if args.guardar_metricas:
             config.SESIONES.mkdir(exist_ok=True)
@@ -153,28 +157,35 @@ def main(argv=None) -> int:
     return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion)
 
 
-def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool):
+def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool,
+                  camara: Optional[int] = None):
     if args.video:
         from .adaptadores.captura.fuente import FuenteVideo
         return FuenteVideo(args.video, tiempo_real=tiempo_real)
     from .adaptadores.captura.fuente import FuenteCamara
-    return FuenteCamara(args.camara)
+    return FuenteCamara(args.camara if camara is None else camara)
 
 
 def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     """Interfaz de escritorio: la sesión corre en un hilo del orquestador y
     la ventana ocupa el hilo principal."""
     from .adaptadores.pose.estimador import EstimadorPose
+    from .adaptadores.captura.fuente import listar_camaras
     from .adaptadores.interfaz.orquestador import Orquestador
     from .adaptadores.interfaz.ventana import abrir
 
     orquestador = Orquestador(
         rutina, catalogo,
         crear_estimador=lambda: EstimadorPose(config.modelo_pose(args.modelo)),
-        abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True),
+        # la cámara la puede cambiar la interfaz entre sesiones
+        abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True,
+                                           camara=orquestador.camara),
+        camara=None if args.video else args.camara,
+        listar_camaras=None if args.video else listar_camaras,
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
-        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw)
+        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw,
+        colocacion=not args.sin_colocacion)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:
@@ -192,6 +203,7 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     espejo = args.video is None
 
     sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw,
+                    colocacion=not args.sin_colocacion,
                     reconocer=args.reconocer)
     ventana = not args.sin_ventana
     if ventana:

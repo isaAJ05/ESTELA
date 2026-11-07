@@ -38,6 +38,10 @@ class Estimador(Protocol):
 class Voz(Protocol):
     def decir(self, texto: str, prioridad: int = ...) -> bool: ...
 
+    #: True mientras suena o espera un aviso; la sesión no evalúa la técnica
+    #: entonces. Opcional: una voz sin este atributo cuenta como False.
+    anunciando: bool
+
 
 class Fuente(Protocol):
     """Cámara o vídeo: `leer()` devuelve (frame, t_ms) o None al terminar."""
