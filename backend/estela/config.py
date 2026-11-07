@@ -9,6 +9,8 @@ MODELOS = RAIZ / "modelos"
 VOCES = MODELOS / "voces"
 RUTINAS = RAIZ / "rutinas"
 SESIONES = RAIZ / "sesiones"
+#: perfiles y su historial para «Mi progreso» (ADR-008, ADR-009); solo en este equipo
+HISTORIAL = RAIZ / "historial"
 #: interfaz de escritorio compilada (frontend/, `npm run build`)
 INTERFAZ = RAIZ.parent / "frontend" / "dist"
 

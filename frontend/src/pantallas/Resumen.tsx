@@ -1,4 +1,4 @@
-import { AlertTriangle, Check, ChevronDown, LogOut, ListChecks, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, History, LogOut, ListChecks, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
@@ -6,12 +6,17 @@ import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
 import { Figura } from '../componentes/Figura'
 import { GuiaAnimada } from '../componentes/VistaCamara'
 import { useCapacidad, useEstado } from '../estado/almacen'
+import { usePerfilActivo, usePerfiles } from '../estado/perfiles'
+import { irAProgreso } from './Inicio'
 
 export function Resumen({ bridge }: { bridge: Bridge }) {
   const resumen = useEstado((s) => s.estado?.resumen ?? null)
   const plan = useEstado((s) => s.plan?.pasos ?? SIN_PASOS)
   const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
   const conTexto = useCapacidad('resumenTexto')
+  const conPerfiles = useCapacidad('perfiles')
+  const perfiles = usePerfiles()
+  const perfil = usePerfilActivo()
   const [tecnico, setTecnico] = useState(false)
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'd' && !e.repeat) setTecnico((t) => !t) }
@@ -37,7 +42,9 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
       <section className="resumen-cuerpo">
         <div className="resumen-cabeza">
           <span className="etiqueta etiqueta-marca">{resumen.rutina}</span>
-          <h1>{resumen.terminada ? <>Muy bien,<br /><em>hoy te moviste.</em></> : <>Hasta aquí<br /><em>por hoy.</em></>}</h1>
+          <h1>{resumen.terminada
+            ? <>Muy bien{perfil ? `, ${perfil.nombre}` : ''},<br /><em>hoy te moviste.</em></>
+            : <>Hasta aquí<br /><em>por hoy.</em></>}</h1>
           <p className="resumen-cifras">
             <span><strong>{duracion(resumen.duracionTotalS)}</strong> en movimiento</span>
             <span><strong>{completos}</strong> de {plan.length || resumen.pasos.length} ejercicios completos</span>
@@ -51,6 +58,16 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
             <Aviso tipo="cuidado" icono={<AlertTriangle />} titulo="La sesión se detuvo por un problema">
               Guardamos lo que llevabas. Puedes repetir la rutina.
             </Aviso>
+          )}
+          {resumen.guardadaEnHistorial && (
+            <Aviso tipo="info" icono={<History />}
+                   titulo={perfil ? `Sesión guardada en el historial de ${perfil.nombre}` : 'Sesión guardada en tu historial'}
+                   accion={<Boton variante="secundario" onClick={() => irAProgreso(bridge)}>Ver mi progreso</Boton>}>
+              Solo en este equipo. Puedes borrarla desde «Mi progreso».
+            </Aviso>
+          )}
+          {conPerfiles && perfiles?.elegido && !perfil && (
+            <p className="campo-ayuda">Entrenaste sin perfil: esta sesión no se guardó.</p>
           )}
           {conTexto && resumen.resumenTexto && (
             <p className="resumen-texto"><Sparkles aria-hidden="true" />{resumen.resumenTexto}</p>

@@ -36,6 +36,10 @@ export interface Capacidades {
   elegirCamara?: boolean
   /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
   reconocerEjercicio?: boolean
+  /** las sesiones se guardan en este equipo y hay panel «Mi progreso» (ADR-008) */
+  historial?: boolean
+  /** varias personas en el equipo, cada una con su historial (ADR-009) */
+  perfiles?: boolean
   /** se puede volver al ejercicio anterior (`anterior`) */
   pasoAnterior?: boolean
   /** brazo derecho arriba 3 s pausa o reanuda; llega `gesto` con el progreso */
@@ -200,6 +204,8 @@ export interface Resumen {
   duracionTotalS: number
   pasos: PasoResumen[]
   resumenTexto: string | null
+  /** si la sesión entró en el historial; null sin la capacidad «historial» */
+  guardadaEnHistorial?: boolean | null
   /** para el equipo (tecla D), no para la usuaria */
   tecnico: {
     frames: number
@@ -209,6 +215,106 @@ export interface Resumen {
     voz?: { motor: string; descartadas: number; descartes: Record<string, number> } | null
   }
 }
+
+// -- Historial y progreso (capacidad «historial», ADR-008) ----------------------
+// Miden constancia y qué indicaciones se recibieron; no miden la técnica.
+
+export interface SemanaProgreso {
+  /** lunes de la semana, AAAA-MM-DD */
+  inicio: string
+  sesiones: number
+  duracionS: number
+}
+
+export interface IndicacionFrecuente {
+  errorId: string
+  /** la frase que se dijo */
+  texto: string
+  /** en cuántas de las últimas sesiones de este ejercicio apareció */
+  sesiones: number
+  veces: number
+}
+
+export interface EjercicioProgreso {
+  skillId: string
+  nombre: string
+  unidad: Unidad
+  /** sesiones en las que se hizo (con algo contado) */
+  veces: number
+  /** fecha y hora local ISO */
+  ultimaFecha: string
+  ultimo: { completadas: number; objetivo: number }
+  mejor: number
+  objetivoCumplido: number
+  recientes: { fecha: string; completadas: number; objetivo: number }[]
+  indicaciones: { sesiones: number; frecuentes: IndicacionFrecuente[] }
+}
+
+export interface SesionHistorial {
+  fecha: string
+  rutina: string
+  terminada: boolean
+  duracionS: number
+  ejercicios: number
+  completos: number
+  indicaciones: number
+  pasos: { skillId: string; nombre: string; unidad: Unidad; completadas: number; objetivo: number }[]
+}
+
+export interface Progreso {
+  totalSesiones: number
+  totalDuracionS: number
+  diasActivos: number
+  diasActivos7: number
+  /** días con sesión de lunes a hoy (para la meta semanal) */
+  diasSemanaActual: number
+  /** meta del perfil, en días por semana; null sin meta */
+  metaSemanal: number | null
+  rachaDias: number
+  primeraFecha: string | null
+  /** últimas 8 semanas, de la más antigua a la actual */
+  semanas: SemanaProgreso[]
+  /** el usado más recientemente primero */
+  ejercicios: EjercicioProgreso[]
+  /** la más reciente primero */
+  sesiones: SesionHistorial[]
+}
+
+// -- Perfiles (capacidad «perfiles», ADR-009) -------------------------------------
+// Solo nombre, color del avatar y meta: nada del cuerpo. Sin contraseña.
+
+export interface Perfil {
+  id: string
+  nombre: string
+  /** una de `EstadoPerfiles.colores`; la interfaz la traduce a su paleta */
+  color: string
+  /** días por semana; null sin meta */
+  metaSemanal: number | null
+  creado: string | null
+  /** última rutina armada en «Mi rutina»; null si aún no armó ninguna */
+  rutina: PasoElegido[] | null
+}
+
+export interface EstadoPerfiles {
+  perfiles: Perfil[]
+  /** quién entrena; null = sin perfil (no se guarda nada) */
+  activo: string | null
+  /** ya se eligió en esta ejecución (un perfil o «sin perfil»); si no, se pregunta */
+  elegido: boolean
+  colores: string[]
+  maxPerfiles: number
+  maxNombre: number
+  /** [mínimo, máximo] de la meta semanal */
+  meta: [number, number]
+}
+
+export interface DatosPerfil {
+  nombre?: string
+  color?: string
+  metaSemanal?: number | null
+}
+
+export type ResultadoPerfil = { ok: true; perfil: Perfil } | { ok: false; error: string }
 
 export interface ErrorApp {
   tipo: 'fuente' | 'modelo'
@@ -273,6 +379,18 @@ export interface Bridge {
   volverAlInicio(): Promise<void>
   salir(): Promise<void>
   configurar(ajustes: AjustesPython): Promise<void>
+  /** Panel «Mi progreso»; null sin la capacidad «historial». */
+  historial(): Promise<Progreso | null>
+  borrarHistorial(): Promise<boolean>
+  /** Perfiles; null sin la capacidad «perfiles». */
+  perfiles(): Promise<EstadoPerfiles | null>
+  /** null: entrenar sin perfil */
+  elegirPerfil(id: string | null): Promise<boolean>
+  crearPerfil(datos: DatosPerfil): Promise<ResultadoPerfil>
+  editarPerfil(id: string, datos: DatosPerfil): Promise<ResultadoPerfil>
+  borrarPerfil(id: string): Promise<boolean>
+  /** Guarda en ese perfil la rutina de «Mi rutina» (Python la valida como en `iniciar`). */
+  guardarRutina(perfilId: string, pasos: PasoElegido[]): Promise<ResultadoPerfil>
   /** Cámaras que se pueden elegir; null con un vídeo o con la cámara en uso. Tarda: abre cada una. */
   camaras(): Promise<Camaras | null>
   /** Termina la fase de colocación (capacidad «colocacion»). */

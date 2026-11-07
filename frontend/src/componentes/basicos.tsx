@@ -9,18 +9,20 @@ export function Marca() {
   )
 }
 
-export function Boton({ children, variante = 'primario', onClick, disabled, atajo, ...resto }: {
+export function Boton({ children, variante = 'primario', onClick, disabled, atajo, type = 'button', ...resto }: {
   children: ReactNode
   variante?: 'primario' | 'secundario' | 'suave' | 'peligro'
   onClick?: () => void
   disabled?: boolean
   atajo?: string
+  /** «submit» solo para el botón principal de un formulario */
+  type?: 'button' | 'submit'
   'aria-label'?: string
   title?: string
   'aria-pressed'?: boolean
 }) {
   return (
-    <button className={`boton boton-${variante}`} onClick={onClick} disabled={disabled}
+    <button type={type} className={`boton boton-${variante}`} onClick={onClick} disabled={disabled}
             aria-keyshortcuts={atajo} {...resto}>
       {children}
     </button>

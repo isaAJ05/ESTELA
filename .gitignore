@@ -9,6 +9,8 @@ modelos/
 
 # Métricas de sesión (derivadas, pueden contener datos de una persona)
 sesiones/
+# Historial de «Mi progreso» (ADR-008): datos de la usuaria, solo en su equipo
+historial/
 .pytest_cache/
 
 # Node (frontend/; también restos de la antigua carpeta interfaz/)

@@ -72,6 +72,32 @@ class Api:
     def camaras(self) -> Optional[Dict[str, Any]]:
         return self._orq.camaras()
 
+    def historial(self) -> Optional[Dict[str, Any]]:
+        # panel «Mi progreso» (capacidad «historial», ADR-008)
+        return self._orq.historial()
+
+    def borrar_historial(self) -> bool:
+        return self._orq.borrar_historial()
+
+    # perfiles (capacidad «perfiles», ADR-009)
+    def perfiles(self) -> Optional[Dict[str, Any]]:
+        return self._orq.perfiles()
+
+    def elegir_perfil(self, perfil_id: Optional[str] = None) -> bool:
+        return self._orq.elegir_perfil(perfil_id if isinstance(perfil_id, str) else None)
+
+    def crear_perfil(self, datos: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self._orq.crear_perfil(datos if isinstance(datos, dict) else {})
+
+    def editar_perfil(self, perfil_id: str, datos: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self._orq.editar_perfil(str(perfil_id), datos if isinstance(datos, dict) else {})
+
+    def borrar_perfil(self, perfil_id: str) -> bool:
+        return self._orq.borrar_perfil(str(perfil_id))
+
+    def guardar_rutina(self, perfil_id: str, pasos: Any = None) -> Dict[str, Any]:
+        return self._orq.guardar_rutina(str(perfil_id), pasos)
+
     def siguiente(self) -> None:
         self._orq.siguiente()
 
