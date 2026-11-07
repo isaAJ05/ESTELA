@@ -282,6 +282,19 @@ a { color: inherit; }
 .garantias b { font-size: 1rem; }
 .garantias span { color: var(--suave); font-size: 0.92rem; line-height: 1.5; }
 
+/* -- nosotras ------------------------------------------------------------ */
+.nosotras-cabeza h2 b { color: var(--amarillo); font-weight: 800; }
+.equipo { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.25rem; margin: 0; padding: 0; list-style: none; }
+@media (max-width: 760px) { .equipo { grid-template-columns: minmax(0, 1fr); } }
+.persona { display: grid; justify-items: center; align-content: start; gap: 0.9rem; padding: 2rem 1.5rem; text-align: center; border-radius: var(--radio); background: linear-gradient(150deg, var(--elevada), var(--superficie)); border: 1px solid var(--borde); transition: transform .25s, border-color .25s; }
+.persona:hover { transform: translateY(-4px); border-color: rgba(169,157,255,.45); }
+.foto { width: 9.5rem; max-width: 100%; aspect-ratio: 1; padding: 3px; border-radius: 50%; background: conic-gradient(from 210deg, var(--lila), var(--amarillo), var(--violeta), var(--lila)); box-shadow: 0 0 40px -6px rgba(128,107,255,.55); }
+.foto-interior { position: relative; display: grid; place-items: center; width: 100%; height: 100%; border-radius: 50%; overflow: hidden; background: radial-gradient(circle at 50% 30%, #2a2140, #12101c); font-family: var(--f-display); font-size: 2.6rem; font-weight: 800; letter-spacing: -0.03em; color: var(--lila); }
+.foto-interior img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.persona h3 { font-size: 1.35rem; letter-spacing: -0.02em; }
+.persona h3 b { color: var(--amarillo); }
+.persona p { font-family: var(--f-mono); font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sutil); }
+
 /* -- cierre -------------------------------------------------------------- */
 .cierre { text-align: center; padding-block: clamp(5rem, 11vw, 9rem) clamp(4rem, 8vw, 6rem); }
 .cierre .contenedor { display: grid; justify-items: center; gap: 1.5rem; }
@@ -316,6 +329,7 @@ a { color: inherit; }
       <a class="solo-ancho" href="#como">Cómo funciona</a>
       <a class="solo-ancho" href="#ejercicios">Ejercicios</a>
       <a class="solo-ancho" href="#privacidad">Privacidad</a>
+      <a class="solo-ancho" href="#nosotras">Nosotras</a>
       <a class="boton boton-estrella" href="#ejercicios">Calienta con Estela</a>
     </nav>
   </div>
@@ -543,6 +557,33 @@ a { color: inherit; }
     </div>
   </section>
 
+  <section class="seccion" id="nosotras" style="padding-top:0">
+    <div class="contenedor">
+      <div class="seccion-cabeza nosotras-cabeza">
+        <span class="etiqueta">Acerca de nosotras · NIP Creations</span>
+        <h2>Somos <b>N</b>atalia, <b>I</b>sabella y <b>P</b>aula.</h2>
+        <p>Juntas somos NIP Creations, el equipo detrás de ESTELA. La creamos porque movernos bien no debería depender de tener a alguien al lado.</p>
+      </div>
+      <ul class="equipo">
+        <li class="persona">
+          <div class="foto"><div class="foto-interior">NC<img src="assets/equipo/naty.jpeg" alt="Foto de Natalia Carpintero" onerror="this.remove()"></div></div>
+          <h3><b>N</b>atalia Carpintero</h3>
+          <p>Cocreadora de ESTELA</p>
+        </li>
+        <li class="persona">
+          <div class="foto"><div class="foto-interior">IA<img src="assets/equipo/isa.jpeg" alt="Foto de Isabella Arrieta" onerror="this.remove()"></div></div>
+          <h3><b>I</b>sabella Arrieta</h3>
+          <p>Cocreadora de ESTELA</p>
+        </li>
+        <li class="persona">
+          <div class="foto"><div class="foto-interior">PN<img src="assets/equipo/paula.jpeg" alt="Foto de Paula Nuñez" onerror="this.remove()"></div></div>
+          <h3><b>P</b>aula Nuñez</h3>
+          <p>Cocreadora de ESTELA</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
   <section class="cierre">
     <div class="contenedor">
       <img src="assets/logo.png" alt="">
@@ -559,7 +600,7 @@ a { color: inherit; }
 <footer class="pie">
   <div class="contenedor">
     <a class="marca" href="#inicio"><img src="assets/logo.png" alt="">ESTELA</a>
-    <p>Prototipo de investigación en desarrollo. Un usuario, una cámara, ejecución local. No ofrece diagnóstico médico ni de fisioterapia.</p>
+    <p>Hecho por NIP Creations. Prototipo de investigación en desarrollo. Un usuario, una cámara, ejecución local. No ofrece diagnóstico médico ni de fisioterapia.</p>
   </div>
 </footer>
 </div>
