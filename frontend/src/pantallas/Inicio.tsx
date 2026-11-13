@@ -1,15 +1,18 @@
 import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina } from '../bridge/tipos'
+import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { textoVista } from '../componentes/Figura'
+import { GuardarRutina, VistaRutinas, type DatosTarjetaRutina } from '../componentes/misRutinas'
 import { FiguraEjercicio, ResumenRutina, TarjetaEjercicio, textoEstimado, textoObjetivo } from '../componentes/rutina'
 import { ChipPerfil } from '../componentes/perfil'
 import { PanelPerfil, SelectorPerfil } from './Perfiles'
 import { PanelProgreso, ResumenSemana } from './Progreso'
 import { iniciarRutina, useCapacidad, useEstado } from '../estado/almacen'
-import { guardarRutinaDiferido, guardarRutinaYa, perfilActivo, usePerfiles } from '../estado/perfiles'
+import {
+  borrarRutinaNombrada, guardarRutinaDiferido, guardarRutinaNombrada, guardarRutinaYa, perfilActivo, usePerfiles,
+} from '../estado/perfiles'
 import {
   alternar, cargarGuardada, estimarSegundos, fijarObjetivo, guardar, iguales, leerSeleccion, mover, planDe,
   problemas, seleccionDe, type Seleccion,
@@ -30,6 +33,7 @@ export function irAProgreso(bridge: Bridge): void {
 }
 
 const SIN_CATALOGO: EjercicioCatalogo[] = []
+const SIN_RUTINAS: RutinaGuardada[] = []
 
 function textoError(tipo: 'fuente' | 'modelo', fuente: 'camara' | 'video', elegirCamara: boolean) {
   if (tipo === 'modelo') {
@@ -85,15 +89,28 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
   const deQuien = !conPerfiles ? 'navegador' : activo ? activo.id : perfiles?.elegido ? 'sin-perfil' : null
   const rutinaDelPerfil = activo?.rutina ?? null
 
+  // Rutinas guardadas con nombre del perfil, tal como valen hoy (sin ejercicios
+  // retirados y con el objetivo en sus límites). `rutinaId`: la que se está usando.
+  const rutinasPerfil = activo?.rutinas ?? SIN_RUTINAS
+  const guardadas = useMemo<RutinaGuardada[]>(() => rutinasPerfil.flatMap((r) => {
+    const pasos = leerSeleccion(r.pasos, catalogo)
+    return pasos ? [{ id: r.id, nombre: r.nombre, pasos }] : []
+  }), [rutinasPerfil, catalogo])
+  const [rutinaId, setRutinaId] = useState<string | null>(null)
+  const actual = guardadas.find((r) => r.id === rutinaId) ?? null
+
   // al llegar el catálogo o cambiar quién entrena, se carga su rutina (o la recomendada)
   useEffect(() => {
     if (deQuien === null || catalogo.length === 0) return
     guardarRutinaYa()                      // lo pendiente del perfil anterior no se pierde
     setInvalidos(new Set())
     setRechazada(false)
-    setSeleccion(deQuien === 'navegador' ? cargarGuardada(catalogo)
+    const inicial = deQuien === 'navegador' ? cargarGuardada(catalogo)
       : deQuien === 'sin-perfil' ? rutinaSinPerfil
-      : leerSeleccion(rutinaDelPerfil, catalogo))
+      : leerSeleccion(rutinaDelPerfil, catalogo)
+    setSeleccion(inicial)
+    // si lo último que armó es una de sus rutinas guardadas, sigue siendo esa
+    setRutinaId(guardadas.find((r) => iguales(r.pasos, inicial ?? recomendada))?.id ?? null)
     // solo al cambiar de persona o de catálogo: la rutina del perfil se lee en ese momento
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [deQuien, catalogo])
@@ -115,8 +132,9 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
   })
 
   const plan: PasoRutina[] = personalizable ? planDe(sel, catalogo) : (base?.pasos ?? [])
-  const modificada = personalizable && !iguales(sel, recomendada)
-  const nombre = modificada || !base ? 'Rutina de entrenamiento' : base.nombre
+  // modificada respecto a la rutina guardada que se usa o, si no, a la recomendada
+  const modificada = personalizable && !iguales(sel, actual ? actual.pasos : recomendada)
+  const nombre = actual ? actual.nombre : modificada || !base ? 'Rutina de entrenamiento' : base.nombre
   const estimadoS = estimarSegundos(sel, catalogo)
   const avisos = personalizable
     ? [...problemas(sel.filter((p) => !invalidos.has(p.skillId)), catalogo),
@@ -126,13 +144,79 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     : rechazada ? { titulo: 'No se pudo iniciar esta rutina', ayuda: 'Revisa los ejercicios y sus objetivos.' }
     : null
 
-  const comenzar = async () => {
+  /** Empieza la rutina elegida o, con `con`, otra (desde una tarjeta de «Mis rutinas»). */
+  const comenzar = async (con?: { pasos: Seleccion; nombre: string }) => {
     guardarRutinaYa()                      // la rutina con la que se entrena queda guardada
     const opciones = conNivel ? { nivel } : undefined
     if (!personalizable) { void bridge.iniciar(opciones); return }
-    if (avisos.length > 0) return
-    setRechazada(!(await iniciarRutina(bridge, { nombre, pasos: plan }, opciones)))
+    if (con ? problemas(con.pasos, catalogo).length > 0 : avisos.length > 0) return
+    setRechazada(!(await iniciarRutina(bridge,
+      con ? { nombre: con.nombre, pasos: planDe(con.pasos, catalogo) } : { nombre, pasos: plan }, opciones)))
   }
+
+  // -- «Mis rutinas» (con perfil): primero las tarjetas; «Editar» abre la vista de personalizar --
+  const conTarjetas = personalizable && activo !== null
+  const [editando, setEditando] = useState(false)
+  const irARutinas = () => { setSeccion('rutina'); setEditando(false) }
+  const nombreRecomendada = base?.nombre ?? 'Rutina recomendada'
+  const maxRutinas = perfiles?.maxRutinas ?? 10
+  const pasosDe = (clave: string): { id: string | null; pasos: Seleccion; nombre: string } =>
+    clave === 'borrador' ? { id: null, pasos: sel, nombre: 'Rutina de entrenamiento' }
+      : clave === 'recomendada' ? { id: null, pasos: recomendada, nombre: nombreRecomendada }
+      : (() => { const r = guardadas.find((g) => g.id === clave); return { id: r?.id ?? null, pasos: r?.pasos ?? [], nombre: r?.nombre ?? '' } })()
+  const tarjeta = (clave: string, tipo: DatosTarjetaRutina['tipo'], nombreT: string, pasos: Seleccion,
+                   enUso: boolean): DatosTarjetaRutina => ({
+    clave, tipo, nombre: nombreT, plan: planDe(pasos, catalogo), estimadoS: estimarSegundos(pasos, catalogo),
+    enUso, conCambios: enUso && tipo === 'guardada' && modificada,
+  })
+  const tarjetas: DatosTarjetaRutina[] = [
+    // lo armado sin guardar no se pierde: se ofrece como una tarjeta más
+    ...(rutinaId === null && modificada && sel.length > 0
+      ? [tarjeta('borrador', 'borrador', 'Rutina personalizada', sel, true)] : []),
+    tarjeta('recomendada', 'recomendada', nombreRecomendada, recomendada, rutinaId === null && !modificada),
+    ...guardadas.map((r) => tarjeta(r.id, 'guardada', r.nombre, r.pasos, r.id === rutinaId)),
+  ]
+  /** Deja en uso la rutina de esa tarjeta. Al editar, la que ya estaba en uso conserva sus cambios. */
+  const usar = (clave: string, paraEditar: boolean) => {
+    const r = pasosDe(clave)
+    setRutinaId(r.id)
+    setInvalidos(new Set())
+    const conservar = paraEditar && (clave === 'borrador' || (r.id !== null && r.id === rutinaId))
+    if (!conservar) cambiar(r.pasos)
+    return r
+  }
+  const vistaRutinas = (
+    <VistaRutinas tarjetas={tarjetas} lleno={guardadas.length >= maxRutinas} maxRutinas={maxRutinas}
+      preparando={preparando} alVolver={() => setSeccion('bienvenida')}
+      alComenzar={(clave) => {
+        const r = usar(clave, false)
+        setSeccion('bienvenida')            // ahí se ve «Preparando la cámara…» o el error
+        void comenzar(r)
+      }}
+      alEditar={(clave) => { usar(clave, true); setEditando(true) }}
+      alNueva={() => { setRutinaId(null); setInvalidos(new Set()); cambiar([]); setEditando(true) }}
+      alBorrar={async (clave) => {
+        if (!activo) return null
+        const r = await borrarRutinaNombrada(bridge, activo.id, clave)
+        if (!r.ok) return r.error
+        if (clave === rutinaId) setRutinaId(null)   // sus ejercicios siguen elegidos, sin guardar
+        return null
+      }} />
+  )
+  const guardado = !personalizable ? null : activo ? (
+    <GuardarRutina actual={actual} rutinas={guardadas} modificada={modificada}
+      puedeGuardar={sel.length > 0 && avisos.length === 0} lleno={guardadas.length >= maxRutinas}
+      maxNombre={perfiles?.maxNombreRutina ?? 40}
+      alGuardar={async (n) => {
+        const r = await guardarRutinaNombrada(bridge, activo.id, { id: actual?.id, nombre: n, pasos: sel })
+        if (!r.ok) return r.error
+        // una nueva pasa a ser la rutina en uso
+        if (!actual) setRutinaId(r.perfil.rutinas.find((x) => !rutinasPerfil.some((y) => y.id === x.id))?.id ?? null)
+        return null
+      }} />
+  ) : sinPerfil ? (
+    <p className="guardar-rutina-nota">Con un perfil puedes guardar tus rutinas con un nombre.</p>
+  ) : null
 
   if (preguntar || (conPerfiles && perfiles === null)) {
     return (
@@ -163,8 +247,8 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
             {personalizable && (
               <button className={seccion === 'rutina' ? 'activa' : undefined}
                       aria-current={seccion === 'rutina' ? 'page' : undefined}
-                      onClick={() => setSeccion('rutina')}>
-                Mi rutina <span className="navegacion-cuenta">{sel.length}</span>
+                      onClick={irARutinas}>
+                {conTarjetas ? 'Mis rutinas' : <>Mi rutina <span className="navegacion-cuenta">{sel.length}</span></>}
               </button>
             )}
             {conProgreso && (
@@ -191,12 +275,20 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
       ) : seccion === 'progreso' && conProgreso ? (
         // key: al cambiar de perfil se vuelve a pedir su historial
         <PanelProgreso key={activo?.id ?? 'sin'} bridge={bridge} alVolver={() => setSeccion('bienvenida')} />
+      ) : seccion === 'rutina' && conTarjetas && !editando ? (
+        vistaRutinas
       ) : seccion === 'rutina' && personalizable ? (
         <section className="elegir-cuerpo">
           <div className="elegir-catalogo">
-            <button className="enlace-volver" onClick={() => setSeccion('bienvenida')}>
-              <ArrowLeft />Volver al inicio
-            </button>
+            {conTarjetas ? (
+              <button className="enlace-volver" onClick={() => setEditando(false)}>
+                <ArrowLeft />Volver a mis rutinas
+              </button>
+            ) : (
+              <button className="enlace-volver" onClick={() => setSeccion('bienvenida')}>
+                <ArrowLeft />Volver al inicio
+              </button>
+            )}
             <span className="etiqueta etiqueta-marca">Paso 1 · Elige y ajusta</span>
             <h1>Personaliza tu rutina</h1>
             <p className="elegir-ayuda">
@@ -221,15 +313,17 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
             modificada={modificada} preparando={preparando} error={error}
             alMover={(i, d) => cambiar(mover(sel, i, d))}
             alQuitar={(id) => { validar(id, true); cambiar(sel.filter((p) => p.skillId !== id)) }}
-            alRestablecer={() => { setInvalidos(new Set()); cambiar(recomendada) }}
+            alRestablecer={() => { setInvalidos(new Set()); cambiar(actual ? actual.pasos : recomendada) }}
+            textoRestablecer={actual ? `Volver a «${actual.nombre}» como está guardada` : undefined}
             alComenzar={() => void comenzar()}
+            guardado={guardado}
             extra={conNivel && <SelectorNivel nivel={nivel} alCambiar={setNivel} />} />
         </section>
       ) : (
         <Bienvenida nombre={nombre} saludo={activo?.nombre ?? null} sinPerfil={sinPerfil}
           plan={plan} estimadoS={personalizable ? estimadoS : null}
           personalizable={personalizable} preparando={preparando} error={error} avisos={avisos}
-          alPersonalizar={() => setSeccion('rutina')} alComenzar={() => void comenzar()}
+          alPersonalizar={irARutinas} alComenzar={() => void comenzar()} conTarjetas={conTarjetas}
           nivel={conNivel ? <SelectorNivel nivel={nivel} alCambiar={setNivel} /> : null}
           semana={conProgreso && activo
             ? <ResumenSemana key={activo.id} bridge={bridge} alVer={() => setSeccion('progreso')} />
@@ -240,7 +334,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
 }
 
 function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable, preparando, error, avisos,
-                      alPersonalizar, alComenzar, nivel, semana }: {
+                      alPersonalizar, alComenzar, conTarjetas, nivel, semana }: {
   nombre: string
   /** nombre del perfil que entrena (ADR-009) */
   saludo: string | null
@@ -253,6 +347,8 @@ function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable
   avisos: string[]
   alPersonalizar: () => void
   alComenzar: () => void
+  /** con perfil, «Personalizar» lleva a las tarjetas de «Mis rutinas» */
+  conTarjetas: boolean
   nivel: ReactNode
   /** meta y racha del perfil (ADR-009); null sin perfil o sin historial */
   semana: ReactNode
@@ -290,7 +386,7 @@ function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable
             </Boton>
             {personalizable && (
               <Boton variante="secundario" onClick={alPersonalizar} disabled={preparando}>
-                <SlidersHorizontal />Personalizar rutina
+                <SlidersHorizontal />{conTarjetas ? 'Mis rutinas' : 'Personalizar rutina'}
               </Boton>
             )}
           </div>
@@ -326,7 +422,7 @@ function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable
         )}
         {personalizable && (
           <button className="enlace-editar" onClick={alPersonalizar}>
-            Editar ejercicios y objetivos<ArrowRight />
+            {conTarjetas ? 'Cambiar o editar rutina' : 'Editar ejercicios y objetivos'}<ArrowRight />
           </button>
         )}
       </article>

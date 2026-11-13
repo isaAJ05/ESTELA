@@ -26,26 +26,63 @@
 
 /* -- cifras ---------------------------------------------------------------- */
 .progreso-cifras { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--espacio-4); }
-.cifra { display: grid; gap: 0.25rem; padding: var(--espacio-4) var(--espacio-5); }
-.cifra-etiqueta { display: flex; align-items: center; gap: var(--espacio-2); color: var(--color-texto-suave); font-size: 0.875rem; font-weight: 650; }
-.cifra-etiqueta svg { width: 1rem; height: 1rem; color: var(--color-violeta-suave); }
+.cifra { display: grid; gap: 0.25rem; align-content: start; min-width: 0; padding: var(--espacio-4); }
+/* las cuatro tarjetas comparten filas: si una etiqueta ocupa dos líneas, las cifras siguen alineadas */
+@supports (grid-template-rows: subgrid) {
+  .progreso-cifras { grid-template-rows: repeat(4, auto); row-gap: 0; }
+  .progreso-cifras > .cifra { grid-row: span 4; grid-template-rows: subgrid; row-gap: 0.25rem; }
+}
+.cifra-etiqueta { display: flex; align-items: center; gap: 0.375rem; min-width: 0; color: var(--color-texto-suave); font-size: 0.8125rem; font-weight: 650; line-height: 1.25; }
+.cifra-etiqueta svg { flex: none; width: 1rem; height: 1rem; color: var(--color-violeta-suave); }
 .cifra strong { color: var(--color-texto); font-size: 1.875rem; font-weight: 650; letter-spacing: -0.03em; line-height: 1.15; }
-.cifra-extra { color: var(--color-texto-sutil); font-size: 0.875rem; }
+.cifra-extra { color: var(--color-texto-suave); font-size: 0.875rem; }
+/* segunda línea de contexto: más discreta, separada de la cifra */
+.cifra-detalle {
+  margin-top: var(--espacio-2); padding-top: var(--espacio-2); border-top: 1px solid var(--color-linea);
+  color: var(--color-texto-sutil); font-size: 0.8125rem;
+}
+/* racha viva: la llama en el amarillo de la identidad */
+.cifra-destacada .cifra-etiqueta svg { color: var(--color-amarillo); }
+.cifra-cumplida { border-color: rgba(112, 214, 161, 0.35); }
+.cifra-cumplida .medidor i { background: var(--color-exito); }
 
-/* -- gráfico de semanas ------------------------------------------------------ */
-.progreso-semanas { display: grid; gap: var(--espacio-3); }
-.grafico-semanas { position: relative; width: 100%; }
-.grafico-semanas svg { display: block; overflow: visible; }
+/* -- actividad: gráfico semanal y calendario lado a lado ------------------------ */
+.progreso-actividad { display: grid; grid-template-columns: minmax(0, 1.75fr) minmax(17rem, 1fr); gap: var(--espacio-4); align-items: stretch; }
+
+.progreso-semanas { display: flex; flex-direction: column; gap: var(--espacio-3); }
+.progreso-semanas-cabeza { display: grid; gap: var(--espacio-3); }
+.comparacion-semana {
+  display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.25rem var(--espacio-3); width: 100%;
+  padding: var(--espacio-2) var(--espacio-3); border-radius: var(--radio-md); background: var(--color-hundido);
+}
+.comparacion-actual { color: var(--color-texto-suave); font-size: 0.875rem; font-weight: 650; }
+.comparacion-actual strong { margin-left: 0.25rem; color: var(--color-texto); font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; }
+.comparacion-delta { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.comparacion-delta b { color: var(--color-texto-suave); }
+.comparacion-delta.sube b { color: var(--color-exito); }
+.comparacion-delta.baja b { color: var(--color-ambar); }
+
+/* el lienzo crece con la tarjeta; el SVG va encima en absoluto y se dibuja a su medida */
+.grafico-semanas { flex: 1; display: flex; flex-direction: column; gap: var(--espacio-2); width: 100%; }
+.grafico-lienzo { position: relative; flex: 1; min-height: 220px; }
+.grafico-lienzo svg { position: absolute; inset: 0; display: block; overflow: visible; }
+.grafico-tooltip { z-index: 1; }
 .eje-rejilla { stroke: var(--color-linea); stroke-width: 1; }
 .eje-base { stroke: var(--color-borde); stroke-width: 1; }
 .eje-texto { fill: var(--color-texto-sutil); font-size: 0.75rem; font-variant-numeric: tabular-nums; }
-.columna path { fill: var(--color-violeta); transition: fill var(--duracion-corta); }
-.columna.activa path { fill: var(--color-violeta-hover); }
-.columna-zona { fill: transparent; }
+.eje-unidad { fill: var(--color-texto-sutil); font-size: 0.6875rem; font-weight: 700; letter-spacing: 0.06em; }
+/* semanas pasadas en violeta atenuado; la actual en el violeta pleno */
+.columna { cursor: pointer; }
+.columna path { fill: var(--color-violeta); opacity: 0.55; transition: opacity var(--duracion-corta), fill var(--duracion-corta); }
+.columna.actual path { fill: var(--color-violeta-suave); opacity: 1; }
+.columna.activa path { opacity: 1; fill: var(--color-violeta-hover); }
+.columna-vacia { fill: var(--color-borde); }
+.columna-zona { fill: transparent; transition: fill var(--duracion-corta); }
+.columna.activa .columna-zona { fill: var(--color-relleno); }
 .columna:focus { outline: none; }
-.columna:focus-visible .columna-zona { fill: var(--color-relleno); }
+.columna:focus-visible .columna-zona { fill: var(--color-relleno-fuerte); stroke: var(--color-violeta-suave); stroke-width: 1.5; }
 .columna-valor { fill: var(--color-texto); font-size: 0.8125rem; font-weight: 700; }
-.columna.actual .eje-texto { fill: var(--color-texto-suave); font-weight: 700; }
+.columna.actual .eje-texto { fill: var(--color-violeta-suave); font-weight: 700; }
 .grafico-tooltip {
   position: absolute; transform: translateX(-50%); pointer-events: none;
   display: grid; gap: 0.125rem; padding: var(--espacio-2) var(--espacio-3);
@@ -60,6 +97,61 @@
 .grafico-tabla th, .grafico-tabla td { padding: 0.25rem var(--espacio-4) 0.25rem 0; text-align: left; }
 .grafico-tabla th { color: var(--color-texto-sutil); font-weight: 650; }
 .grafico-tabla td { color: var(--color-texto-suave); }
+
+/* -- calendario ---------------------------------------------------------------- */
+.calendario { display: grid; gap: var(--espacio-3); align-content: start; }
+.calendario-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--espacio-3); flex-wrap: wrap; }
+.calendario-nav { display: flex; align-items: center; gap: var(--espacio-1); }
+.calendario-nav span { min-width: 8.5rem; color: var(--color-texto); font-size: 0.875rem; font-weight: 700; text-align: center; }
+.calendario-nav button {
+  display: grid; place-items: center; width: 2rem; height: 2rem; border: 1px solid var(--color-borde); border-radius: 50%;
+  background: transparent; color: var(--color-texto-suave); cursor: pointer;
+  transition: border-color var(--duracion-corta), color var(--duracion-corta);
+}
+.calendario-nav button:hover:not(:disabled) { border-color: var(--color-violeta); color: var(--color-texto); }
+.calendario-nav button:disabled { cursor: not-allowed; opacity: 0.35; }
+.calendario-nav svg { width: 1rem; height: 1rem; }
+.calendario-rejilla { display: grid; gap: 0.25rem; }
+.calendario-fila { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 0.25rem; }
+.calendario-fila > span { display: grid; }
+.calendario-dia-semana { color: var(--color-texto-sutil); font-size: 0.75rem; font-weight: 700; text-align: center; }
+.calendario-celda {
+  display: grid; place-items: center; width: 100%; height: 2.125rem; padding: 0;
+  border: 1px solid transparent; border-radius: var(--radio-sm);
+  background: var(--color-relleno); color: var(--color-texto-suave); font: inherit; font-size: 0.8125rem; font-variant-numeric: tabular-nums;
+  cursor: pointer; transition: border-color var(--duracion-corta), transform var(--duracion-corta);
+}
+.calendario-celda.fuera { background: transparent; cursor: default; }
+button.calendario-celda:hover:not(:disabled) { border-color: var(--color-violeta-suave); }
+.calendario-celda:disabled { cursor: default; opacity: 0.4; }
+/* intensidades de violeta: más minutos ese día, más intenso (escala relativa al día más activo) */
+.calendario-celda.nivel-1, .calendario-leyenda .nivel-1 { background: rgba(128, 107, 255, 0.28); color: var(--color-texto); }
+.calendario-celda.nivel-2, .calendario-leyenda .nivel-2 { background: rgba(128, 107, 255, 0.55); color: var(--color-texto); }
+.calendario-celda.nivel-3, .calendario-leyenda .nivel-3 { background: var(--color-violeta); color: #ffffff; font-weight: 700; }
+.calendario-celda.hoy { border-color: var(--color-amarillo); }
+.calendario-celda.elegida { box-shadow: 0 0 0 2px var(--color-violeta-suave); }
+.calendario-leyenda { display: flex; align-items: center; justify-content: flex-end; gap: 0.25rem; color: var(--color-texto-sutil); font-size: 0.75rem; }
+.calendario-leyenda i { width: 0.75rem; height: 0.75rem; border-radius: 3px; background: var(--color-relleno); }
+.calendario-leyenda span:first-child { margin-right: 0.25rem; }
+.calendario-leyenda span:last-child { margin-left: 0.25rem; }
+.calendario-detalle { display: grid; gap: var(--espacio-2); padding-top: var(--espacio-3); border-top: 1px solid var(--color-linea); font-size: 0.875rem; color: var(--color-texto-suave); }
+.calendario-detalle strong { color: var(--color-texto); }
+.calendario-detalle ul { display: grid; gap: 0.375rem; margin: 0; padding: 0; list-style: none; }
+.calendario-detalle li { display: flex; align-items: center; gap: var(--espacio-3); font-variant-numeric: tabular-nums; }
+.calendario-detalle li span:first-child { min-width: 2.75rem; color: var(--color-texto); font-weight: 700; }
+.calendario-detalle li .estado-sesion { margin-left: auto; }
+.calendario-pista { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+
+/* -- estado de una sesión (sesiones recientes y calendario) ------------------------ */
+.estado-sesion {
+  display: inline-flex; align-items: center; width: fit-content; padding: 0.125rem 0.5rem;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
+  color: var(--color-texto-suave); font-size: 0.75rem; font-weight: 700; white-space: nowrap;
+}
+/* lo normal va discreto; el color se reserva para las excepciones */
+.estado-sesion.completa { color: var(--color-texto-sutil); }
+.estado-sesion.antes { border-color: rgba(169, 157, 255, 0.35); color: var(--color-violeta-suave); }
+.estado-sesion.interrumpida { border-color: rgba(244, 163, 64, 0.4); color: var(--color-ambar); }
 
 /* -- por ejercicio ----------------------------------------------------------- */
 .progreso-ejercicios { display: grid; gap: var(--espacio-3); }
@@ -87,27 +179,52 @@
 .progreso-indicaciones li span { color: var(--color-texto-sutil); font-size: 0.8125rem; }
 
 /* -- sesiones recientes --------------------------------------------------------- */
+.progreso-historial-cabeza { display: grid; gap: 0.125rem; }
 .progreso-historial ol { display: grid; margin: var(--espacio-3) 0 0; padding: 0; list-style: none; }
 .progreso-historial > ol > li + li { border-top: 1px solid var(--color-linea); }
 .fila-sesion summary {
-  display: grid; grid-template-columns: 11rem minmax(0, 1fr) 4.5rem 13rem 1.25rem; align-items: center; gap: var(--espacio-3);
-  padding: var(--espacio-3) 0; color: var(--color-texto-suave); font-size: 0.9375rem; cursor: pointer; list-style: none;
+  display: grid; grid-template-columns: 3rem minmax(0, 1fr) auto 5.5rem 9.5rem 1.25rem; align-items: center; gap: var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-2); margin: 0 calc(-1 * var(--espacio-2)); border-radius: var(--radio-md);
+  color: var(--color-texto-suave); font-size: 0.9375rem; cursor: pointer; list-style: none;
+  transition: background var(--duracion-corta);
 }
+.fila-sesion summary:hover { background: var(--color-relleno); }
 .fila-sesion summary::-webkit-details-marker { display: none; }
-.fila-sesion-fecha { color: var(--color-texto); font-weight: 650; font-variant-numeric: tabular-nums; }
-.fila-sesion-rutina { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fila-sesion-dia {
+  display: grid; justify-items: center; padding: 0.25rem 0; border-radius: var(--radio-sm);
+  background: rgba(128, 107, 255, 0.12); line-height: 1.05;
+}
+.fila-sesion-dia b { color: var(--color-texto); font-size: 1.125rem; font-variant-numeric: tabular-nums; }
+.fila-sesion-dia small { color: var(--color-violeta-suave); font-size: 0.6875rem; font-weight: 700; text-transform: uppercase; }
+.fila-sesion-principal { display: grid; min-width: 0; }
+.fila-sesion-principal strong { overflow: hidden; color: var(--color-texto); font-weight: 650; text-overflow: ellipsis; white-space: nowrap; }
+.fila-sesion-principal span { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.fila-sesion-dato { display: inline-flex; align-items: center; gap: 0.375rem; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.fila-sesion-dato svg { width: 0.9375rem; height: 0.9375rem; color: var(--color-texto-sutil); }
 .fila-sesion .flecha { width: 1.125rem; height: 1.125rem; transition: transform var(--duracion-corta); }
 .fila-sesion[open] .flecha { transform: rotate(180deg); }
-.fila-sesion ul { display: grid; gap: var(--espacio-1); margin: 0 0 var(--espacio-3); padding: 0 0 0 11.75rem; list-style: none; font-size: 0.9375rem; }
-.fila-sesion ul li { display: flex; justify-content: space-between; gap: var(--espacio-4); max-width: 30rem; color: var(--color-texto-suave); }
-.fila-sesion ul b { color: var(--color-texto); font-variant-numeric: tabular-nums; }
-.fila-sesion ul b.texto-exito { color: var(--color-exito); }
-.fila-sesion-nota { color: var(--color-texto-sutil) !important; font-size: 0.8125rem; }
+.fila-sesion[open] summary { background: var(--color-relleno); }
+.fila-sesion-detalle { display: grid; gap: var(--espacio-2); margin: var(--espacio-2) 0 var(--espacio-3); padding-left: calc(3rem + var(--espacio-4)); }
+.fila-sesion-detalle ul { display: grid; gap: var(--espacio-1); margin: 0; padding: 0; list-style: none; font-size: 0.9375rem; }
+.fila-sesion-detalle li { display: flex; justify-content: space-between; gap: var(--espacio-4); max-width: 32rem; color: var(--color-texto-suave); }
+.fila-sesion-detalle b { display: inline-flex; align-items: center; gap: 0.25rem; color: var(--color-texto); font-variant-numeric: tabular-nums; }
+.fila-sesion-detalle b.texto-exito { color: var(--color-exito); }
+.fila-sesion-detalle b svg { width: 0.875rem; height: 0.875rem; }
+.fila-sesion-nota { display: flex; align-items: center; gap: 0.375rem; color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.fila-sesion-nota svg { width: 0.875rem; height: 0.875rem; color: var(--color-violeta-suave); }
 
 .progreso-historial .enlace-editar { margin-top: var(--espacio-2); }
 .girada { transform: rotate(180deg); }
 
+/* -- borrar historial ------------------------------------------------------------- */
 .progreso-borrar { display: grid; gap: var(--espacio-2); justify-items: start; }
+.dialogo-borrar { text-align: left; }
+.dialogo-borrar h2 { font-size: 1.625rem; }
+.dialogo-borrar-texto { display: grid; gap: var(--espacio-2); }
+.dialogo-borrar-texto p, .tarjeta-confirmar.dialogo-borrar p { font-size: 1rem; }
+.dialogo-borrar-texto ul { margin: 0; padding-left: 1.25rem; color: var(--color-texto-suave); }
+.dialogo-borrar-texto strong { color: var(--color-texto); }
+.tarjeta-confirmar.dialogo-borrar .acciones { justify-content: flex-end; }
 
 /* -- resumen de la semana en el inicio --------------------------------------------- */
 .inicio-lateral { display: grid; gap: var(--espacio-4); align-content: center; }
@@ -122,12 +239,17 @@
 .resumen-semana .enlace-editar { margin-top: 0; }
 
 @media (max-width: 64rem) {
-  .progreso-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .progreso-cifras { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; row-gap: var(--espacio-4); }
+  .progreso-cifras > .cifra { grid-row: auto; grid-template-rows: none; }
+}
+@media (max-width: 72rem) {
+  .progreso-actividad { grid-template-columns: 1fr; }
 }
 @media (max-width: 56rem) {
-  .fila-sesion summary { grid-template-columns: minmax(0, 1fr) auto 1.25rem; }
-  .fila-sesion summary > span:nth-child(2), .fila-sesion summary > span:nth-child(4) { display: none; }
-  .fila-sesion ul { padding-left: 0; }
+  /* fecha, rutina, estado y flecha; la duración y los objetivos se ven al desplegar */
+  .fila-sesion summary { grid-template-columns: 3rem minmax(0, 1fr) auto 1.25rem; gap: var(--espacio-3); }
+  .fila-sesion summary > .fila-sesion-dato { display: none; }
+  .fila-sesion-detalle { padding-left: 0; }
 }
 
 /* botones dentro de un aviso (p. ej. «Ver mi progreso» en el resumen): en una línea */

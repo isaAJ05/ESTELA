@@ -21,6 +21,14 @@ test('aviso del nombre mientras se escribe', () => {
   assert.equal(p.problemaNombre('Luis', [ana], 30), null)
 })
 
+test('aviso del nombre de una rutina guardada', () => {
+  const mananas = { id: 'ra', nombre: 'Mañanas rápidas', pasos: [{ skillId: 'plancha', objetivo: 30 }] }
+  assert.equal(p.problemaNombreRutina('  ', [], 40), 'Ponle un nombre a la rutina.')
+  assert.equal(p.problemaNombreRutina('x'.repeat(41), [], 40), 'El nombre puede tener hasta 40 caracteres.')
+  assert.equal(p.problemaNombreRutina('MAÑANAS   rápidas', [mananas], 40), 'Ya tienes una rutina con ese nombre.')
+  assert.equal(p.problemaNombreRutina('Piernas', [mananas], 40), null)
+})
+
 test('perfil activo y texto de la meta', () => {
   const estado = { perfiles: [ana], activo: 'pa', elegido: true, colores: [], maxPerfiles: 8, maxNombre: 30, meta: [1, 7] as [number, number] }
   assert.equal(p.perfilActivo(estado)?.nombre, 'Ana María')

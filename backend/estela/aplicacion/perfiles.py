@@ -3,8 +3,9 @@ historial (ADR-009, sobre ADR-008).
 
 Un perfil es solo lo necesario para reconocerse y fijarse una meta: nombre o
 apodo, un color para el avatar (las iniciales se dibujan en la interfaz),
-si se quiere, cuántos días por semana moverse, y la última rutina que armó
-en «Mi rutina» (ejercicios en orden y su objetivo). **No** guarda edad, peso,
+si se quiere, cuántos días por semana moverse, la última rutina que armó
+en «Mi rutina» (ejercicios en orden y su objetivo) y sus rutinas guardadas
+con nombre, para elegirlas directamente desde el inicio. **No** guarda edad, peso,
 estatura ni nada del cuerpo: ESTELA no los usa y serían datos sensibles sin
 propósito (CLAUDE.md §6).
 
@@ -26,7 +27,7 @@ import secrets
 import threading
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional
+from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from .historial import Historial
 
@@ -41,6 +42,9 @@ META_MIN, META_MAX = 1, 7
 HISTORIAL_ANTIGUO = "sesiones.jsonl"
 #: más pasos que ejercicios hay en el catálogo no tiene sentido; es una cota de seguridad
 MAX_PASOS_RUTINA = 20
+#: rutinas guardadas con nombre por perfil
+MAX_RUTINAS = 10
+MAX_NOMBRE_RUTINA = 40
 
 
 class PerfilInvalido(ValueError):
@@ -80,6 +84,31 @@ def rutina_de(perfil: Mapping[str, Any]) -> Optional[List[Dict[str, Any]]]:
     return [{"skill_id": p["skill_id"], "objetivo": p["objetivo"]} for p in crudo[:MAX_PASOS_RUTINA]
             if isinstance(p, dict) and isinstance(p.get("skill_id"), str)
             and isinstance(p.get("objetivo"), int) and not isinstance(p.get("objetivo"), bool)]
+
+
+def rutinas_de(perfil: Mapping[str, Any]) -> List[Dict[str, Any]]:
+    """Rutinas guardadas con nombre, [{id, nombre, pasos}], sin las mal
+    formadas ni las que se quedaron sin pasos."""
+    crudo = perfil.get("rutinas")
+    if not isinstance(crudo, list):
+        return []
+    salida = []
+    for r in crudo[:MAX_RUTINAS]:
+        if not (isinstance(r, dict) and isinstance(r.get("id"), str) and isinstance(r.get("nombre"), str)):
+            continue
+        pasos = rutina_de({"rutina": r.get("pasos")})
+        if pasos:
+            salida.append({"id": r["id"], "nombre": r["nombre"], "pasos": pasos})
+    return salida
+
+
+def _pasos_limpios(pasos: List[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    if len(pasos) > MAX_PASOS_RUTINA:
+        raise PerfilInvalido("La rutina tiene demasiados ejercicios.")
+    limpios = rutina_de({"rutina": list(pasos)}) or []
+    if len(limpios) != len(pasos):
+        raise PerfilInvalido("La rutina tiene pasos que no se pueden guardar.")
+    return limpios
 
 
 def _valido(p: Any) -> bool:
@@ -154,17 +183,60 @@ class Perfiles:
         """Guarda la rutina del perfil tal cual ([{skill_id, objetivo}]). La
         validación contra el catálogo (ejercicio soportado, objetivo en sus
         límites) la hace el orquestador antes de llamar aquí."""
-        if len(pasos) > MAX_PASOS_RUTINA:
-            raise PerfilInvalido("La rutina tiene demasiados ejercicios.")
-        limpios = rutina_de({"rutina": list(pasos)}) or []
-        if len(limpios) != len(pasos):
-            raise PerfilInvalido("La rutina tiene pasos que no se pueden guardar.")
+        limpios = _pasos_limpios(pasos)
+        return self._actualizar(perfil_id, lambda p: {**p, "rutina": limpios})
+
+    def guardar_rutina_nombrada(self, perfil_id: str, rutina_id: Optional[str], nombre: Any,
+                                pasos: List[Mapping[str, Any]]) -> Dict[str, Any]:
+        """Crea una rutina con nombre (`rutina_id` None) o reemplaza el nombre
+        y los pasos de una existente. Los pasos se validan contra el catálogo
+        en el orquestador, como en `guardar_rutina`."""
+        nombre = " ".join(str(nombre or "").split())
+        if not nombre:
+            raise PerfilInvalido("Ponle un nombre a la rutina.")
+        if len(nombre) > MAX_NOMBRE_RUTINA:
+            raise PerfilInvalido(f"El nombre puede tener hasta {MAX_NOMBRE_RUTINA} caracteres.")
+        if not pasos:
+            raise PerfilInvalido("Elige al menos un ejercicio para guardar la rutina.")
+        limpios = _pasos_limpios(pasos)
+
+        def cambio(perfil: Dict[str, Any]) -> Dict[str, Any]:
+            rutinas = rutinas_de(perfil)
+            otras = [r for r in rutinas if r["id"] != rutina_id]
+            if rutina_id is not None and len(otras) == len(rutinas):
+                raise PerfilInvalido("Esa rutina ya no existe.")
+            if any(r["nombre"].casefold() == nombre.casefold() for r in otras):
+                raise PerfilInvalido("Ya tienes una rutina con ese nombre.")
+            if rutina_id is None:
+                if len(rutinas) >= MAX_RUTINAS:
+                    raise PerfilInvalido(f"Ya tienes {MAX_RUTINAS} rutinas; borra una para guardar otra.")
+                rutinas.append({"id": "r" + secrets.token_hex(4), "nombre": nombre, "pasos": limpios})
+            else:
+                rutinas = [{**r, "nombre": nombre, "pasos": limpios} if r["id"] == rutina_id else r
+                           for r in rutinas]
+            return {**perfil, "rutinas": rutinas}
+
+        return self._actualizar(perfil_id, cambio)
+
+    def borrar_rutina_nombrada(self, perfil_id: str, rutina_id: str) -> Dict[str, Any]:
+        def cambio(perfil: Dict[str, Any]) -> Dict[str, Any]:
+            rutinas = rutinas_de(perfil)
+            quedan = [r for r in rutinas if r["id"] != rutina_id]
+            if len(quedan) == len(rutinas):
+                raise PerfilInvalido("Esa rutina ya no existe.")
+            return {**perfil, "rutinas": quedan}
+
+        return self._actualizar(perfil_id, cambio)
+
+    def _actualizar(self, perfil_id: str,
+                    cambio: Callable[[Dict[str, Any]], Dict[str, Any]]) -> Dict[str, Any]:
+        """Aplica `cambio` al perfil y lo guarda; PerfilInvalido si no existe."""
         with self._candado:
             perfiles = self.listar()
             i = next((k for k, p in enumerate(perfiles) if p["id"] == perfil_id), None)
             if i is None:
                 raise PerfilInvalido("Ese perfil ya no existe.")
-            perfiles[i] = {**perfiles[i], "rutina": limpios}
+            perfiles[i] = cambio(perfiles[i])
             self._escribir(perfiles)
             return perfiles[i]
 
@@ -187,5 +259,5 @@ class Perfiles:
             log.info("historial anterior asignado al perfil %s", perfil_id)
 
 
-__all__ = ["COLORES", "MAX_NOMBRE", "MAX_PASOS_RUTINA", "MAX_PERFILES", "META_MAX", "META_MIN",
-           "PerfilInvalido", "Perfiles", "rutina_de"]
+__all__ = ["COLORES", "MAX_NOMBRE", "MAX_NOMBRE_RUTINA", "MAX_PASOS_RUTINA", "MAX_PERFILES", "MAX_RUTINAS",
+           "META_MAX", "META_MIN", "PerfilInvalido", "Perfiles", "rutina_de", "rutinas_de"]

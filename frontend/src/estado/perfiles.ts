@@ -3,7 +3,9 @@
 // el inicio y el resumen la lean sin volver a pedirla.
 
 import { useSyncExternalStore } from 'react'
-import type { Bridge, DatosPerfil, EstadoPerfiles, PasoElegido, Perfil, ResultadoPerfil } from '../bridge/tipos'
+import type {
+  Bridge, DatosPerfil, DatosRutina, EstadoPerfiles, PasoElegido, Perfil, ResultadoPerfil, RutinaGuardada,
+} from '../bridge/tipos'
 
 let actual: EstadoPerfiles | null = null
 const oyentes = new Set<() => void>()
@@ -86,6 +88,19 @@ export function guardarRutinaYa(): void {
   pendiente.enviar()
 }
 
+/** Crea (sin `id`) o actualiza una rutina guardada con nombre. */
+export async function guardarRutinaNombrada(bridge: Bridge, perfilId: string, datos: DatosRutina): Promise<ResultadoPerfil> {
+  const r = await bridge.guardarRutinaNombrada(perfilId, datos).catch(() => FALLO)
+  await cargarPerfiles(bridge)
+  return r
+}
+
+export async function borrarRutinaNombrada(bridge: Bridge, perfilId: string, rutinaId: string): Promise<ResultadoPerfil> {
+  const r = await bridge.borrarRutinaNombrada(perfilId, rutinaId).catch(() => FALLO)
+  await cargarPerfiles(bridge)
+  return r
+}
+
 const FALLO: ResultadoPerfil = { ok: false, error: 'No se pudo hablar con ESTELA. Inténtalo de nuevo.' }
 
 // -- sin React (se prueban con `npm test`) --------------------------------------
@@ -108,6 +123,20 @@ export function problemaNombre(nombre: string, otros: readonly Perfil[], max: nu
   if (limpio.length > max) return `El nombre puede tener hasta ${max} caracteres.`
   if (otros.some((p) => p.nombre.toLocaleLowerCase('es') === limpio.toLocaleLowerCase('es'))) {
     return 'Ya hay un perfil con ese nombre.'
+  }
+  return null
+}
+
+/**
+ * Aviso inmediato para el nombre de una rutina guardada; `otras`: las demás
+ * rutinas del perfil (sin la que se renombra). Python vuelve a validarlo.
+ */
+export function problemaNombreRutina(nombre: string, otras: readonly RutinaGuardada[], max: number): string | null {
+  const limpio = nombre.trim().split(/\s+/).filter(Boolean).join(' ')
+  if (!limpio) return 'Ponle un nombre a la rutina.'
+  if (limpio.length > max) return `El nombre puede tener hasta ${max} caracteres.`
+  if (otras.some((r) => r.nombre.toLocaleLowerCase('es') === limpio.toLocaleLowerCase('es'))) {
+    return 'Ya tienes una rutina con ese nombre.'
   }
   return null
 }

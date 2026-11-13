@@ -7,7 +7,8 @@ import pytest
 
 from estela.adaptadores.interfaz import contrato
 from estela.adaptadores.interfaz.ventana import Api
-from estela.aplicacion.perfiles import MAX_PERFILES, PerfilInvalido, Perfiles, rutina_de
+from estela.aplicacion.perfiles import (MAX_PERFILES, MAX_RUTINAS, PerfilInvalido, Perfiles, rutina_de,
+                                        rutinas_de)
 from tests.test_historial import registro
 from tests.test_interfaz import (RESUMEN, ZANCADA, catalogo, esperar_fase,  # noqa: F401
                                  nuevo_orquestador, rutina, secuencia_zancadas)
@@ -105,7 +106,8 @@ def test_contrato_de_perfiles():
     d = contrato.perfiles_a_dict([p], "pabc", True)
     json.dumps(d)
     assert d["perfiles"][0] == {"id": "pabc", "nombre": "Ana", "color": "rosa", "rutina": None,
-                                "metaSemanal": 3, "creado": "2026-11-06T09:00:00"}
+                                "rutinas": [], "metaSemanal": 3, "creado": "2026-11-06T09:00:00"}
+    assert d["maxRutinas"] == MAX_RUTINAS
     assert d["activo"] == "pabc" and d["elegido"] is True and d["maxPerfiles"] == MAX_PERFILES
     assert "rosa" in d["colores"] and d["meta"] == [1, 7]
     # solo pasan las claves que llegan, y nada más
@@ -291,3 +293,87 @@ def test_api_guarda_la_rutina(perfiles, catalogo, rutina):
     assert api.guardar_rutina(pid, [{"skillId": "plancha", "objetivo": 20}])["ok"] is True
     assert api.perfiles()["perfiles"][0]["rutina"] == [{"skillId": "plancha", "objetivo": 20}]
     assert api.guardar_rutina(pid)["ok"] is False                       # sin pasos: no es una lista
+
+
+# -- rutinas guardadas con nombre -------------------------------------------------------
+
+PLANCHA = [{"skill_id": "plancha", "objetivo": 30}]
+
+
+def test_crear_editar_y_borrar_rutinas_con_nombre(perfiles):
+    ana, luis = perfiles.crear({"nombre": "Ana"}), perfiles.crear({"nombre": "Luis"})
+    assert rutinas_de(ana) == []
+    ana = perfiles.guardar_rutina_nombrada(ana["id"], None, "  Mañanas  rápidas ", PLANCHA)
+    [r] = rutinas_de(ana)
+    assert r["nombre"] == "Mañanas rápidas" and r["id"].startswith("r") and r["pasos"] == PLANCHA
+    # actualizar cambia nombre y pasos sin duplicar
+    pasos = PLANCHA + [{"skill_id": "jumping_jacks", "objetivo": 12}]
+    perfiles.guardar_rutina_nombrada(ana["id"], r["id"], "Mañanas", pasos)
+    assert rutinas_de(perfiles.obtener(ana["id"])) == [{"id": r["id"], "nombre": "Mañanas", "pasos": pasos}]
+    # «Mi rutina» y los datos del perfil no se tocan; el otro perfil tampoco
+    perfiles.editar(ana["id"], {"color": "azul"})
+    assert len(rutinas_de(perfiles.obtener(ana["id"]))) == 1
+    assert rutina_de(perfiles.obtener(ana["id"])) is None
+    assert rutinas_de(perfiles.obtener(luis["id"])) == []
+    perfiles.guardar_rutina_nombrada(luis["id"], None, "Mañanas", PLANCHA)   # el nombre es por perfil
+    perfiles.borrar_rutina_nombrada(ana["id"], r["id"])
+    assert rutinas_de(perfiles.obtener(ana["id"])) == []
+
+
+@pytest.mark.parametrize("nombre, pasos, mensaje", [
+    ("   ", PLANCHA, "nombre"),
+    ("x" * 41, PLANCHA, "40 caracteres"),
+    ("Mañanas", [], "al menos un ejercicio"),
+    ("MAÑANAS", PLANCHA, "Ya tienes"),
+    ("Otra", [{"skill_id": "plancha", "objetivo": "30"}], "no se pueden guardar"),
+])
+def test_rutina_con_nombre_invalida(perfiles, nombre, pasos, mensaje):
+    ana = perfiles.crear({"nombre": "Ana"})
+    perfiles.guardar_rutina_nombrada(ana["id"], None, "Mañanas", PLANCHA)
+    with pytest.raises(PerfilInvalido, match=mensaje):
+        perfiles.guardar_rutina_nombrada(ana["id"], None, nombre, pasos)
+    assert len(rutinas_de(perfiles.obtener(ana["id"]))) == 1
+
+
+def test_limites_de_rutinas_con_nombre(perfiles):
+    ana = perfiles.crear({"nombre": "Ana"})
+    for k in range(MAX_RUTINAS):
+        perfiles.guardar_rutina_nombrada(ana["id"], None, f"R{k}", PLANCHA)
+    with pytest.raises(PerfilInvalido, match="borra una"):
+        perfiles.guardar_rutina_nombrada(ana["id"], None, "Una más", PLANCHA)
+    with pytest.raises(PerfilInvalido, match="ya no existe"):
+        perfiles.guardar_rutina_nombrada(ana["id"], "rnoexiste", "X", PLANCHA)
+    with pytest.raises(PerfilInvalido, match="ya no existe"):
+        perfiles.borrar_rutina_nombrada(ana["id"], "rnoexiste")
+    # renombrar una con su propio nombre (otras mayúsculas) sí vale
+    primera = rutinas_de(perfiles.obtener(ana["id"]))[0]
+    perfiles.guardar_rutina_nombrada(ana["id"], primera["id"], "r0", PLANCHA)
+
+
+def test_rutinas_con_entradas_malas_se_limpian_al_leer():
+    p = {"rutinas": [{"id": "ra", "nombre": "A", "pasos": PLANCHA}, {"id": "rb", "nombre": "B", "pasos": []},
+                     {"id": 3, "nombre": "C", "pasos": PLANCHA}, "basura", {"id": "rd", "pasos": PLANCHA}]}
+    assert rutinas_de(p) == [{"id": "ra", "nombre": "A", "pasos": PLANCHA}]
+    assert rutinas_de({"rutinas": "no es lista"}) == []
+
+
+def test_orquestador_y_api_guardan_rutinas_con_nombre(perfiles, catalogo, rutina):
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [], perfiles=perfiles)
+    api = Api(orq)
+    pid = api.crear_perfil({"nombre": "Ana"})["perfil"]["id"]
+    r = api.guardar_rutina_nombrada(pid, {"nombre": "Piernas", "pasos": [{"skillId": "plancha", "objetivo": 45}]})
+    assert r["ok"]
+    [guardada] = r["perfil"]["rutinas"]
+    assert guardada["nombre"] == "Piernas" and guardada["pasos"] == [{"skillId": "plancha", "objetivo": 45}]
+    r = api.guardar_rutina_nombrada(pid, {"id": guardada["id"], "nombre": "Piernas",
+                                          "pasos": [{"skillId": "zancada_atras_izq", "objetivo": 10}]})
+    assert r["perfil"]["rutinas"][0]["pasos"] == [{"skillId": "zancada_atras_izq", "objetivo": 10}]
+    assert api.perfiles()["perfiles"][0]["rutinas"][0]["id"] == guardada["id"]
+    # mismas reglas que al iniciar una sesión
+    assert api.guardar_rutina_nombrada(pid, {"nombre": "X", "pasos": [{"skillId": "plancha", "objetivo": 999}]})["ok"] is False
+    assert api.guardar_rutina_nombrada(pid, {"nombre": "X", "pasos": [{"skillId": "no_existe", "objetivo": 5}]})["ok"] is False
+    assert api.guardar_rutina_nombrada(pid, {"nombre": "X", "pasos": []})["ok"] is False
+    assert api.guardar_rutina_nombrada(pid, "nada")["ok"] is False
+    assert api.guardar_rutina_nombrada(pid)["ok"] is False
+    assert api.borrar_rutina_nombrada(pid, guardada["id"])["perfil"]["rutinas"] == []
+    assert api.borrar_rutina_nombrada(pid, guardada["id"])["ok"] is False

@@ -7,7 +7,8 @@ import pytest
 
 from estela.adaptadores.interfaz import contrato
 from estela.aplicacion.historial import (RECIENTES, VENTANA_INDICACIONES, Historial,
-                                         progreso, racha_dias, registro_de_sesion)
+                                         mejor_racha_dias, progreso, racha_dias,
+                                         registro_de_sesion)
 from estela.aplicacion.sesion import Sesion
 from tests.test_interfaz import ZANCADA, catalogo, rutina, secuencia_zancadas  # noqa: F401
 from tests.test_sesion import EstimadorFalso, VozFalsa, correr
@@ -177,6 +178,55 @@ def test_sesiones_recientes_primero_y_limitadas():
     assert (s[0]["ejercicios"], s[0]["completos"], s[0]["indicaciones"]) == (2, 2, 2)
 
 
+@pytest.mark.parametrize("dias, esperado", [
+    ([], 0),
+    ([HOY], 1),
+    ([HOY, HOY],  1),                                                    # dos sesiones el mismo día
+    ([date(2026, 10, 1), date(2026, 10, 2), date(2026, 10, 3), HOY], 3),  # la mejor ya pasó
+    ([date(2026, 10, 3), date(2026, 10, 1), date(2026, 10, 2)], 3),      # sin orden
+])
+def test_mejor_racha(dias, esperado):
+    assert mejor_racha_dias(dias) == esperado
+
+
+def test_promedio_y_dias_salen_de_los_mismos_registros():
+    regs = [registro("2026-11-04T08:00:00", paso(duracion_s=60.0)),
+            registro("2026-11-04T19:00:00", paso(duracion_s=30.0)),
+            registro("2026-11-06T08:00:00", paso(duracion_s=90.0))]
+    p = progreso(regs, HOY)
+    assert p["promedio_sesion_s"] == 60.0
+    assert p["dias"] == [{"fecha": "2026-11-04", "sesiones": 2, "duracion_s": 90.0},
+                         {"fecha": "2026-11-06", "sesiones": 1, "duracion_s": 90.0}]
+    # coherencia: el calendario, las semanas y el total suman lo mismo
+    assert sum(d["duracion_s"] for d in p["dias"]) == p["total_duracion_s"] == sum(
+        s["duracion_s"] for s in p["semanas"])
+    assert progreso([], HOY)["promedio_sesion_s"] == 0.0 and progreso([], HOY)["dias"] == []
+
+
+def test_semana_comparada_en_el_mismo_tramo():
+    # HOY es viernes 6 nov: lun 2 – vie 6 frente a lun 26 oct – vie 30 oct
+    regs = [registro("2026-10-20T08:00:00", paso(duracion_s=10.0)),   # hay historial antes
+            registro("2026-10-27T08:00:00", paso(duracion_s=60.0)),   # martes pasado: cuenta
+            registro("2026-10-31T08:00:00", paso(duracion_s=500.0)),  # sábado pasado: fuera del tramo
+            registro("2026-11-03T08:00:00", paso(duracion_s=90.0))]
+    c = progreso(regs, HOY)["semana_comparada"]
+    assert c == {"dias": 5, "actual_s": 90.0, "anterior_s": 60.0, "diferencia_s": 30.0}
+
+
+def test_sin_semana_pasada_completa_no_se_compara():
+    # el historial empieza el miércoles pasado: el tramo de la semana pasada está a medias
+    regs = [registro("2026-10-28T08:00:00"), registro("2026-11-03T08:00:00")]
+    assert progreso(regs, HOY)["semana_comparada"] is None
+    assert progreso([], HOY)["semana_comparada"] is None
+
+
+def test_sesiones_llevan_como_terminaron():
+    r = registro("2026-11-05T08:00:00")
+    viejo = {k: v for k, v in registro("2026-11-04T08:00:00").items() if k != "motivo_fin"}
+    s = progreso([viejo, dict(r, motivo_fin="fuente", terminada=False)], HOY)["sesiones"]
+    assert [x["motivo_fin"] for x in s] == ["fuente", None]
+
+
 def test_progreso_para_la_interfaz_con_nombres(catalogo):
     regs = [registro("2026-11-05T08:00:00", paso(indicaciones=ind("codos")), paso("ya_no_existe"))]
     d = contrato.progreso_a_dict(progreso(regs, HOY), catalogo)
@@ -188,6 +238,9 @@ def test_progreso_para_la_interfaz_con_nombres(catalogo):
     assert nombres == {"jumping_jacks": "Jumping jacks", "ya_no_existe": "ya_no_existe"}
     assert d["ejercicios"][0]["indicaciones"]["frecuentes"][0]["errorId"] == "codos"
     assert d["sesiones"][0]["pasos"][0]["nombre"] == "Jumping jacks"
+    assert d["sesiones"][0]["motivoFin"] == "completada"
+    assert d["mejorRachaDias"] == 1 and d["promedioSesionS"] == 60.0 and d["semanaComparada"] is None
+    assert d["dias"] == [{"fecha": "2026-11-05", "sesiones": 1, "duracionS": 60.0}]
 
 
 # Las pruebas con el orquestador están en test_perfiles.py: el historial es de cada perfil.

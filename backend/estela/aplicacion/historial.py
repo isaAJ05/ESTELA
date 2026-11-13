@@ -176,6 +176,47 @@ def racha_dias(dias: Sequence[date], hoy: date) -> int:
     return n
 
 
+def mejor_racha_dias(dias: Sequence[date]) -> int:
+    """La racha más larga de días seguidos con alguna sesión en todo el historial."""
+    mejor = actual = 0
+    anterior: Optional[date] = None
+    for d in sorted(set(dias)):
+        actual = actual + 1 if anterior is not None and d - anterior == timedelta(days=1) else 1
+        mejor = max(mejor, actual)
+        anterior = d
+    return mejor
+
+
+def _por_dia(registros: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    """Sesiones y tiempo en movimiento de cada día con actividad (calendario)."""
+    filas: Dict[date, Dict[str, Any]] = {}
+    for r in registros:
+        d = _dia(r)
+        f = filas.setdefault(d, {"fecha": d.isoformat(), "sesiones": 0, "duracion_s": 0.0})
+        f["sesiones"] += 1
+        f["duracion_s"] += r["duracion_s"]
+    for f in filas.values():
+        f["duracion_s"] = round(f["duracion_s"], 1)
+    return [filas[d] for d in sorted(filas)]
+
+
+def _semana_comparada(registros: Sequence[Mapping[str, Any]], hoy: date) -> Optional[Dict[str, Any]]:
+    """Esta semana (lunes → hoy) frente al **mismo tramo** de la semana pasada
+    (lunes → el mismo día), para no comparar una semana a medias con una
+    entera. None si el historial empieza después del lunes pasado: entonces
+    la semana pasada no está completa en los datos y la comparación engañaría."""
+    if not registros:
+        return None
+    lunes = hoy - timedelta(days=hoy.weekday())
+    lunes_pasado, hoy_pasado = lunes - timedelta(weeks=1), hoy - timedelta(weeks=1)
+    if _dia(registros[0]) > lunes_pasado:
+        return None
+    actual = sum(r["duracion_s"] for r in registros if lunes <= _dia(r) <= hoy)
+    anterior = sum(r["duracion_s"] for r in registros if lunes_pasado <= _dia(r) <= hoy_pasado)
+    return {"dias": hoy.weekday() + 1, "actual_s": round(actual, 1), "anterior_s": round(anterior, 1),
+            "diferencia_s": round(actual - anterior, 1)}
+
+
 def _semanas(registros: Sequence[Mapping[str, Any]], hoy: date,
              n: int) -> List[Dict[str, Any]]:
     """Últimas `n` semanas (lunes a domingo), de la más antigua a la actual."""
@@ -247,6 +288,8 @@ def progreso(registros: Sequence[Mapping[str, Any]], hoy: date) -> Dict[str, Any
             "fecha": r["fecha"],
             "rutina": r["rutina"],
             "terminada": r["terminada"],
+            # completada · usuaria · fuente · cierre · error (contrato.FIN_*); None en registros sin él
+            "motivo_fin": r.get("motivo_fin"),
             "duracion_s": r["duracion_s"],
             "ejercicios": len(pasos),
             "completos": sum(1 for p in pasos if p["completadas"] >= p["objetivo"]),
@@ -256,20 +299,25 @@ def progreso(registros: Sequence[Mapping[str, Any]], hoy: date) -> Dict[str, Any
                        "completadas": p["completadas"], "objetivo": p["objetivo"]}
                       for p in pasos],
         })
+    total_s = sum(r["duracion_s"] for r in registros)
     return {
         "total_sesiones": len(registros),
-        "total_duracion_s": round(sum(r["duracion_s"] for r in registros), 1),
+        "total_duracion_s": round(total_s, 1),
+        "promedio_sesion_s": round(total_s / len(registros), 1) if registros else 0.0,
         "dias_activos": len(set(dias)),
         "dias_activos_7": len({d for d in dias if hace_7 <= d <= hoy}),
         # días con sesión de lunes a hoy: lo que se compara con la meta semanal (ADR-009)
         "dias_semana_actual": len({d for d in dias if lunes <= d <= hoy}),
         "racha_dias": racha_dias(dias, hoy),
+        "mejor_racha_dias": mejor_racha_dias(dias),
         "primera_fecha": registros[0]["fecha"] if registros else None,
         "semanas": _semanas(registros, hoy, SEMANAS),
+        "semana_comparada": _semana_comparada(registros, hoy),
+        "dias": _por_dia(registros),
         "ejercicios": _ejercicios(registros),
         "sesiones": sesiones,
     }
 
 
-__all__ = ["Historial", "progreso", "racha_dias", "registro_de_sesion",
+__all__ = ["Historial", "mejor_racha_dias", "progreso", "racha_dias", "registro_de_sesion",
            "SEMANAS", "RECIENTES", "VENTANA_INDICACIONES", "VERSION_REGISTRO"]

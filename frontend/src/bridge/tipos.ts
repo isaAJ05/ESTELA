@@ -250,10 +250,28 @@ export interface EjercicioProgreso {
   indicaciones: { sesiones: number; frecuentes: IndicacionFrecuente[] }
 }
 
+/** Un día con actividad (calendario). */
+export interface DiaProgreso {
+  /** AAAA-MM-DD */
+  fecha: string
+  sesiones: number
+  duracionS: number
+}
+
+/** Esta semana (lunes → hoy) frente al mismo tramo de la semana pasada. */
+export interface SemanaComparada {
+  /** días del tramo: 1 = solo el lunes … 7 = la semana entera */
+  dias: number
+  actualS: number
+  anteriorS: number
+  diferenciaS: number
+}
+
 export interface SesionHistorial {
   fecha: string
   rutina: string
   terminada: boolean
+  motivoFin: MotivoFin | null
   duracionS: number
   ejercicios: number
   completos: number
@@ -264,6 +282,8 @@ export interface SesionHistorial {
 export interface Progreso {
   totalSesiones: number
   totalDuracionS: number
+  /** tiempo en movimiento medio por sesión (0 sin sesiones) */
+  promedioSesionS: number
   diasActivos: number
   diasActivos7: number
   /** días con sesión de lunes a hoy (para la meta semanal) */
@@ -271,9 +291,15 @@ export interface Progreso {
   /** meta del perfil, en días por semana; null sin meta */
   metaSemanal: number | null
   rachaDias: number
+  /** la racha más larga de todo el historial */
+  mejorRachaDias: number
   primeraFecha: string | null
   /** últimas 8 semanas, de la más antigua a la actual */
   semanas: SemanaProgreso[]
+  /** null si el historial no cubre la semana pasada entera */
+  semanaComparada: SemanaComparada | null
+  /** días con actividad, del más antiguo al más reciente */
+  dias: DiaProgreso[]
   /** el usado más recientemente primero */
   ejercicios: EjercicioProgreso[]
   /** la más reciente primero */
@@ -293,6 +319,21 @@ export interface Perfil {
   creado: string | null
   /** última rutina armada en «Mi rutina»; null si aún no armó ninguna */
   rutina: PasoElegido[] | null
+  /** rutinas guardadas con nombre, para elegirlas desde el inicio */
+  rutinas: RutinaGuardada[]
+}
+
+export interface RutinaGuardada {
+  id: string
+  nombre: string
+  pasos: PasoElegido[]
+}
+
+/** Lo que se manda para guardar una rutina con nombre; sin `id` se crea una nueva. */
+export interface DatosRutina {
+  id?: string
+  nombre: string
+  pasos: PasoElegido[]
 }
 
 export interface EstadoPerfiles {
@@ -306,6 +347,9 @@ export interface EstadoPerfiles {
   maxNombre: number
   /** [mínimo, máximo] de la meta semanal */
   meta: [number, number]
+  /** cuántas rutinas con nombre puede guardar cada perfil */
+  maxRutinas: number
+  maxNombreRutina: number
 }
 
 export interface DatosPerfil {
@@ -391,6 +435,9 @@ export interface Bridge {
   borrarPerfil(id: string): Promise<boolean>
   /** Guarda en ese perfil la rutina de «Mi rutina» (Python la valida como en `iniciar`). */
   guardarRutina(perfilId: string, pasos: PasoElegido[]): Promise<ResultadoPerfil>
+  /** Crea (sin `id`) o reemplaza una rutina guardada con nombre del perfil. */
+  guardarRutinaNombrada(perfilId: string, datos: DatosRutina): Promise<ResultadoPerfil>
+  borrarRutinaNombrada(perfilId: string, rutinaId: string): Promise<ResultadoPerfil>
   /** Cámaras que se pueden elegir; null con un vídeo o con la cámara en uso. Tarda: abre cada una. */
   camaras(): Promise<Camaras | null>
   /** Termina la fase de colocación (capacidad «colocacion»). */
