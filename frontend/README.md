@@ -77,6 +77,23 @@ En la interfaz no hay que tocar nada. Para buscar en el código dónde se usa un
 
 Antes de subir: `pytest`, `npm run typecheck` y `npm run build`.
 
+## Marca y mascota
+
+- **Logo** (`public/logo.png`): la estrella cósmica minimalista. Es la identidad de la aplicación y va en la cabecera.
+- **Mascota** (`componentes/Estrella.tsx`, imágenes en `public/estela/`): Estela, la estrella animada. Aparece solo en momentos puntuales, con una frase corta:
+
+| Momento | Pose | Dónde |
+|---|---|---|
+| Bienvenida | `saludo` | `pantallas/Inicio.tsx` |
+| Preparando la cámara | `enfoque` | `pantallas/Inicio.tsx` |
+| Rutina terminada | `victoria` | `pantallas/Resumen.tsx` |
+| Sesión terminada antes | `tranquila` | `pantallas/Resumen.tsx` |
+| Meta semanal cumplida | `feliz` | `ResumenSemana` en `pantallas/Progreso.tsx` |
+
+Para que no le reste seriedad ni claridad al feedback, la mascota **no aparece** en la sesión en vivo (sobre la cámara ni junto a las correcciones) ni junto a un aviso de error. Sus frases son de ánimo: no evalúan la técnica ni dan consejos de salud.
+
+Las poses se recortaron de la hoja de stickers de la marca (PNG con transparencia, 320 × 320 px). Para añadir una pose: exportarla a `public/estela/<pose>.png` y sumarla al tipo `Pose` de `Estrella.tsx`.
+
 ## Tamaño de ventana
 
 Todos los tamaños están en `rem` y la raíz crece con la ventana (`estilos/base.css`). Así la interfaz se ve proporcionada de 960×600 (el mínimo de la ventana) a 2560×1440: en una pantalla grande todo crece para leerse desde 3 m. Por debajo de 1100 px de ancho, los botones de la sesión muestran solo el ícono. Para medidas nuevas, usar `rem` y no `px`, salvo en bordes de 1–2 px.

@@ -106,6 +106,31 @@ svg { flex-shrink: 0; }
 .icono-vista i { display: block; width: 0.375rem; height: 0.75rem; border: 1.5px solid currentColor; border-radius: 50%; }
 .icono-vista.perfil i + i { height: 0.5rem; margin-top: 2px; }
 
+/* -- Estela, la mascota (componentes/Estrella.tsx) --------------------------
+   Pequeña y puntual: acompaña al texto, no lo sustituye. */
+.estrella { display: flex; align-items: center; gap: var(--espacio-3); }
+.estrella-imagen {
+  flex: 0 0 auto; width: 5.5rem; height: 5.5rem; user-select: none;
+  animation: estrella-entrada 600ms cubic-bezier(0.2, 0.8, 0.2, 1) both, estrella-flotar 6s ease-in-out 600ms infinite;
+}
+.estrella-sm .estrella-imagen { width: 3.5rem; height: 3.5rem; }
+.estrella-globo {
+  position: relative; max-width: 24rem; margin: 0 0 0 0.375rem; padding: 0.625rem 1rem;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-md); background: var(--color-superficie);
+  color: var(--color-texto); font-size: 1.0625rem; font-weight: 600; line-height: 1.35;
+  animation: estrella-globo 400ms ease-out 250ms both;
+}
+/* colita del globo hacia la estrella */
+.estrella-globo::before {
+  content: ''; position: absolute; top: 50%; left: -0.4375rem; width: 0.75rem; height: 0.75rem;
+  border-bottom: 1px solid var(--color-borde); border-left: 1px solid var(--color-borde);
+  background: var(--color-superficie); transform: translateY(-50%) rotate(45deg);
+}
+.estrella-sm .estrella-globo { padding: 0.375rem 0.75rem; font-size: 0.9375rem; }
+@keyframes estrella-entrada { from { opacity: 0; transform: translateY(0.5rem) scale(0.85) rotate(-8deg); } }
+@keyframes estrella-flotar { 50% { transform: translateY(-0.25rem); } }
+@keyframes estrella-globo { from { opacity: 0; transform: translateX(-0.375rem); } }
+
 /* -- animaciones ----------------------------------------------------------- */
 .girando { animation: girar 1s linear infinite; }
 @keyframes girar { to { transform: rotate(360deg); } }

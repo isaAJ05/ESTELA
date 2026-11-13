@@ -5,6 +5,7 @@ import {
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Bridge, DiaProgreso, EjercicioProgreso, Progreso, SemanaComparada, SemanaProgreso, SesionHistorial } from '../bridge/tipos'
 import { Aviso, Boton, plural } from '../componentes/basicos'
+import { Estrella } from '../componentes/Estrella'
 import { FiguraEjercicio } from '../componentes/rutina'
 import { useEstado } from '../estado/almacen'
 import {
@@ -117,6 +118,7 @@ export function ResumenSemana({ bridge, alVer }: { bridge: Bridge; alVer: () => 
   const racha = textoRacha(datos.rachaDias)
   return (
     <article className="tarjeta resumen-semana">
+      {meta != null && dias >= meta && <Estrella tam="sm" pose="feliz" mensaje="¡Meta de la semana cumplida!" />}
       <div className="resumen-semana-datos">
         {meta != null ? (
           <div>

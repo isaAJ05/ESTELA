@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
+import { Estrella } from '../componentes/Estrella'
 import { textoVista } from '../componentes/Figura'
 import { GuardarRutina, VistaRutinas, type DatosTarjetaRutina } from '../componentes/misRutinas'
 import { FiguraEjercicio, ResumenRutina, TarjetaEjercicio, textoEstimado, textoObjetivo } from '../componentes/rutina'
@@ -356,7 +357,11 @@ function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable
   return (
     <section className="inicio-cuerpo">
       <div className="inicio-texto">
-        <span className="etiqueta etiqueta-marca">{saludo ? `Hola, ${saludo} · Sesión de hoy` : 'Sesión de hoy'}</span>
+        {/* con un error a la vista, sin mascota: lo importante es el aviso */}
+        {!error && (preparando
+          ? <Estrella pose="enfoque" mensaje="Preparando la cámara. Colócate donde te vea de cuerpo entero." />
+          : <Estrella pose="saludo" mensaje={`¡Hola${saludo ? `, ${saludo}` : ''}! Soy Estela y hoy te acompaño.`} />)}
+        <span className="etiqueta etiqueta-marca">Sesión de hoy</span>
         <h1>Tu sesión,<br /><em>a tu ritmo.</em></h1>
         <p className="inicio-proposito">
           Analizo tus movimientos en tiempo real y te doy indicaciones por voz para ayudarte a mejorar tu técnica.

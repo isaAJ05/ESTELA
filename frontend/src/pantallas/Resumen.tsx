@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
+import { Estrella } from '../componentes/Estrella'
 import { Figura } from '../componentes/Figura'
 import { FiguraEjercicio } from '../componentes/rutina'
 import { GuiaAnimada } from '../componentes/VistaCamara'
@@ -42,6 +43,10 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
 
       <section className="resumen-cuerpo">
         <div className="resumen-cabeza">
+          {/* si la sesión se cortó por un fallo, sin mascota: lo importante es el aviso */}
+          {resumen.motivoFin !== 'fuente' && resumen.motivoFin !== 'error' && (resumen.terminada
+            ? <Estrella pose="victoria" mensaje="¡Lo hiciste! Cada movimiento cuenta." />
+            : <Estrella pose="tranquila" mensaje="Lo que hiciste hoy también cuenta." />)}
           <span className="etiqueta etiqueta-marca">{resumen.rutina}</span>
           <h1>{resumen.terminada
             ? <>Muy bien{perfil ? `, ${perfil.nombre}` : ''},<br /><em>hoy te moviste.</em></>
