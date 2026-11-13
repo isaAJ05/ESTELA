@@ -180,7 +180,7 @@ def test_referencia_real_con_nulos_se_carga_como_nan():
 
 
 @pytest.mark.parametrize("skill_id", ["jumping_jacks", "abduccion_cadera_izq",
-                                      "abduccion_cadera_der", "marcha_rodillas"])
+                                      "abduccion_cadera_der"])
 def test_las_referencias_ciclicas_del_catalogo_se_alinean(skill_id):
     ref = cargar_catalogo()[skill_id].referencia
     media = np.asarray(ref["angulos"]["media"], dtype=float)

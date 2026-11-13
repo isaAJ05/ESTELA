@@ -114,7 +114,7 @@ class Reloj:
 
 def test_el_gesto_pausa_y_luego_reanuda(catalogo):
     voz, est = VozFalsa(), EstimadorBrazo()
-    s = Sesion(rutina_de_un_ejercicio("marcha_rodillas", 5, catalogo), catalogo, est, voz)
+    s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est, voz)
     r = Reloj(s)
     r.correr(1)
     est.arriba = True
@@ -135,7 +135,7 @@ def test_el_gesto_pausa_y_luego_reanuda(catalogo):
 
 def test_el_gesto_reanuda_la_pausa_del_boton(catalogo):
     est = EstimadorBrazo()
-    s = Sesion(rutina_de_un_ejercicio("marcha_rodillas", 5, catalogo), catalogo, est, VozFalsa())
+    s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est, VozFalsa())
     r = Reloj(s)
     r.correr(1)
     s.pausar()
@@ -150,7 +150,7 @@ def test_el_gesto_reanuda_la_pausa_del_boton(catalogo):
 
 def test_anterior_y_siguiente_solo_si_aplica(catalogo):
     rutina = rutina_desde_dict({"nombre": "t", "pasos": [
-        {"skill_id": "marcha_rodillas", "repeticiones": 3},
+        {"skill_id": "zancada_atras_izq", "repeticiones": 3},
         {"skill_id": "jumping_jacks", "repeticiones": 3},
         {"skill_id": "plancha", "duracion_s": 10}]}, catalogo)
     voz = VozFalsa()
@@ -171,4 +171,4 @@ def test_anterior_y_siguiente_solo_si_aplica(catalogo):
     assert not any("terminaste" in t for t, _ in voz.dichas[dichas:])
     # el resumen tiene un paso por ejercicio, sin duplicar el repetido
     assert [p["skill_id"] for p in s.resumen()["pasos"]] == [
-        "marcha_rodillas", "jumping_jacks", "plancha"]
+        "zancada_atras_izq", "jumping_jacks", "plancha"]

@@ -1,8 +1,9 @@
 {
   "skill_id": "zancada_atras_der",
   "nombre": "Zancada atrás estática, pierna derecha atrás",
+  "descripcion": "De perfil, con la pierna derecha atrás y los pies quietos: baja hasta doblar las dos rodillas y vuelve a subir, con el tronco erguido.",
   "version": "0.1.0",
-  "estado": "descartado",
+  "estado": "candidato",
   "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás. Mismas reglas, mismas notas y mismos umbrales provisionales (ADR-005).",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",

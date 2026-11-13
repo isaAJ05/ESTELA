@@ -253,7 +253,7 @@ def test_la_rutina_por_defecto_carga_los_ejercicios(catalogo):
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
     ids = [p.skill_id for p in rutina.pasos]
     assert ids == ["jumping_jacks", "abduccion_cadera_izq", "abduccion_cadera_der",
-                   "marcha_rodillas", "plancha"]
+                   "zancada_atras_izq", "zancada_atras_der", "plancha"]
     plancha = rutina.pasos[-1]
     assert catalogo[plancha.skill_id].unidad == "segundos" and plancha.repeticiones == 20
 
@@ -273,7 +273,7 @@ class EstimadorSinPiernas(EstimadorFalso):
 
 
 def test_la_interfaz_no_recibe_angulos_de_keypoints_mal_vistos(catalogo):
-    s = Sesion(rutina_de_un_ejercicio("marcha_rodillas", 5, catalogo), catalogo,
+    s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo,
                EstimadorSinPiernas(tronco=10), VozFalsa())
     angulos = [e.angulos for e in correr(s, [170.0] * 30) if e.angulos]
     assert angulos

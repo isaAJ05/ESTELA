@@ -350,7 +350,7 @@ export function GuiaAnimada({ puntos, ejercicioId, animar = true }: {
       - (ejercicioId === 'jumping_jacks' ? 0.035 : 0),
     1,
   ]
-  const esPerfil = ejercicioId === 'plancha' || ejercicioId === 'marcha_rodillas'
+  const esPerfil = ejercicioId === 'plancha' || ejercicioId.startsWith('zancada')
   const radioCabeza = esPerfil
     ? 0.06
     : Math.max(0.018, Math.min(0.05,

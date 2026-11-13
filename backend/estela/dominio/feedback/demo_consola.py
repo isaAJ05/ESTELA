@@ -16,7 +16,7 @@ from .pipeline import MotorFeedback
 #: inclinación de tronco por repetición: mal, mal, mal, bien, bien, mal, mal, mal
 GUION = [60.0, 62.0, 58.0, 20.0, 18.0, 64.0, 66.0, 61.0]
 FASES = ["arriba", "descenso", "fondo", "ascenso"]
-EJERCICIO = "marcha_rodillas"
+EJERCICIO = "zancada_atras_izq"
 
 
 def main() -> int:

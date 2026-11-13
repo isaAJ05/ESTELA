@@ -265,9 +265,9 @@ def test_orquestador_valida_y_guarda_la_rutina_del_perfil(perfiles, catalogo, ru
     luis = orq.crear_perfil({"nombre": "Luis"})["perfil"]
     assert ana["rutina"] is None
     r = orq.guardar_rutina(ana["id"], [{"skillId": "plancha", "objetivo": 45},
-                                       {"skillId": "marcha_rodillas", "objetivo": 12}])
+                                       {"skillId": "zancada_atras_izq", "objetivo": 12}])
     assert r["ok"] and r["perfil"]["rutina"] == [{"skillId": "plancha", "objetivo": 45},
-                                                 {"skillId": "marcha_rodillas", "objetivo": 12}]
+                                                 {"skillId": "zancada_atras_izq", "objetivo": 12}]
     # se guarda en el perfil indicado aunque el activo sea otro (guardado tardío)
     assert orq.perfiles()["activo"] == luis["id"]
     por_id = {p["id"]: p for p in orq.perfiles()["perfiles"]}

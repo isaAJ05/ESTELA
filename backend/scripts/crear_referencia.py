@@ -45,6 +45,12 @@ MEDIDAS_POR_EJERCICIO: Dict[str, Tuple[str, ...]] = {
     "marcha_rodillas": (
         "cadera_izq", "cadera_der", "tronco_inclinacion",
     ),
+    "zancada_atras_izq": (
+        "rodilla_izq", "rodilla_der", "tronco_inclinacion",
+    ),
+    "zancada_atras_der": (
+        "rodilla_izq", "rodilla_der", "tronco_inclinacion",
+    ),
     "plancha": (
         "tronco_inclinacion", "cabeza_adelantada", "alineacion_cadera",
     ),
@@ -348,8 +354,15 @@ def main() -> int:
     if not args.ejercicio or not args.video or not args.salida:
         parser.error("--ejercicio, --video y --salida son obligatorios")
     medidas, datos, fps = extraer_series(args.video, args.ejercicio)
+    import cv2
+    captura = cv2.VideoCapture(args.video)
+    # tamaño del vídeo: la guía corrige la proporción de los keypoints
+    # normalizados (un vídeo vertical no sale estirado)
+    ancho, alto = (int(captura.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                   int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    captura.release()
     meta = {"video": Path(args.video).name, "fps": fps,
-            "licencia": args.licencia}
+            "licencia": args.licencia, "ancho": ancho, "alto": alto}
     if isinstance(datos, dict):
         referencia = construir_isometrico(
             args.ejercicio, medidas, datos["frames"], datos["keypoints"], meta)

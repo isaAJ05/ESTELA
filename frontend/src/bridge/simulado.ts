@@ -17,7 +17,6 @@ const PASOS: PasoRutina[] = [
   { skillId: 'jumping_jacks', nombre: 'Jumping jacks', orientacion: 'frente', unidad: 'repeticiones', objetivo: 10, guia: null },
   { skillId: 'abduccion_cadera_izq', nombre: 'Abducción de cadera de pie, pierna izquierda', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8, guia: null },
   { skillId: 'abduccion_cadera_der', nombre: 'Abducción de cadera de pie, pierna derecha', orientacion: 'frente', unidad: 'repeticiones', objetivo: 8, guia: null },
-  { skillId: 'marcha_rodillas', nombre: 'Marcha con elevación de rodillas', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 16, guia: null },
   { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
   { skillId: 'zancada_atras_der', nombre: 'Zancada atrás estática, pierna derecha atrás', orientacion: 'perfil', unidad: 'repeticiones', objetivo: 6, guia: null },
   { skillId: 'plancha', nombre: 'Plancha', orientacion: 'perfil', unidad: 'segundos', objetivo: 20, guia: null },
@@ -27,14 +26,15 @@ const DESCRIPCION: Record<string, string> = {
   jumping_jacks: 'Abre y cierra brazos y piernas a la vez, con un pequeño salto.',
   abduccion_cadera_izq: 'De pie, eleva la pierna izquierda hacia el lado sin inclinar el tronco.',
   abduccion_cadera_der: 'De pie, eleva la pierna derecha hacia el lado sin inclinar el tronco.',
-  marcha_rodillas: 'Marcha en el sitio subiendo las rodillas, con el tronco erguido.',
+  zancada_atras_izq: 'De perfil, con la pierna izquierda atrás y los pies quietos: baja hasta doblar las dos rodillas y vuelve a subir, con el tronco erguido.',
+  zancada_atras_der: 'De perfil, con la pierna derecha atrás y los pies quietos: baja hasta doblar las dos rodillas y vuelve a subir, con el tronco erguido.',
   plancha: 'Sostén el cuerpo en línea recta apoyado en antebrazos y puntas de los pies.',
 }
 
-const CATALOGO: EjercicioCatalogo[] = PASOS.filter((p) => !p.skillId.startsWith('zancada')).map((p) => ({
+const CATALOGO: EjercicioCatalogo[] = PASOS.map((p) => ({
   ...p,
   descripcion: DESCRIPCION[p.skillId] ?? null,
-  conteo: p.unidad === 'segundos' ? 'isometrico' : p.skillId === 'marcha_rodillas' ? 'alternante' : 'ciclo',
+  conteo: p.unidad === 'segundos' ? 'isometrico' : 'ciclo',
   minimo: p.unidad === 'segundos' ? 5 : 1,
   maximo: p.unidad === 'segundos' ? 180 : 50,
 }))
@@ -79,7 +79,7 @@ function progresoSimulado(hoy = new Date()): Progreso {
   })
   const pasos = (k: number) => [
     { skillId: 'jumping_jacks', nombre: 'Jumping jacks', unidad: 'repeticiones' as const, completadas: Math.min(10, 6 + (k % 5)), objetivo: 10 },
-    { skillId: 'marcha_rodillas', nombre: 'Marcha con elevación de rodillas', unidad: 'repeticiones' as const, completadas: 16, objetivo: 16 },
+    { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', unidad: 'repeticiones' as const, completadas: 6, objetivo: 6 },
     { skillId: 'plancha', nombre: 'Plancha', unidad: 'segundos' as const, completadas: 12 + (k % 9), objetivo: 20 },
   ]
   const sesiones = haceDias.map((h, k) => {
@@ -119,7 +119,7 @@ function progresoSimulado(hoy = new Date()): Progreso {
       ejercicio('jumping_jacks', 'Jumping jacks', 'repeticiones', [
         { errorId: 'brazos_no_llegan_arriba', texto: 'Sube un poco más los brazos.', sesiones: 3, veces: 5 },
         { errorId: 'codos_flexionados', texto: 'Estira los codos al abrir.', sesiones: 1, veces: 1 }]),
-      ejercicio('marcha_rodillas', 'Marcha con elevación de rodillas', 'repeticiones', []),
+      ejercicio('zancada_atras_izq', 'Zancada atrás estática, pierna izquierda atrás', 'repeticiones', []),
       ejercicio('plancha', 'Plancha', 'segundos', [
         { errorId: 'cadera_hundida', texto: 'Sube un poco la cadera.', sesiones: 4, veces: 7 }]),
     ],
@@ -143,7 +143,6 @@ const MENSAJES: Record<string, Feedback[]> = {
   jumping_jacks: [correccion('Sube un poco más los brazos.', 'brazo', 'bilateral', 'moderada', [11, 12, 13, 14, 15, 16]), refuerzo('¡Vas muy bien!')],
   abduccion_cadera_izq: [correccion('Mantén el tronco recto, sin inclinarte.', 'tronco', 'na', 'leve', TRONCO)],
   abduccion_cadera_der: [correccion('Mantén el tronco recto, sin inclinarte.', 'tronco', 'na', 'leve', TRONCO)],
-  marcha_rodillas: [correccion('Sube un poco más las rodillas.', 'rodilla', 'bilateral', 'moderada', [25, 26]), correccion('Endereza un poco el tronco.', 'tronco', 'na', 'alta', TRONCO)],
   zancada_atras_izq: [correccion('Endereza un poco el tronco.', 'tronco', 'na', 'moderada', TRONCO), correccion('Baja un poco más la rodilla.', 'rodilla', 'derecho', 'leve', [26])],
   zancada_atras_der: [correccion('Endereza un poco el tronco.', 'tronco', 'na', 'moderada', TRONCO)],
   plancha: [correccion('Sube un poco la cadera.', 'cadera', 'bilateral', 'alta', [23, 24])],
@@ -340,7 +339,7 @@ export function bridgeSimulado(): Bridge {
     const antes = actual.completadas
     actual.completadas = Math.min(paso.objetivo,
       paso.unidad === 'segundos' ? Math.floor(activo) : Math.floor(activo / SEG_POR_REP))
-    if (paso.skillId === 'marcha_rodillas' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
+    if (paso.skillId === 'zancada_atras_izq' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
     // cada repetición (o segundo) nueva: con error si es de las que llevan corrección
     for (let k = antes + 1; k <= actual.completadas; k++) {
       const conError = paso.unidad === 'segundos' ? k > 6 && k <= 10 : [2, 4].includes(k)
@@ -427,7 +426,7 @@ export function bridgeSimulado(): Bridge {
 
   let perfiles: Perfil[] = escena === 'sin-perfiles' ? [] : [
     { id: 'pana', nombre: 'Ana', color: 'rosa', metaSemanal: 4, creado: '2026-09-19T07:15:00',
-      rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'marcha_rodillas', objetivo: 20 }] },
+      rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'zancada_atras_izq', objetivo: 6 }] },
     { id: 'pluis', nombre: 'Luis', color: 'azul', metaSemanal: null, creado: '2026-10-02T18:00:00', rutina: null },
   ]
   let activo: string | null = null

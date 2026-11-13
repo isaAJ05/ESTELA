@@ -1,5 +1,7 @@
 """Segmentador de fases con señales sintéticas: fases, conteo y robustez."""
 
+from pathlib import Path
+
 import pytest
 
 from estela.dominio.feedback.contrato import Observacion
@@ -10,6 +12,7 @@ from estela.dominio.conteo.segmentador import (
     segmentador_desde_dict,
 )
 from estela.aplicacion.rutina import cargar_catalogo
+from estela.dominio.feedback.motor.skill import directorio_skills
 
 FASES_SENTADILLA = ("arriba", "descenso", "fondo", "ascenso")
 
@@ -164,7 +167,7 @@ def test_desde_dict_valida_fases_contra_el_skill():
 def test_skills_del_repositorio_cargan_su_segmentacion():
     catalogo = cargar_catalogo()
     assert {k for k, e in catalogo.items() if e.soportado} == set(catalogo)
-    assert set(catalogo) == {"jumping_jacks", "marcha_rodillas", "plancha",
+    assert set(catalogo) == {"jumping_jacks", "plancha", "zancada_atras_izq", "zancada_atras_der",
                              "abduccion_cadera_izq", "abduccion_cadera_der"}
     for e in catalogo.values():
         e.nuevo_segmentador()
@@ -288,7 +291,9 @@ def _dichas(skill_id, frames):
     from dataclasses import replace
     from estela.dominio.feedback.contrato import ErrorTipificado
     from estela.dominio.feedback.motor.decision import MotorDecision
-    ej = cargar_catalogo()[skill_id]
+    # la marcha salió del catálogo (2026-11-06) pero sigue en retirados/
+    retirados = cargar_catalogo(Path(directorio_skills()) / "retirados")
+    ej = {**retirados, **cargar_catalogo()}[skill_id]
     seg, motor, dichas = ej.nuevo_segmentador(), MotorDecision(ej.skill), []
     for i, (angulos, distancias) in enumerate(frames):
         o = Observacion(t_ms=i * 33, ejercicio_id=skill_id, angulos=angulos,

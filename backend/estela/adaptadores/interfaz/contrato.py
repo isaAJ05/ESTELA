@@ -120,7 +120,7 @@ from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
 from ...aplicacion.perfiles import COLORES, MAX_NOMBRE, MAX_PERFILES, META_MAX, META_MIN, rutina_de
 from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida, rutina_desde_dict
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
-                             MOTIVO_ANUNCIO, _COLOCACION, EstadoFrame)
+                             MOTIVO_ANUNCIO, _COLOCACION, EstadoFrame, aspecto_guia)
 
 VERSION = 1
 
@@ -225,6 +225,7 @@ def _referencia_estatica(referencia: Optional[Mapping[str, Any]]
     frames = np.asarray(referencia.get("keypoints_2d", ()), dtype=float)
     if frames.ndim != 3 or frames.shape[1:] != (33, 2) or not len(frames):
         return None
+    frames = frames * np.array([aspecto_guia(referencia), 1.0])
     indice = int(referencia.get("indice_medoide", 0))
     indice = max(0, min(indice, len(frames) - 1))
     puntos = frames[indice]

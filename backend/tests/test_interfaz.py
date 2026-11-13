@@ -4,22 +4,19 @@ El orquestador se prueba con la misma fuente sintética que `test_sesion`:
 el «frame» lleva el ángulo de rodilla y el estimador falso construye el
 esqueleto. Así se recorre el flujo inicio → sesión → resumen sin cámara.
 
-Como banco de pruebas se usa la zancada atrás, retirada del catálogo (ADR-005
-§6, PR #8) pero todavía válida en `retirados/`, igual que en `test_decision`:
-el esqueleto sintético de perfil es una zancada y estos tests prueban el
-contrato y el orquestador, no el conjunto de ejercicios.
+Como banco de pruebas se usa la zancada atrás: el esqueleto sintético de
+perfil es una zancada y estos tests prueban el contrato y el orquestador, no
+el conjunto de ejercicios.
 """
 
 import json
 import time
-from pathlib import Path
 
 import numpy as np
 import pytest
 
 from estela.aplicacion.rutina import (RutinaInvalida, cargar_catalogo,
                                       rutina_de_un_ejercicio, rutina_desde_dict)
-from estela.dominio.feedback.motor.skill import directorio_skills
 from estela.aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                                   Sesion, _preparar_guia)
 from estela.adaptadores.interfaz import contrato
@@ -39,8 +36,7 @@ def secuencia_zancadas(n, minimo=80):
 
 @pytest.fixture(scope="module")
 def catalogo():
-    retirados = cargar_catalogo(Path(directorio_skills()) / "retirados")
-    return {**cargar_catalogo(), ZANCADA: retirados[ZANCADA]}
+    return cargar_catalogo()
 
 
 @pytest.fixture
@@ -125,11 +121,11 @@ def test_info_trae_el_catalogo_con_objetivos_por_defecto(catalogo, rutina):
     assert por_id[ZANCADA]["objetivo"] == 2              # el de la rutina base
     assert por_id["plancha"]["unidad"] == "segundos"
     assert por_id["jumping_jacks"]["objetivo"] == contrato.OBJETIVO_POR_DEFECTO["repeticiones"]
-    assert por_id["marcha_rodillas"]["conteo"] == "alternante"   # cada pierna cuenta una
+    assert por_id[ZANCADA]["conteo"] == "ciclo"
     assert por_id["plancha"]["conteo"] == "isometrico"
     assert all(por_id[sid]["descripcion"] for sid in
                ("jumping_jacks", "abduccion_cadera_izq", "abduccion_cadera_der",
-                "marcha_rodillas", "plancha"))
+                "zancada_atras_izq", "zancada_atras_der", "plancha"))
     assert (por_id["plancha"]["minimo"], por_id["plancha"]["maximo"]) ==         contrato.LIMITES_OBJETIVO["segundos"]
 
 
@@ -159,7 +155,7 @@ def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
     assert d["depuracion"]["fps"] == 30.0
     assert d["nivel"] is None                       # aún sin backend
     assert isinstance(d["correctas"], int) and isinstance(d["conError"], int)
-    assert d["guia"] is None  # la zancada de prueba no tiene referencia
+    assert len(d["guia"]) == 33  # la zancada ya tiene referencia (vídeo propio)
     # el motor sí corrió en este frame: dice por qué no habló
     assert d["depuracion"]["motivoSilencio"] is not None
 
@@ -177,7 +173,7 @@ def test_estado_entrega_guia_animada_desde_referencia(catalogo):
 
 def test_referencias_de_guia_se_encuadran_sin_alterar_su_duracion(catalogo):
     for skill_id in ("jumping_jacks", "abduccion_cadera_izq",
-                     "abduccion_cadera_der", "marcha_rodillas", "plancha"):
+                     "abduccion_cadera_der", "plancha"):
         referencia = catalogo[skill_id].referencia
         assert referencia is not None
         assert referencia["keypoints_2d"]
@@ -186,6 +182,25 @@ def test_referencias_de_guia_se_encuadran_sin_alterar_su_duracion(catalogo):
         assert guia is not None
         assert guia.shape[1:] == (33, 4)
         assert np.all((guia[:, :, :2] >= 0) & (guia[:, :, :2] <= 1))
+
+
+def test_guia_de_video_vertical_conserva_proporcion():
+    """Keypoints normalizados de un vídeo 720×1280: un segmento que mide lo
+    mismo en píxeles a lo ancho y a lo alto debe medir lo mismo en la guía."""
+    puntos = np.full((2, 33, 2), 0.5)
+    puntos[:, 1] = [0.5 + 0.1 * 1280 / 720, 0.5]       # 128 px a la derecha
+    puntos[:, 2] = [0.5, 0.6]                            # 128 px abajo
+    referencia = {"keypoints_2d": puntos.tolist(), "fps": 25.0,
+                  "fuente": {"ancho": 720, "alto": 1280}}
+    guia, _ = _preparar_guia(referencia)
+    dx = guia[0, 1, 0] - guia[0, 0, 0]
+    dy = guia[0, 2, 1] - guia[0, 0, 1]
+    assert dx == pytest.approx(dy, rel=1e-5)
+    estatica = np.asarray(contrato._referencia_estatica(referencia))
+    assert estatica[1, 0] - estatica[0, 0] == pytest.approx(estatica[2, 1] - estatica[0, 1], rel=1e-3)
+    # sin tamaño guardado (referencias antiguas) no cambia nada
+    sin = dict(referencia, fuente={})
+    assert _preparar_guia(sin)[0][0, 1, 0] - _preparar_guia(sin)[0][0, 0, 0] > dx
 
 
 def test_feedback_tipado_llega_a_la_interfaz(catalogo):

@@ -4,9 +4,9 @@ Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un 
 
 El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archivo mal formado no se carga a medias.
 
-Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco) y la zancada atrás, que salió después (PR #8), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla y la zancada como banco de pruebas, pero no forman parte del catálogo.
+Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco) y la marcha con elevación de rodillas, que salió después al cambiarla por la zancada (2026-11-06), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla y la marcha como banco de pruebas, pero no forman parte del catálogo.
 
-Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `marcha_rodillas` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
+Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `zancada_atras_izq` + `zancada_atras_der` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
 
 ## Estructura
 
@@ -75,7 +75,7 @@ Consecuencia aceptada (decisión del 2026-10-08): el ejercicio puede felicitar h
 
 Lista de `error_id` del mismo skill. Si alguno se disparó en la repetición en curso, esta regla calla el resto de la repetición: ni se evalúa ni acumula evidencia. Sirve para la **precedencia entre errores**:
 - La abducción insuficiente calla si el tronco o la cadera compensaron (catálogo v2, AH-01): no se dice «sube más» a quien ya se inclina para subir más.
-- La profundidad de la zancada (retirada) calla si el paso está fuera de rango (ZR-04), porque entonces la causa es el paso.
+- La profundidad de la zancada calla si el paso está fuera de rango (ZR-04), porque entonces la causa es el paso.
 
 La regla que manda tiene que evaluarse **antes** en la repetición (en una fase anterior o en la misma).
 

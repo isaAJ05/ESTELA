@@ -19,10 +19,10 @@ SKILLS = cargar_skills(directorio_skills())
 #: catálogo; las reglas de los ejercicios actuales se prueban en TestSkillsActuales.
 SKILLS["sentadilla"] = cargar_skill(
     os.path.join(directorio_skills(), "retirados", "sentadilla.json"))
-#: La zancada salió del catálogo (PR #8) y su skill vive en `retirados/`; el
-#: test de refuerzo la sigue usando por su `politica_refuerzo`.
-SKILLS["zancada_atras_izq"] = cargar_skill(
-    os.path.join(directorio_skills(), "retirados", "zancada_atras_izq.json"))
+#: La marcha salió del catálogo al cambiarla por la zancada (2026-11-06); sus
+#: tests de segmentación alterna y de la rodilla estirada la siguen usando.
+SKILLS["marcha_rodillas"] = cargar_skill(
+    os.path.join(directorio_skills(), "retirados", "marcha_rodillas.json"))
 
 
 def obs(t_ms, rep, fase="descenso", tronco=60.0, conf=1.0, orientacion=90.0,
