@@ -68,6 +68,19 @@ _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
                Plano.SAGITAL: "Colócate de perfil a la cámara."}
 
 
+def aspecto_guia(referencia: Mapping[str, Any]) -> float:
+    """Ancho/alto del vídeo de la referencia, si se guardó (`fuente.ancho`,
+    `fuente.alto`); si no, 1. Los keypoints van normalizados a la imagen
+    (x por el ancho, y por el alto), y la guía se dibuja en un cuadro 1×1:
+    sin esta corrección, un vídeo vertical sale estirado a lo ancho."""
+    fuente = referencia.get("fuente") or {}
+    try:
+        ancho, alto = float(fuente["ancho"]), float(fuente["alto"])
+    except (KeyError, TypeError, ValueError):
+        return 1.0
+    return ancho / alto if ancho > 0 and alto > 0 else 1.0
+
+
 def _preparar_guia(referencia: Optional[Mapping[str, Any]]
                    ) -> Tuple[Optional[np.ndarray], float]:
     if not referencia:
@@ -80,6 +93,7 @@ def _preparar_guia(referencia: Optional[Mapping[str, Any]]
     validos = np.isfinite(puntos).all(axis=(0, 2))
     if not validos.all():
         return None, 30.0
+    puntos = puntos * np.array([aspecto_guia(referencia), 1.0], dtype=np.float32)
     minimo = puntos.min(axis=(0, 1))
     maximo = puntos.max(axis=(0, 1))
     centro = (minimo + maximo) / 2.0

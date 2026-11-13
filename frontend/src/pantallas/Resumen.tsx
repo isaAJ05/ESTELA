@@ -4,6 +4,7 @@ import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '.
 import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
 import { Figura } from '../componentes/Figura'
+import { FiguraEjercicio } from '../componentes/rutina'
 import { GuiaAnimada } from '../componentes/VistaCamara'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
@@ -140,7 +141,7 @@ function FilaPendiente({ paso }: { paso: PasoRutina }) {
   return (
     <li className="fila-resumen pendiente">
       <div className="fila-resumen-cabeza">
-        <span className="paso-figura"><Figura skillId={paso.skillId} tam={44} resaltar={false} /></span>
+        <span className="paso-figura"><FiguraEjercicio paso={paso} /></span>
         <span className="fila-resumen-nombre">
           <strong>{paso.nombre}</strong>
           <span>Sin empezar</span>

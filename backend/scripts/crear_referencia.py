@@ -354,8 +354,15 @@ def main() -> int:
     if not args.ejercicio or not args.video or not args.salida:
         parser.error("--ejercicio, --video y --salida son obligatorios")
     medidas, datos, fps = extraer_series(args.video, args.ejercicio)
+    import cv2
+    captura = cv2.VideoCapture(args.video)
+    # tamaño del vídeo: la guía corrige la proporción de los keypoints
+    # normalizados (un vídeo vertical no sale estirado)
+    ancho, alto = (int(captura.get(cv2.CAP_PROP_FRAME_WIDTH)),
+                   int(captura.get(cv2.CAP_PROP_FRAME_HEIGHT)))
+    captura.release()
     meta = {"video": Path(args.video).name, "fps": fps,
-            "licencia": args.licencia}
+            "licencia": args.licencia, "ancho": ancho, "alto": alto}
     if isinstance(datos, dict):
         referencia = construir_isometrico(
             args.ejercicio, medidas, datos["frames"], datos["keypoints"], meta)

@@ -153,7 +153,7 @@ def test_estado_es_json_y_trae_campos_futuros_en_null(catalogo, rutina):
     assert d["depuracion"]["fps"] == 30.0
     for futuro in ("correctas", "conError", "nivel"):
         assert d[futuro] is None
-    assert d["guia"] is None  # la zancada de prueba no tiene referencia
+    assert len(d["guia"]) == 33  # la zancada ya tiene referencia (vídeo propio)
     # el motor sí corrió en este frame: dice por qué no habló
     assert d["depuracion"]["motivoSilencio"] is not None
 
@@ -180,6 +180,25 @@ def test_referencias_de_guia_se_encuadran_sin_alterar_su_duracion(catalogo):
         assert guia is not None
         assert guia.shape[1:] == (33, 4)
         assert np.all((guia[:, :, :2] >= 0) & (guia[:, :, :2] <= 1))
+
+
+def test_guia_de_video_vertical_conserva_proporcion():
+    """Keypoints normalizados de un vídeo 720×1280: un segmento que mide lo
+    mismo en píxeles a lo ancho y a lo alto debe medir lo mismo en la guía."""
+    puntos = np.full((2, 33, 2), 0.5)
+    puntos[:, 1] = [0.5 + 0.1 * 1280 / 720, 0.5]       # 128 px a la derecha
+    puntos[:, 2] = [0.5, 0.6]                            # 128 px abajo
+    referencia = {"keypoints_2d": puntos.tolist(), "fps": 25.0,
+                  "fuente": {"ancho": 720, "alto": 1280}}
+    guia, _ = _preparar_guia(referencia)
+    dx = guia[0, 1, 0] - guia[0, 0, 0]
+    dy = guia[0, 2, 1] - guia[0, 0, 1]
+    assert dx == pytest.approx(dy, rel=1e-5)
+    estatica = np.asarray(contrato._referencia_estatica(referencia))
+    assert estatica[1, 0] - estatica[0, 0] == pytest.approx(estatica[2, 1] - estatica[0, 1], rel=1e-3)
+    # sin tamaño guardado (referencias antiguas) no cambia nada
+    sin = dict(referencia, fuente={})
+    assert _preparar_guia(sin)[0][0, 1, 0] - _preparar_guia(sin)[0][0, 0, 0] > dx
 
 
 def test_feedback_tipado_llega_a_la_interfaz(catalogo):
