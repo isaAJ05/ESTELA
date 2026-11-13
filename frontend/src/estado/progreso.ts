@@ -80,3 +80,91 @@ export function textoFrecuencia(veces: number, de: number): string {
 export function textoMarca(completadas: number, objetivo: number, unidad: 'repeticiones' | 'segundos'): string {
   return `${completadas} / ${objetivo}${unidad === 'segundos' ? ' s' : ''}`
 }
+
+// -- presentación de las cifras nuevas (las calcula Python; aquí solo el texto) --
+
+const MESES_LARGOS = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre',
+  'octubre', 'noviembre', 'diciembre']
+const DIAS_LARGOS = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado']
+
+/** Date local → «AAAA-MM-DD». */
+export function isoDia(f: Date): string {
+  return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`
+}
+
+/** Semana que empieza el lunes `inicio`: «3 – 9 nov» o «27 oct – 2 nov». */
+export function periodoSemana(inicio: string): string {
+  const a = leerFecha(inicio)
+  const b = new Date(a.getFullYear(), a.getMonth(), a.getDate() + 6)
+  return a.getMonth() === b.getMonth()
+    ? `${a.getDate()} – ${b.getDate()} ${MESES[b.getMonth()]}`
+    : `${a.getDate()} ${MESES[a.getMonth()]} – ${b.getDate()} ${MESES[b.getMonth()]}`
+}
+
+/** Tramo comparado de la semana: «el lunes», «de lunes a jueves», «la semana entera». */
+export function textoTramo(dias: number): string {
+  if (dias <= 1) return 'el lunes'
+  if (dias >= 7) return 'la semana entera'
+  return `de lunes a ${DIAS_LARGOS[dias % 7]}`
+}
+
+/** Diferencia de tiempo redondeada a minutos: «+7 min», «−3 min», «lo mismo». */
+export function textoDiferencia(segundos: number): string {
+  const m = minutos(segundos)
+  if (m === 0) return 'lo mismo'
+  return `${m > 0 ? '+' : '−'}${Math.abs(m)} min`
+}
+
+/** «jueves 12 de noviembre» */
+export function fechaLarga(iso: string): string {
+  const f = leerFecha(iso)
+  return `${DIAS_LARGOS[f.getDay()]} ${f.getDate()} de ${MESES_LARGOS[f.getMonth()]}`
+}
+
+/** «noviembre de 2026» */
+export function textoMes(anio: number, mes: number): string {
+  return `${MESES_LARGOS[mes]} de ${anio}`
+}
+
+/** «9:30» */
+export function hora(iso: string): string {
+  const f = leerFecha(iso)
+  return `${f.getHours()}:${String(f.getMinutes()).padStart(2, '0')}`
+}
+
+/**
+ * Intensidad del día en el calendario, de 0 (sin actividad) a 3, según su
+ * tiempo frente al día más activo del historial. Es solo la escala de color.
+ */
+export function nivelActividad(duracionS: number, maximoS: number): 0 | 1 | 2 | 3 {
+  if (duracionS <= 0 || maximoS <= 0) return 0
+  const r = duracionS / maximoS
+  return r > 2 / 3 ? 3 : r > 1 / 3 ? 2 : 1
+}
+
+/** Semanas (lunes a domingo) del mes: cada celda es el día o null fuera del mes. */
+export function semanasDelMes(anio: number, mes: number): (Date | null)[][] {
+  const primero = new Date(anio, mes, 1)
+  const huecos = (primero.getDay() + 6) % 7
+  const total = new Date(anio, mes + 1, 0).getDate()
+  const celdas: (Date | null)[] = [
+    ...Array.from({ length: huecos }, () => null),
+    ...Array.from({ length: total }, (_, i) => new Date(anio, mes, i + 1)),
+  ]
+  while (celdas.length % 7) celdas.push(null)
+  return Array.from({ length: celdas.length / 7 }, (_, k) => celdas.slice(k * 7, k * 7 + 7))
+}
+
+export type EstadoSesion = 'completa' | 'antes' | 'interrumpida'
+
+/**
+ * Cómo terminó la sesión, con los motivos que guarda el historial:
+ * completada → «Rutina terminada» (llegó al final; los objetivos se cuentan aparte); usuaria → «Terminada antes»;
+ * cámara perdida, cierre o error → «Interrumpida». Sin motivo (registros
+ * antiguos) se usa `terminada`.
+ */
+export function estadoSesion(terminada: boolean, motivo: string | null): { clave: EstadoSesion; texto: string } {
+  if (motivo === 'fuente' || motivo === 'cierre' || motivo === 'error') return { clave: 'interrumpida', texto: 'Interrumpida' }
+  if (motivo === 'usuaria' || (motivo == null && !terminada)) return { clave: 'antes', texto: 'Terminada antes' }
+  return { clave: 'completa', texto: 'Rutina terminada' }
+}

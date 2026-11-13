@@ -1,5 +1,5 @@
 import type {
-  AjustesPython, Bridge, Camaras, DatosPerfil, Estado, EstadoPerfiles, Info, OpcionesInicio, PasoElegido,
+  AjustesPython, Bridge, Camaras, DatosPerfil, DatosRutina, Estado, EstadoPerfiles, Info, OpcionesInicio, PasoElegido,
   Progreso, ResultadoPerfil,
 } from './tipos'
 
@@ -27,6 +27,8 @@ interface ApiPython {
   editar_perfil?(id: string, datos: DatosPerfil): Promise<ResultadoPerfil>
   borrar_perfil?(id: string): Promise<boolean>
   guardar_rutina?(perfilId: string, pasos: PasoElegido[]): Promise<ResultadoPerfil>
+  guardar_rutina_nombrada?(perfilId: string, datos: DatosRutina): Promise<ResultadoPerfil>
+  borrar_rutina_nombrada?(perfilId: string, rutinaId: string): Promise<ResultadoPerfil>
   // solo con la capacidad «elegirCamara»
   camaras?(): Promise<Camaras | null>
   // solo con la capacidad «pasoAnterior»
@@ -80,6 +82,10 @@ export function bridgePywebview(api: ApiPython): Bridge {
     editarPerfil: async (id, datos) => (await api.editar_perfil?.(id, datos)) ?? SIN_PERFILES,
     borrarPerfil: async (id) => (await api.borrar_perfil?.(id)) ?? false,
     guardarRutina: async (perfilId, pasos) => (await api.guardar_rutina?.(perfilId, pasos)) ?? SIN_PERFILES,
+    guardarRutinaNombrada: async (perfilId, datos) =>
+      (await api.guardar_rutina_nombrada?.(perfilId, datos)) ?? SIN_PERFILES,
+    borrarRutinaNombrada: async (perfilId, rutinaId) =>
+      (await api.borrar_rutina_nombrada?.(perfilId, rutinaId)) ?? SIN_PERFILES,
     camaras: async () => (await api.camaras?.()) ?? null,
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },

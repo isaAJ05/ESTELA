@@ -96,6 +96,10 @@ se guarda nada) y lo gestiona con `perfiles()`, `crearPerfil`, `editarPerfil`
 y `borrarPerfil` (`perfiles_a_dict`, `perfil_a_dict`, `datos_de_perfil`).
 `guardarRutina(perfilId, pasos)` guarda en el perfil la rutina que se arma en
 «Mi rutina» (`[{"skillId", "objetivo"}]`, validada como en `iniciar`).
+Cada perfil puede guardar además rutinas con nombre (`rutinas` en
+`perfil_a_dict`): `guardarRutinaNombrada(perfilId, {"id"?, "nombre",
+"pasos"})` crea una (sin `id`) o la reemplaza, y `borrarRutinaNombrada(perfilId,
+rutinaId)` la borra; ambas devuelven el perfil como `editarPerfil`.
 
 Feedback
 --------
@@ -117,7 +121,8 @@ from ...dominio.feedback.contrato import (MOTIVO_CONFIANZA_BAJA, MOTIVO_PLANO_NO
 
 from ...dominio.feedback.motor.geometria import ANGULOS_MEDIOS, ANGULOS_TERNA
 from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
-from ...aplicacion.perfiles import COLORES, MAX_NOMBRE, MAX_PERFILES, META_MAX, META_MIN, rutina_de
+from ...aplicacion.perfiles import (COLORES, MAX_NOMBRE, MAX_NOMBRE_RUTINA, MAX_PERFILES, MAX_RUTINAS,
+                                    META_MAX, META_MIN, rutina_de, rutinas_de)
 from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida, rutina_desde_dict
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
                              MOTIVO_ANUNCIO, _COLOCACION, EstadoFrame, aspecto_guia)
@@ -526,8 +531,14 @@ def perfil_a_dict(p: Mapping[str, Any]) -> Dict[str, Any]:
             "metaSemanal": p.get("meta_semanal"), "creado": p.get("creado"),
             # última rutina armada en «Mi rutina»; la interfaz descarta lo que ya
             # no esté en el catálogo y ajusta el objetivo a sus límites
-            "rutina": ([{"skillId": q["skill_id"], "objetivo": q["objetivo"]} for q in rutina]
-                       if rutina is not None else None)}
+            "rutina": (_pasos_a_dict(rutina) if rutina is not None else None),
+            # rutinas guardadas con nombre, para elegirlas desde el inicio
+            "rutinas": [{"id": r["id"], "nombre": r["nombre"], "pasos": _pasos_a_dict(r["pasos"])}
+                        for r in rutinas_de(p)]}
+
+
+def _pasos_a_dict(pasos: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    return [{"skillId": q["skill_id"], "objetivo": q["objetivo"]} for q in pasos]
 
 
 def perfiles_a_dict(perfiles: Sequence[Mapping[str, Any]], activo: Optional[str],
@@ -542,6 +553,8 @@ def perfiles_a_dict(perfiles: Sequence[Mapping[str, Any]], activo: Optional[str]
         "maxPerfiles": MAX_PERFILES,
         "maxNombre": MAX_NOMBRE,
         "meta": [META_MIN, META_MAX],
+        "maxRutinas": MAX_RUTINAS,
+        "maxNombreRutina": MAX_NOMBRE_RUTINA,
     }
 
 
@@ -564,14 +577,24 @@ def progreso_a_dict(p: Mapping[str, Any], catalogo: Mapping[str, Ejercicio],
     return {
         "totalSesiones": p["total_sesiones"],
         "totalDuracionS": p["total_duracion_s"],
+        "promedioSesionS": p["promedio_sesion_s"],
         "diasActivos": p["dias_activos"],
         "diasActivos7": p["dias_activos_7"],
         "diasSemanaActual": p["dias_semana_actual"],
         "metaSemanal": meta_semanal,
         "rachaDias": p["racha_dias"],
+        "mejorRachaDias": p["mejor_racha_dias"],
         "primeraFecha": p["primera_fecha"],
         "semanas": [{"inicio": s["inicio"], "sesiones": s["sesiones"],
                      "duracionS": s["duracion_s"]} for s in p["semanas"]],
+        "semanaComparada": None if p["semana_comparada"] is None else {
+            "dias": p["semana_comparada"]["dias"],
+            "actualS": p["semana_comparada"]["actual_s"],
+            "anteriorS": p["semana_comparada"]["anterior_s"],
+            "diferenciaS": p["semana_comparada"]["diferencia_s"],
+        },
+        "dias": [{"fecha": d["fecha"], "sesiones": d["sesiones"], "duracionS": d["duracion_s"]}
+                 for d in p["dias"]],
         "ejercicios": [{
             "skillId": e["skill_id"],
             "nombre": _nombre(e["skill_id"], catalogo),
@@ -593,6 +616,7 @@ def progreso_a_dict(p: Mapping[str, Any], catalogo: Mapping[str, Ejercicio],
             "fecha": s["fecha"],
             "rutina": s["rutina"],
             "terminada": s["terminada"],
+            "motivoFin": s["motivo_fin"],
             "duracionS": s["duracion_s"],
             "ejercicios": s["ejercicios"],
             "completos": s["completos"],

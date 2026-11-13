@@ -43,3 +43,37 @@ test('tiempo acumulado sin parecer una hora del día', () => {
   assert.equal(p.duracionLarga(98 * 60), '1 h 38 min')
   assert.equal(p.duracionLarga(120 * 60), '2 h')
 })
+
+test('periodo de la semana y tramo comparado', () => {
+  assert.equal(p.periodoSemana('2026-11-09'), '9 – 15 nov')
+  assert.equal(p.periodoSemana('2026-10-27'), '27 oct – 2 nov')
+  assert.equal(p.textoTramo(1), 'el lunes')
+  assert.equal(p.textoTramo(4), 'de lunes a jueves')
+  assert.equal(p.textoTramo(7), 'la semana entera')
+  assert.equal(p.textoDiferencia(420), '+7 min')
+  assert.equal(p.textoDiferencia(-185), '−3 min')
+  assert.equal(p.textoDiferencia(20), 'lo mismo')
+})
+
+test('calendario: semanas de lunes a domingo e intensidad', () => {
+  const nov = p.semanasDelMes(2026, 10)                 // 1 nov 2026 es domingo
+  assert.equal(nov[0].filter((d) => d === null).length, 6)
+  assert.equal(nov[0][6]?.getDate(), 1)
+  assert.ok(nov.every((s) => s.length === 7))
+  assert.equal(nov.flat().filter(Boolean).length, 30)
+  assert.equal(p.isoDia(new Date(2026, 10, 3)), '2026-11-03')
+  assert.equal(p.nivelActividad(0, 600), 0)
+  assert.equal(p.nivelActividad(100, 600), 1)
+  assert.equal(p.nivelActividad(300, 600), 2)
+  assert.equal(p.nivelActividad(600, 600), 3)
+  assert.equal(p.fechaLarga('2026-11-12'), 'jueves 12 de noviembre')
+})
+
+test('estado de la sesión según cómo terminó', () => {
+  assert.equal(p.estadoSesion(true, 'completada').clave, 'completa')
+  assert.equal(p.estadoSesion(false, 'usuaria').clave, 'antes')
+  assert.equal(p.estadoSesion(false, 'fuente').clave, 'interrumpida')
+  assert.equal(p.estadoSesion(false, 'cierre').clave, 'interrumpida')
+  assert.equal(p.estadoSesion(false, null).clave, 'antes')          // registro sin motivo
+  assert.equal(p.estadoSesion(true, null).clave, 'completa')
+})

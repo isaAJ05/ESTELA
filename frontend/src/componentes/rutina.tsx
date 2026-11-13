@@ -62,14 +62,13 @@ export function ControlObjetivo({ ej, valor, alCambiar, alValidar, accion }: {
     <div className="control-objetivo">
       <div className="control-objetivo-cabeza">
         <label htmlFor={id} className="etiqueta">{textoUnidad(ej)}</label>
-        <span id={`${id}-ayuda`} className="control-ayuda">De {ej.minimo} a {ej.maximo}</span>
       </div>
       <div className="control-objetivo-fila">
         <div className={`stepper ${error ? 'invalido' : ''}`}>
           <button type="button" onClick={() => sumar(-1)} disabled={valor <= ej.minimo}
                   aria-label={`Menos ${ej.unidad}`}><Minus /></button>
           <input id={id} inputMode="numeric" value={texto} aria-invalid={error != null}
-                 aria-describedby={error ? `${id}-error` : `${id}-ayuda`}
+                 aria-describedby={error ? `${id}-error` : undefined}
                  onChange={(e) => escribir(e.target.value)}
                  onBlur={() => { if (!error) setTexto(String(valor)) }} />
           <button type="button" onClick={() => sumar(1)} disabled={valor >= ej.maximo}
@@ -139,7 +138,8 @@ export function TarjetaEjercicio({ ej, posicion, objetivo, alAlternar, alCambiar
 
 /** Resumen lateral: orden, objetivos, duración aproximada y el botón para empezar. */
 export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, preparando, error,
-                                alMover, alQuitar, alRestablecer, alComenzar, extra }: {
+                                alMover, alQuitar, alRestablecer, alComenzar, extra, guardado,
+                                textoRestablecer = 'Volver a la rutina recomendada' }: {
   nombre: string
   pasos: PasoRutina[]
   estimadoS: number
@@ -153,6 +153,10 @@ export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, pr
   alRestablecer: () => void
   alComenzar: () => void
   extra?: ReactNode
+  /** nombre y botón para guardar la rutina */
+  guardado?: ReactNode
+  /** a qué vuelve «Restablecer» (la recomendada o la rutina guardada) */
+  textoRestablecer?: string
 }) {
   return (
     <aside className="tarjeta resumen-rutina" aria-label="Tu rutina">
@@ -162,7 +166,7 @@ export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, pr
           <h2>{nombre}</h2>
         </div>
         {modificada && (
-          <Boton variante="suave" onClick={alRestablecer} title="Volver a la rutina recomendada">
+          <Boton variante="suave" onClick={alRestablecer} title={textoRestablecer}>
             <RotateCcw /><span>Restablecer</span>
           </Boton>
         )}
@@ -208,6 +212,8 @@ export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, pr
           ))}
         </ol>
       )}
+
+      {guardado}
 
       {extra}
 

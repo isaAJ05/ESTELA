@@ -9,8 +9,8 @@
 //                       ?escena=sin-perfiles    primera vez: aún no hay perfiles
 
 import type {
-  Bridge, DatosPerfil, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio,
-  PasoRutina, Perfil, Progreso, Punto, Resumen, ResultadoPerfil, Severidad,
+  Bridge, DatosPerfil, DatosRutina, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio,
+  PasoRutina, Perfil, Progreso, Punto, Resumen, ResultadoPerfil, RutinaGuardada, Severidad,
 } from './tipos'
 
 const PASOS: PasoRutina[] = [
@@ -40,16 +40,19 @@ const CATALOGO: EjercicioCatalogo[] = PASOS.map((p) => ({
 }))
 
 const VACIO: Progreso = {
-  totalSesiones: 0, totalDuracionS: 0, diasActivos: 0, diasActivos7: 0, diasSemanaActual: 0, metaSemanal: null,
-  rachaDias: 0, primeraFecha: null, semanas: [], ejercicios: [], sesiones: [],
+  totalSesiones: 0, totalDuracionS: 0, promedioSesionS: 0, diasActivos: 0, diasActivos7: 0, diasSemanaActual: 0,
+  metaSemanal: null, rachaDias: 0, mejorRachaDias: 0, primeraFecha: null, semanas: [], semanaComparada: null, dias: [],
+  ejercicios: [], sesiones: [],
 }
 
 // Perfiles en memoria, con las mismas reglas que `backend/estela/aplicacion/perfiles.py`.
 const COLORES = ['violeta', 'naranja', 'turquesa', 'rosa', 'azul', 'mostaza']
 const MAX_PERFILES = 8
 const MAX_NOMBRE = 30
+const MAX_RUTINAS = 10
+const MAX_NOMBRE_RUTINA = 40
 
-function limpiarPerfil(d: DatosPerfil, otros: Perfil[], base?: Perfil): Omit<Perfil, 'id' | 'creado' | 'rutina'> | string {
+function limpiarPerfil(d: DatosPerfil, otros: Perfil[], base?: Perfil): Omit<Perfil, 'id' | 'creado' | 'rutina' | 'rutinas'> | string {
   const nombre = (d.nombre ?? base?.nombre ?? '').trim().split(/\s+/).filter(Boolean).join(' ')
   if (!nombre) return 'Escribe un nombre o apodo.'
   if (nombre.length > MAX_NOMBRE) return `El nombre puede tener hasta ${MAX_NOMBRE} caracteres.`
@@ -71,12 +74,23 @@ function progresoSimulado(hoy = new Date()): Progreso {
   const dia = (hace: number, hora = 8) => new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - hace, hora, 15)
   const haceDias = [0, 1, 2, 4, 6, 9, 10, 13, 16, 20, 23, 27, 30, 34, 41, 48]
   const lunes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ((hoy.getDay() + 6) % 7))
+  // gráfico, calendario y cifras salen de las mismas sesiones, como en Python
+  const duracionDe = (k: number) => 240 + 17 * k
+  const entre = (desde: Date, hasta: Date) => haceDias.map((h, k) => ({ d: dia(h), s: duracionDe(k) }))
+    .filter(({ d }) => d >= desde && d < hasta)
+  const masDias = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
   const semanas = Array.from({ length: 8 }, (_, k) => {
-    const inicio = new Date(lunes.getFullYear(), lunes.getMonth(), lunes.getDate() - 7 * (7 - k))
-    const fin = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + 7)
-    const n = haceDias.filter((h) => { const d = dia(h); return d >= inicio && d < fin }).length
-    return { inicio: iso(inicio).slice(0, 10), sesiones: n, duracionS: n * (240 + 25 * k) }
+    const inicio = masDias(lunes, -7 * (7 - k))
+    const en = entre(inicio, masDias(inicio, 7))
+    return { inicio: iso(inicio).slice(0, 10), sesiones: en.length, duracionS: en.reduce((a, x) => a + x.s, 0) }
   })
+  const tramo = (hoy.getDay() + 6) % 7 + 1
+  const actualS = entre(lunes, masDias(lunes, tramo)).reduce((a, x) => a + x.s, 0)
+  const anteriorS = entre(masDias(lunes, -7), masDias(lunes, tramo - 7)).reduce((a, x) => a + x.s, 0)
+  const dias = haceDias.map((h, k) => ({ fecha: iso(dia(h)).slice(0, 10), sesiones: 1, duracionS: duracionDe(k) })).reverse()
+  let mejorRacha = 0
+  let seguidos = 0
+  ;[...haceDias].sort((a, b) => b - a).forEach((h, i, l) => { seguidos = i > 0 && l[i - 1] - h === 1 ? seguidos + 1 : 1; mejorRacha = Math.max(mejorRacha, seguidos) })
   const pasos = (k: number) => [
     { skillId: 'jumping_jacks', nombre: 'Jumping jacks', unidad: 'repeticiones' as const, completadas: Math.min(10, 6 + (k % 5)), objetivo: 10 },
     { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', unidad: 'repeticiones' as const, completadas: 6, objetivo: 6 },
@@ -85,8 +99,9 @@ function progresoSimulado(hoy = new Date()): Progreso {
   const sesiones = haceDias.map((h, k) => {
     const ps = pasos(haceDias.length - k)
     return {
-      fecha: iso(dia(h, 7 + (k % 3) * 5)), rutina: 'Rutina de entrenamiento', terminada: k !== 3,
-      duracionS: 240 + 17 * k, ejercicios: ps.length, completos: ps.filter((p) => p.completadas >= p.objetivo).length,
+      fecha: iso(dia(h, 7 + (k % 3) * 5)), rutina: 'Rutina de entrenamiento', terminada: k !== 3 && k !== 6,
+      motivoFin: k === 3 ? 'usuaria' as const : k === 6 ? 'fuente' as const : 'completada' as const,
+      duracionS: duracionDe(k), ejercicios: ps.length, completos: ps.filter((p) => p.completadas >= p.objetivo).length,
       indicaciones: k % 4, pasos: ps,
     }
   })
@@ -108,13 +123,17 @@ function progresoSimulado(hoy = new Date()): Progreso {
   return {
     totalSesiones: sesiones.length,
     totalDuracionS: sesiones.reduce((a, s) => a + s.duracionS, 0),
+    promedioSesionS: Math.round(sesiones.reduce((a, s) => a + s.duracionS, 0) / sesiones.length),
     diasActivos: sesiones.length,
     diasActivos7: haceDias.filter((h) => h < 7).length,
     diasSemanaActual: haceDias.filter((h) => h <= (hoy.getDay() + 6) % 7).length,
     metaSemanal: null,
     rachaDias: 3,
+    mejorRachaDias: mejorRacha,
     primeraFecha: sesiones.at(-1)!.fecha,
     semanas,
+    semanaComparada: { dias: tramo, actualS, anteriorS, diferenciaS: actualS - anteriorS },
+    dias,
     ejercicios: [
       ejercicio('jumping_jacks', 'Jumping jacks', 'repeticiones', [
         { errorId: 'brazos_no_llegan_arriba', texto: 'Sube un poco más los brazos.', sesiones: 3, veces: 5 },
@@ -426,9 +445,36 @@ export function bridgeSimulado(): Bridge {
 
   let perfiles: Perfil[] = escena === 'sin-perfiles' ? [] : [
     { id: 'pana', nombre: 'Ana', color: 'rosa', metaSemanal: 4, creado: '2026-09-19T07:15:00',
-      rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'zancada_atras_izq', objetivo: 6 }] },
-    { id: 'pluis', nombre: 'Luis', color: 'azul', metaSemanal: null, creado: '2026-10-02T18:00:00', rutina: null },
+      rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'zancada_atras_izq', objetivo: 6 }],
+      rutinas: [
+        { id: 'rmananas', nombre: 'Mañanas rápidas', pasos: [{ skillId: 'jumping_jacks', objetivo: 15 }, { skillId: 'plancha', objetivo: 20 }] },
+        { id: 'rpiernas', nombre: 'Piernas', pasos: [{ skillId: 'abduccion_cadera_izq', objetivo: 10 }, { skillId: 'abduccion_cadera_der', objetivo: 10 }] },
+      ] },
+    { id: 'pluis', nombre: 'Luis', color: 'azul', metaSemanal: null, creado: '2026-10-02T18:00:00', rutina: null, rutinas: [] },
   ]
+  // misma validación que `Perfiles.guardar_rutina_nombrada` (Python)
+  const cambiarRutinas = (perfilId: string, f: (rutinas: RutinaGuardada[]) => RutinaGuardada[] | string): ResultadoPerfil => {
+    const base = perfiles.find((p) => p.id === perfilId)
+    if (!base) return { ok: false, error: 'Ese perfil ya no existe.' }
+    const rutinas = f(base.rutinas)
+    if (typeof rutinas === 'string') return { ok: false, error: rutinas }
+    const perfil: Perfil = { ...base, rutinas }
+    perfiles = perfiles.map((p) => (p.id === perfilId ? perfil : p))
+    return { ok: true, perfil }
+  }
+  const guardarNombrada = (rutinas: RutinaGuardada[], d: DatosRutina): RutinaGuardada[] | string => {
+    const nombre = d.nombre.trim().split(/\s+/).filter(Boolean).join(' ')
+    if (!nombre) return 'Ponle un nombre a la rutina.'
+    if (nombre.length > MAX_NOMBRE_RUTINA) return `El nombre puede tener hasta ${MAX_NOMBRE_RUTINA} caracteres.`
+    if (d.pasos.length === 0) return 'Elige al menos un ejercicio para guardar la rutina.'
+    const otras = rutinas.filter((r) => r.id !== d.id)
+    if (d.id && otras.length === rutinas.length) return 'Esa rutina ya no existe.'
+    if (otras.some((r) => r.nombre.toLocaleLowerCase('es') === nombre.toLocaleLowerCase('es'))) return 'Ya tienes una rutina con ese nombre.'
+    const pasos = d.pasos.map((x) => ({ skillId: x.skillId, objetivo: x.objetivo }))
+    if (d.id) return rutinas.map((r) => (r.id === d.id ? { ...r, nombre, pasos } : r))
+    if (rutinas.length >= MAX_RUTINAS) return `Ya tienes ${MAX_RUTINAS} rutinas; borra una para guardar otra.`
+    return [...rutinas, { id: `r${Date.now().toString(36)}`, nombre, pasos }]
+  }
   let activo: string | null = null
   let elegido = false
   // historial de cada perfil: Ana trae semanas de ejemplo, el resto empieza vacío
@@ -439,7 +485,7 @@ export function bridgeSimulado(): Bridge {
     if (!id && perfiles.length >= MAX_PERFILES) return { ok: false, error: `Ya hay ${MAX_PERFILES} perfiles; borra uno para crear otro.` }
     const limpio = limpiarPerfil(d, perfiles.filter((p) => p.id !== id), base)
     if (typeof limpio === 'string') return { ok: false, error: limpio }
-    const perfil: Perfil = base ? { ...base, ...limpio } : { id: `p${Date.now().toString(36)}`, creado: iso(new Date()), rutina: null, ...limpio }
+    const perfil: Perfil = base ? { ...base, ...limpio } : { id: `p${Date.now().toString(36)}`, creado: iso(new Date()), rutina: null, rutinas: [], ...limpio }
     perfiles = base ? perfiles.map((p) => (p.id === id ? perfil : p)) : [...perfiles, perfil]
     if (!base) { activo = perfil.id; elegido = true }
     return { ok: true, perfil }
@@ -497,7 +543,7 @@ export function bridgeSimulado(): Bridge {
       return { ...(historiales.get(perfil.id) ?? VACIO), metaSemanal: perfil.metaSemanal }
     },
     borrarHistorial: async () => { if (!activo) return false; historiales.delete(activo); return true },
-    perfiles: async () => ({ perfiles, activo, elegido, colores: COLORES, maxPerfiles: MAX_PERFILES, maxNombre: MAX_NOMBRE, meta: [1, 7] }),
+    perfiles: async () => ({ perfiles, activo, elegido, colores: COLORES, maxPerfiles: MAX_PERFILES, maxNombre: MAX_NOMBRE, meta: [1, 7], maxRutinas: MAX_RUTINAS, maxNombreRutina: MAX_NOMBRE_RUTINA }),
     elegirPerfil: async (id) => {
       if (id !== null && !perfiles.some((p) => p.id === id)) return false
       activo = id; elegido = true
@@ -519,6 +565,18 @@ export function bridgeSimulado(): Bridge {
       perfiles = perfiles.map((p) => (p.id === id ? perfil : p))
       return { ok: true, perfil }
     },
+    guardarRutinaNombrada: async (id, d) => {
+      for (const paso of d.pasos) {
+        const ej = CATALOGO.find((c) => c.skillId === paso.skillId)
+        if (!ej) return { ok: false, error: `ejercicio desconocido en la rutina: ${paso.skillId}` }
+        if (!(paso.objetivo >= ej.minimo && paso.objetivo <= ej.maximo)) {
+          return { ok: false, error: `el objetivo de '${paso.skillId}' debe estar entre ${ej.minimo} y ${ej.maximo} ${ej.unidad}` }
+        }
+      }
+      return cambiarRutinas(id, (rutinas) => guardarNombrada(rutinas, d))
+    },
+    borrarRutinaNombrada: async (id, rutinaId) => cambiarRutinas(id, (rutinas) =>
+      rutinas.some((r) => r.id === rutinaId) ? rutinas.filter((r) => r.id !== rutinaId) : 'Esa rutina ya no existe.'),
     borrarPerfil: async (id) => {
       if (!perfiles.some((p) => p.id === id)) return false
       perfiles = perfiles.filter((p) => p.id !== id)

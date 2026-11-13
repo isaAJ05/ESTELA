@@ -209,17 +209,38 @@ class Orquestador:
         Se valida igual que al iniciar una sesión; una lista vacía también vale
         (el perfil quitó todos los ejercicios). Lleva el id del perfil para que
         un guardado tardío no caiga en otro perfil si se cambió entretanto."""
+        limpios = self._pasos_de_rutina(pasos)
+        if isinstance(limpios, dict):
+            return limpios
+        return self._cambiar_perfil(lambda p: p.guardar_rutina(perfil_id, limpios))
+
+    def guardar_rutina_nombrada(self, perfil_id: str, datos: Any) -> Dict[str, Any]:
+        """Crea (`id` ausente o null) o actualiza una rutina guardada con
+        nombre: {"id"?, "nombre", "pasos": [{"skillId", "objetivo"}]}."""
+        if not isinstance(datos, Mapping):
+            return {"ok": False, "error": "La rutina no tiene el formato esperado."}
+        limpios = self._pasos_de_rutina(datos.get("pasos"))
+        if isinstance(limpios, dict):
+            return limpios
+        rutina_id = datos.get("id") if isinstance(datos.get("id"), str) else None
+        return self._cambiar_perfil(
+            lambda p: p.guardar_rutina_nombrada(perfil_id, rutina_id, datos.get("nombre"), limpios))
+
+    def borrar_rutina_nombrada(self, perfil_id: str, rutina_id: str) -> Dict[str, Any]:
+        return self._cambiar_perfil(lambda p: p.borrar_rutina_nombrada(perfil_id, rutina_id))
+
+    def _pasos_de_rutina(self, pasos: Any) -> Any:
+        """[{"skillId", "objetivo"}] → [{"skill_id", "objetivo"}] validados
+        como en `iniciar` (una lista vacía también), o el dict de error."""
         if not isinstance(pasos, list):
             return {"ok": False, "error": "La rutina no tiene el formato esperado."}
-        if pasos:
-            try:
-                rutina = contrato.rutina_desde_opciones({"pasos": pasos}, self.catalogo)
-            except (RutinaInvalida, AttributeError) as e:
-                return {"ok": False, "error": str(e) or "La rutina no es válida."}
-            limpios = [{"skill_id": p.skill_id, "objetivo": p.repeticiones} for p in rutina.pasos]
-        else:
-            limpios = []
-        return self._cambiar_perfil(lambda p: p.guardar_rutina(perfil_id, limpios))
+        if not pasos:
+            return []
+        try:
+            rutina = contrato.rutina_desde_opciones({"pasos": pasos}, self.catalogo)
+        except (RutinaInvalida, AttributeError) as e:
+            return {"ok": False, "error": str(e) or "La rutina no es válida."}
+        return [{"skill_id": p.skill_id, "objetivo": p.repeticiones} for p in rutina.pasos]
 
     def _cambiar_perfil(self, accion: Callable[[Perfiles], Dict[str, Any]],
                         elegir: bool = False) -> Dict[str, Any]:

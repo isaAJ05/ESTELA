@@ -98,6 +98,12 @@ class Api:
     def guardar_rutina(self, perfil_id: str, pasos: Any = None) -> Dict[str, Any]:
         return self._orq.guardar_rutina(str(perfil_id), pasos)
 
+    def guardar_rutina_nombrada(self, perfil_id: str, datos: Any = None) -> Dict[str, Any]:
+        return self._orq.guardar_rutina_nombrada(str(perfil_id), datos)
+
+    def borrar_rutina_nombrada(self, perfil_id: str, rutina_id: str = "") -> Dict[str, Any]:
+        return self._orq.borrar_rutina_nombrada(str(perfil_id), str(rutina_id))
+
     def siguiente(self) -> None:
         self._orq.siguiente()
 
