@@ -138,7 +138,9 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     return (
       <main className="pantalla pantalla-inicio">
         <header className="cabecera">
-          <Marca />
+          {/* si ya había perfil y se está cambiando, el logo cancela el cambio */}
+          <Marca alInicio={perfiles?.elegido && cambiando
+            ? () => { setCambiando(false); setSeccion('bienvenida') } : undefined} />
           <div className="cabecera-derecha"><ControlesCabecera bridge={bridge} /></div>
         </header>
         {perfiles && (
@@ -152,7 +154,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
   return (
     <main className="pantalla pantalla-inicio">
       <header className="cabecera">
-        <Marca />
+        <Marca alInicio={() => setSeccion('bienvenida')} />
         {(personalizable || conProgreso) && (
           <nav className="navegacion" aria-label="Secciones">
             <button className={seccion === 'bienvenida' ? 'activa' : undefined}

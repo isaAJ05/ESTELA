@@ -1,11 +1,20 @@
 import type { ReactNode } from 'react'
 
-export function Marca() {
+/**
+ * Logo de la cabecera. Con `alInicio` es un botón que lleva al inicio; qué
+ * significa «ir al inicio» lo decide cada pantalla (en la sesión, pedir
+ * confirmación para terminar; en el resumen, volver a configurar la rutina).
+ */
+export function Marca({ alInicio, titulo = 'Ir al inicio' }: { alInicio?: () => void; titulo?: string }) {
+  const contenido = <>
+    <img className="marca-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" />
+    <span>estela</span>
+  </>
+  if (!alInicio) return <div className="marca">{contenido}</div>
   return (
-    <div className="marca">
-      <img className="marca-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" />
-      <span>estela</span>
-    </div>
+    <button type="button" className="marca marca-boton" onClick={alInicio} title={titulo} aria-label={titulo}>
+      {contenido}
+    </button>
   )
 }
 

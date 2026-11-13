@@ -32,7 +32,7 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
   return (
     <main className="pantalla pantalla-resumen">
       <header className="cabecera">
-        <Marca />
+        <Marca alInicio={() => void bridge.volverAlInicio()} />
         <div className="cabecera-derecha">
           <span className="etiqueta solo-ancho">Resumen de la sesión</span>
           <ControlesCabecera bridge={bridge} />

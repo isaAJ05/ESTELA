@@ -96,7 +96,9 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
   const pausada = useSesion('motivoPausa') === 'usuaria'
   return (
     <header className="cabecera cabecera-sesion">
-      <Marca />
+      {/* en plena sesión el logo no sale de golpe: pregunta si terminar (lo
+          hecho se guarda y desde el resumen se vuelve al inicio) */}
+      <Marca alInicio={alTerminar} titulo="Terminar la rutina e ir al resumen" />
       <div className="cabecera-progreso">
         <Constelacion paso={paso} total={total} />
         <span className="etiqueta">Ejercicio {paso} de {total}</span>
