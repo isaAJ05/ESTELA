@@ -2,7 +2,8 @@ import { AlertTriangle, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown,
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioProgreso, Progreso, SemanaProgreso, SesionHistorial } from '../bridge/tipos'
 import { Aviso, Boton, duracion, plural } from '../componentes/basicos'
-import { Figura } from '../componentes/Figura'
+import { FiguraEjercicio } from '../componentes/rutina'
+import { useEstado } from '../estado/almacen'
 import {
   duracionLarga, fechaCorta, fechaHora, fechaRelativa, marcasEje, minutos, textoFrecuencia, textoMarca, textoRacha,
 } from '../estado/progreso'
@@ -260,10 +261,13 @@ function GraficoSemanas({ semanas }: { semanas: SemanaProgreso[] }) {
 
 function TarjetaEjercicioProgreso({ e }: { e: EjercicioProgreso }) {
   const { sesiones, frecuentes } = e.indicaciones
+  // la postura de la referencia viene en el catálogo; un ejercicio retirado
+  // (ya no está en él) se queda con la figura dibujada
+  const guia = useEstado((s) => s.info?.catalogo?.find((c) => c.skillId === e.skillId)?.guia ?? null)
   return (
     <article className="tarjeta tarjeta-progreso">
       <header>
-        <span className="paso-figura"><Figura skillId={e.skillId} tam={44} resaltar={false} /></span>
+        <span className="paso-figura"><FiguraEjercicio paso={{ skillId: e.skillId, guia }} /></span>
         <div>
           <strong>{e.nombre}</strong>
           <span>{plural(e.veces, 'vez', 'veces')} · última {fechaRelativa(e.ultimaFecha)}</span>
