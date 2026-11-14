@@ -204,11 +204,10 @@ Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_D
 | `rotacion_tronco`, `azimut_cadera` | ángulo | transversal | No observables con una cámara (EXP-002) |
 | `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
 | `separacion_pies_hombros` | distancia | frontal | Separación de tobillos / anchura de hombros; 1 = pies al ancho de los hombros (jumping jacks, EXP-009) |
-| `longitud_paso` | distancia | sagital | Distancia de tobillos en profundidad, normalizada por escala corporal |
 | `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
 | `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
 | `hombro_sobre_codo` | distancia | sagital | Hombro respecto al codo en horizontal, en escalas de tronco: + = hombro por delante (hacia la cabeza). Plancha sobre antebrazos (PL-03/04); lado más visible |
-| `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (cadera → tobillo del lado más visible). Zancada retirada (ZR-04). `[?]` Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene y el ejercicio no felicita |
+| `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (muslo + pierna del lado más visible, que no cambia al doblar la rodilla). Zancada (ZR-04). Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene. `[F]` En los vídeos de EXP-009 §10 se vio (confianza p50 0,82–0,86) |
 
 ## Referencias offline
 

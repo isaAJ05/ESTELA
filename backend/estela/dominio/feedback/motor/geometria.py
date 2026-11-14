@@ -539,20 +539,23 @@ def longitud_paso(kps: Dict[str, Keypoint], usar_z: bool = True) -> Optional[flo
 
     Para la zancada estática de perfil (catálogo v2, ZR-04): los pies no se
     mueven en toda la repetición, así que la medida vale en cualquier fase. El
-    largo de la pierna es cadera → tobillo del lado más visible.
+    largo de la pierna es muslo + pierna (cadera → rodilla → tobillo) del lado
+    más visible: no cambia al doblar la rodilla. Antes era la recta cadera →
+    tobillo, que con la rodilla a ~75° mide ~0,6 de la pierna e inflaba el
+    paso abajo hasta ×1,6 (`[F]` EXP-009 §10).
 
-    `[?]` Necesita los **dos** tobillos. De perfil el lejano puede quedar
-    tapado (ADR-006 §2.1 lo midió en la plancha); en la zancada las piernas
-    están separadas y es posible que se vea mejor, pero no está medido.
+    `[F]` En los dos vídeos de zancada (EXP-009 §10) el tobillo lejano se ve:
+    confianza de rodilla lejana p50 0,82–0,86.
     """
     req = ("left_ankle", "right_ankle")
     if any(k not in kps for k in req):
         return None
-    lado = lado_mas_visible(kps, ("hip", "ankle"))
+    lado = lado_mas_visible(kps, ("hip", "knee", "ankle"))
     if lado is None:
         return None
-    pierna = _norma(_resta(_coords(kps[f"{lado}_hip"], usar_z),
-                           _coords(kps[f"{lado}_ankle"], usar_z)))
+    cadera, rodilla, tobillo = (_coords(kps[f"{lado}_{p}"], usar_z)
+                                for p in ("hip", "knee", "ankle"))
+    pierna = _norma(_resta(cadera, rodilla)) + _norma(_resta(rodilla, tobillo))
     if pierna < 1e-6:
         return None
     return abs(kps["left_ankle"].x - kps["right_ankle"].x) / pierna
