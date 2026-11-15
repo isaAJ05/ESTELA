@@ -270,6 +270,8 @@ class Skill:
     angulos_requeridos: Sequence[str] = ()
     orientacion_preferida: Plano = Plano.CUALQUIERA
     notas: str = ""
+    #: clase con que lo reconoce `aplicacion/reconocimiento.py`; vacío = no se reconoce
+    clase_reconocimiento: str = ""
 
     def regla_de(self, error_id: str) -> Optional[Regla]:
         for r in self.reglas:
@@ -467,6 +469,7 @@ def skill_desde_dict(d: Dict[str, Any]) -> Skill:
         angulos_requeridos=tuple(d.get("angulos_requeridos", ())),
         orientacion_preferida=Plano(d.get("orientacion_preferida", "cualquiera")),
         notas=d.get("notas", ""),
+        clase_reconocimiento=d.get("clase_reconocimiento", ""),
     )
 
 

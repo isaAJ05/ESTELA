@@ -33,6 +33,10 @@ Cómo decide, cada frame:
 que optimistas): falsa alarma 1/12 con el ejercicio correcto, detección 81 %
 con otro de los cuatro, latencia p95 ~1,5 ms por frame. `[?]` Falta medir con
 vídeos propios grabados con la orientación de ADR-005 (EXP-010 §7.3).
+
+`[?]` Esas cifras son del conjunto anterior a la zancada. Al añadirla
+(2026-11-14, EXP-010 §12) la escala de las rodillas subió +68 % y +86 % y los
+umbrales no se han vuelto a medir con vídeo.
 """
 
 from __future__ import annotations
@@ -47,13 +51,10 @@ import numpy as np
 
 from ..dominio.feedback.motor.skill import directorio_skills
 
-#: vector común: lo que distingue los cuatro ejercicios entre sí (EXP-010 §3)
+#: vector común: lo que distingue los ejercicios entre sí (EXP-010 §3)
 MEDIDAS = ("hombro_izq", "hombro_der", "codo_medio", "separacion_pies_hombros",
            "abduccion_cadera_izq", "abduccion_cadera_der", "cadera_izq", "cadera_der",
            "rodilla_izq", "rodilla_der", "tronco_inclinacion")
-CLASE_DE_SKILL = {"jumping_jacks": "jumping_jacks",
-                  "abduccion_cadera_izq": "abduccion", "abduccion_cadera_der": "abduccion",
-                  "marcha_rodillas": "marcha_rodillas", "plancha": "plancha"}
 CONFIANZA_MINIMA = 0.5
 #: de perfil los hombros se superponen y el cociente pies/hombros se dispara
 MAXIMO = {"separacion_pies_hombros": 3.0}
@@ -266,12 +267,11 @@ class ReconocedorEjercicio:
 _CACHE: Dict[str, Optional[Referencias]] = {}
 
 
-def reconocedor_para(skill_id: str, ruta: Optional[Path] = None
+def reconocedor_para(clase: str, ruta: Optional[Path] = None
                      ) -> Optional[ReconocedorEjercicio]:
-    """El reconocedor del ejercicio, o None si el skill no es uno de los
-    cuatro o no hay referencias de reconocimiento."""
-    clase = CLASE_DE_SKILL.get(skill_id)
-    if clase is None:
+    """El reconocedor de la clase (`clase_reconocimiento` del skill), o None
+    si el skill no declara clase o no hay referencias de esa clase."""
+    if not clase:
         return None
     clave = str(ruta or ruta_por_defecto())
     if clave not in _CACHE:
@@ -282,5 +282,5 @@ def reconocedor_para(skill_id: str, ruta: Optional[Path] = None
     return ReconocedorEjercicio(clase, refs)
 
 
-__all__ = ["MEDIDAS", "CLASE_DE_SKILL", "Referencias", "ReconocedorEjercicio",
+__all__ = ["MEDIDAS", "Referencias", "ReconocedorEjercicio",
            "reconocedor_para", "vector_comun", "ruta_por_defecto"]

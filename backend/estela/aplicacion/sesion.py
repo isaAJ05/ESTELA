@@ -352,7 +352,7 @@ class Sesion:
                                  else comparador_de_referencia(ej.referencia)),
                       registro=RegistroRepeticiones(ej),
                       guia=guia, guia_fps=guia_fps,
-                      reconocedor=(reconocedor_para(ej.skill.skill_id)
+                      reconocedor=(reconocedor_para(ej.skill.clase_reconocimiento)
                                    if self.reconocer else None),
                       colocando=self.colocacion)
         if self._i < len(self._pasos):
@@ -441,7 +441,7 @@ class Sesion:
         p = self.paso_actual
         if p is None:
             return
-        p.reconocedor = reconocedor_para(p.ejercicio.skill.skill_id) if activo else None
+        p.reconocedor = reconocedor_para(p.ejercicio.skill.clase_reconocimiento) if activo else None
         p.ult_aviso_otro_ms = None
 
     # -- bucle --------------------------------------------------------------
