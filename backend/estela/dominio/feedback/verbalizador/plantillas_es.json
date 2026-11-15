@@ -3,7 +3,7 @@
     "idioma": "es",
     "version": "0.1.0",
     "nota": "Condición A de EXP-001. Cada mensaje de error menciona un único segmento, el del contrato. Las variantes existen para reducir la repetitividad sin romper el determinismo: la variante se elige por el índice de repetición, no al azar. Excepción: '_refuerzo' no nace de un ErrorTipificado y no menciona segmento ni lado a propósito (ver contrato.Refuerzo).",
-    "revision_licenciada": "2026-10-11: rango_brazos_insuficiente, codos_flexionados, apertura_insuficiente, rodilla_baja, abduccion_insuficiente y tronco_muy_inclinado reescritas siguiendo «Propuesta de corrección ESTELA» (amplitud condicionada a comodidad, control y estabilidad; codos sin bloquear). Falta que ella valide la redacción final.",
+    "revision_licenciada": "2026-10-11: rango_brazos_insuficiente, codos_flexionados, apertura_insuficiente, rodilla_baja, abduccion_insuficiente y tronco_muy_inclinado reescritas siguiendo «Propuesta de corrección ESTELA» (amplitud condicionada a comodidad, control y estabilidad; codos sin bloquear). Falta que ella valide la redacción final. 2026-11-06: profundidad_rodilla, paso_corto y paso_largo (zancada) con el mismo criterio: bajar y dar el paso con control y equilibrio, sin exigir 90° (ZR-01, ZR-04).",
     "revision_pendiente": "[?] Redacción no revisada por la licenciada en educación física ni por el entrenador. Antes de usar con usuarias reales debe validarse que la instrucción es correcta y accionable."
   },
 
@@ -116,9 +116,9 @@
   },
 
   "profundidad_rodilla": {
-    "leve": ["Baja un poco más, flexiona la {segmento} {lado}."],
-    "moderada": ["Baja más, flexiona bien la {segmento} {lado}."],
-    "alta": ["Baja mucho más, la {segmento} {lado} casi no se flexiona."]
+    "leve": ["Baja un poco más, flexionando la {segmento} {lado}, si mantienes el equilibrio."],
+    "moderada": ["Flexiona más la {segmento} {lado} al bajar, sin perder el equilibrio."],
+    "alta": ["Intenta bajar bastante más, flexionando la {segmento} {lado}, con control."]
   },
 
   "cadera_hundida": {
@@ -164,15 +164,15 @@
   },
 
   "paso_corto": {
-    "leve": ["Haz el paso un poco más largo."],
-    "moderada": ["Alarga el paso antes de bajar."],
-    "alta": ["Alarga bastante el paso antes de bajar."]
+    "leve": ["Alarga un poco el paso, para bajar con control."],
+    "moderada": ["Alarga el paso para bajar y subir con control."],
+    "alta": ["Alarga bastante el paso para bajar y subir con control."]
   },
 
   "paso_largo": {
-    "leve": ["Haz el paso un poco más corto."],
-    "moderada": ["Acorta el paso antes de bajar."],
-    "alta": ["Acorta bastante el paso antes de bajar."]
+    "leve": ["Acorta un poco el paso, para bajar con control."],
+    "moderada": ["Acorta el paso para bajar y subir con control."],
+    "alta": ["Acorta bastante el paso para bajar y subir con control."]
   },
 
   "_refuerzo": {

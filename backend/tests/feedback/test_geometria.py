@@ -100,9 +100,21 @@ class TestMedidasT17(unittest.TestCase):
 
     def test_longitud_paso_en_largos_de_pierna(self):
         kps = {"left_hip": kp(0.0, 0.0), "right_hip": kp(0.0, 0.0),
+               "left_knee": kp(-0.2, 0.5), "right_knee": kp(0.2, 0.5),
                "left_ankle": kp(-0.4, 1.0), "right_ankle": kp(0.4, 1.0)}
         largo = math.hypot(0.4, 1.0)
         self.assertAlmostEqual(g.longitud_paso(kps), 0.8 / largo, places=6)
+
+    def test_longitud_paso_no_cambia_al_doblar_la_rodilla(self):
+        # Mismos pies, misma pierna (muslo y pierna de 0,5): estirada y con la
+        # rodilla doblada. Con la recta cadera-tobillo el paso «crecía» abajo.
+        def pose(rodilla_x):
+            y = math.sqrt(0.5 ** 2 - rodilla_x ** 2)
+            return {"left_hip": kp(0.0, 0.0), "right_hip": kp(0.0, 0.0),
+                    "left_knee": kp(rodilla_x, y), "right_knee": kp(-rodilla_x, y),
+                    "left_ankle": kp(0.0, 2 * y), "right_ankle": kp(0.6, 2 * y)}
+        self.assertAlmostEqual(g.longitud_paso(pose(0.0)), 0.6, places=6)
+        self.assertAlmostEqual(g.longitud_paso(pose(0.3)), 0.6, places=6)
 
     def test_longitud_paso_sin_un_tobillo_no_se_calcula(self):
         kps = {"left_hip": kp(0.0, 0.0), "left_ankle": kp(-0.4, 1.0)}
