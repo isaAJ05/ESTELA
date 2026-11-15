@@ -114,9 +114,19 @@ def test_sin_referencias_o_sin_clase_no_hay_reconocedor(tmp_path):
     ruta.write_text(json.dumps({"medidas": list(R.MEDIDAS), "escala": [1.0] * len(R.MEDIDAS),
                                 "referencias": [{"clase": "plancha", "tipo": "isometrico",
                                                  "media": [[None] * len(R.MEDIDAS)]}]}))
-    assert R.reconocedor_para("zancada_atras_izq", ruta) is None
+    assert R.reconocedor_para("", ruta) is None                   # skill sin clase
     assert R.reconocedor_para("jumping_jacks", ruta) is None      # sin referencias de JJ
     assert R.reconocedor_para("plancha", ruta) is not None
+
+
+def test_la_clase_sale_del_skill_y_tiene_referencias():
+    """Añadir un ejercicio al reconocimiento es un campo en su JSON más
+    regenerar `reconocimiento.json`, sin tocar código. El campo es opcional."""
+    from estela.aplicacion.rutina import cargar_catalogo
+    for sid, ej in cargar_catalogo().items():
+        clase = ej.skill.clase_reconocimiento
+        if clase:
+            assert R.reconocedor_para(clase) is not None, sid
 
 
 def test_subsecuencia_vectorizada_igual_que_el_bucle():
