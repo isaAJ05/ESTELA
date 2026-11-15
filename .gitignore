@@ -21,3 +21,6 @@ node_modules/
 backend/datos_locales/
 # Datos crudos del Informe 2 (~8 MB, se regeneran con pytest -m metricas -s)
 backend/feedback_testing/resultados/INFORME2-metricas.json
+
+# graphify: grafo generado, se regenera con /graphify
+graphify-out/
