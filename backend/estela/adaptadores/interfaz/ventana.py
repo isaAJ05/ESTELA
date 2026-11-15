@@ -59,17 +59,68 @@ class Api:
 
     def configurar(self, ajustes: Optional[Dict[str, Any]] = None) -> None:
         # {"voz": false} silencia las indicaciones habladas;
-        # {"reconocer": true} activa el aviso «no es el ejercicio» (EXP-010)
+        # {"reconocer": true} activa el aviso «no es el ejercicio» (EXP-010);
+        # {"camara": 1} elige la cámara de la próxima sesión
         voz = (ajustes or {}).get("voz")
         reconocer = (ajustes or {}).get("reconocer")
+        camara = (ajustes or {}).get("camara")
+        es_indice = isinstance(camara, int) and not isinstance(camara, bool) and camara >= 0
         self._orq.configurar(voz=voz if isinstance(voz, bool) else None,
-                             reconocer=reconocer if isinstance(reconocer, bool) else None)
+                             reconocer=reconocer if isinstance(reconocer, bool) else None,
+                             camara=camara if es_indice else None)
+
+    def camaras(self) -> Optional[Dict[str, Any]]:
+        return self._orq.camaras()
+
+    def historial(self) -> Optional[Dict[str, Any]]:
+        # panel «Mi progreso» (capacidad «historial», ADR-008)
+        return self._orq.historial()
+
+    def borrar_historial(self) -> bool:
+        return self._orq.borrar_historial()
+
+    # perfiles (capacidad «perfiles», ADR-009)
+    def perfiles(self) -> Optional[Dict[str, Any]]:
+        return self._orq.perfiles()
+
+    def elegir_perfil(self, perfil_id: Optional[str] = None) -> bool:
+        return self._orq.elegir_perfil(perfil_id if isinstance(perfil_id, str) else None)
+
+    def crear_perfil(self, datos: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self._orq.crear_perfil(datos if isinstance(datos, dict) else {})
+
+    def editar_perfil(self, perfil_id: str, datos: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        return self._orq.editar_perfil(str(perfil_id), datos if isinstance(datos, dict) else {})
+
+    def borrar_perfil(self, perfil_id: str) -> bool:
+        return self._orq.borrar_perfil(str(perfil_id))
+
+    def guardar_rutina(self, perfil_id: str, pasos: Any = None) -> Dict[str, Any]:
+        return self._orq.guardar_rutina(str(perfil_id), pasos)
+
+    def guardar_rutina_nombrada(self, perfil_id: str, datos: Any = None) -> Dict[str, Any]:
+        return self._orq.guardar_rutina_nombrada(str(perfil_id), datos)
+
+    def borrar_rutina_nombrada(self, perfil_id: str, rutina_id: str = "") -> Dict[str, Any]:
+        return self._orq.borrar_rutina_nombrada(str(perfil_id), str(rutina_id))
 
     def siguiente(self) -> None:
         self._orq.siguiente()
 
+    def anterior(self) -> None:
+        self._orq.anterior()
+
     def reiniciar(self) -> None:
         self._orq.reiniciar()
+
+    def listo(self) -> None:
+        self._orq.listo()
+
+    def pausar(self) -> None:
+        self._orq.pausar()
+
+    def reanudar(self) -> None:
+        self._orq.reanudar()
 
     def terminar(self) -> None:
         self._orq.terminar()
@@ -110,7 +161,9 @@ def abrir(orquestador: Orquestador, dist: Path, depurar: bool = False) -> None:
         background_color="#0E0D16")
     api._ventana = ventana
     ventana.events.closed += lambda: orquestador.cerrar()
-    icono = indice.parent / "icono.ico"
+    # GTK (gdk-pixbuf) no carga el .ico comprimido de Windows: «Compressed
+    # icons are not supported», y la ventana no llega a abrirse
+    icono = indice.parent / ("icono.ico" if sys.platform == "win32" else "favicon.png")
     _identificar_en_barra_de_tareas()
     ventana.events.shown += lambda: _identificar_ventana("ESTELA")
     webview.start(http_server=True, debug=depurar, private_mode=True,

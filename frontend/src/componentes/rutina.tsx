@@ -1,4 +1,6 @@
-import { AlertTriangle, ArrowDown, ArrowUp, Check, Clock, Dumbbell, Loader2, Minus, Play, Plus, RotateCcw, X } from 'lucide-react'
+import {
+  AlertTriangle, Check, ChevronDown, ChevronUp, Clock, Dumbbell, Loader2, Minus, Play, Plus, Repeat2, RotateCcw, Timer, X,
+} from 'lucide-react'
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import type { EjercicioCatalogo, PasoRutina } from '../bridge/tipos'
 import { Aviso, Boton, plural } from './basicos'
@@ -32,11 +34,13 @@ export function FiguraEjercicio({ paso, tam = 44 }: { paso: Pick<PasoRutina, 'sk
  * Objetivo del ejercicio: botones − / + y campo para escribirlo. Lo escrito
  * se valida al momento; si no vale, se avisa y no se cambia la rutina.
  */
-export function ControlObjetivo({ ej, valor, alCambiar, alValidar }: {
+export function ControlObjetivo({ ej, valor, alCambiar, alValidar, accion }: {
   ej: EjercicioCatalogo
   valor: number
   alCambiar: (valor: number) => void
   alValidar: (valido: boolean) => void
+  /** control que va al lado del campo (p. ej. «Quitar») */
+  accion?: ReactNode
 }) {
   const id = useId()
   const [texto, setTexto] = useState(String(valor))
@@ -56,20 +60,23 @@ export function ControlObjetivo({ ej, valor, alCambiar, alValidar }: {
 
   return (
     <div className="control-objetivo">
-      <label htmlFor={id} className="etiqueta">{textoUnidad(ej)}</label>
-      <div className={`stepper ${error ? 'invalido' : ''}`}>
-        <button type="button" onClick={() => sumar(-1)} disabled={valor <= ej.minimo}
-                aria-label={`Menos ${ej.unidad}`}><Minus /></button>
-        <input id={id} inputMode="numeric" value={texto} aria-invalid={error != null}
-               aria-describedby={error ? `${id}-error` : undefined}
-               onChange={(e) => escribir(e.target.value)}
-               onBlur={() => { if (!error) setTexto(String(valor)) }} />
-        <button type="button" onClick={() => sumar(1)} disabled={valor >= ej.maximo}
-                aria-label={`Más ${ej.unidad}`}><Plus /></button>
+      <div className="control-objetivo-cabeza">
+        <label htmlFor={id} className="etiqueta">{textoUnidad(ej)}</label>
       </div>
-      {error
-        ? <span id={`${id}-error`} className="control-error" role="alert">{error}</span>
-        : <span className="control-ayuda">De {ej.minimo} a {ej.maximo}</span>}
+      <div className="control-objetivo-fila">
+        <div className={`stepper ${error ? 'invalido' : ''}`}>
+          <button type="button" onClick={() => sumar(-1)} disabled={valor <= ej.minimo}
+                  aria-label={`Menos ${ej.unidad}`}><Minus /></button>
+          <input id={id} inputMode="numeric" value={texto} aria-invalid={error != null}
+                 aria-describedby={error ? `${id}-error` : undefined}
+                 onChange={(e) => escribir(e.target.value)}
+                 onBlur={() => { if (!error) setTexto(String(valor)) }} />
+          <button type="button" onClick={() => sumar(1)} disabled={valor >= ej.maximo}
+                  aria-label={`Más ${ej.unidad}`}><Plus /></button>
+        </div>
+        {accion}
+      </div>
+      {error && <span id={`${id}-error`} className="control-error" role="alert">{error}</span>}
     </div>
   )
 }
@@ -85,32 +92,45 @@ export function TarjetaEjercicio({ ej, posicion, objetivo, alAlternar, alCambiar
   alValidar: (valido: boolean) => void
 }) {
   const elegido = posicion !== null
+  const Unidad = ej.unidad === 'segundos' ? Timer : Repeat2
   return (
     <article className={`tarjeta-ejercicio ${elegido ? 'elegida' : ''}`}>
+      {/* la figura también añade o quita: es la zona grande de la tarjeta */}
       <button type="button" className="tarjeta-ejercicio-figura" onClick={alAlternar}
               aria-pressed={elegido} aria-label={`${elegido ? 'Quitar' : 'Añadir'} ${ej.nombre}`}>
-        <FiguraEjercicio paso={ej} tam={96} />
-        <span className="tarjeta-ejercicio-marca" aria-hidden="true">
-          {elegido ? <><Check />{posicion}</> : <Plus />}
-        </span>
+        <FiguraEjercicio paso={ej} tam={88} />
+        <span className="tarjeta-ejercicio-vista">{textoVista(ej.orientacion)}</span>
       </button>
 
-      <div className="tarjeta-ejercicio-cuerpo">
-        <h3>{ej.nombre}</h3>
-        <div className="tarjeta-ejercicio-chips">
-          <span className="chip">{textoVista(ej.orientacion)}</span>
-          <span className="chip">{ej.unidad === 'segundos' ? 'Por tiempo' : 'Por repeticiones'}</span>
+      <div className="tarjeta-ejercicio-info">
+        <div className="tarjeta-ejercicio-cabeza">
+          <h3>{ej.nombre}</h3>
+          <span className="tarjeta-ejercicio-marca" aria-hidden="true">
+            {elegido ? <><Check />{posicion}</> : <Plus />}
+          </span>
         </div>
-        {ej.descripcion && <p>{ej.descripcion}</p>}
-      </div>
+        {ej.descripcion && <p className="tarjeta-ejercicio-descripcion">{ej.descripcion}</p>}
 
-      <div className="tarjeta-ejercicio-pie">
-        {elegido ? <>
-          <ControlObjetivo ej={ej} valor={objetivo} alCambiar={alCambiarObjetivo} alValidar={alValidar} />
-          <button type="button" className="enlace-quitar" onClick={alAlternar}><X />Quitar de la rutina</button>
-        </> : (
-          <Boton variante="suave" onClick={alAlternar}><Plus />Añadir · {textoObjetivo(ej)}</Boton>
-        )}
+        <div className="tarjeta-ejercicio-pie">
+          {elegido ? (
+            <ControlObjetivo ej={ej} valor={objetivo} alCambiar={alCambiarObjetivo} alValidar={alValidar}
+              accion={
+                <button type="button" className="boton-quitar" onClick={alAlternar}
+                        aria-label={`Quitar ${ej.nombre} de la rutina`} title="Quitar de la rutina">
+                  <X /><span>Quitar</span>
+                </button>
+              } />
+          ) : (
+            <div className="tarjeta-ejercicio-anadir">
+              <span className="tarjeta-ejercicio-objetivo" title="Objetivo por defecto; lo ajustas al añadirlo">
+                <Unidad aria-hidden="true" /><strong>{textoObjetivo(ej)}</strong>
+              </span>
+              <Boton variante="suave" onClick={alAlternar} aria-label={`Añadir ${ej.nombre} a la rutina`}>
+                <Plus />Añadir
+              </Boton>
+            </div>
+          )}
+        </div>
       </div>
     </article>
   )
@@ -118,7 +138,8 @@ export function TarjetaEjercicio({ ej, posicion, objetivo, alAlternar, alCambiar
 
 /** Resumen lateral: orden, objetivos, duración aproximada y el botón para empezar. */
 export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, preparando, error,
-                                alMover, alQuitar, alRestablecer, alComenzar, extra }: {
+                                alMover, alQuitar, alRestablecer, alComenzar, extra, guardado,
+                                textoRestablecer = 'Volver a la rutina recomendada' }: {
   nombre: string
   pasos: PasoRutina[]
   estimadoS: number
@@ -132,6 +153,10 @@ export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, pr
   alRestablecer: () => void
   alComenzar: () => void
   extra?: ReactNode
+  /** nombre y botón para guardar la rutina */
+  guardado?: ReactNode
+  /** a qué vuelve «Restablecer» (la recomendada o la rutina guardada) */
+  textoRestablecer?: string
 }) {
   return (
     <aside className="tarjeta resumen-rutina" aria-label="Tu rutina">
@@ -141,7 +166,7 @@ export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, pr
           <h2>{nombre}</h2>
         </div>
         {modificada && (
-          <Boton variante="suave" onClick={alRestablecer} title="Volver a la rutina recomendada">
+          <Boton variante="suave" onClick={alRestablecer} title={textoRestablecer}>
             <RotateCcw /><span>Restablecer</span>
           </Boton>
         )}
@@ -169,21 +194,26 @@ export function ResumenRutina({ nombre, pasos, estimadoS, avisos, modificada, pr
               <span className="resumen-rutina-numero">{i + 1}</span>
               <span className="paso-figura"><FiguraEjercicio paso={p} /></span>
               <span className="resumen-rutina-nombre">
-                <strong>{p.nombre}</strong>
+                <strong title={p.nombre}>{p.nombre}</strong>
                 <span>{textoObjetivo(p)} · {textoVista(p.orientacion)}</span>
               </span>
               <span className="resumen-rutina-acciones">
-                <button type="button" onClick={() => alMover(i, -1)} disabled={i === 0}
-                        aria-label={`Subir ${p.nombre}`} title="Subir"><ArrowUp /></button>
-                <button type="button" onClick={() => alMover(i, 1)} disabled={i === pasos.length - 1}
-                        aria-label={`Bajar ${p.nombre}`} title="Bajar"><ArrowDown /></button>
-                <button type="button" onClick={() => alQuitar(p.skillId)}
+                {/* subir y bajar apilados: dejan más ancho al nombre */}
+                <span className="resumen-rutina-orden">
+                  <button type="button" onClick={() => alMover(i, -1)} disabled={i === 0}
+                          aria-label={`Subir ${p.nombre}`} title="Subir"><ChevronUp /></button>
+                  <button type="button" onClick={() => alMover(i, 1)} disabled={i === pasos.length - 1}
+                          aria-label={`Bajar ${p.nombre}`} title="Bajar"><ChevronDown /></button>
+                </span>
+                <button type="button" className="resumen-rutina-quitar" onClick={() => alQuitar(p.skillId)}
                         aria-label={`Quitar ${p.nombre}`} title="Quitar"><X /></button>
               </span>
             </li>
           ))}
         </ol>
       )}
+
+      {guardado}
 
       {extra}
 

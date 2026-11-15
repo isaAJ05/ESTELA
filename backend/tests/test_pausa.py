@@ -1,7 +1,7 @@
 """DetectorPausa aislado: cuándo pausa, cuándo retoma y cuánto tiempo cuenta."""
 
 from estela.aplicacion.pausa import (EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD,
-                                 SIN_PERSONA, DetectorPausa)
+                                 SIN_PERSONA, USUARIA, DetectorPausa)
 
 
 def test_sin_persona_pausa_tras_el_umbral_y_retoma_al_volver():
@@ -105,3 +105,33 @@ def test_otro_ejercicio_no_quita_la_pausa_sin_persona():
     assert d.actualizar(1000, persona=False) == EVENTO_PAUSA
     assert d.actualizar(1500, persona=False, otro_ejercicio=True) is None
     assert d.pausada and d.motivo == SIN_PERSONA
+
+
+def test_pausa_de_la_usuaria_no_se_quita_sola():
+    d = DetectorPausa(sin_persona_s=5, inactividad_s=8)
+    d.actualizar(0, True, progreso=("reposo", 1, 1, 0))
+    assert d.pausar_usuaria(1000) == EVENTO_PAUSA
+    assert d.motivo == USUARIA
+    # vuelve a moverse y sigue en pausa: solo se quita a mano
+    assert d.actualizar(2000, True, progreso=("subida", 2, 1, 0)) is None
+    assert d.actualizar(9000, False) is None and d.motivo == USUARIA
+    assert d.reanudar_usuaria(4000) == EVENTO_REANUDA
+    assert not d.pausada and d.veces == 1
+    assert d.tiempo_pausado_ms(5000) == 3000
+
+
+def test_pausar_a_mano_una_pausa_automatica_la_conserva():
+    d = DetectorPausa(sin_persona_s=1)
+    d.actualizar(0, persona=False)
+    assert d.actualizar(1000, persona=False) == EVENTO_PAUSA
+    assert d.pausar_usuaria(1500) is None          # la misma pausa
+    assert d.motivo == USUARIA and d.veces == 1
+    assert d.actualizar(2000, persona=True) is None    # volver no la quita
+
+
+def test_reanudar_no_quita_una_pausa_automatica():
+    d = DetectorPausa(sin_persona_s=1)
+    d.actualizar(0, persona=False)
+    d.actualizar(1000, persona=False)
+    assert d.reanudar_usuaria(1500) is None
+    assert d.motivo == SIN_PERSONA

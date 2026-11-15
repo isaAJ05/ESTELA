@@ -1,26 +1,37 @@
 import type { ReactNode } from 'react'
 
-export function Marca() {
+/**
+ * Logo de la cabecera. Con `alInicio` es un botón que lleva al inicio; qué
+ * significa «ir al inicio» lo decide cada pantalla (en la sesión, pedir
+ * confirmación para terminar; en el resumen, volver a configurar la rutina).
+ */
+export function Marca({ alInicio, titulo = 'Ir al inicio' }: { alInicio?: () => void; titulo?: string }) {
+  const contenido = <>
+    <img className="marca-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" />
+    <span>estela</span>
+  </>
+  if (!alInicio) return <div className="marca">{contenido}</div>
   return (
-    <div className="marca">
-      <img className="marca-logo" src={`${import.meta.env.BASE_URL}logo.png`} alt="" />
-      <span>estela</span>
-    </div>
+    <button type="button" className="marca marca-boton" onClick={alInicio} title={titulo} aria-label={titulo}>
+      {contenido}
+    </button>
   )
 }
 
-export function Boton({ children, variante = 'primario', onClick, disabled, atajo, ...resto }: {
+export function Boton({ children, variante = 'primario', onClick, disabled, atajo, type = 'button', ...resto }: {
   children: ReactNode
   variante?: 'primario' | 'secundario' | 'suave' | 'peligro'
   onClick?: () => void
   disabled?: boolean
   atajo?: string
+  /** «submit» solo para el botón principal de un formulario */
+  type?: 'button' | 'submit'
   'aria-label'?: string
   title?: string
   'aria-pressed'?: boolean
 }) {
   return (
-    <button className={`boton boton-${variante}`} onClick={onClick} disabled={disabled}
+    <button type={type} className={`boton boton-${variante}`} onClick={onClick} disabled={disabled}
             aria-keyshortcuts={atajo} {...resto}>
       {children}
     </button>

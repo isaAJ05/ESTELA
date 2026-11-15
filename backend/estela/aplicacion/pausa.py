@@ -18,6 +18,13 @@ Dos motivos:
                  orientación correcta. Si durante esta pausa la persona sale
                  del encuadre `sin_persona_s`, el motivo pasa a ``sin_persona``.
 
+``usuaria``     la usuaria pulsó «Pausar» (`pausar_usuaria`). No se retoma sola:
+                 solo con `reanudar_usuaria`. Si ya había una pausa automática,
+                 la misma pausa pasa a este motivo.
+
+El gesto del brazo derecho arriba (`gesto.py`) pausa con motivo ``usuaria``
+y reanuda cualquier pausa (`reanudar_gesto`).
+
 Hacer otro ejercicio no es inactividad (EXP-010): mientras el reconocedor ve
 otro movimiento (`otro_ejercicio`), la espera de inactividad no corre, y una
 pausa por inactividad en curso se quita. Así solo queda el aviso «ese
@@ -39,6 +46,7 @@ from typing import Hashable, Optional
 
 SIN_PERSONA = "sin_persona"
 INACTIVIDAD = "inactividad"
+USUARIA = "usuaria"
 
 EVENTO_PAUSA = "pausa"
 EVENTO_REANUDA = "reanuda"
@@ -86,10 +94,30 @@ class DetectorPausa:
         en_curso = t_ms - self._desde_ms if self._desde_ms is not None else 0
         return self._pausado_ms + max(0, en_curso)
 
+    def pausar_usuaria(self, t_ms: int) -> Optional[str]:
+        if self.pausada:
+            self.motivo = USUARIA                 # misma pausa, ahora a mano
+            return None
+        return self._pausar(t_ms, USUARIA)
+
+    def reanudar_usuaria(self, t_ms: int) -> Optional[str]:
+        if self.motivo != USUARIA:
+            return None
+        return self._reanudar(t_ms, None)
+
+    def reanudar_gesto(self, t_ms: int) -> Optional[str]:
+        """Reanuda cualquier pausa: la usuaria pidió seguir con el gesto
+        (`gesto.py`), aunque la pausa fuera automática."""
+        if not self.pausada:
+            return None
+        return self._reanudar(t_ms, None)
+
     def actualizar(self, t_ms: int, persona: bool,
                    progreso: Optional[Hashable] = None,
                    orientacion_ok: bool = True,
                    otro_ejercicio: bool = False) -> Optional[str]:
+        if self.motivo == USUARIA:
+            return None
         if self.pausada:
             if self.motivo == INACTIVIDAD and persona and otro_ejercicio:
                 return self._reanudar(t_ms, progreso)
@@ -139,5 +167,5 @@ class DetectorPausa:
         return EVENTO_PAUSA
 
 
-__all__ = ["DetectorPausa", "SIN_PERSONA", "INACTIVIDAD", "EVENTO_PAUSA",
+__all__ = ["DetectorPausa", "SIN_PERSONA", "INACTIVIDAD", "USUARIA", "EVENTO_PAUSA",
            "EVENTO_REANUDA", "PAUSA_SIN_PERSONA_S", "PAUSA_INACTIVIDAD_S"]

@@ -49,12 +49,10 @@ Algunas partes de la interfaz ya están hechas pero ocultas, porque dependen de 
 | Capacidad | Qué muestra |
 |---|---|
 | `nivel` | selector de nivel en el inicio |
-| `correctasConError` | correctas y con error |
-| `guia` | movimiento de referencia animado |
 | `resumenTexto` | resumen en lenguaje natural |
-| `pausaManual` | botón y tecla de pausa |
+| `avisoLuz` | (sin interfaz todavía) aviso de poca luz |
 
-`motivoSilencio` (motivo de silencio en la capa de depuración, tecla D) ya está activa.
+Ya activas: `correctasConError`, `guia`, `motivoSilencio`, `pausaManual` (botón y espacio; la pausa de la usuaria solo se quita con «Reanudar»), `colocacion`, `rutinaPersonalizada`, `silenciarVoz`, `elegirCamara` (en Ajustes, antes de empezar), `reconocerEjercicio`, `pasoAnterior` (botón ⏮; anterior y siguiente se desactivan en el primer y el último ejercicio) y `gestoPausa` (brazo derecho arriba 3 s pausa o reanuda, también la pausa del botón; se ve una barra con lo que falta).
 
 Cada una se activa en `CAPACIDADES` de `backend/estela/adaptadores/interfaz/contrato.py`. Ahí está también la tabla con el campo que debe mandar el backend y la tarea correspondiente.
 
@@ -79,6 +77,23 @@ En la interfaz no hay que tocar nada. Para buscar en el código dónde se usa un
 
 Antes de subir: `pytest`, `npm run typecheck` y `npm run build`.
 
+## Marca y mascota
+
+- **Logo** (`public/logo.png`): la estrella cósmica minimalista. Es la identidad de la aplicación y va en la cabecera.
+- **Mascota** (`componentes/Estrella.tsx`, imágenes en `public/estela/`): Estela, la estrella animada. Aparece solo en momentos puntuales, con una frase corta:
+
+| Momento | Pose | Dónde |
+|---|---|---|
+| Bienvenida | `saludo` | `pantallas/Inicio.tsx` |
+| Preparando la cámara | `enfoque` | `pantallas/Inicio.tsx` |
+| Rutina terminada | `victoria` | `pantallas/Resumen.tsx` |
+| Sesión terminada antes | `tranquila` | `pantallas/Resumen.tsx` |
+| Meta semanal cumplida | `feliz` | `ResumenSemana` en `pantallas/Progreso.tsx` |
+
+Para que no le reste seriedad ni claridad al feedback, la mascota **no aparece** en la sesión en vivo (sobre la cámara ni junto a las correcciones) ni junto a un aviso de error. Sus frases son de ánimo: no evalúan la técnica ni dan consejos de salud.
+
+Las poses se recortaron de la hoja de stickers de la marca (PNG con transparencia, 320 × 320 px). Para añadir una pose: exportarla a `public/estela/<pose>.png` y sumarla al tipo `Pose` de `Estrella.tsx`.
+
 ## Tamaño de ventana
 
 Todos los tamaños están en `rem` y la raíz crece con la ventana (`estilos/base.css`). Así la interfaz se ve proporcionada de 960×600 (el mínimo de la ventana) a 2560×1440: en una pantalla grande todo crece para leerse desde 3 m. Por debajo de 1100 px de ancho, los botones de la sesión muestran solo el ícono. Para medidas nuevas, usar `rem` y no `px`, salvo en bordes de 1–2 px.
@@ -87,7 +102,9 @@ Todos los tamaños están en `rem` y la raíz crece con la ventana (`estilos/bas
 
 | Tecla | Acción |
 |---|---|
-| `N` | siguiente ejercicio |
+| `Espacio` | pausar o reanudar |
+| `N` | siguiente ejercicio (no en el último) |
+| `P` | ejercicio anterior (no en el primero) |
 | `R` | reiniciar el ejercicio |
 | `Esc` | terminar (pide confirmación) |
 | `D` | en la sesión: FPS, latencia por etapa, fase y orientación. En el resumen: panel técnico con abstenciones del motor y latencia p50/p95 |

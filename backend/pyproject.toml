@@ -32,4 +32,9 @@ include = ["estela*"]
 [tool.pytest.ini_options]
 testpaths = ["tests", "feedback_testing/tests"]
 pythonpath = ["."]
-markers = ["video: sesión completa sobre un vídeo real; necesita el modelo de pose"]
+# La medición del Informe 2 tarda (vídeos a ritmo real): solo con `pytest -m metricas -s`.
+addopts = "-m 'not metricas'"
+markers = [
+    "video: sesión completa sobre un vídeo real; necesita el modelo de pose",
+    "metricas: medición del Informe 2 sobre vídeos (lenta; pytest -m metricas -s)",
+]

@@ -23,14 +23,21 @@ la interfaz no las muestra. Para activarlas:
 capacidad          campo                               tarea
 =================  ==================================  =====================
 nivel              EstadoFrame.nivel                   T22.a
-correctasConError  EstadoFrame.correctas / con_error   T29.a
+correctasConError  EstadoFrame.correctas / con_error   T29.a (hecho)
                    y en cada paso del resumen
-guia               EstadoFrame.guia (33×[x, y, vis])   T14
+guia               EstadoFrame.guia (33×[x, y, vis])   T14 (hecho)
 resumenTexto       resumen["resumen_texto"]            T27 (LLM rol B)
 motivoSilencio     EstadoFrame.motivo_silencio         T29 (hecho)
-pausaManual        (comando `pausar`/`reanudar`)       —
-colocacion         (fase previa de colocación)         —
+historial          (Orquestador con `perfiles`)        ADR-008
+perfiles           (Orquestador con `perfiles`)        ADR-009
+pausaManual        comando `pausar`/`reanudar`;        T29 (hecho)
+                   motivoPausa «usuaria»
+colocacion         EstadoFrame.colocando / instruccion  T29 (hecho)
+                   / comprobaciones; comando `listo`
 avisoLuz           (aviso de poca luz)                 —
+elegirCamara       `camaras()`; `configurar({"camara"})` T29 (hecho)
+pasoAnterior       comando `anterior`                  T29 (hecho)
+gestoPausa         EstadoFrame.gesto                   T29 (hecho)
 =================  ==================================  =====================
 
 Rutina de entrenamiento
@@ -47,9 +54,52 @@ indicaciones habladas (la sesión sigue igual: solo se deja de hablar) y
 `{"voz": true}` las reactiva. Se puede llamar en cualquier fase. El tema y el
 tamaño del texto son solo de la interfaz y no llegan a Python.
 
+Con `elegirCamara`, `camaras()` devuelve `{"lista": [{"indice", "nombre"}],
+"elegida"}` (o null con un vídeo o con la cámara en uso) y
+`configurar({"camara": 1})` elige la cámara de la próxima sesión. Vale hasta
+cerrar la aplicación.
+
+Colocación y evaluación
+-----------------------
+Con `colocacion`, cada ejercicio empieza en una fase de colocación: `colocacion`
+lleva la instrucción y las tres comprobaciones (persona, orientación, cuerpo
+entero) y la sesión no cuenta ni corrige hasta que se cumplen 1,5 s seguidos o
+la usuaria pulsa «Listo» (`listo()`). `evaluacion` dice en cada frame si la
+sesión está evaluando la técnica y, si no, por qué (prueba de usabilidad del
+Informe 2 §13.3: «el contador se detiene y no sé por qué»).
+
+Navegación y gesto de pausa
+---------------------------
+Con `pasoAnterior`, `anterior()` vuelve al ejercicio anterior y lo empieza
+desde cero; en el primero no hace nada, y `siguiente()` no hace nada en el
+último (para acabar está `terminar()`). Con `gestoPausa`, mantener el brazo
+derecho arriba 3 s pausa la sesión o la reanuda (`aplicacion/gesto.py`);
+`gesto` dice cuánto lleva y qué hará al completarse.
+
+Reconocimiento del ejercicio
+----------------------------
 Con la capacidad `reconocerEjercicio`, `configurar({"reconocer": true})` activa
 el aviso «ese movimiento no es el de ahora» (EXP-010) en la sesión en curso y
 en las siguientes. Empieza desactivado.
+
+Historial y progreso (ADR-008)
+------------------------------
+Con la capacidad `historial`, cada sesión con algo hecho se guarda en un
+archivo local (`aplicacion/historial.py`) y `historial()` devuelve el panel
+«Mi progreso» (`progreso_a_dict`); `borrarHistorial()` lo vacía. El resumen
+lleva `guardadaEnHistorial` para avisar de que se guardó. La capacidad la
+fija el orquestador: no existe con `--sin-historial` ni con `--video`.
+
+Con la capacidad `perfiles` (ADR-009) el historial es de cada perfil: la
+interfaz elige quién entrena con `elegirPerfil(id)` (o `null`: invitada, no
+se guarda nada) y lo gestiona con `perfiles()`, `crearPerfil`, `editarPerfil`
+y `borrarPerfil` (`perfiles_a_dict`, `perfil_a_dict`, `datos_de_perfil`).
+`guardarRutina(perfilId, pasos)` guarda en el perfil la rutina que se arma en
+«Mi rutina» (`[{"skillId", "objetivo"}]`, validada como en `iniciar`).
+Cada perfil puede guardar además rutinas con nombre (`rutinas` en
+`perfil_a_dict`): `guardarRutinaNombrada(perfilId, {"id"?, "nombre",
+"pasos"})` crea una (sin `id`) o la reemplaza, y `borrarRutinaNombrada(perfilId,
+rutinaId)` la borra; ambas devuelven el perfil como `editarPerfil`.
 
 Feedback
 --------
@@ -66,28 +116,37 @@ from typing import Any, Dict, List, Mapping, Optional, Sequence, Tuple
 
 import numpy as np
 
-from ...dominio.feedback.contrato import MensajeFeedback, Plano
+from ...dominio.feedback.contrato import (MOTIVO_CONFIANZA_BAJA, MOTIVO_PLANO_NO_OBSERVABLE,
+                                          MensajeFeedback, Plano)
 
 from ...dominio.feedback.motor.geometria import ANGULOS_MEDIOS, ANGULOS_TERNA
 from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
+from ...aplicacion.perfiles import (COLORES, MAX_NOMBRE, MAX_NOMBRE_RUTINA, MAX_PERFILES, MAX_RUTINAS,
+                                    META_MAX, META_MIN, rutina_de, rutinas_de)
 from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida, rutina_desde_dict
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
-                             _COLOCACION, EstadoFrame, aspecto_guia)
+                             MOTIVO_ANUNCIO, _COLOCACION, EstadoFrame, aspecto_guia)
 
 VERSION = 1
 
 CAPACIDADES: Dict[str, bool] = {
     "nivel": False,
-    "correctasConError": False,
+    "correctasConError": True,
     "guia": True,
     "resumenTexto": False,
     "motivoSilencio": True,
-    "pausaManual": False,
-    "colocacion": False,
+    "pausaManual": True,
+    "colocacion": True,
     "avisoLuz": False,
     "rutinaPersonalizada": True,
     "silenciarVoz": True,
+    "elegirCamara": True,
     "reconocerEjercicio": True,
+    "pasoAnterior": True,
+    "gestoPausa": True,
+    #: la pone el orquestador según tenga o no historial (ADR-008)
+    "historial": False,
+    "perfiles": False,
 }
 
 #: límites del objetivo que puede elegir la usuaria, por unidad
@@ -114,6 +173,46 @@ def tipo_aviso(texto: Optional[str]) -> Optional[str]:
     if texto in AVISO_PAUSA.values():
         return "pausa"
     return "otro"
+
+
+#: por qué no se evalúa la técnica, en palabras de la usuaria
+NO_EVALUA_COLOCANDO = "Colocándote"
+NO_EVALUA_PAUSA = "En pausa"
+NO_EVALUA_SIN_PERSONA = "No te veo"
+_NO_EVALUA_AVISO = {"encuadre": "No te veo entera", "orientacion": "Orientación incorrecta",
+                    "sin_persona": NO_EVALUA_SIN_PERSONA}
+_NO_EVALUA_SILENCIO = {
+    MOTIVO_ANUNCIO: "Escuchando una indicación",
+    MOTIVO_CONFIANZA_BAJA: "No veo bien una parte del cuerpo",
+    MOTIVO_PLANO_NO_OBSERVABLE: "Desde aquí no se ve el movimiento",
+}
+
+
+def evaluacion(estado: EstadoFrame) -> Optional[Dict[str, Any]]:
+    """¿Se está evaluando la técnica en este frame? Si no, el motivo."""
+    if estado.terminada:
+        return None
+    motivo: Optional[str] = None
+    if getattr(estado, "colocando", False):
+        motivo = NO_EVALUA_COLOCANDO
+    elif estado.pausada:
+        motivo = NO_EVALUA_PAUSA
+    elif not estado.persona:
+        motivo = NO_EVALUA_SIN_PERSONA
+    else:
+        motivo = (_NO_EVALUA_AVISO.get(tipo_aviso(estado.aviso) or "")
+                  or _NO_EVALUA_SILENCIO.get(getattr(estado, "motivo_silencio", None) or ""))
+    return {"evaluando": motivo is None, "motivo": motivo}
+
+
+def colocacion_a_dict(estado: EstadoFrame) -> Optional[Dict[str, Any]]:
+    if not getattr(estado, "colocando", False):
+        return None
+    c = getattr(estado, "comprobaciones", None) or {}
+    return {"instruccion": getattr(estado, "instruccion", None),
+            "persona": bool(c.get("persona")),
+            "orientacion": bool(c.get("orientacion")),
+            "cuerpoEntero": bool(c.get("cuerpo_entero"))}
 
 
 def _puntos(lm: Optional[np.ndarray]) -> Optional[List[List[float]]]:
@@ -263,7 +362,8 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "orientacionGrados": (round(estado.orientacion, 1)
                               if estado.orientacion is not None else None),
         "aviso": estado.aviso,
-        "avisoTipo": tipo_aviso(estado.aviso),
+        "avisoTipo": ("movimiento" if opcional("otro_movimiento")
+                      else tipo_aviso(estado.aviso)),
         "ultimoMensaje": estado.ultimo_mensaje,
         "mensajesEmitidos": estado.mensajes_emitidos,
         "feedback": feedback_a_dict(opcional("feedback")),
@@ -272,9 +372,13 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "puntos": _puntos(estado.landmarks),
         "angulos": _angulos(opcional("angulos"), opcional("angulos_importantes") or ()),
         "terminada": estado.terminada,
-        # aún sin backend (ver CAPACIDADES): llegan null
+        "colocacion": colocacion_a_dict(estado),
+        "evaluacion": evaluacion(estado),
         "correctas": opcional("correctas"),
         "conError": opcional("con_error"),
+        # brazo derecho arriba: {"progreso": 0–1, "accion": "pausar" | "reanudar"}
+        "gesto": opcional("gesto"),
+        # aún sin backend (ver CAPACIDADES): llega null
         "nivel": opcional("nivel"),
         "guia": _puntos(np.asarray(guia)) if guia is not None else None,
         "depuracion": {
@@ -357,12 +461,14 @@ FIN_COMPLETADA, FIN_USUARIA, FIN_FUENTE, FIN_CIERRE, FIN_ERROR = (
 
 
 def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio],
-                   motivo_fin: Optional[str] = None) -> Dict[str, Any]:
+                   motivo_fin: Optional[str] = None,
+                   guardada: Optional[bool] = None) -> Dict[str, Any]:
     """`Sesion.resumen()` → resumen para la pantalla final (solo métricas derivadas).
 
     `motivo_fin`: completada (la rutina llegó al final), usuaria (pulsó
     terminar), fuente (el vídeo acabó o la cámara dejó de dar imagen), cierre
-    (se cerró la ventana) o error."""
+    (se cerró la ventana) o error. `guardada`: si la sesión entró en el
+    historial (None sin historial)."""
     pasos = []
     for p in resumen["pasos"]:
         ej = catalogo.get(p["skill_id"])
@@ -385,6 +491,11 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
                          for m in p["mensajes"]],
             # veces que el motor no corrigió, por motivo (panel técnico)
             "abstenciones": dict(p.get("abstenciones", {})),
+            # panel técnico: umbrales «absolutos» o «referencia», frames con
+            # respaldo absoluto por regla y frames por resultado del DTW
+            "umbrales": p.get("umbrales"),
+            "respaldos": dict(p.get("respaldos") or {}),
+            "dtw": dict(p["dtw"]) if p.get("dtw") is not None else None,
         })
     return {
         "rutina": resumen["rutina"],
@@ -393,13 +504,127 @@ def resumen_a_dict(resumen: Mapping[str, Any], catalogo: Mapping[str, Ejercicio]
         "duracionTotalS": round(sum(p["duracionS"] for p in pasos), 1),
         "pasos": pasos,
         "resumenTexto": resumen.get("resumen_texto"),
+        "guardadaEnHistorial": guardada,
         # para el equipo (tecla D en el resumen), no para la usuaria
         "tecnico": {
             "frames": resumen.get("frames", 0),
             "framesSinPersona": resumen.get("frames_sin_persona", 0),
             "latencias": {etapa: {"p50Ms": v["p50_ms"], "p95Ms": v["p95_ms"], "n": v["n"]}
                           for etapa, v in resumen.get("latencias", {}).items()},
+            # frases que la cola de voz descartó (lo añade `__main__` al cerrar)
+            "voz": ({"motor": resumen["voz"]["motor"],
+                     "descartadas": resumen["voz"]["descartadas"],
+                     "descartes": dict(resumen["voz"].get("descartes", {}))}
+                    if resumen.get("voz") else None),
         },
+    }
+
+
+def _nombre(sid: str, catalogo: Mapping[str, Ejercicio]) -> str:
+    ej = catalogo.get(sid)
+    return ej.skill.nombre if ej else sid
+
+
+def perfil_a_dict(p: Mapping[str, Any]) -> Dict[str, Any]:
+    rutina = rutina_de(p)
+    return {"id": p["id"], "nombre": p["nombre"], "color": p["color"],
+            "metaSemanal": p.get("meta_semanal"), "creado": p.get("creado"),
+            # última rutina armada en «Mi rutina»; la interfaz descarta lo que ya
+            # no esté en el catálogo y ajusta el objetivo a sus límites
+            "rutina": (_pasos_a_dict(rutina) if rutina is not None else None),
+            # rutinas guardadas con nombre, para elegirlas desde el inicio
+            "rutinas": [{"id": r["id"], "nombre": r["nombre"], "pasos": _pasos_a_dict(r["pasos"])}
+                        for r in rutinas_de(p)]}
+
+
+def _pasos_a_dict(pasos: Sequence[Mapping[str, Any]]) -> List[Dict[str, Any]]:
+    return [{"skillId": q["skill_id"], "objetivo": q["objetivo"]} for q in pasos]
+
+
+def perfiles_a_dict(perfiles: Sequence[Mapping[str, Any]], activo: Optional[str],
+                    elegido: bool) -> Dict[str, Any]:
+    """`elegido`: ya se eligió quién entrena en esta ejecución (un perfil o
+    invitada, `activo` None); si no, la interfaz pregunta."""
+    return {
+        "perfiles": [perfil_a_dict(p) for p in perfiles],
+        "activo": activo,
+        "elegido": elegido,
+        "colores": list(COLORES),
+        "maxPerfiles": MAX_PERFILES,
+        "maxNombre": MAX_NOMBRE,
+        "meta": [META_MIN, META_MAX],
+        "maxRutinas": MAX_RUTINAS,
+        "maxNombreRutina": MAX_NOMBRE_RUTINA,
+    }
+
+
+def datos_de_perfil(d: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
+    """Lo que manda la interfaz → campos de `Perfiles.crear/editar`. Solo
+    pasan las claves que vienen: editar el color no borra la meta."""
+    d = d or {}
+    salida: Dict[str, Any] = {}
+    for clave, destino in (("nombre", "nombre"), ("color", "color"), ("metaSemanal", "meta_semanal")):
+        if clave in d:
+            salida[destino] = d[clave]
+    return salida
+
+
+def progreso_a_dict(p: Mapping[str, Any], catalogo: Mapping[str, Ejercicio],
+                    meta_semanal: Optional[int] = None) -> Dict[str, Any]:
+    """`historial.progreso()` → panel «Mi progreso». Un ejercicio que ya no
+    está en el catálogo (retirado) se muestra con su `skill_id`. `meta_semanal`:
+    la del perfil (días por semana), o None."""
+    return {
+        "totalSesiones": p["total_sesiones"],
+        "totalDuracionS": p["total_duracion_s"],
+        "promedioSesionS": p["promedio_sesion_s"],
+        "diasActivos": p["dias_activos"],
+        "diasActivos7": p["dias_activos_7"],
+        "diasSemanaActual": p["dias_semana_actual"],
+        "metaSemanal": meta_semanal,
+        "rachaDias": p["racha_dias"],
+        "mejorRachaDias": p["mejor_racha_dias"],
+        "primeraFecha": p["primera_fecha"],
+        "semanas": [{"inicio": s["inicio"], "sesiones": s["sesiones"],
+                     "duracionS": s["duracion_s"]} for s in p["semanas"]],
+        "semanaComparada": None if p["semana_comparada"] is None else {
+            "dias": p["semana_comparada"]["dias"],
+            "actualS": p["semana_comparada"]["actual_s"],
+            "anteriorS": p["semana_comparada"]["anterior_s"],
+            "diferenciaS": p["semana_comparada"]["diferencia_s"],
+        },
+        "dias": [{"fecha": d["fecha"], "sesiones": d["sesiones"], "duracionS": d["duracion_s"]}
+                 for d in p["dias"]],
+        "ejercicios": [{
+            "skillId": e["skill_id"],
+            "nombre": _nombre(e["skill_id"], catalogo),
+            "unidad": e["unidad"],
+            "veces": e["veces"],
+            "ultimaFecha": e["ultima_fecha"],
+            "ultimo": dict(e["ultimo"]),
+            "mejor": e["mejor"],
+            "objetivoCumplido": e["objetivo_cumplido"],
+            "recientes": [dict(r) for r in e["recientes"]],
+            "indicaciones": {
+                "sesiones": e["indicaciones"]["sesiones"],
+                "frecuentes": [{"errorId": f["error_id"], "texto": f["texto"],
+                                "sesiones": f["sesiones"], "veces": f["veces"]}
+                               for f in e["indicaciones"]["frecuentes"]],
+            },
+        } for e in p["ejercicios"]],
+        "sesiones": [{
+            "fecha": s["fecha"],
+            "rutina": s["rutina"],
+            "terminada": s["terminada"],
+            "motivoFin": s["motivo_fin"],
+            "duracionS": s["duracion_s"],
+            "ejercicios": s["ejercicios"],
+            "completos": s["completos"],
+            "indicaciones": s["indicaciones"],
+            "pasos": [{"skillId": q["skill_id"], "nombre": _nombre(q["skill_id"], catalogo),
+                       "unidad": q["unidad"], "completadas": q["completadas"],
+                       "objetivo": q["objetivo"]} for q in s["pasos"]],
+        } for s in p["sesiones"]],
     }
 
 
@@ -416,5 +641,7 @@ def info(rutina: Rutina, catalogo: Mapping[str, Ejercicio], espejo: bool) -> Dic
 
 
 __all__ = ["CAPACIDADES", "LIMITES_OBJETIVO", "VERSION", "catalogo_a_dict", "rutina_desde_opciones", "FIN_CIERRE", "FIN_COMPLETADA", "FIN_ERROR",
-           "FIN_FUENTE", "FIN_USUARIA", "estado_a_dict", "feedback_a_dict", "info", "resumen_a_dict",
+           "FIN_FUENTE", "FIN_USUARIA", "datos_de_perfil", "estado_a_dict", "feedback_a_dict", "info",
+           "perfil_a_dict", "perfiles_a_dict", "progreso_a_dict",
+           "resumen_a_dict",
            "rutina_a_dict", "tipo_aviso"]

@@ -1,18 +1,24 @@
-import { AlertTriangle, Check, ChevronDown, LogOut, ListChecks, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
+import { AlertTriangle, Check, ChevronDown, History, LogOut, ListChecks, MessageCircle, RotateCcw, Sparkles } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import type { Bridge, PasoResumen, PasoRutina, Resumen as DatosResumen } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
 import { Aviso, Boton, Marca, duracion, plural } from '../componentes/basicos'
+import { Estrella } from '../componentes/Estrella'
 import { Figura } from '../componentes/Figura'
 import { FiguraEjercicio } from '../componentes/rutina'
 import { GuiaAnimada } from '../componentes/VistaCamara'
 import { useCapacidad, useEstado } from '../estado/almacen'
+import { usePerfilActivo, usePerfiles } from '../estado/perfiles'
+import { irAProgreso } from './Inicio'
 
 export function Resumen({ bridge }: { bridge: Bridge }) {
   const resumen = useEstado((s) => s.estado?.resumen ?? null)
   const plan = useEstado((s) => s.plan?.pasos ?? SIN_PASOS)
   const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
   const conTexto = useCapacidad('resumenTexto')
+  const conPerfiles = useCapacidad('perfiles')
+  const perfiles = usePerfiles()
+  const perfil = usePerfilActivo()
   const [tecnico, setTecnico] = useState(false)
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => { if (e.key.toLowerCase() === 'd' && !e.repeat) setTecnico((t) => !t) }
@@ -28,7 +34,7 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
   return (
     <main className="pantalla pantalla-resumen">
       <header className="cabecera">
-        <Marca />
+        <Marca alInicio={() => void bridge.volverAlInicio()} />
         <div className="cabecera-derecha">
           <span className="etiqueta solo-ancho">Resumen de la sesión</span>
           <ControlesCabecera bridge={bridge} />
@@ -37,8 +43,14 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
 
       <section className="resumen-cuerpo">
         <div className="resumen-cabeza">
+          {/* si la sesión se cortó por un fallo, sin mascota: lo importante es el aviso */}
+          {resumen.motivoFin !== 'fuente' && resumen.motivoFin !== 'error' && (resumen.terminada
+            ? <Estrella pose="victoria" mensaje="¡Lo hiciste! Cada movimiento cuenta." />
+            : <Estrella pose="tranquila" mensaje="Lo que hiciste hoy también cuenta." />)}
           <span className="etiqueta etiqueta-marca">{resumen.rutina}</span>
-          <h1>{resumen.terminada ? <>Muy bien,<br /><em>hoy te moviste.</em></> : <>Hasta aquí<br /><em>por hoy.</em></>}</h1>
+          <h1>{resumen.terminada
+            ? <>Muy bien{perfil ? `, ${perfil.nombre}` : ''},<br /><em>hoy te moviste.</em></>
+            : <>Hasta aquí<br /><em>por hoy.</em></>}</h1>
           <p className="resumen-cifras">
             <span><strong>{duracion(resumen.duracionTotalS)}</strong> en movimiento</span>
             <span><strong>{completos}</strong> de {plan.length || resumen.pasos.length} ejercicios completos</span>
@@ -52,6 +64,16 @@ export function Resumen({ bridge }: { bridge: Bridge }) {
             <Aviso tipo="cuidado" icono={<AlertTriangle />} titulo="La sesión se detuvo por un problema">
               Guardamos lo que llevabas. Puedes repetir la rutina.
             </Aviso>
+          )}
+          {resumen.guardadaEnHistorial && (
+            <Aviso tipo="info" icono={<History />}
+                   titulo={perfil ? `Sesión guardada en el historial de ${perfil.nombre}` : 'Sesión guardada en tu historial'}
+                   accion={<Boton variante="secundario" onClick={() => irAProgreso(bridge)}>Ver mi progreso</Boton>}>
+              Solo en este equipo. Puedes borrarla desde «Mi progreso».
+            </Aviso>
+          )}
+          {conPerfiles && perfiles?.elegido && !perfil && (
+            <p className="campo-ayuda">Entrenaste sin perfil: esta sesión no se guardó.</p>
           )}
           {conTexto && resumen.resumenTexto && (
             <p className="resumen-texto"><Sparkles aria-hidden="true" />{resumen.resumenTexto}</p>
@@ -155,13 +177,18 @@ function FilaPendiente({ paso }: { paso: PasoRutina }) {
   )
 }
 
-/** Métricas para el equipo (tecla D): abstenciones del motor y latencia por etapa. */
+/** «motivo ×n, motivo ×n» o «—». */
+const conteos = (c: Record<string, number> | null | undefined) =>
+  Object.entries(c ?? {}).map(([motivo, n]) => `${motivo} ×${n}`).join(', ') || '—'
+
+/** Métricas para el equipo (tecla D): abstenciones del motor, DTW, umbrales, voz y latencia por etapa. */
 function PanelTecnico({ resumen }: { resumen: DatosResumen }) {
   const t = resumen.tecnico
   return (
     <section className="tarjeta panel-tecnico" aria-label="Datos técnicos de la sesión">
       <span className="etiqueta">Datos técnicos · tecla D para volver</span>
       <p>{t.frames} frames · {t.framesSinPersona} sin persona · fin: {resumen.motivoFin ?? '—'}</p>
+      {t.voz && <p>voz {t.voz.motor} · {t.voz.descartadas} descartadas{t.voz.descartadas ? ` (${conteos(t.voz.descartes)})` : ''}</p>}
       <table>
         <thead><tr><th>Etapa</th><th>p50</th><th>p95</th><th>n</th></tr></thead>
         <tbody>
@@ -171,14 +198,16 @@ function PanelTecnico({ resumen }: { resumen: DatosResumen }) {
         </tbody>
       </table>
       <table>
-        <thead><tr><th>Ejercicio</th><th>Completadas</th><th>Correcciones</th><th>Abstenciones</th></tr></thead>
+        <thead><tr><th>Ejercicio</th><th>Completadas</th><th>Correcciones</th><th>Abstenciones</th><th>DTW (frames)</th><th>Umbrales</th></tr></thead>
         <tbody>
           {resumen.pasos.map((p, i) => (
             <tr key={`${p.skillId}-${i}`}>
               <td>{p.skillId}</td>
               <td>{p.completadas} / {p.objetivo}</td>
               <td>{p.mensajes.filter((m) => m.errorId).length}</td>
-              <td>{Object.entries(p.abstenciones).map(([motivo, n]) => `${motivo} ×${n}`).join(', ') || '—'}</td>
+              <td>{conteos(p.abstenciones)}</td>
+              <td>{p.dtw === null ? 'desactivado' : conteos(p.dtw)}</td>
+              <td>{p.umbrales === 'referencia' ? `referencia · respaldo: ${conteos(p.respaldos)}` : (p.umbrales ?? '—')}</td>
             </tr>
           ))}
         </tbody>

@@ -24,6 +24,10 @@ log = logging.getLogger(__name__)
 
 class MotorVoz:
     nombre = "base"
+    #: `time.perf_counter()` del momento en que empezó a sonar la última frase,
+    #: si el motor lo sabe (Piper sí: tras sintetizar). La cola de voz lo usa
+    #: para medir detección → inicio de voz; None = coincide con `hablar`.
+    ultimo_inicio_audio: Optional[float] = None
 
     def hablar(self, texto: str) -> None:
         raise NotImplementedError
@@ -127,6 +131,7 @@ class VozPiper(MotorVoz):
 
     def hablar(self, texto: str) -> None:
         wav = self._sintetizar(texto)
+        self.ultimo_inicio_audio = time.perf_counter()
         if self._sd is not None:
             import numpy as np
             with wave.open(io.BytesIO(wav)) as r:

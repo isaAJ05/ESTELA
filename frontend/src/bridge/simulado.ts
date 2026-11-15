@@ -5,10 +5,12 @@
 // Parámetros de la URL: ?simulado            fuerza el simulador en el build
 //                       ?velocidad=4         acelera el tiempo
 //                       ?escena=resumen|error empieza en esa fase
+//                       ?escena=progreso-vacio  «Mi progreso» sin sesiones
+//                       ?escena=sin-perfiles    primera vez: aún no hay perfiles
 
 import type {
-  Bridge, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio, PasoRutina,
-  Punto, Resumen, Severidad,
+  Bridge, DatosPerfil, DatosRutina, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio,
+  PasoRutina, Perfil, Progreso, Punto, Resumen, ResultadoPerfil, RutinaGuardada, Severidad,
 } from './tipos'
 
 const PASOS: PasoRutina[] = [
@@ -37,6 +39,113 @@ const CATALOGO: EjercicioCatalogo[] = PASOS.map((p) => ({
   maximo: p.unidad === 'segundos' ? 180 : 50,
 }))
 
+const VACIO: Progreso = {
+  totalSesiones: 0, totalDuracionS: 0, promedioSesionS: 0, diasActivos: 0, diasActivos7: 0, diasSemanaActual: 0,
+  metaSemanal: null, rachaDias: 0, mejorRachaDias: 0, primeraFecha: null, semanas: [], semanaComparada: null, dias: [],
+  ejercicios: [], sesiones: [],
+}
+
+// Perfiles en memoria, con las mismas reglas que `backend/estela/aplicacion/perfiles.py`.
+const COLORES = ['violeta', 'naranja', 'turquesa', 'rosa', 'azul', 'mostaza']
+const MAX_PERFILES = 8
+const MAX_NOMBRE = 30
+const MAX_RUTINAS = 10
+const MAX_NOMBRE_RUTINA = 40
+
+function limpiarPerfil(d: DatosPerfil, otros: Perfil[], base?: Perfil): Omit<Perfil, 'id' | 'creado' | 'rutina' | 'rutinas'> | string {
+  const nombre = (d.nombre ?? base?.nombre ?? '').trim().split(/\s+/).filter(Boolean).join(' ')
+  if (!nombre) return 'Escribe un nombre o apodo.'
+  if (nombre.length > MAX_NOMBRE) return `El nombre puede tener hasta ${MAX_NOMBRE} caracteres.`
+  if (otros.some((p) => p.nombre.toLowerCase() === nombre.toLowerCase())) return 'Ya hay un perfil con ese nombre.'
+  const color = d.color ?? base?.color ?? COLORES[0]
+  if (!COLORES.includes(color)) return 'Elige uno de los colores disponibles.'
+  const metaSemanal = 'metaSemanal' in d ? d.metaSemanal ?? null : base?.metaSemanal ?? null
+  if (metaSemanal != null && (metaSemanal < 1 || metaSemanal > 7)) return 'La meta debe estar entre 1 y 7 días por semana.'
+  return { nombre, color, metaSemanal }
+}
+
+const iso = (d: Date) => {
+  const dos = (n: number) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${dos(d.getMonth() + 1)}-${dos(d.getDate())}T${dos(d.getHours())}:${dos(d.getMinutes())}:00`
+}
+
+/** Historial inventado de unas semanas, con huecos, para ver el panel sin Python. */
+function progresoSimulado(hoy = new Date()): Progreso {
+  const dia = (hace: number, hora = 8) => new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - hace, hora, 15)
+  const haceDias = [0, 1, 2, 4, 6, 9, 10, 13, 16, 20, 23, 27, 30, 34, 41, 48]
+  const lunes = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate() - ((hoy.getDay() + 6) % 7))
+  // gráfico, calendario y cifras salen de las mismas sesiones, como en Python
+  const duracionDe = (k: number) => 240 + 17 * k
+  const entre = (desde: Date, hasta: Date) => haceDias.map((h, k) => ({ d: dia(h), s: duracionDe(k) }))
+    .filter(({ d }) => d >= desde && d < hasta)
+  const masDias = (d: Date, n: number) => new Date(d.getFullYear(), d.getMonth(), d.getDate() + n)
+  const semanas = Array.from({ length: 8 }, (_, k) => {
+    const inicio = masDias(lunes, -7 * (7 - k))
+    const en = entre(inicio, masDias(inicio, 7))
+    return { inicio: iso(inicio).slice(0, 10), sesiones: en.length, duracionS: en.reduce((a, x) => a + x.s, 0) }
+  })
+  const tramo = (hoy.getDay() + 6) % 7 + 1
+  const actualS = entre(lunes, masDias(lunes, tramo)).reduce((a, x) => a + x.s, 0)
+  const anteriorS = entre(masDias(lunes, -7), masDias(lunes, tramo - 7)).reduce((a, x) => a + x.s, 0)
+  const dias = haceDias.map((h, k) => ({ fecha: iso(dia(h)).slice(0, 10), sesiones: 1, duracionS: duracionDe(k) })).reverse()
+  let mejorRacha = 0
+  let seguidos = 0
+  ;[...haceDias].sort((a, b) => b - a).forEach((h, i, l) => { seguidos = i > 0 && l[i - 1] - h === 1 ? seguidos + 1 : 1; mejorRacha = Math.max(mejorRacha, seguidos) })
+  const pasos = (k: number) => [
+    { skillId: 'jumping_jacks', nombre: 'Jumping jacks', unidad: 'repeticiones' as const, completadas: Math.min(10, 6 + (k % 5)), objetivo: 10 },
+    { skillId: 'zancada_atras_izq', nombre: 'Zancada atrás estática, pierna izquierda atrás', unidad: 'repeticiones' as const, completadas: 6, objetivo: 6 },
+    { skillId: 'plancha', nombre: 'Plancha', unidad: 'segundos' as const, completadas: 12 + (k % 9), objetivo: 20 },
+  ]
+  const sesiones = haceDias.map((h, k) => {
+    const ps = pasos(haceDias.length - k)
+    return {
+      fecha: iso(dia(h, 7 + (k % 3) * 5)), rutina: 'Rutina de entrenamiento', terminada: k !== 3 && k !== 6,
+      motivoFin: k === 3 ? 'usuaria' as const : k === 6 ? 'fuente' as const : 'completada' as const,
+      duracionS: duracionDe(k), ejercicios: ps.length, completos: ps.filter((p) => p.completadas >= p.objetivo).length,
+      indicaciones: k % 4, pasos: ps,
+    }
+  })
+  const recientes = (sid: string) => sesiones.slice(0, 10).reverse().map((s) => {
+    const p = s.pasos.find((q) => q.skillId === sid)!
+    return { fecha: s.fecha, completadas: p.completadas, objetivo: p.objetivo }
+  })
+  const ejercicio = (sid: string, nombre: string, unidad: 'repeticiones' | 'segundos',
+                     frecuentes: Progreso['ejercicios'][number]['indicaciones']['frecuentes']) => {
+    const r = recientes(sid)
+    return {
+      skillId: sid, nombre, unidad, veces: sesiones.length, ultimaFecha: sesiones[0].fecha,
+      ultimo: { completadas: r.at(-1)!.completadas, objetivo: r.at(-1)!.objetivo },
+      mejor: Math.max(...r.map((x) => x.completadas)),
+      objetivoCumplido: sesiones.filter((s) => s.pasos.some((q) => q.skillId === sid && q.completadas >= q.objetivo)).length,
+      recientes: r, indicaciones: { sesiones: 5, frecuentes },
+    }
+  }
+  return {
+    totalSesiones: sesiones.length,
+    totalDuracionS: sesiones.reduce((a, s) => a + s.duracionS, 0),
+    promedioSesionS: Math.round(sesiones.reduce((a, s) => a + s.duracionS, 0) / sesiones.length),
+    diasActivos: sesiones.length,
+    diasActivos7: haceDias.filter((h) => h < 7).length,
+    diasSemanaActual: haceDias.filter((h) => h <= (hoy.getDay() + 6) % 7).length,
+    metaSemanal: null,
+    rachaDias: 3,
+    mejorRachaDias: mejorRacha,
+    primeraFecha: sesiones.at(-1)!.fecha,
+    semanas,
+    semanaComparada: { dias: tramo, actualS, anteriorS, diferenciaS: actualS - anteriorS },
+    dias,
+    ejercicios: [
+      ejercicio('jumping_jacks', 'Jumping jacks', 'repeticiones', [
+        { errorId: 'brazos_no_llegan_arriba', texto: 'Sube un poco más los brazos.', sesiones: 3, veces: 5 },
+        { errorId: 'codos_flexionados', texto: 'Estira los codos al abrir.', sesiones: 1, veces: 1 }]),
+      ejercicio('zancada_atras_izq', 'Zancada atrás estática, pierna izquierda atrás', 'repeticiones', []),
+      ejercicio('plancha', 'Plancha', 'segundos', [
+        { errorId: 'cadera_hundida', texto: 'Sube un poco la cadera.', sesiones: 4, veces: 7 }]),
+    ],
+    sesiones,
+  }
+}
+
 const CONEXIONES: [number, number][] = [
   [11, 12], [11, 13], [13, 15], [12, 14], [14, 16], [11, 23], [12, 24], [23, 24],
   [23, 25], [25, 27], [27, 29], [29, 31], [27, 31], [24, 26], [26, 28], [28, 30], [30, 32], [28, 32],
@@ -61,6 +170,10 @@ const MENSAJES: Record<string, Feedback[]> = {
 const SEG_POR_REP = 2.4
 const PASO_CON_PAUSA = 1         // índice del paso donde se simula una pausa
 const PAUSA = { desdeRep: 3, duracionS: 4 }
+// colocación al empezar cada paso: se cumplen persona, orientación y cuerpo entero
+// en estos segundos y a los COLOCACION_S empieza a contar (o con «Listo»)
+const COLOCACION = { persona: 0.4, orientacion: 1.2, cuerpoEntero: 2.0 }
+const COLOCACION_S = 3.5
 
 // -- esqueleto sintético ------------------------------------------------------
 
@@ -139,6 +252,8 @@ interface PasoHecho {
   paso: PasoRutina
   completadas: number
   incompletas: number
+  correctas: number
+  conError: number
   duracionS: number
   pausaS: number
   pausas: number
@@ -158,6 +273,9 @@ export function bridgeSimulado(): Bridge {
   let resumen: Resumen | null = null
   let sesion: EstadoSesion | null = null
   let reloj = 0                // segundos simulados dentro del paso
+  let colocadoEn: number | null = null   // reloj al terminar la colocación
+  let camara: number | null = null
+  let pausaUsuaria = false     // la usuaria pulsó «Pausar»: el reloj se detiene
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
   let ultimoMensaje: string | null = null
@@ -171,8 +289,10 @@ export function bridgeSimulado(): Bridge {
 
   const empezarPaso = () => {
     reloj = 0
-    actual = { paso: pasos[i], completadas: 0, incompletas: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
-    hechos.push(actual)
+    pausaUsuaria = false
+    colocadoEn = null
+    actual = { paso: pasos[i], completadas: 0, incompletas: 0, correctas: 0, conError: 0, duracionS: 0, pausaS: 0, pausas: 0, mensajes: [] }
+    hechos[i] = actual           // al volver con «anterior», el intento nuevo sustituye al viejo
   }
 
   const cerrar = (terminada: boolean) => {
@@ -183,16 +303,19 @@ export function bridgeSimulado(): Bridge {
       duracionTotalS: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 10) / 10,
       pasos: hechos.map((h) => ({
         skillId: h.paso.skillId, nombre: h.paso.nombre, unidad: h.paso.unidad, objetivo: h.paso.objetivo,
-        completadas: h.completadas, incompletas: h.incompletas, correctas: null, conError: null,
+        completadas: h.completadas, incompletas: h.incompletas, correctas: h.correctas, conError: h.conError,
         duracionS: Math.round(h.duracionS * 10) / 10, pausas: h.pausas, pausaS: h.pausaS, mensajes: h.mensajes,
         abstenciones: { evidencia_insuficiente: h.completadas > 0 ? 2 : 0 },
+        umbrales: 'absolutos', respaldos: {}, dtw: { alineado: Math.round(h.duracionS * 27), sin_referencia: 0 },
       })),
       resumenTexto: null,
+      guardadaEnHistorial: activo ? hechos.some((h) => h.completadas > 0) : null,
       motivoFin: terminada ? 'completada' : 'usuaria',
       tecnico: {
         frames: Math.round(hechos.reduce((a, h) => a + h.duracionS, 0) * 30),
         framesSinPersona: 120,
         latencias: { pose: { p50Ms: 18.2, p95Ms: 24.9, n: 4200 }, total: { p50Ms: 19.1, p95Ms: 26.3, n: 4200 } },
+        voz: { motor: 'simulada', descartadas: 1, descartes: { caducada: 1 } },
       },
     }
     fase = 'resumen'
@@ -209,21 +332,39 @@ export function bridgeSimulado(): Bridge {
   const tic = (dt: number) => {
     if (!actual) return
     const paso = actual.paso
+    if (pausaUsuaria) {
+      actual.pausaS = Math.round((actual.pausaS + dt) * 10) / 10
+      if (sesion) sesion = { ...sesion, pausada: true, motivoPausa: 'usuaria', aviso: 'En pausa.', avisoTipo: 'pausa',
+                             evaluacion: { evaluando: false, motivo: 'En pausa' } }
+      return
+    }
     reloj += dt
+    if (colocadoEn === null && reloj >= COLOCACION_S) colocadoEn = reloj
+    if (colocadoEn === null) {
+      sesion = estadoColocando(paso)
+      return
+    }
+    const t = reloj - colocadoEn       // segundos desde que empezó a contar
     const enPausa = i === PASO_CON_PAUSA
-      && reloj >= PAUSA.desdeRep * SEG_POR_REP && reloj < PAUSA.desdeRep * SEG_POR_REP + PAUSA.duracionS
+      && t >= PAUSA.desdeRep * SEG_POR_REP && t < PAUSA.desdeRep * SEG_POR_REP + PAUSA.duracionS
     if (enPausa) {
       if (actual.pausas === 0) actual.pausas = 1
       actual.pausaS = Math.round((actual.pausaS + dt) * 10) / 10
     } else {
       actual.duracionS += dt
     }
-    const activo = reloj - (i === PASO_CON_PAUSA && reloj > PAUSA.desdeRep * SEG_POR_REP
-      ? Math.min(PAUSA.duracionS, reloj - PAUSA.desdeRep * SEG_POR_REP) : 0)
+    const activo = t - (i === PASO_CON_PAUSA && t > PAUSA.desdeRep * SEG_POR_REP
+      ? Math.min(PAUSA.duracionS, t - PAUSA.desdeRep * SEG_POR_REP) : 0)
     const antes = actual.completadas
     actual.completadas = Math.min(paso.objetivo,
       paso.unidad === 'segundos' ? Math.floor(activo) : Math.floor(activo / SEG_POR_REP))
     if (paso.skillId === 'zancada_atras_izq' && antes < 5 && actual.completadas >= 5) actual.incompletas = 1
+    // cada repetición (o segundo) nueva: con error si es de las que llevan corrección
+    for (let k = antes + 1; k <= actual.completadas; k++) {
+      const conError = paso.unidad === 'segundos' ? k > 6 && k <= 10 : [2, 4].includes(k)
+      if (conError) actual.conError++
+      else actual.correctas++
+    }
     if (paso.unidad === 'repeticiones' && actual.completadas !== antes && [2, 4].includes(actual.completadas)) {
       const lista = MENSAJES[paso.skillId] ?? []
       const fb = lista[(actual.completadas / 2 - 1) % Math.max(lista.length, 1)]
@@ -231,18 +372,15 @@ export function bridgeSimulado(): Bridge {
         ultimoMensaje = fb.texto
         feedback = fb
         mensajesEmitidos++
-        actual.mensajes.push({ tMs: Math.round(reloj * 1000), texto: fb.texto, errorId: fb.errorId, segmento: fb.segmento,
+        actual.mensajes.push({ tMs: Math.round(t * 1000), texto: fb.texto, errorId: fb.errorId, segmento: fb.segmento,
                                lado: fb.lado, severidad: fb.severidad, repeticion: actual.completadas })
       }
     }
-    const cambiaOrientacion = i === 0 || pasos[i - 1].orientacion !== paso.orientacion
     let aviso: string | null = null
     let avisoTipo: EstadoSesion['avisoTipo'] = null
     if (enPausa) { aviso = 'Pausa. No te veo: vuelve al encuadre para seguir.'; avisoTipo = 'pausa' }
-    else if (cambiaOrientacion && reloj < 2.5) {
-      aviso = paso.orientacion === 'perfil' ? 'Colócate de perfil a la cámara.' : 'Colócate de frente a la cámara.'
-      avisoTipo = 'orientacion'
-    }
+    // tras el anuncio hablado de cada ejercicio, un momento sin evaluar
+    const anuncio = t < 1.2
     sesion = {
       ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: pasos.length,
       objetivo: paso.objetivo, unidad: paso.unidad, completadas: actual.completadas, incompletas: actual.incompletas,
@@ -250,10 +388,33 @@ export function bridgeSimulado(): Bridge {
       aviso, avisoTipo, ultimoMensaje, mensajesEmitidos, feedback, pausada: enPausa,
       motivoPausa: enPausa ? 'sin_persona' : null,
       puntos: enPausa ? null : esqueleto(paso.skillId, (activo / SEG_POR_REP) % 1),
-      terminada: false, correctas: null, conError: null, nivel: null, guia: null,
-      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 }, motivoSilencio: enPausa ? null : 'sin_error' },
+      terminada: false, correctas: actual.correctas, conError: actual.conError, nivel: null, guia: null,
+      colocacion: null,
+      evaluacion: enPausa ? { evaluando: false, motivo: 'En pausa' }
+        : anuncio ? { evaluando: false, motivo: 'Escuchando una indicación' } : { evaluando: true, motivo: null },
+      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 },
+                    motivoSilencio: enPausa ? null : anuncio ? 'anuncio' : 'sin_error' },
     }
     if (actual.completadas >= paso.objetivo) avanzar()
+  }
+
+  const estadoColocando = (paso: PasoRutina): EstadoSesion => {
+    const persona = reloj >= COLOCACION.persona
+    const orientacion = reloj >= COLOCACION.orientacion
+    const cuerpoEntero = reloj >= COLOCACION.cuerpoEntero
+    const vista = paso.orientacion === 'perfil' ? 'de perfil' : 'de frente'
+    return {
+      ejercicio: paso.nombre, ejercicioId: paso.skillId, paso: i + 1, totalPasos: pasos.length,
+      objetivo: paso.objetivo, unidad: paso.unidad, completadas: 0, incompletas: 0,
+      fase: 'colocacion', persona, orientacionGrados: paso.orientacion === 'perfil' ? 88 : 4,
+      aviso: null, avisoTipo: null, ultimoMensaje, mensajesEmitidos, feedback, pausada: false, motivoPausa: null,
+      puntos: persona ? esqueleto(paso.skillId, 0) : null,
+      terminada: false, correctas: 0, conError: 0, nivel: null, guia: null,
+      colocacion: { instruccion: `Colócate ${vista} a la cámara. Aléjate hasta que se te vea de la cabeza a los pies.`,
+                    persona, orientacion, cuerpoEntero },
+      evaluacion: { evaluando: false, motivo: 'Colocándote' },
+      depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, total: 18.8 }, motivoSilencio: null },
+    }
   }
 
   const iniciar = async (opciones?: OpcionesInicio) => {
@@ -282,6 +443,54 @@ export function bridgeSimulado(): Bridge {
     return true
   }
 
+  let perfiles: Perfil[] = escena === 'sin-perfiles' ? [] : [
+    { id: 'pana', nombre: 'Ana', color: 'rosa', metaSemanal: 4, creado: '2026-09-19T07:15:00',
+      rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'zancada_atras_izq', objetivo: 6 }],
+      rutinas: [
+        { id: 'rmananas', nombre: 'Mañanas rápidas', pasos: [{ skillId: 'jumping_jacks', objetivo: 15 }, { skillId: 'plancha', objetivo: 20 }] },
+        { id: 'rpiernas', nombre: 'Piernas', pasos: [{ skillId: 'abduccion_cadera_izq', objetivo: 10 }, { skillId: 'abduccion_cadera_der', objetivo: 10 }] },
+      ] },
+    { id: 'pluis', nombre: 'Luis', color: 'azul', metaSemanal: null, creado: '2026-10-02T18:00:00', rutina: null, rutinas: [] },
+  ]
+  // misma validación que `Perfiles.guardar_rutina_nombrada` (Python)
+  const cambiarRutinas = (perfilId: string, f: (rutinas: RutinaGuardada[]) => RutinaGuardada[] | string): ResultadoPerfil => {
+    const base = perfiles.find((p) => p.id === perfilId)
+    if (!base) return { ok: false, error: 'Ese perfil ya no existe.' }
+    const rutinas = f(base.rutinas)
+    if (typeof rutinas === 'string') return { ok: false, error: rutinas }
+    const perfil: Perfil = { ...base, rutinas }
+    perfiles = perfiles.map((p) => (p.id === perfilId ? perfil : p))
+    return { ok: true, perfil }
+  }
+  const guardarNombrada = (rutinas: RutinaGuardada[], d: DatosRutina): RutinaGuardada[] | string => {
+    const nombre = d.nombre.trim().split(/\s+/).filter(Boolean).join(' ')
+    if (!nombre) return 'Ponle un nombre a la rutina.'
+    if (nombre.length > MAX_NOMBRE_RUTINA) return `El nombre puede tener hasta ${MAX_NOMBRE_RUTINA} caracteres.`
+    if (d.pasos.length === 0) return 'Elige al menos un ejercicio para guardar la rutina.'
+    const otras = rutinas.filter((r) => r.id !== d.id)
+    if (d.id && otras.length === rutinas.length) return 'Esa rutina ya no existe.'
+    if (otras.some((r) => r.nombre.toLocaleLowerCase('es') === nombre.toLocaleLowerCase('es'))) return 'Ya tienes una rutina con ese nombre.'
+    const pasos = d.pasos.map((x) => ({ skillId: x.skillId, objetivo: x.objetivo }))
+    if (d.id) return rutinas.map((r) => (r.id === d.id ? { ...r, nombre, pasos } : r))
+    if (rutinas.length >= MAX_RUTINAS) return `Ya tienes ${MAX_RUTINAS} rutinas; borra una para guardar otra.`
+    return [...rutinas, { id: `r${Date.now().toString(36)}`, nombre, pasos }]
+  }
+  let activo: string | null = null
+  let elegido = false
+  // historial de cada perfil: Ana trae semanas de ejemplo, el resto empieza vacío
+  const historiales = new Map<string, Progreso>([['pana', escena === 'progreso-vacio' ? VACIO : progresoSimulado()]])
+  const cambiarPerfil = (id: string | null, d: DatosPerfil): ResultadoPerfil => {
+    const base = perfiles.find((p) => p.id === id)
+    if (id && !base) return { ok: false, error: 'Ese perfil ya no existe.' }
+    if (!id && perfiles.length >= MAX_PERFILES) return { ok: false, error: `Ya hay ${MAX_PERFILES} perfiles; borra uno para crear otro.` }
+    const limpio = limpiarPerfil(d, perfiles.filter((p) => p.id !== id), base)
+    if (typeof limpio === 'string') return { ok: false, error: limpio }
+    const perfil: Perfil = base ? { ...base, ...limpio } : { id: `p${Date.now().toString(36)}`, creado: iso(new Date()), rutina: null, rutinas: [], ...limpio }
+    perfiles = base ? perfiles.map((p) => (p.id === id ? perfil : p)) : [...perfiles, perfil]
+    if (!base) { activo = perfil.id; elegido = true }
+    return { ok: true, perfil }
+  }
+
   if (escena === 'error') {
     fase = 'error'
     error = { tipo: 'fuente', mensaje: 'no se pudo abrir la cámara 0' }
@@ -294,7 +503,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: false, guia: false, resumenTexto: false, motivoSilencio: true, pausaManual: false, colocacion: false, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, reconocerEjercicio: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, reconocerEjercicio: true, pasoAnterior: true, gestoPausa: true, historial: true, perfiles: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -314,13 +523,68 @@ export function bridgeSimulado(): Bridge {
       }, 500)
     }),
     iniciar,
-    siguiente: async () => { if (fase === 'sesion') avanzar() },
-    reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; reloj = 0 } },
+    siguiente: async () => { if (fase === 'sesion' && i < pasos.length - 1) avanzar() },
+    anterior: async () => { if (fase === 'sesion' && i > 0) { i--; empezarPaso() } },
+    reiniciar: async () => { if (actual) { actual.completadas = 0; actual.incompletas = 0; actual.correctas = 0; actual.conError = 0; reloj = 0; colocadoEn = null } },
+    listo: async () => { if (fase === 'sesion' && colocadoEn === null) colocadoEn = reloj },
     terminar: async () => { if (fase === 'sesion') cerrar(false) },
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
-    configurar: async () => {},
-    pausar: async () => {},
-    reanudar: async () => {},
+    configurar: async (ajustes) => { if (ajustes.camara !== undefined) camara = ajustes.camara },
+    camaras: async () => {
+      if (fase === 'sesion' || fase === 'preparando') return null
+      await new Promise((r) => setTimeout(r, 600))       // abrir cada cámara tarda
+      return { lista: [{ indice: 0, nombre: 'FaceTime HD Camera' }, { indice: 1, nombre: 'Cámara de iPhone' }], elegida: camara }
+    },
+    historial: async () => {
+      await new Promise((r) => setTimeout(r, 250))
+      const perfil = perfiles.find((p) => p.id === activo)
+      if (!perfil) return null
+      return { ...(historiales.get(perfil.id) ?? VACIO), metaSemanal: perfil.metaSemanal }
+    },
+    borrarHistorial: async () => { if (!activo) return false; historiales.delete(activo); return true },
+    perfiles: async () => ({ perfiles, activo, elegido, colores: COLORES, maxPerfiles: MAX_PERFILES, maxNombre: MAX_NOMBRE, meta: [1, 7], maxRutinas: MAX_RUTINAS, maxNombreRutina: MAX_NOMBRE_RUTINA }),
+    elegirPerfil: async (id) => {
+      if (id !== null && !perfiles.some((p) => p.id === id)) return false
+      activo = id; elegido = true
+      return true
+    },
+    crearPerfil: async (d) => cambiarPerfil(null, d),
+    editarPerfil: async (id, d) => cambiarPerfil(id, d),
+    guardarRutina: async (id, pasos) => {
+      const base = perfiles.find((p) => p.id === id)
+      if (!base) return { ok: false, error: 'Ese perfil ya no existe.' }
+      for (const paso of pasos) {
+        const ej = CATALOGO.find((c) => c.skillId === paso.skillId)
+        if (!ej) return { ok: false, error: `ejercicio desconocido en la rutina: ${paso.skillId}` }
+        if (!(paso.objetivo >= ej.minimo && paso.objetivo <= ej.maximo)) {
+          return { ok: false, error: `el objetivo de '${paso.skillId}' debe estar entre ${ej.minimo} y ${ej.maximo} ${ej.unidad}` }
+        }
+      }
+      const perfil: Perfil = { ...base, rutina: pasos.map((x) => ({ skillId: x.skillId, objetivo: x.objetivo })) }
+      perfiles = perfiles.map((p) => (p.id === id ? perfil : p))
+      return { ok: true, perfil }
+    },
+    guardarRutinaNombrada: async (id, d) => {
+      for (const paso of d.pasos) {
+        const ej = CATALOGO.find((c) => c.skillId === paso.skillId)
+        if (!ej) return { ok: false, error: `ejercicio desconocido en la rutina: ${paso.skillId}` }
+        if (!(paso.objetivo >= ej.minimo && paso.objetivo <= ej.maximo)) {
+          return { ok: false, error: `el objetivo de '${paso.skillId}' debe estar entre ${ej.minimo} y ${ej.maximo} ${ej.unidad}` }
+        }
+      }
+      return cambiarRutinas(id, (rutinas) => guardarNombrada(rutinas, d))
+    },
+    borrarRutinaNombrada: async (id, rutinaId) => cambiarRutinas(id, (rutinas) =>
+      rutinas.some((r) => r.id === rutinaId) ? rutinas.filter((r) => r.id !== rutinaId) : 'Esa rutina ya no existe.'),
+    borrarPerfil: async (id) => {
+      if (!perfiles.some((p) => p.id === id)) return false
+      perfiles = perfiles.filter((p) => p.id !== id)
+      historiales.delete(id)
+      if (activo === id) { activo = null; elegido = false }
+      return true
+    },
+    pausar: async () => { if (fase === 'sesion' && actual && !pausaUsuaria) { pausaUsuaria = true; actual.pausas++ } },
+    reanudar: async () => { pausaUsuaria = false },
   }
 }

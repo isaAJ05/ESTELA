@@ -62,3 +62,15 @@ test('estimación de duración', () => {
   // 8 rep × 3 s + 30 s + 2 transiciones × 10 s
   assert.equal(r.estimarSegundos([{ skillId: 'marcha_rodillas', objetivo: 8 }, { skillId: 'plancha', objetivo: 30 }], CAT), 74)
 })
+
+test('leer una rutina guardada (en el perfil o en el navegador)', () => {
+  // descarta lo que ya no está en el catálogo y los repetidos, y ajusta el objetivo a sus límites
+  assert.deepEqual(r.leerSeleccion([
+    { skillId: 'plancha', objetivo: 500 }, { skillId: 'retirado', objetivo: 5 },
+    { skillId: 'marcha_rodillas', objetivo: 7.6 }, { skillId: 'plancha', objetivo: 30 },
+    { skillId: 'jumping_jacks', objetivo: 'diez' }, null,
+  ], CAT), [{ skillId: 'plancha', objetivo: 180 }, { skillId: 'marcha_rodillas', objetivo: 8 }])
+  assert.equal(r.leerSeleccion([], CAT), null)
+  assert.equal(r.leerSeleccion(null, CAT), null)
+  assert.equal(r.leerSeleccion({ skillId: 'plancha' }, CAT), null)
+})
