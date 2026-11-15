@@ -89,7 +89,6 @@ RAICES_VIDEO = (
 #: carpeta → ejercicio. La abducción se decide por el prefijo del archivo.
 CARPETAS = {
     "jumping_jack": "jumping_jacks", "Jumping Jacks": "jumping_jacks",
-    "marcha_rodillas": "marcha_rodillas", "Marcha rodillas": "marcha_rodillas",
     "Plancha": "plancha", "Abdución de caderas pies": "abduccion",
 }
 MODELOS_POSE = ("lite", "full", "heavy")
