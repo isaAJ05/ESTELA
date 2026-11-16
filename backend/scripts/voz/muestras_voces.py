@@ -20,7 +20,8 @@ ser flojo; voces Piper: es_MX-claude apache-2.0, es_MX-ald Unlicense,
 es_AR-daniela CC BY-SA 4.0. Las voces de `say` son de Apple y solo sirven en
 macOS.
 
-Nadie se graba: todo es síntesis.
+Todas las muestras se guardan al mismo volumen, para comparar la voz y no lo
+fuerte que suena. Nadie se graba: todo es síntesis.
 """
 
 from __future__ import annotations
@@ -54,7 +55,15 @@ FRASES = [
 ]
 
 
+#: volumen (RMS) al que se llevan todas las muestras: la más fuerte suele
+#: parecer mejor, y aquí se compara la voz, no el volumen
+RMS_OBJETIVO = 0.12
+
+
 def _guardar(ruta: Path, x: np.ndarray, fs: int) -> None:
+    rms = float(np.sqrt(np.mean(x ** 2))) if len(x) else 0.0
+    if rms > 0:
+        x = x * min(RMS_OBJETIVO / rms, 0.99 / float(np.abs(x).max()))
     with wave.open(str(ruta), "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(fs)
         w.writeframes((np.clip(x, -1, 1) * 32767).astype(np.int16).tobytes())

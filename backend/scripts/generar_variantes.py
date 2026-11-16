@@ -22,6 +22,7 @@ import csv
 import json
 import sys
 import time
+import urllib.error
 import urllib.request
 from collections import Counter
 from pathlib import Path
@@ -80,10 +81,16 @@ def pedir(modelo, error, plantilla, n, temperatura, timeout_s):
             {"role": "system", "content": SISTEMA.format(n=n, m=MAX_PALABRAS)},
             {"role": "user", "content": _descripcion_error(error) + f"\nfrase de ejemplo: {plantilla}"}],
     }
-    req = urllib.request.Request(URL, data=json.dumps(cuerpo).encode("utf-8"),
-                                 headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout_s) as r:
-        resp = json.loads(r.read().decode("utf-8"))
+    def enviar():
+        req = urllib.request.Request(URL, data=json.dumps(cuerpo).encode("utf-8"),
+                                     headers={"Content-Type": "application/json"})
+        with urllib.request.urlopen(req, timeout=timeout_s) as r:
+            return json.loads(r.read().decode("utf-8"))
+    try:
+        resp = enviar()
+    except urllib.error.HTTPError:             # modelo sin modo de pensar: sin `think`
+        del cuerpo["think"]
+        resp = enviar()
     return [str(v).strip() for v in json.loads(resp["message"]["content"])["variantes"]]
 
 
@@ -121,12 +128,12 @@ def main(argv=None) -> int:
                 continue
             vistos.add(clave)
             res = validar(v, err, max_palabras=MAX_PALABRAS)
-            fila = {**base, "variante": v, "palabras": len(normalizar(v).split()), "modelo": a.modelo}
-            if res.valido:
-                buenas.append({**fila, "decision": "", "notas": ""})
+            cola = {"palabras": len(normalizar(v).split()), "modelo": a.modelo}
+            if res.valido:                 # la decisión, junto a la frase que se juzga
+                buenas.append({**base, "variante": v, "decision": "", "notas": "", **cola})
             else:
                 motivos[res.motivo.split(":", 1)[0]] += 1
-                malas.append({**fila, "motivo_rechazo": res.motivo})
+                malas.append({**base, "variante": v, **cola, "motivo_rechazo": res.motivo})
         if k % 10 == 0:
             print(f"[{k}/{len(lista)}] {len(buenas)} válidas, {len(malas)} rechazadas", flush=True)
 
