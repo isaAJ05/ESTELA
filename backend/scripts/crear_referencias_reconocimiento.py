@@ -6,10 +6,10 @@ Uso (desde `backend/`):
 
     python scripts/crear_referencias_reconocimiento.py --videos ../../docs_estela/investigacion/fuentes/datasets/videos ../../grabaciones/zancada/recortados
 
-Si falta algún vídeo de `VIDEOS` en esas carpetas, termina con error sin escribir.
+Si falta algún vídeo de los que declaran los skills en esas carpetas, termina con error sin escribir.
 
 Una referencia por cada vídeo correcto de `docs_estela/.../datasets/videos/`
-de `VIDEOS`, en el vector común de medidas; la clase de cada una es el
+que un skill declara en `videos_reconocimiento`, en el vector común de medidas; la clase de cada una es el
 `clase_reconocimiento` de su skill. Cada
 vídeo pasa por el pipeline de la sesión (pose → `observacion_desde_pose` →
 `_SaltoCadera`), se remuestrea a 30 fps y se corta con el segmentador de su
@@ -45,35 +45,16 @@ FPS = 30.0
 MIN_REPETICIONES = 2
 DOCS = Path(__file__).resolve().parents[3] / "docs_estela" / "investigacion" / "fuentes" / "datasets" / "videos"
 
-#: (nombre del archivo, skills con que se corta). Los mismos de EXP-010 §9:
-#: con varios skills (abducción sin lado conocido) se queda el que cuenta más.
-VIDEOS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
-    ("1 hombre.mp4", ("jumping_jacks",)),
-    ("2 mujer.mp4", ("jumping_jacks",)),
-    ("7 hombre.mp4", ("jumping_jacks",)),
-    ("Abducción activa de cadera en bipedestación.mp4",
-     ("abduccion_cadera_izq", "abduccion_cadera_der")),
-    ("Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral.mp4",
-     ("abduccion_cadera_izq", "abduccion_cadera_der")),
-    ("der 876. Abducción de cadera con apoyo en silla.mp4", ("abduccion_cadera_der",)),
-    ("der Abducción de cadera con banda_ técnica paso a paso.mp4", ("abduccion_cadera_der",)),
-    ("der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4",
-     ("abduccion_cadera_der",)),
-    ("izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4",
-     ("abduccion_cadera_izq",)),
-    ("izquierda abductor.mp4", ("abduccion_cadera_izq",)),
-    ("der Zancada atrás con Kettlebell Derecha - Ejercicios de la App Malagaentrena.mp4",
-     ("zancada_atras_der",)),
-    ("izq Zancada hacia atrás con peso corporal_ técnica paso a paso.mp4", ("zancada_atras_izq",)),
-    # recortes de vídeos online (EXP-010 §12); sin lado conocido se queda el que cuenta más
-    ("zancada_dinamica_alterna.mp4", ("zancada_atras_izq", "zancada_atras_der")),
-    ("zancada_estatica_der_mujer.mp4", ("zancada_atras_der",)),
-    ("zancada_estatica_mancuernas.mp4", ("zancada_atras_izq", "zancada_atras_der")),
-    ("zancada_estatica_hombre.mp4", ("zancada_atras_izq", "zancada_atras_der")),
-    ("PlanchaCorrecta1 (2).mp4", ("plancha",)),
-    ("plancha correcta hombre.mp4", ("plancha",)),
-    ("👉Como hacer plancha abdominal correctamente ✅ Galvistrainer.mp4", ("plancha",)),
-)
+def videos_de(catalogo) -> List[Tuple[str, Tuple[str, ...]]]:
+    """(nombre del archivo, skills con que se corta), según el
+    `videos_reconocimiento` de cada skill. Un vídeo declarado en varios skills
+    (abducción o zancada sin lado conocido) se corta con todos y se queda el
+    que cuenta más; con empate, el primero por orden alfabético."""
+    videos: Dict[str, List[str]] = {}
+    for sid, ej in catalogo.items():
+        for nombre in ej.videos_reconocimiento:
+            videos.setdefault(nombre, []).append(sid)
+    return [(nombre, tuple(skills)) for nombre, skills in videos.items()]
 
 
 def extraer(ruta: Path, modelo: str) -> List[Tuple[int, Any]]:
@@ -155,20 +136,21 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--videos", type=Path, nargs="+", default=[DOCS],
-                   help="carpetas donde se busca cada archivo de VIDEOS (defecto: docs_estela)")
+                   help="carpetas donde se busca cada vídeo de los skills (defecto: docs_estela)")
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="lite",
                    help="el de la sesión (defecto lite, como en EXP-010)")
     p.add_argument("--salida", type=Path, default=ruta_por_defecto())
     a = p.parse_args(argv)
 
     catalogo = cargar_catalogo()
+    videos = videos_de(catalogo)
     # sin todos los vídeos el JSON saldría con menos referencias y sin avisar
-    ruta_de = {n: next((r for c in a.videos for r in c.rglob(n)), None) for n, _ in VIDEOS}
+    ruta_de = {n: next((r for c in a.videos for r in c.rglob(n)), None) for n, _ in videos}
     if faltan := [n for n, r in ruta_de.items() if r is None]:
         print("Faltan vídeos (pasa sus carpetas con --videos); no se escribe nada:", *faltan, sep="\n  ")
         return 1
     referencias, fuentes = [], []
-    for nombre, skills in VIDEOS:
+    for nombre, skills in videos:
         frames = extraer(ruta_de[nombre], a.modelo)
         mejor = None
         for sid in skills:
