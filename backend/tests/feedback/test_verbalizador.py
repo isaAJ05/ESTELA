@@ -1,10 +1,15 @@
 import itertools
+import json
+import threading
+import time
 import unittest
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 from estela.dominio.feedback.contrato import Direccion, ErrorTipificado, Lado, Severidad
 from estela.dominio.feedback.motor.skill import cargar_skills, directorio_skills
 from estela.adaptadores.llm.llm_local import (
-    VerbalizadorLLMLocal, _descripcion_error,
+    BACKEND_OLLAMA, ESQUEMA_SALIDA, URL_LLAMA, URL_OLLAMA, VerbalizadorLLMLocal,
+    _descripcion_error,
 )
 from estela.dominio.feedback.verbalizador.plantillas import (
     DIRECCION_ES, VerbalizadorPlantillas,
@@ -156,6 +161,140 @@ class TestLLMLocalSinServidor(unittest.TestCase):
         m = llm.verbalizar(self._error())
         self.assertTrue(m.fallback)
         self.assertTrue(m.motivo_rechazo.startswith("fallo_backend"))
+
+
+class _OllamaFalso:
+    """Servidor HTTP local que imita `POST /api/chat` de Ollama."""
+
+    def __init__(self, contenido='{"mensaje": "Baja más y flexiona la rodilla derecha."}',
+                 demora_s=0.0):
+        falso = self
+        self.pedidos = []
+
+        class Manejador(BaseHTTPRequestHandler):
+            def do_POST(self):                             # noqa: N802
+                cuerpo = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                falso.pedidos.append((self.path, cuerpo))
+                time.sleep(demora_s)
+                resp = json.dumps({
+                    "model": cuerpo["model"], "done": True,
+                    "message": {"role": "assistant", "content": contenido},
+                    "total_duration": 5_000_000, "eval_count": 12,
+                    "eval_duration": 3_000_000}).encode("utf-8")
+                try:
+                    self.send_response(200)
+                    self.send_header("Content-Type", "application/json")
+                    self.send_header("Content-Length", str(len(resp)))
+                    self.end_headers()
+                    self.wfile.write(resp)
+                except OSError:                            # el cliente ya se fue
+                    pass
+
+            def log_message(self, *a):                     # silencio en los tests
+                pass
+
+        self.servidor = HTTPServer(("127.0.0.1", 0), Manejador)
+        self.url = f"http://127.0.0.1:{self.servidor.server_port}/api/chat"
+        threading.Thread(target=self.servidor.serve_forever, daemon=True).start()
+
+    def cerrar(self):
+        self.servidor.shutdown()
+        self.servidor.server_close()
+
+
+class TestLLMModoOllama(unittest.TestCase):
+    """El modo Ollama contra un servidor falso: qué se pide y qué se hace con
+    la respuesta. La latencia y la calidad solo se miden con un modelo real."""
+
+    def _error(self):
+        return ErrorTipificado(
+            error_id="profundidad_insuficiente_der", segmento="rodilla",
+            lado=Lado.DERECHO, severidad=Severidad.ALTA, fase="ascenso",
+            repeticion=1, ejercicio_id="zancada_atras_der",
+            mensaje_id="profundidad_rodilla", direccion=Direccion.MAS_FLEXION)
+
+    def _llm(self, falso, **kw):
+        self.addCleanup(falso.cerrar)
+        kw.setdefault("timeout_ms", 2000)
+        return VerbalizadorLLMLocal(url=falso.url, modelo="modelo-de-prueba",
+                                    backend=BACKEND_OLLAMA, **kw)
+
+    def test_url_por_defecto_segun_el_backend(self):
+        self.assertEqual(VerbalizadorLLMLocal().url, URL_LLAMA)
+        self.assertEqual(VerbalizadorLLMLocal(backend=BACKEND_OLLAMA).url, URL_OLLAMA)
+        with self.assertRaises(ValueError):
+            VerbalizadorLLMLocal(backend="otro")
+
+    def test_pide_esquema_sin_pensar_y_sin_flujo(self):
+        falso = _OllamaFalso()
+        m = self._llm(falso).verbalizar(self._error())
+        self.assertFalse(m.fallback)
+        self.assertEqual(m.texto, "Baja más y flexiona la rodilla derecha.")
+        ruta, cuerpo = falso.pedidos[0]
+        self.assertEqual(ruta, "/api/chat")
+        self.assertEqual(cuerpo["model"], "modelo-de-prueba")
+        self.assertEqual(cuerpo["format"], ESQUEMA_SALIDA)
+        self.assertIs(cuerpo["think"], False)
+        self.assertIs(cuerpo["stream"], False)
+        self.assertIn("num_predict", cuerpo["options"])
+        # el modelo solo recibe el error tipificado, nunca ángulos ni frames
+        self.assertEqual([x["role"] for x in cuerpo["messages"]], ["system", "user"])
+        self.assertIn("rodilla derecha", cuerpo["messages"][1]["content"])
+
+    def test_el_modo_llama_server_no_cambia(self):
+        cuerpo = VerbalizadorLLMLocal()._cuerpo(self._error())
+        self.assertEqual(cuerpo["response_format"]["type"], "json_schema")
+        self.assertNotIn("format", cuerpo)
+        self.assertNotIn("think", cuerpo)
+
+    def test_sin_restriccion_no_envia_esquema(self):
+        cuerpo = VerbalizadorLLMLocal(backend=BACKEND_OLLAMA,
+                                      restringido=False)._cuerpo(self._error())
+        self.assertNotIn("format", cuerpo)
+
+    def test_respuesta_rechazada_por_el_validador_cae_a_plantilla(self):
+        llm = self._llm(_OllamaFalso('{"mensaje": "Estira la rodilla derecha."}'))
+        m = llm.verbalizar(self._error())
+        self.assertTrue(m.fallback)
+        self.assertTrue(validar(m.texto, self._error()))
+        self.assertEqual(llm.caidas, {"direccion_contradictoria": 1})
+
+    def test_respuesta_que_no_es_json_cae_a_plantilla(self):
+        llm = self._llm(_OllamaFalso("Baja más."))
+        m = llm.verbalizar(self._error())
+        self.assertTrue(m.fallback)
+        self.assertTrue(m.motivo_rechazo.startswith("fallo_backend"))
+
+    def test_pasado_el_tiempo_limite_cae_a_plantilla(self):
+        llm = self._llm(_OllamaFalso(demora_s=0.6), timeout_ms=100)
+        t0 = time.perf_counter()
+        m = llm.verbalizar(self._error())
+        self.assertLess(time.perf_counter() - t0, 0.5)
+        self.assertTrue(m.fallback)
+        self.assertEqual(llm.llamadas, 1)
+        self.assertEqual(sum(llm.caidas.values()), 1)
+
+    def test_precalentar_no_lanza_sin_servidor(self):
+        llm = VerbalizadorLLMLocal(url="http://127.0.0.1:9/api/chat",
+                                   backend=BACKEND_OLLAMA)
+        self.assertFalse(llm.precalentar(timeout_s=0.2))
+        falso = _OllamaFalso()
+        self.assertTrue(self._llm(falso).precalentar(timeout_s=2))
+        self.assertEqual(falso.pedidos[0][1]["messages"], [])
+
+
+class TestArgumentosLLM(unittest.TestCase):
+    def test_el_llm_exige_modelo_y_tiempo_limite(self):
+        from estela.__main__ import _argumentos, _crear_verbalizador
+        self.assertIsNone(_crear_verbalizador(_argumentos([])))
+        with self.assertRaises(SystemExit):
+            _argumentos(["--verbalizador", "llm"])
+        with self.assertRaises(SystemExit):
+            _argumentos(["--verbalizador", "llm", "--llm-modelo", "m"])
+        a = _argumentos(["--verbalizador", "llm", "--llm-modelo", "m",
+                         "--llm-timeout-ms", "300", "--llm-url", "http://127.0.0.1:9/api/chat"])
+        v = _crear_verbalizador(a)
+        self.assertEqual((v.modelo, v.timeout_ms, v.backend), ("m", 300, BACKEND_OLLAMA))
 
 
 class TestPlantillas(unittest.TestCase):

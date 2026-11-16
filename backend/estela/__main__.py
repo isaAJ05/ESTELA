@@ -73,8 +73,43 @@ def _argumentos(argv=None) -> argparse.Namespace:
     p.add_argument("--sin-historial", action="store_true",
                    help="sin perfiles ni historial de «Mi progreso» (ADR-008, "
                         "ADR-009); con --video nunca se guardan")
+    llm = p.add_argument_group(
+        "verbalizador LLM (opcional)",
+        "El motor determinista decide el error y si se habla; el LLM solo "
+        "redacta la frase, con salida restringida y validador, y cae a la "
+        "plantilla si falla o tarda más del tiempo límite.")
+    llm.add_argument("--verbalizador", choices=("plantillas", "llm"), default="plantillas",
+                     help="quién redacta las correcciones (defecto: plantillas)")
+    llm.add_argument("--llm-backend", choices=("ollama", "llama-server"), default="ollama")
+    llm.add_argument("--llm-url", help="defecto: el local del backend elegido")
+    llm.add_argument("--llm-modelo", help="obligatorio con --verbalizador llm "
+                                          "(p. ej. el nombre que da `ollama list`)")
+    llm.add_argument("--llm-timeout-ms", type=int,
+                     help="obligatorio con --verbalizador llm: tiempo límite por frase; "
+                          "pasado ese tiempo suena la plantilla")
     p.add_argument("-v", "--verbose", action="store_true")
-    return p.parse_args(argv)
+    args = p.parse_args(argv)
+    if args.verbalizador == "llm" and (not args.llm_modelo or args.llm_timeout_ms is None):
+        # sin valores por defecto a propósito: el modelo y el tiempo límite son
+        # decisiones del equipo (ADR-004, rol C), no del código
+        p.error("--verbalizador llm necesita --llm-modelo y --llm-timeout-ms")
+    return args
+
+
+def _crear_verbalizador(args: argparse.Namespace):
+    """None = plantillas (el defecto de `Sesion`)."""
+    if args.verbalizador != "llm":
+        return None
+    import threading
+    from .adaptadores.llm.llm_local import VerbalizadorLLMLocal
+    v = VerbalizadorLLMLocal(url=args.llm_url, modelo=args.llm_modelo,
+                             timeout_ms=args.llm_timeout_ms, backend=args.llm_backend)
+    log.info("Verbalizador: LLM %s por %s (%s), tiempo límite %d ms",
+             v.modelo, v.backend, v.url, v.timeout_ms)
+    # cargar el modelo no debe retrasar el arranque de la interfaz
+    threading.Thread(target=v.precalentar, name="estela-llm-precalentado",
+                     daemon=True).start()
+    return v
 
 
 def _imprimir_resumen(r: dict) -> None:
@@ -97,6 +132,15 @@ def _imprimir_resumen(r: dict) -> None:
                   + (", ".join(f"{e} {n}" for e, n in sorted(paso["respaldos"].items()))
                      or "ninguno"))
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")
+    if r.get("llm"):
+        m = r["llm"]
+        caidas = ", ".join(f"{k} {n}" for k, n in sorted(m["caidas_a_plantilla"].items()))
+        print(f"LLM {m['modelo']} (límite {m['timeout_ms']} ms): {m['llamadas']} frases pedidas, "
+              f"{sum(m['caidas_a_plantilla'].values())} cayeron a plantilla"
+              + (f" ({caidas})" if caidas else ""))
+    print("Latencia por etapa (ms):")
+    for etapa, v in r["latencias"].items():
+        print(f"    {etapa:15s} p50 {v['p50_ms']:8.3f}   p95 {v['p95_ms']:8.3f}   n={v['n']}")
     print("Latencia por etapa (ms):")
     for etapa, v in r["latencias"].items():
         print(f"    {etapa:15s} p50 {v['p50_ms']:8.3f}   p95 {v['p95_ms']:8.3f}   n={v['n']}")
@@ -141,9 +185,16 @@ def main(argv=None) -> int:
     voz = ColaVoz(motor_voz)
     voz.precalentar(frases_de_rutina(rutina, catalogo))
 
+    verbalizador = _crear_verbalizador(args)
+
     def cerrar_sesion(resumen: dict) -> None:
         resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas,
                           "descartes": dict(voz.descartes)}
+        if verbalizador is not None:
+            resumen["llm"] = {"modelo": verbalizador.modelo, "backend": verbalizador.backend,
+                              "timeout_ms": verbalizador.timeout_ms,
+                              "llamadas": verbalizador.llamadas,
+                              "caidas_a_plantilla": dict(verbalizador.caidas)}
         _imprimir_resumen(resumen)
         if args.guardar_metricas:
             config.SESIONES.mkdir(exist_ok=True)
@@ -156,8 +207,8 @@ def main(argv=None) -> int:
             print(f"Repeticiones guardadas en {ruta_csv}")
 
     if args.sin_ventana or args.interfaz == "opencv":
-        return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion)
-    return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion)
+        return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion, verbalizador)
+    return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion, verbalizador)
 
 
 def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool,
@@ -169,7 +220,8 @@ def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool,
     return FuenteCamara(args.camara if camara is None else camara)
 
 
-def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
+def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
+                     verbalizador=None) -> int:
     """Interfaz de escritorio: la sesión corre en un hilo del orquestador y
     la ventana ocupa el hilo principal."""
     from .adaptadores.pose.estimador import EstimadorPose
@@ -191,7 +243,7 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
         listar_camaras=None if args.video else listar_camaras,
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
-        al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw,
+        al_terminar=cerrar_sesion, verbalizador=verbalizador, sin_dtw=args.sin_dtw,
         colocacion=not args.sin_colocacion, perfiles=perfiles)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
@@ -201,7 +253,8 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     return 0
 
 
-def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion) -> int:
+def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
+                   verbalizador=None) -> int:
     from .adaptadores.pose.estimador import EstimadorPose
     from .aplicacion.sesion import Sesion
 
@@ -209,7 +262,8 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion) -> int:
     fuente = _abrir_fuente(args, tiempo_real=not args.sin_ventana)
     espejo = args.video is None
 
-    sesion = Sesion(rutina, catalogo, estimador, voz, sin_dtw=args.sin_dtw,
+    sesion = Sesion(rutina, catalogo, estimador, voz, verbalizador=verbalizador,
+                    sin_dtw=args.sin_dtw,
                     colocacion=not args.sin_colocacion,
                     reconocer=args.reconocer)
     ventana = not args.sin_ventana
