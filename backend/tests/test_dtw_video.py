@@ -71,3 +71,16 @@ def test_el_dtw_es_despreciable_frente_a_la_pose(dos_pasadas):
 def test_el_mismo_video_da_la_misma_sesion(dos_pasadas):
     a, b = ({k: v for k, v in r.items() if k != "latencias"} for r in dos_pasadas)
     assert a == b
+
+
+def test_el_visor_de_calibracion_escribe_la_grafica(tmp_path):
+    import sys
+    sys.path.insert(0, str(config.RAIZ / "scripts"))
+    import visor_calibracion
+
+    datos = visor_calibracion.medir(VIDEO, "jumping_jacks", "full")
+    assert datos["completadas"] >= 8
+    # las reglas de amplitud se evalúan en todas las repeticiones del vídeo
+    assert all(len(datos["series"][r.error_id]) > 0 for r in datos["skill"].reglas)
+    visor_calibracion.graficar(datos, "prueba", tmp_path / "visor.png")
+    assert (tmp_path / "visor.png").stat().st_size > 0
