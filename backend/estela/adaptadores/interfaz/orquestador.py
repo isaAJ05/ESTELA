@@ -79,7 +79,8 @@ class Orquestador:
                  reconocer: bool = False,
                  camara: Optional[int] = None,
                  listar_camaras: Optional[Callable[[], List[Dict[str, Any]]]] = None,
-                 perfiles: Optional[Perfiles] = None) -> None:
+                 perfiles: Optional[Perfiles] = None,
+                 preparar_sesion: Optional[Callable[[Sesion], None]] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`.
@@ -106,6 +107,9 @@ class Orquestador:
         #: aviso de EXP-010; la interfaz lo cambia con `configurar`
         self._reconocer = reconocer
         self._perfiles = perfiles
+        #: se llama con cada `Sesion` recién creada, en el hilo de la sesión
+        #: (p. ej. para engancharle la entrenadora)
+        self._preparar_sesion = preparar_sesion
         #: quién entrena; None con `elegido` = invitada
         self._perfil_activo: Optional[str] = None
         self._perfil_elegido = False
@@ -152,6 +156,13 @@ class Orquestador:
         registros = self._perfiles.historial_de(perfil["id"]).leer()
         return contrato.progreso_a_dict(progreso(registros, hoy or date.today()),
                                         self.catalogo, perfil.get("meta_semanal"))
+
+    def progreso_activo(self, hoy: Optional[date] = None) -> Optional[Dict[str, Any]]:
+        """`historial.progreso()` del perfil activo, sin dar formato, o None."""
+        perfil = self._perfiles.obtener(self._perfil_activo) if self._perfiles else None
+        if perfil is None:
+            return None
+        return progreso(self._perfiles.historial_de(perfil["id"]).leer(), hoy or date.today())
 
     def borrar_historial(self) -> bool:
         """Vacía el historial del perfil activo (el perfil se queda)."""
@@ -383,6 +394,8 @@ class Orquestador:
                         self._verbalizador, sin_dtw=self._sin_dtw,
                         colocacion=self._colocacion,
                         reconocer=self._reconocer)
+        if self._preparar_sesion is not None:
+            self._preparar_sesion(sesion)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
         motivo = contrato.FIN_CIERRE

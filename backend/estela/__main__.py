@@ -87,8 +87,27 @@ def _argumentos(argv=None) -> argparse.Namespace:
     llm.add_argument("--llm-timeout-ms", type=int,
                      help="obligatorio con --verbalizador llm: tiempo límite por frase; "
                           "pasado ese tiempo suena la plantilla")
+    ent = p.add_argument_group(
+        "entrenadora (opcional)",
+        "Resumen hablado entre ejercicios y al final, nunca durante el movimiento. "
+        "Propone una acción de una lista cerrada (repetir, descansar, seguir, terminar); "
+        "no la ejecuta. Dolor o lesión: respuesta fija, sin modelo.")
+    ent.add_argument("--entrenadora", choices=("no", "plantilla", "llm"), default="no",
+                     help="plantilla: sin modelo; llm: modelo local por Ollama con "
+                          "respaldo a plantilla (defecto: no)")
+    ent.add_argument("--entrenadora-modelo", help="obligatorio con --entrenadora llm")
+    ent.add_argument("--entrenadora-timeout-s", type=float,
+                     help="obligatorio con --entrenadora llm: tiempo límite de la respuesta; "
+                          "pasado, se dice la plantilla")
+    ent.add_argument("--entrenadora-url", help="defecto: Ollama local")
+    ent.add_argument("--entrenadora-historial", type=Path,
+                     help="archivo JSONL de historial (p. ej. el de "
+                          "scripts/historial_ejemplo.py) cuando no hay perfiles")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
+    if args.entrenadora == "llm" and (not args.entrenadora_modelo
+                                      or args.entrenadora_timeout_s is None):
+        p.error("--entrenadora llm necesita --entrenadora-modelo y --entrenadora-timeout-s")
     if args.verbalizador == "llm" and (not args.llm_modelo or args.llm_timeout_ms is None):
         # sin valores por defecto a propósito: el modelo y el tiempo límite son
         # decisiones del equipo (ADR-004, rol C), no del código
@@ -132,15 +151,18 @@ def _imprimir_resumen(r: dict) -> None:
                   + (", ".join(f"{e} {n}" for e, n in sorted(paso["respaldos"].items()))
                      or "ninguno"))
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")
+    for e in (r.get("entrenadora") or {}).get("respuestas", ()):
+        resp = e["respuesta"] or {}
+        print(f"Entrenadora [{e['momento']}] "
+              + ("dicha" if e["dicha"] else f"no dicha ({e['motivo']})")
+              + (f" · {resp['origen']} · acción {resp['accion']} · "
+                 f"{resp['latencia_ms']:.0f} ms: {resp['texto']}" if resp else ""))
     if r.get("llm"):
         m = r["llm"]
         caidas = ", ".join(f"{k} {n}" for k, n in sorted(m["caidas_a_plantilla"].items()))
         print(f"LLM {m['modelo']} (límite {m['timeout_ms']} ms): {m['llamadas']} frases pedidas, "
               f"{sum(m['caidas_a_plantilla'].values())} cayeron a plantilla"
               + (f" ({caidas})" if caidas else ""))
-    print("Latencia por etapa (ms):")
-    for etapa, v in r["latencias"].items():
-        print(f"    {etapa:15s} p50 {v['p50_ms']:8.3f}   p95 {v['p95_ms']:8.3f}   n={v['n']}")
     print("Latencia por etapa (ms):")
     for etapa, v in r["latencias"].items():
         print(f"    {etapa:15s} p50 {v['p50_ms']:8.3f}   p95 {v['p95_ms']:8.3f}   n={v['n']}")
@@ -187,7 +209,17 @@ def main(argv=None) -> int:
 
     verbalizador = _crear_verbalizador(args)
 
+    #: la crea el modo elegido (necesita la sesión o el orquestador)
+    entrenadora = {"en_vivo": None, "esperar": True}
+
     def cerrar_sesion(resumen: dict) -> None:
+        if entrenadora["en_vivo"] is not None:
+            if entrenadora["esperar"]:
+                # sin interfaz el programa acaba aquí: se espera a que el resumen
+                # final (que va tras «Rutina terminada») llegue a sonar
+                entrenadora["en_vivo"].esperar((args.entrenadora_timeout_s or 0.0)
+                                               + MARGEN_VOZ_ENTRENADORA_S)
+            resumen["entrenadora"] = entrenadora["en_vivo"].resumen()
         resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas,
                           "descartes": dict(voz.descartes)}
         if verbalizador is not None:
@@ -207,8 +239,42 @@ def main(argv=None) -> int:
             print(f"Repeticiones guardadas en {ruta_csv}")
 
     if args.sin_ventana or args.interfaz == "opencv":
-        return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion, verbalizador)
-    return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion, verbalizador)
+        return _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion, verbalizador,
+                              entrenadora)
+    return _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion, verbalizador,
+                            entrenadora)
+
+
+#: margen sobre el tiempo límite del modelo para decir la respuesta antes de
+#: soltar la colocación (la frase dura unos segundos)
+MARGEN_VOZ_ENTRENADORA_S = 15.0
+
+
+def _crear_entrenadora(args: argparse.Namespace, catalogo, voz, progreso=None):
+    """(EntrenadoraEnVivo, retención máxima en ms) o (None, 0)."""
+    if args.entrenadora == "no":
+        return None, 0
+    from .adaptadores.llm.entrenadora_en_vivo import EntrenadoraEnVivo
+    from .aplicacion.entrenadora import Entrenadora
+    generador, limite_s = None, 0.0
+    if args.entrenadora == "llm":
+        import threading
+        from .adaptadores.llm.entrenadora_ollama import URL_OLLAMA, GeneradorOllama
+        limite_s = args.entrenadora_timeout_s
+        generador = GeneradorOllama(args.entrenadora_modelo, limite_s,
+                                    url=args.entrenadora_url or URL_OLLAMA)
+        threading.Thread(target=generador.precalentar, name="estela-entrenadora-precalentado",
+                         daemon=True).start()
+        log.info("Entrenadora: LLM %s (límite %.1f s)", generador.modelo, limite_s)
+    if progreso is None and args.entrenadora_historial:
+        from datetime import date
+        from .aplicacion.historial import Historial, progreso as resumir
+
+        def progreso():
+            return resumir(Historial(args.entrenadora_historial).leer(), date.today())
+    nombres = {sid: ej.skill.nombre for sid, ej in catalogo.items()}
+    en_vivo = EntrenadoraEnVivo(Entrenadora(generador, nombres), voz, progreso)
+    return en_vivo, int((limite_s + MARGEN_VOZ_ENTRENADORA_S) * 1000)
 
 
 def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool,
@@ -221,7 +287,7 @@ def _abrir_fuente(args: argparse.Namespace, tiempo_real: bool,
 
 
 def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
-                     verbalizador=None) -> int:
+                     verbalizador=None, entrenadora=None) -> int:
     """Interfaz de escritorio: la sesión corre en un hilo del orquestador y
     la ventana ocupa el hilo principal."""
     from .adaptadores.pose.estimador import EstimadorPose
@@ -244,7 +310,14 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
         al_terminar=cerrar_sesion, verbalizador=verbalizador, sin_dtw=args.sin_dtw,
-        colocacion=not args.sin_colocacion, perfiles=perfiles)
+        colocacion=not args.sin_colocacion, perfiles=perfiles,
+        preparar_sesion=lambda sesion: (en_vivo.conectar(sesion, retencion_ms)
+                                        if en_vivo is not None else None))
+    en_vivo, retencion_ms = _crear_entrenadora(
+        args, catalogo, voz, progreso=lambda: orquestador.progreso_activo())
+    if entrenadora is not None:
+        # con interfaz la pantalla de resumen no espera a la entrenadora
+        entrenadora.update(en_vivo=en_vivo, esperar=False)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:
@@ -254,7 +327,7 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
 
 
 def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
-                   verbalizador=None) -> int:
+                   verbalizador=None, entrenadora=None) -> int:
     from .adaptadores.pose.estimador import EstimadorPose
     from .aplicacion.sesion import Sesion
 
@@ -266,6 +339,12 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
                     sin_dtw=args.sin_dtw,
                     colocacion=not args.sin_colocacion,
                     reconocer=args.reconocer)
+    en_vivo, retencion_ms = _crear_entrenadora(args, catalogo, voz)
+    if en_vivo is not None:
+        en_vivo.conectar(sesion, retencion_ms)
+        if entrenadora is not None:
+            entrenadora["en_vivo"] = en_vivo
+
     ventana = not args.sin_ventana
     if ventana:
         import cv2
@@ -306,12 +385,15 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
         pass
     finally:
         fuente.cerrar()
-        voz.cerrar(esperar=True)
         estimador.cerrar()
         if ventana:
             cv2.destroyAllWindows()
 
-    cerrar_sesion(sesion.resumen())
+    # la voz se cierra después: el resumen final de la entrenadora aún puede sonar
+    try:
+        cerrar_sesion(sesion.resumen())
+    finally:
+        voz.cerrar(esperar=True)
     return 0
 
 
