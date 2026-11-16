@@ -297,6 +297,34 @@ class TestArgumentosLLM(unittest.TestCase):
         self.assertEqual((v.modelo, v.timeout_ms, v.backend), ("m", 300, BACKEND_OLLAMA))
 
 
+class TestArgumentosDelMac(unittest.TestCase):
+    """Opciones añadidas para el Mac Studio: todas apagadas por defecto."""
+
+    def test_defectos_no_cambian_el_comportamiento(self):
+        from estela.__main__ import _argumentos
+        a = _argumentos([])
+        self.assertEqual((a.delegado, a.tiempo_real, a.verbalizador, a.entrenadora),
+                         ("cpu", False, "plantillas", "no"))
+
+    def test_delegado_gpu_y_tiempo_real(self):
+        from estela.__main__ import _argumentos
+        a = _argumentos(["--delegado", "gpu", "--tiempo-real"])
+        self.assertEqual((a.delegado, a.tiempo_real), ("gpu", True))
+        with self.assertRaises(SystemExit):
+            _argumentos(["--delegado", "otro"])
+
+    def test_la_entrenadora_con_modelo_exige_modelo_y_tiempo_limite(self):
+        from estela.__main__ import _argumentos
+        self.assertEqual(_argumentos(["--entrenadora", "plantilla"]).entrenadora, "plantilla")
+        with self.assertRaises(SystemExit):
+            _argumentos(["--entrenadora", "llm"])
+        with self.assertRaises(SystemExit):
+            _argumentos(["--entrenadora", "llm", "--entrenadora-modelo", "m"])
+        a = _argumentos(["--entrenadora", "llm", "--entrenadora-modelo", "m",
+                         "--entrenadora-timeout-s", "5"])
+        self.assertEqual((a.entrenadora_modelo, a.entrenadora_timeout_s), ("m", 5.0))
+
+
 class TestPlantillas(unittest.TestCase):
     def setUp(self):
         self.v = VerbalizadorPlantillas()
