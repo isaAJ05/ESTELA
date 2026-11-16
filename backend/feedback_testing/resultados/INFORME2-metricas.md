@@ -19,7 +19,7 @@ Convención: `[F]` medido aquí · `[I]` inferencia · `[R]` recomendación · `
 | numpy | 2.5.5 |
 | opencv | 5.0.0.93 |
 | piper_tts | 1.8.0 |
-| commit | 0d0e32f (copia sin git en el Mac) |
+| commit | 50516bc (copia sin git en el Mac) |
 | modelo de pose (corrida principal) | pose_landmarker_full |
 | voz | Piper sin audio (es_MX-claude-high.onnx) |
 | precalentado de la voz | 0,6 s antes de medir, sin contar las frases ya sintetizadas al medir el RTF (en la app es en segundo plano al arrancar) |

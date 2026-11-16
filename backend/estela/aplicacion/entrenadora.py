@@ -56,17 +56,17 @@ FRASE_ACCION: Dict[str, str] = {
 }
 FRASE_FINAL = "Rutina terminada."
 
-#: `[?]` Tope de palabras del resumen que redacta el modelo. Valor provisional
-#: sin respaldo en los documentos del proyecto: pendiente de que el equipo lo
-#: fije (pregunta abierta en ESTADO.md). Es una guarda técnica, no un criterio.
+#: Tope de palabras del resumen que redacta el modelo. Aprobado por Paula el
+#: 2026-11-16 para la rama feature/mac-flujo. Es una guarda técnica, sin
+#: respaldo experimental: revisarlo tras la tanda de pruebas con voz real.
 MAX_PALABRAS_RESUMEN = 40
 
 #: Lo que el historial puede y no puede decir (ADR-008 §2.4). Texto fijo.
 NOTA_HISTORIAL = ("El historial cuenta tu constancia y los avisos que recibiste; "
                   "no mide tu técnica.")
 
-#: `[?]` Respuesta fija ante dolor o lesión: no pasa por el modelo. Redacción
-#: provisional, pendiente de revisión del equipo. No diagnostica.
+#: Respuesta fija ante dolor o lesión: no pasa por el modelo. No diagnostica.
+#: Redacción aprobada por Paula el 2026-11-16 para la rama feature/mac-flujo.
 RESPUESTA_DOLOR = ("Para aquí y descansa. Si algo te duele, no sigas con el ejercicio. "
                    "No puedo valorar dolores ni lesiones; si la molestia sigue, "
                    "consulta a una persona profesional de la salud.")
