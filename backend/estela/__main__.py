@@ -61,6 +61,10 @@ def _argumentos(argv=None) -> argparse.Namespace:
                    help="interfaz de escritorio (defecto) o ventana de OpenCV")
     p.add_argument("--sin-ventana", action="store_true",
                    help="sin interfaz gráfica (pruebas con vídeo)")
+    p.add_argument("--tiempo-real", action="store_true",
+                   help="con --video y --sin-ventana: pasar el vídeo a su ritmo, como una "
+                        "cámara (sin esto va a la máxima velocidad). Para probar por SSH lo "
+                        "que depende del reloj: voz, LLM y entrenadora")
     p.add_argument("--sin-dtw", action="store_true",
                    help="desactivar la comparación con la referencia DTW")
     p.add_argument("--sin-colocacion", action="store_true",
@@ -336,7 +340,7 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
     from .aplicacion.sesion import Sesion
 
     estimador = EstimadorPose(config.modelo_pose(args.modelo), delegado=args.delegado)
-    fuente = _abrir_fuente(args, tiempo_real=not args.sin_ventana)
+    fuente = _abrir_fuente(args, tiempo_real=args.tiempo_real or not args.sin_ventana)
     espejo = args.video is None
 
     sesion = Sesion(rutina, catalogo, estimador, voz, verbalizador=verbalizador,

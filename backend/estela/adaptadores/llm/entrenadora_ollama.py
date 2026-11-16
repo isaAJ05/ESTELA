@@ -24,6 +24,9 @@ URL_OLLAMA = "http://127.0.0.1:11434/api/chat"
 #: tope de tokens de la respuesta (el resumen es de una o dos frases)
 MAX_TOKENS = 160
 MANTENER_CARGADO = "30m"
+#: ventana de contexto (ver `llm_local.NUM_CTX`): los datos de una rutina son
+#: unos cientos de tokens
+NUM_CTX = 4096
 
 
 class GeneradorOllama:
@@ -51,7 +54,8 @@ class GeneradorOllama:
                          {"role": "user", "content": datos}],
             "stream": False,
             "keep_alive": MANTENER_CARGADO,
-            "options": {"temperature": self.temperatura, "num_predict": MAX_TOKENS},
+            "options": {"temperature": self.temperatura, "num_predict": MAX_TOKENS,
+                        "num_ctx": NUM_CTX},
             "format": {
                 "type": "object",
                 "properties": {"resumen": {"type": "string"},
@@ -76,7 +80,8 @@ class GeneradorOllama:
         """Carga el modelo antes de usarlo. No lanza."""
         try:
             self._post({"model": self.modelo, "messages": [],
-                        "keep_alive": MANTENER_CARGADO}, timeout_s)
+                        "keep_alive": MANTENER_CARGADO,
+                        "options": {"num_ctx": NUM_CTX}}, timeout_s)
             return True
         except Exception:                                 # noqa: BLE001
             return False

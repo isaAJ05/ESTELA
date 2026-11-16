@@ -79,6 +79,11 @@ MAX_TOKENS = 48
 #: cuánto deja Ollama el modelo en memoria tras la última llamada. El defecto
 #: de Ollama (5 min) puede vencer entre dos correcciones de una misma sesión.
 MANTENER_CARGADO = "30m"
+#: Ventana de contexto que se pide a Ollama. `[F]` Medido en el Mac Studio el
+#: 2026-11-16: sin fijarla, qwen3:4b-instruct se carga con su contexto por
+#: defecto (262 144 tokens) y ocupa 43 GB. Aquí el prompt y la respuesta suman
+#: unos cientos de tokens.
+NUM_CTX = 2048
 
 SISTEMA = (
     "Eres la voz de un asistente de entrenamiento. Recibes un error ya "
@@ -162,7 +167,7 @@ class VerbalizadorLLMLocal(Verbalizador):
             "stream": False,
             "keep_alive": MANTENER_CARGADO,
             "options": {"temperature": self.temperatura,
-                        "num_predict": MAX_TOKENS},
+                        "num_predict": MAX_TOKENS, "num_ctx": NUM_CTX},
         }
         if self.pensar is not None:
             cuerpo["think"] = self.pensar
@@ -222,7 +227,8 @@ class VerbalizadorLLMLocal(Verbalizador):
             return False
         try:
             self._post({"model": self.modelo, "messages": [],
-                        "keep_alive": MANTENER_CARGADO}, timeout_s)
+                        "keep_alive": MANTENER_CARGADO,
+                        "options": {"num_ctx": NUM_CTX}}, timeout_s)
             return True
         except Exception:                                 # noqa: BLE001
             return False
