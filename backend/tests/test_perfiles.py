@@ -9,6 +9,7 @@ from estela.adaptadores.interfaz import contrato
 from estela.adaptadores.interfaz.ventana import Api
 from estela.aplicacion.perfiles import (MAX_PERFILES, MAX_RUTINAS, PerfilInvalido, Perfiles, rutina_de,
                                         rutinas_de)
+from estela.aplicacion.rutina import rutina_desde_dict
 from tests.test_historial import registro
 from tests.test_interfaz import (RESUMEN, ZANCADA, catalogo, esperar_fase,  # noqa: F401
                                  nuevo_orquestador, rutina, secuencia_zancadas)
@@ -159,9 +160,14 @@ def test_cada_perfil_tiene_su_historial_y_su_meta(perfiles, catalogo, rutina):
         "ok": False, "error": "Ya hay un perfil con ese nombre."}
 
 
-def test_la_sesion_se_guarda_en_el_perfil_con_el_que_empezo(perfiles, catalogo, rutina):
+def test_la_sesion_se_guarda_en_el_perfil_con_el_que_empezo(perfiles, catalogo):
     ana, luis = perfiles.crear({"nombre": "Ana"}), perfiles.crear({"nombre": "Luis"})
-    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(50), bloquear=True,
+    # Un solo paso que los frames no alcanzan a completar: con la rutina de dos
+    # pasos el hilo de la sesión podía pasar al segundo (0 completadas) antes de
+    # que este hilo viera alguna repetición, y la espera de abajo no terminaba.
+    larga = rutina_desde_dict({"nombre": "Larga", "pasos": [
+        {"skill_id": ZANCADA, "repeticiones": 99}]}, catalogo)
+    orq, _, _ = nuevo_orquestador(catalogo, larga, secuencia_zancadas(50), bloquear=True,
                                   perfiles=perfiles)
     orq.elegir_perfil(ana["id"])
     orq.iniciar()
