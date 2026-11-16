@@ -38,6 +38,15 @@ LLM_MODELO = "qwen3:4b-instruct-2507-q4_K_M"
 LLM_TIMEOUT_MS = 400
 ENTRENADORA_MODELO = "qwen3:14b"
 ENTRENADORA_TIMEOUT_S = 5.0
+#: Modelo de Whisper para las órdenes de voz (formato ggml de whisper.cpp).
+#: `[R]` «small»: en el Mac Studio reconoce una orden en p95 69 ms, con los
+#: mismos aciertos que «large-v3-turbo» (64 de 72; p95 172 ms) en la prueba sintética.
+VOZ_ENTRADA_MODELO = "small"
+URL_WHISPER_CPP = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{modelo}.bin"
+
+
+def modelo_voz_entrada(modelo: str = VOZ_ENTRADA_MODELO) -> Path:
+    return MODELOS / "voz_entrada" / f"ggml-{modelo}.bin"
 
 
 def defectos(en_mac: Optional[bool] = None) -> Dict[str, str]:
@@ -45,12 +54,13 @@ def defectos(en_mac: Optional[bool] = None) -> Dict[str, str]:
 
     En el Mac va encendido todo lo que aprovecha ese equipo: pose heavy en la
     GPU (p95 6 ms en benchmark; en CPU son 58 ms y no cabe), las frases
-    redactadas por el LLM y la entrenadora con LLM. En los demás equipos todo
+    redactadas por el LLM, la entrenadora con LLM y las órdenes de voz. En los demás equipos todo
     queda como antes. Si en el Mac falta algo (GPU, Ollama o un modelo), el
-    arranque cae a lo de antes y lo avisa (`__main__`).
+    arranque cae a lo de antes y lo avisa (`__main__`). Lo mismo si no hay
+    micrófono o falta el modelo de voz: la sesión sigue sin órdenes de voz.
     """
     if EN_MAC if en_mac is None else en_mac:
         return {"modelo": "heavy", "delegado": "gpu",
-                "verbalizador": "llm", "entrenadora": "llm"}
+                "verbalizador": "llm", "entrenadora": "llm", "voz_entrada": "si"}
     return {"modelo": "lite", "delegado": "cpu",
-            "verbalizador": "plantillas", "entrenadora": "no"}
+            "verbalizador": "plantillas", "entrenadora": "no", "voz_entrada": "no"}

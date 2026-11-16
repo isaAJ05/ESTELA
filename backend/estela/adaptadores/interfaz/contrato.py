@@ -378,6 +378,7 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "conError": opcional("con_error"),
         # brazo derecho arriba: {"progreso": 0–1, "accion": "pausar" | "reanudar"}
         "gesto": opcional("gesto"),
+        "escucha": opcional("escucha"),
         # aún sin backend (ver CAPACIDADES): llega null
         "nivel": opcional("nivel"),
         "guia": _puntos(np.asarray(guia)) if guia is not None else None,

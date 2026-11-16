@@ -114,6 +114,24 @@ def test_sin_modelo_responde_con_plantilla():
     assert fin.texto == "Cumpliste el objetivo en 1 de 2 ejercicios. " + en.FRASE_FINAL
 
 
+def test_como_voy_resume_lo_hecho_y_no_propone_nada():
+    pasos = [paso(), paso(completadas=10, objetivo=30, avisos=1, skill="plancha", unidad="segundos")]
+    # sin modelo: plantilla con las cuentas
+    r = en.Entrenadora(None, NOMBRES).como_voy(pasos)
+    assert (r.origen, r.accion) == (en.ORIGEN_PLANTILLA, en.SEGUIR)
+    assert r.texto == "Llevas 2 ejercicios, 1 con el objetivo cumplido, y 3 avisos."
+    # con modelo: solo el resumen, sin la frase «Te propongo…»
+    g = generador("Llevas 2 ejercicios y recibiste 3 avisos.")
+    r = en.Entrenadora(g, NOMBRES).como_voy(pasos)
+    assert (r.origen, r.texto) == (en.ORIGEN_LLM, "Llevas 2 ejercicios y recibiste 3 avisos.")
+    assert g.pedidos[0][2] == en.PERMITIDAS[en.CONSULTA] == (en.SEGUIR,)
+    assert "pregunta cómo va" in g.pedidos[0][1]
+    assert all(frase not in r.texto for frase in en.FRASE_ACCION.values())
+    # una cifra inventada cae a la plantilla, como en los otros momentos
+    r = en.Entrenadora(generador("Llevas 7 ejercicios."), NOMBRES).como_voy(pasos)
+    assert r.origen == en.ORIGEN_PLANTILLA and r.texto.startswith("Llevas 2 ejercicios")
+
+
 @pytest.mark.parametrize("frase", ["me duele la rodilla", "Creo que me lesioné",
                                    "siento un tirón", "estoy mareada", "tengo un DOLOR aquí"])
 def test_dolor_o_lesion_responde_fijo_sin_llamar_al_modelo(frase):
@@ -244,6 +262,27 @@ def test_la_colocacion_se_retiene_hasta_que_la_entrenadora_suelta(catalogo):
     estado = reloj.hasta(lambda e: not e.colocando)
     s.soltar_entrenadora(ev["turno"])                  # repetir no vuelve a anunciar
     assert len(_anuncios(voz)) == 2
+
+
+def test_solo_se_puede_escuchar_entre_ejercicios_o_en_pausa_y_con_estela_callada(catalogo):
+    s, voz, eventos, reloj = _dos_planchas(catalogo, retencion_max_ms=60_000)
+    voz.ocupada = False
+    assert s.puede_escuchar and not s.entre_ejercicios      # colocación del primer ejercicio
+    reloj.hasta(lambda e: not e.colocando)
+    assert not s.puede_escuchar                             # en movimiento no se escucha
+    s.pausar()
+    assert s.puede_escuchar                                 # en pausa sí
+    voz.ocupada = True
+    assert not s.puede_escuchar                             # pero no mientras habla ESTELA
+    voz.ocupada = False
+    s.reanudar()
+    reloj.hasta(lambda e: len(eventos) == 1)
+    assert s.puede_escuchar and s.entre_ejercicios          # colocación del segundo
+    ligero = s.resumen_ligero()
+    assert [p["skill_id"] for p in ligero] == ["plancha", "plancha"]
+    assert ligero[0]["completadas"] >= 2 and ligero[1]["completadas"] == 0
+    assert en.Entrenadora(None, {"plancha": "Plancha"}).como_voy(ligero).texto.startswith(
+        "Llevas 2 ejercicios, 1 con el objetivo cumplido")
 
 
 def test_la_retencion_tiene_tope(catalogo):

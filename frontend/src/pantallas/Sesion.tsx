@@ -1,4 +1,4 @@
-import { Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Mic, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
@@ -68,6 +68,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
             {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
             <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
             <GestoPausa />
+            <EscuchaVoz />
           </> : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
           )}
@@ -414,6 +415,33 @@ function GestoPausa() {
       <Hand aria-hidden="true" />
       <span>Mantén el brazo arriba para {gesto.accion === 'reanudar' ? 'seguir' : 'pausar'}</span>
       <i className="gesto-barra" aria-hidden="true"><i style={{ width: `${Math.round(gesto.progreso * 100)}%` }} /></i>
+    </div>
+  )
+}
+
+const ORDEN_DICHA: Record<string, string> = {
+  pausa: 'Pausa', seguir: 'Seguir', siguiente: 'Siguiente', repetir: 'Repetir',
+  terminar: 'Terminar', como_voy: '¿Cómo voy?',
+}
+
+/** Órdenes de voz: si ESTELA está escuchando y qué entendió. Solo aparece en pausa
+ *  o entre ejercicios, que es cuando se escucha. */
+function EscuchaVoz() {
+  const e = useEstado((s) => s.estado?.sesion?.escucha ?? null,
+    (a, b) => a?.activa === b?.activa && a?.texto === b?.texto
+      && a?.comando === b?.comando && a?.noEntendi === b?.noEntendi)
+  if (!e) return null
+  const entendido = e.comando ? ORDEN_DICHA[e.comando] ?? e.comando : null
+  return (
+    <div className={`escucha-voz${e.activa ? ' escucha-activa' : ''}${e.noEntendi ? ' escucha-duda' : ''}`}
+         role="status" aria-live="polite">
+      <Mic aria-hidden="true" />
+      <span>
+        {entendido ? <>Entendí: <b>{entendido}</b></>
+          : e.noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
+          : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, repetir, terminar o ¿cómo voy?</>
+          : <>{e.texto ? `«${e.texto}»` : ''}</>}
+      </span>
     </div>
   )
 }

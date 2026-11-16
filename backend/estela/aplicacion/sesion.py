@@ -46,6 +46,7 @@ from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 from ..dominio.conteo.segmentador import (EVENTO_COMPLETA, EVENTO_INCOMPLETA, EstadoSegmento,
                                           Segmentador, leer_senal)
 from .dtw import CONFIANZA_MINIMA, Comparador, comparador_de_referencia
+from .comandos_voz import puede_escuchar
 from .gesto import DetectorGesto
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
@@ -213,6 +214,9 @@ class EstadoFrame:
     #: gesto de pausa en curso (brazo derecho arriba, `gesto.py`):
     #: {"progreso": 0–1, "accion": "pausar" | "reanudar"}, o None
     gesto: Optional[Dict[str, Any]] = None
+    #: órdenes de voz (`comandos_voz.py`): {"activa": bool, "texto": str | None,
+    #: "comando": str | None, "noEntendi": bool}, o None sin voz de entrada
+    escucha: Optional[Dict[str, Any]] = None
 
 
 class _SaltoCadera:
@@ -323,6 +327,10 @@ class Sesion:
         #: hasta entonces, o hasta que pasen esos milisegundos.
         self.al_cerrar_paso = al_cerrar_paso
         self.retencion_max_ms = retencion_max_ms
+        #: Voz de entrada (opcional): objeto con `estado()` → dict para
+        #: `EstadoFrame.escucha`. La sesión solo lo muestra; quien escucha
+        #: pregunta `puede_escuchar` y manda las órdenes por el camino de siempre.
+        self.oyente: Any = None
         self._turno = 0
         self._retenida = False
         self._retencion_desde: Optional[int] = None
@@ -417,6 +425,40 @@ class Sesion:
         except Exception:                                 # noqa: BLE001
             log.exception("fallo al avisar del cierre del paso")
             self.soltar_entrenadora(evento["turno"])
+
+    @property
+    def puede_escuchar(self) -> bool:
+        """¿Se pueden oír órdenes de voz ahora? Solo en pausa o entre
+        ejercicios (colocación), y nunca mientras suena la voz de ESTELA
+        (`comandos_voz.puede_escuchar`). Se puede leer desde otro hilo."""
+        p = self.paso_actual
+        if p is None:
+            return False
+        return puede_escuchar(en_pausa=p.pausa.pausada, colocando=p.colocando,
+                              hablando=bool(getattr(self.voz, "ocupada", False)),
+                              terminada=self.terminada)
+
+    @property
+    def entre_ejercicios(self) -> bool:
+        """En la colocación de un ejercicio que no es el primero."""
+        p = self.paso_actual
+        return p is not None and p.colocando and self._i > 0
+
+    def resumen_ligero(self) -> List[Dict[str, Any]]:
+        """Cuentas de los pasos hechos hasta ahora, para «¿cómo voy?». Solo
+        lee (no cierra registros), así que se puede llamar desde otro hilo."""
+        pasos = []
+        for p in list(self._pasos):
+            seg = p.seg
+            pasos.append({
+                "skill_id": p.ejercicio.skill.skill_id, "objetivo": p.objetivo,
+                "unidad": p.ejercicio.unidad,
+                "completadas": seg.completadas if seg else 0,
+                "incompletas": seg.incompletas if seg else 0,
+                "pausas_sesion": p.pausa.veces, "mensajes": list(p.mensajes),
+                "duracion_s": 0.0,
+            })
+        return pasos
 
     def entrenadora_vigente(self, turno: int) -> bool:
         """¿Sigue siendo el momento de que hable la entrenadora de `turno`?
@@ -872,7 +914,8 @@ class Sesion:
             instruccion=((self._texto_entrenadora or self._instruccion(p.ejercicio))
                          if p.colocando else None),
             comprobaciones=dict(p.comprobaciones) if p.colocando else None,
-            gesto=self._estado_gesto(p))
+            gesto=self._estado_gesto(p),
+            escucha=self.oyente.estado() if self.oyente is not None else None)
 
     def _estado_gesto(self, p: _Paso) -> Optional[Dict[str, Any]]:
         progreso = self._gesto.progreso(self._t_ms)

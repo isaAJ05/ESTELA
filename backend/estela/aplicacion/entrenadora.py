@@ -39,12 +39,14 @@ REPETIR, DESCANSAR, SEGUIR, TERMINAR = "repetir", "descansar", "seguir", "termin
 #: lista cerrada de acciones que la entrenadora puede proponer
 ACCIONES: Tuple[str, ...] = (REPETIR, DESCANSAR, SEGUIR, TERMINAR)
 
-ENTRE, FINAL = "entre", "final"
+ENTRE, FINAL, CONSULTA = "entre", "final", "consulta"
 #: acciones permitidas según el momento. Al final de la rutina no queda
-#: ejercicio siguiente ni actual: solo se puede terminar.
+#: ejercicio siguiente ni actual: solo se puede terminar. En una consulta
+#: («¿cómo voy?») no se propone nada: solo se resume.
 PERMITIDAS: Dict[str, Tuple[str, ...]] = {
     ENTRE: (REPETIR, DESCANSAR, SEGUIR, TERMINAR),
     FINAL: (TERMINAR,),
+    CONSULTA: (SEGUIR,),
 }
 
 #: frase fija que anuncia la acción propuesta (la dice el código, no el modelo)
@@ -273,6 +275,8 @@ def validar_accion(accion: Any, momento: str) -> str:
 def accion_por_defecto(momento: str, paso: Optional[Mapping[str, Any]] = None) -> str:
     """`[R]` Regla del respaldo: seguir si se cumplió el objetivo y repetir si
     no; al final, terminar."""
+    if momento == CONSULTA:
+        return SEGUIR
     if momento == FINAL or paso is None:
         return TERMINAR
     return SEGUIR if int(paso["completadas"]) >= int(paso["objetivo"]) else REPETIR
@@ -280,6 +284,12 @@ def accion_por_defecto(momento: str, paso: Optional[Mapping[str, Any]] = None) -
 
 def resumen_plantilla(momento: str, paso: Optional[Mapping[str, Any]], nombre: str,
                       pasos: Sequence[Mapping[str, Any]] = ()) -> str:
+    if momento == CONSULTA:
+        completos = sum(1 for p in pasos if int(p["completadas"]) >= int(p["objetivo"]))
+        avisos = sum(v for p in pasos for v, _ in _indicaciones(p))
+        return (f"Llevas {len(pasos)} {'ejercicio' if len(pasos) == 1 else 'ejercicios'}, "
+                f"{completos} con el objetivo cumplido, y {avisos} "
+                f"{'aviso' if avisos == 1 else 'avisos'}.")
     if momento == FINAL:
         completos = sum(1 for p in pasos if int(p["completadas"]) >= int(p["objetivo"]))
         return f"Cumpliste el objetivo en {completos} de {len(pasos)} ejercicios."
@@ -337,6 +347,18 @@ class Entrenadora:
         return self._responder(FINAL, hechos, hechos_del_historial(progreso),
                                None, "", pasos, dice_usuaria)
 
+    def como_voy(self, pasos: Sequence[Mapping[str, Any]],
+                 progreso: Optional[Mapping[str, Any]] = None,
+                 dice_usuaria: Optional[str] = None) -> Respuesta:
+        """Respuesta a «¿cómo voy?» con lo hecho hasta ahora en la rutina.
+        No propone ninguna acción: `accion` queda en seguir y no se anuncia."""
+        # el total de avisos va como dato: la plantilla lo dice y, sin él, el
+        # validador rechazaría por cifra inventada al modelo que los sumara
+        avisos = sum(v for p in pasos for v, _ in _indicaciones(p))
+        hechos = hechos_de_la_rutina(pasos, self.nombres) + [f"avisos en total: {avisos}"]
+        return self._responder(CONSULTA, hechos, hechos_del_historial(progreso),
+                               None, "", pasos, dice_usuaria)
+
     def _responder(self, momento: str, hechos: List[str], historial: List[str],
                    paso: Optional[Mapping[str, Any]], nombre: str,
                    pasos: Sequence[Mapping[str, Any]],
@@ -351,8 +373,9 @@ class Entrenadora:
         motivo = ""
         if self.generador is not None:
             datos = "\n".join(hechos + historial + [
-                "momento: " + ("entre dos ejercicios" if momento == ENTRE
-                               else "final de la rutina"),
+                "momento: " + {ENTRE: "entre dos ejercicios", FINAL: "final de la rutina",
+                               CONSULTA: "la persona pregunta cómo va, a mitad de la rutina"
+                               }[momento],
                 "acciones permitidas: " + ", ".join(permitidas)])
             try:
                 salida = self.generador(SISTEMA, datos, permitidas)
@@ -373,14 +396,16 @@ class Entrenadora:
 
     @staticmethod
     def _texto(resumen: str, accion: str, momento: str) -> str:
-        cierre = FRASE_FINAL if momento == FINAL else FRASE_ACCION[accion]
         if resumen and resumen[-1] not in ".!?»":
             resumen += "."
+        if momento == CONSULTA:                     # solo el resumen, sin propuesta
+            return resumen
+        cierre = FRASE_FINAL if momento == FINAL else FRASE_ACCION[accion]
         return f"{resumen} {cierre}"
 
 
 __all__ = [
-    "ACCIONES", "PERMITIDAS", "REPETIR", "DESCANSAR", "SEGUIR", "TERMINAR", "ENTRE", "FINAL",
+    "ACCIONES", "PERMITIDAS", "REPETIR", "DESCANSAR", "SEGUIR", "TERMINAR", "ENTRE", "FINAL", "CONSULTA",
     "FRASE_ACCION", "MAX_PALABRAS_RESUMEN", "NOTA_HISTORIAL", "RESPUESTA_DOLOR",
     "LEXICO_DOLOR", "SISTEMA", "Generador", "Respuesta", "Entrenadora",
     "ORIGEN_LLM", "ORIGEN_PLANTILLA", "ORIGEN_DOLOR",

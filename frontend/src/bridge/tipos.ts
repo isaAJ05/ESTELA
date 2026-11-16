@@ -19,6 +19,17 @@ export type Punto = [number, number, number]
  * Funciones que dependen de algo que el backend todavía no tiene.
  * Mientras estén en false, la interfaz no las muestra (ver `contrato.py`).
  */
+/** Órdenes de voz. Solo se escucha en pausa o entre ejercicios, y nunca mientras habla ESTELA. */
+export interface Escucha {
+  activa: boolean
+  /** lo que se reconoció, tal cual */
+  texto: string | null
+  /** la orden entendida: pausa, seguir, siguiente, repetir, terminar o como_voy */
+  comando: string | null
+  /** hubo palabras pero ninguna orden clara: se pidió repetir */
+  noEntendi: boolean
+}
+
 export interface Capacidades {
   nivel: boolean
   correctasConError: boolean
@@ -149,6 +160,8 @@ export interface EstadoSesion {
   evaluacion?: Evaluacion | null
   /** gesto de pausa en curso (capacidad «gestoPausa»); null si no hay */
   gesto?: { progreso: number; accion: 'pausar' | 'reanudar' } | null
+  /** órdenes de voz: si ESTELA escucha ahora y lo último que entendió; null sin voz de entrada */
+  escucha?: Escucha | null
   // Aún sin backend: llegan null (ver Capacidades).
   correctas: number | null
   conError: number | null

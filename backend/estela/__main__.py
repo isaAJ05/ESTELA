@@ -115,6 +115,10 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
     ent.add_argument("--entrenadora-historial", type=Path,
                      help="archivo JSONL de historial (p. ej. el de "
                           "scripts/historial_ejemplo.py) cuando no hay perfiles")
+    p.add_argument("--voz-entrada", choices=("si", "no"),
+                   help="órdenes de voz (pausa, seguir, siguiente, repetir, terminar, ¿cómo "
+                        "voy?). Solo se escucha en pausa y entre ejercicios. Defecto: si en "
+                        "el Mac, no en los demás equipos")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
     # Lo que no se pidió toma el valor del equipo: en el Mac va encendido lo
@@ -133,6 +137,61 @@ def _llm_listo(modelo: str, url: Optional[str], para: str) -> bool:
     if not listo:
         log.warning("%s: %s. Se usan las plantillas.", para, motivo)
     return listo
+
+
+ACCIONES_DE_VOZ = ("pausar", "reanudar", "listo", "siguiente", "anterior", "reiniciar",
+                   "terminar")
+
+
+def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
+    """`EscuchaVoz` lista para conectar a una sesión, o None. Si falta el
+    micrófono, el motor o el modelo, avisa y la sesión sigue sin órdenes de voz."""
+    if args.voz_entrada != "si":
+        return None
+    from .adaptadores.voz_entrada.microfono import hay_microfono
+    listo, motivo = hay_microfono()
+    ruta = config.modelo_voz_entrada()
+    if listo and not ruta.exists():
+        listo, motivo = False, (f"falta el modelo {ruta.name} "
+                                "(python scripts/descargar_modelos.py --voz-entrada)")
+    if listo:
+        try:
+            import threading
+            from .adaptadores.voz_entrada.escucha import EscuchaVoz
+            from .adaptadores.voz_entrada.microfono import Microfono
+            from .adaptadores.voz_entrada.reconocedor import ReconocedorWhisperCpp
+            reconocedor = ReconocedorWhisperCpp(ruta)
+            threading.Thread(target=reconocedor.precalentar, name="estela-voz-entrada-precalentado",
+                             daemon=True).start()
+            escucha = EscuchaVoz(Microfono(), reconocedor, voz, acciones, como_voy)
+            log.info("Órdenes de voz: activas (%s); se escucha en pausa y entre ejercicios",
+                     ruta.name)
+            return escucha
+        except Exception as exc:                          # noqa: BLE001
+            listo, motivo = False, f"{type(exc).__name__}: {exc}"
+    log.warning("Órdenes de voz: %s. La sesión sigue sin ellas.", motivo)
+    return None
+
+
+def _responder_como_voy(entrenadora_en_vivo, catalogo):
+    """Función «¿cómo voy?» para la escucha: usa la entrenadora de la sesión
+    (con LLM o plantilla) o, si no hay, una de plantilla."""
+    from .aplicacion.entrenadora import Entrenadora
+    de_plantilla = Entrenadora(None, {sid: ej.skill.nombre for sid, ej in catalogo.items()})
+
+    def como_voy(sesion):
+        vivo = entrenadora_en_vivo()
+        entrenadora = vivo.entrenadora if vivo is not None else de_plantilla
+        progreso = None
+        if vivo is not None and vivo.progreso is not None:
+            try:
+                progreso = vivo.progreso()
+            except Exception:                             # noqa: BLE001
+                progreso = None
+        r = entrenadora.como_voy(sesion.resumen_ligero(), progreso)
+        log.info("¿Cómo voy? (%s, %.0f ms): %s", r.origen, r.latencia_ms, r.texto)
+        return r.texto
+    return como_voy
 
 
 def _crear_estimador(args: argparse.Namespace):
@@ -203,6 +262,8 @@ def _imprimir_resumen(r: dict) -> None:
                   + (", ".join(f"{e} {n}" for e, n in sorted(paso["respaldos"].items()))
                      or "ninguno"))
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")
+    for f in (r.get("voz_entrada") or {}).get("frases", ()):
+        print(f"Voz oída: «{f['texto']}» → {f['comando'] or f['motivo']} ({f['reconocer_ms']} ms)")
     for e in (r.get("entrenadora") or {}).get("respuestas", ()):
         resp = e["respuesta"] or {}
         print(f"Entrenadora [{e['momento']}] "
@@ -262,7 +323,7 @@ def main(argv=None) -> int:
     verbalizador = _crear_verbalizador(args)
 
     #: la crea el modo elegido (necesita la sesión o el orquestador)
-    entrenadora = {"en_vivo": None, "esperar": True}
+    entrenadora = {"en_vivo": None, "esperar": True, "escucha": None}
 
     def cerrar_sesion(resumen: dict) -> None:
         if entrenadora["en_vivo"] is not None:
@@ -272,6 +333,8 @@ def main(argv=None) -> int:
                 entrenadora["en_vivo"].esperar((args.entrenadora_timeout_s or 0.0)
                                                + MARGEN_VOZ_ENTRENADORA_S)
             resumen["entrenadora"] = entrenadora["en_vivo"].resumen()
+        if entrenadora["escucha"] is not None:
+            resumen["voz_entrada"] = {"frases": list(entrenadora["escucha"].registro)}
         resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas,
                           "descartes": dict(voz.descartes)}
         if verbalizador is not None:
@@ -363,16 +426,29 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
         fuente="video" if args.video else "camara",
         al_terminar=cerrar_sesion, verbalizador=verbalizador, sin_dtw=args.sin_dtw,
         colocacion=not args.sin_colocacion, perfiles=perfiles,
-        preparar_sesion=lambda sesion: (en_vivo.conectar(sesion, retencion_ms)
-                                        if en_vivo is not None else None))
+        preparar_sesion=lambda sesion: _preparar(sesion))
     en_vivo, retencion_ms = _crear_entrenadora(
         args, catalogo, voz, progreso=lambda: orquestador.progreso_activo())
     if entrenadora is not None:
         # con interfaz la pantalla de resumen no espera a la entrenadora
         entrenadora.update(en_vivo=en_vivo, esperar=False)
+    # las órdenes de voz entran por la misma cola que los botones de la interfaz
+    escucha = _crear_escucha(
+        args, voz, {n: getattr(orquestador, n) for n in ACCIONES_DE_VOZ},
+        _responder_como_voy(lambda: en_vivo, catalogo))
+    if entrenadora is not None:
+        entrenadora["escucha"] = escucha
+
+    def _preparar(sesion) -> None:
+        if en_vivo is not None:
+            en_vivo.conectar(sesion, retencion_ms)
+        if escucha is not None:
+            escucha.conectar(sesion)
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:
+        if escucha is not None:
+            escucha.cerrar()
         orquestador.cerrar()
         voz.cerrar(esperar=True)
     return 0
@@ -395,6 +471,18 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
         en_vivo.conectar(sesion, retencion_ms)
         if entrenadora is not None:
             entrenadora["en_vivo"] = en_vivo
+    # las órdenes de voz se apuntan aquí y se aplican en este hilo, entre dos frames
+    import queue
+    ordenes: "queue.SimpleQueue[str]" = queue.SimpleQueue()
+    escucha = _crear_escucha(args, voz, {n: (lambda n=n: ordenes.put(n)) for n in ACCIONES_DE_VOZ},
+                             _responder_como_voy(lambda: en_vivo, catalogo))
+    if escucha is not None:
+        escucha.conectar(sesion)
+        if entrenadora is not None:
+            entrenadora["escucha"] = escucha
+    aplicar = {"pausar": sesion.pausar, "reanudar": sesion.reanudar,
+               "listo": sesion.terminar_colocacion, "siguiente": sesion.siguiente,
+               "anterior": sesion.anterior, "reiniciar": sesion.reiniciar_ejercicio}
 
     ventana = not args.sin_ventana
     if ventana:
@@ -410,6 +498,15 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
             if leido is None:
                 break
             frame, t_ms = leido
+            terminar_por_voz = False
+            while not ordenes.empty():
+                orden = ordenes.get()
+                if orden == "terminar":
+                    terminar_por_voz = True
+                else:
+                    aplicar[orden]()
+            if terminar_por_voz:
+                break
             estado = sesion.procesar(frame, t_ms)
 
             ahora = time.perf_counter()
@@ -435,6 +532,8 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
     except KeyboardInterrupt:
         pass
     finally:
+        if escucha is not None:
+            escucha.cerrar()
         fuente.cerrar()
         estimador.cerrar()
         if ventana:

@@ -303,14 +303,14 @@ class TestDefectosSegunElEquipo(unittest.TestCase):
 
     def test_fuera_del_mac_nada_cambia(self):
         a = self._args()
-        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.tiempo_real),
-                         ("lite", "cpu", "plantillas", "no", False))
+        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.voz_entrada,
+                          a.tiempo_real), ("lite", "cpu", "plantillas", "no", "no", False))
 
     def test_en_el_mac_va_encendido_lo_que_aprovecha_el_equipo(self):
         from estela import config
         a = self._args(en_mac=True)
-        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora),
-                         ("heavy", "gpu", "llm", "llm"))
+        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.voz_entrada),
+                         ("heavy", "gpu", "llm", "llm", "si"))
         self.assertEqual((a.llm_modelo, a.llm_timeout_ms),
                          (config.LLM_MODELO, config.LLM_TIMEOUT_MS))
         self.assertEqual((a.entrenadora_modelo, a.entrenadora_timeout_s),
@@ -328,8 +328,9 @@ class TestDefectosSegunElEquipo(unittest.TestCase):
         from estela import config
         for en_mac in (False, True):
             d = config.defectos(en_mac)
-            self.assertEqual(sorted(d), ["delegado", "entrenadora", "modelo", "verbalizador"])
-            argv = [x for k, v in d.items() for x in (f"--{k}", v)]
+            self.assertEqual(sorted(d), ["delegado", "entrenadora", "modelo", "verbalizador",
+                                         "voz_entrada"])
+            argv = [x for k, v in d.items() for x in (f"--{k.replace('_', '-')}", v)]
             a = self._args(argv, en_mac=not en_mac)
             self.assertEqual({k: getattr(a, k) for k in d}, d)
 
@@ -384,6 +385,34 @@ class TestArranqueDelLLM(unittest.TestCase):
         self.assertGreater(retencion_ms, 0)
         self.assertEqual(_crear_entrenadora(_argumentos([], en_mac=False), {}, VozFalsa()),
                          (None, 0))
+
+
+class TestArranqueDeLaVozDeEntrada(unittest.TestCase):
+    def test_apagada_no_crea_nada(self):
+        from estela.__main__ import _argumentos, _crear_escucha
+        self.assertIsNone(_crear_escucha(_argumentos([], en_mac=False), None, {}, None))
+
+    def test_sin_microfono_o_sin_modelo_la_sesion_sigue_sin_ordenes_de_voz(self):
+        from unittest import mock
+        from estela.__main__ import _argumentos, _crear_escucha
+        a = _argumentos(["--voz-entrada", "si"], en_mac=False)
+        mic = "estela.adaptadores.voz_entrada.microfono.hay_microfono"
+        with mock.patch(mic, return_value=(False, "no hay ningún micrófono conectado")):
+            with self.assertLogs("estela", level="WARNING") as reg:
+                self.assertIsNone(_crear_escucha(a, None, {}, None))
+        self.assertIn("micrófono", reg.output[0])
+        with mock.patch(mic, return_value=(True, "")), \
+                mock.patch("estela.config.modelo_voz_entrada",
+                           return_value=__import__("pathlib").Path("/no/existe/ggml-small.bin")):
+            with self.assertLogs("estela", level="WARNING") as reg:
+                self.assertIsNone(_crear_escucha(a, None, {}, None))
+        self.assertIn("descargar_modelos.py --voz-entrada", reg.output[0])
+
+    def test_el_reconocedor_quita_las_anotaciones_de_audio_sin_habla(self):
+        from estela.adaptadores.voz_entrada.reconocedor import limpiar
+        self.assertEqual(limpiar(" [BLANK_AUDIO] "), "")
+        self.assertEqual(limpiar("(música) Pausa. *ruido*"), "Pausa.")
+        self.assertEqual(limpiar("¿Cómo   voy?"), "¿Cómo voy?")
 
 
 class TestPlantillas(unittest.TestCase):
