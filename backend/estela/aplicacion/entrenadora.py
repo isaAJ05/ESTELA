@@ -210,8 +210,24 @@ def hechos_del_historial(progreso: Optional[Mapping[str, Any]]) -> List[str]:
 # Validación de lo que devuelve el modelo
 # ---------------------------------------------------------------------------
 
+#: Números escritos con letras (sin tildes). No está «un/una/uno»: casi siempre
+#: es artículo («una pausa») y daría rechazos falsos.
+_NUMEROS_EN_LETRAS: Dict[str, int] = {
+    "cero": 0, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5, "seis": 6, "siete": 7,
+    "ocho": 8, "nueve": 9, "diez": 10, "once": 11, "doce": 12, "trece": 13,
+    "catorce": 14, "quince": 15, "dieciseis": 16, "diecisiete": 17, "dieciocho": 18,
+    "diecinueve": 19, "veinte": 20, "treinta": 30, "cuarenta": 40, "cincuenta": 50,
+    "sesenta": 60,
+}
+
+
 def _numeros(texto: str) -> List[str]:
-    return re.findall(r"\d+", texto)
+    """Cifras del texto, también las escritas con letras («dos veces» → 2)."""
+    cifras = re.findall(r"\d+", texto)
+    for palabra in re.findall(r"[a-zñ]+", normalizar(texto)):
+        if palabra in _NUMEROS_EN_LETRAS:
+            cifras.append(str(_NUMEROS_EN_LETRAS[palabra]))
+    return cifras
 
 
 def validar_resumen(resumen: Any, hechos: Sequence[str]) -> str:

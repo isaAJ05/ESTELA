@@ -61,6 +61,7 @@ def test_el_modelo_solo_recibe_cifras_derivadas():
     ("", "resumen_vacio"),
     ("palabra " * (en.MAX_PALABRAS_RESUMEN + 1), "demasiado_largo"),
     ("Hiciste 9 repeticiones.", "cifra_inventada"),
+    ("Recibiste tres avisos en las 6 repeticiones.", "cifra_inventada"),
     ("Cuida la rodilla en las 6 repeticiones.", "segmento_ajeno"),
     ("Hiciste 6 repeticiones con la pierna derecha.", "lado_ajeno"),
     ("Tu técnica fue perfecta en las 6 repeticiones.", "califica_la_tecnica"),
@@ -75,6 +76,13 @@ def test_resumen_rechazado_cae_a_plantilla(resumen, motivo):
     assert r.motivo_caida.startswith(motivo)
     assert r.texto.startswith("Hiciste 6 de 6 repeticiones")
     assert e.caidas == {motivo: 1}
+
+
+def test_numeros_con_letras_que_estan_en_los_datos_se_aceptan():
+    # «dos avisos» y «seis» están en los datos; «una» es artículo y no cuenta
+    g = generador("Hiciste las seis repeticiones, con dos avisos y una repetición incompleta.")
+    r = en.Entrenadora(g, NOMBRES).entre_ejercicios(paso(), "plancha")
+    assert r.origen == en.ORIGEN_LLM
 
 
 def test_accion_fuera_de_la_lista_o_no_permitida_cae_a_plantilla():
@@ -331,3 +339,60 @@ def test_en_vivo_sin_colocacion_solo_habla_al_final(catalogo):
     vivo.esperar(5.0)
     assert [(r["momento"], r["motivo"], r["dicha"]) for r in vivo.registro] == [
         ("entre", SIN_COLOCACION, False), ("final", "", True)]
+
+
+# ---------------------------------------------------------------------------
+# Con la cola de voz real (un solo hueco pendiente): nada pisa a la entrenadora
+# ---------------------------------------------------------------------------
+
+import time
+
+from estela.adaptadores.voz.cola import ColaVoz
+from estela.adaptadores.voz.motores import MotorVoz
+
+
+class MotorLento(MotorVoz):
+    """Tarda un poco en «decir» cada frase y apunta el orden."""
+    nombre = "lento"
+
+    def __init__(self, segundos=0.06):
+        self.segundos, self.dichas = segundos, []
+
+    def hablar(self, texto):
+        self.dichas.append(texto)
+        time.sleep(self.segundos)
+
+
+def test_con_la_cola_real_la_entrenadora_suena_entera_y_antes_del_anuncio(catalogo):
+    rutina = rutina_desde_dict({"nombre": "Prueba", "pasos": [
+        {"skill_id": "plancha", "duracion_s": 2},
+        {"skill_id": "plancha", "duracion_s": 2}]}, catalogo)
+    motor = MotorLento()
+    cola = ColaVoz(motor)
+    try:
+        s = Sesion(rutina, catalogo, EstimadorPlanchaEnImagen(), cola, colocacion=True)
+        vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), cola)
+        vivo.conectar(s, 10 * 60_000)             # tope lejano: aquí manda la entrenadora
+        t = 0
+        limite = time.monotonic() + 20.0
+        while not s.terminada and time.monotonic() < limite:
+            s.procesar(0.0, t)
+            t += DT
+            time.sleep(0.002)                     # deja correr al hilo de la voz
+        assert s.terminada
+        vivo.esperar(10.0)
+        cola.esperar_vacia(5.0)
+    finally:
+        cola.cerrar(esperar=False)
+    entre, final = vivo.registro
+    assert entre["dicha"] and final["dicha"]
+    dichas = motor.dichas
+    i_fin_paso = dichas.index("Muy bien, terminaste plancha.")
+    i_entre = dichas.index(entre["respuesta"]["texto"])
+    i_anuncio = max(k for k, x in enumerate(dichas) if x.startswith("Ahora, plancha"))
+    assert i_fin_paso < i_entre < i_anuncio        # resumen, y solo después el ejercicio nuevo
+    assert dichas[-1] == final["respuesta"]["texto"]
+    # ninguna de las dos respuestas se descartó en la cola
+    for r in (entre, final):
+        fila = next(f for f in cola.registro if f["texto"] == r["respuesta"]["texto"])
+        assert not fila["descartada"] and fila["t_inicio"] is not None
