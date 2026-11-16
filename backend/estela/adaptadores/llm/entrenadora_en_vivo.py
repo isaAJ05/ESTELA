@@ -91,6 +91,8 @@ class EntrenadoraEnVivo:
                 entrada["motivo"] = TARDE
                 return
             log.info("Entrenadora (%s, %s): %s", r.origen, r.accion, r.texto)
+            if not evento["final"]:
+                sesion.mostrar_entrenadora(evento["turno"], r.texto)   # también se lee
             entrada["dicha"] = bool(self.voz.decir(r.texto, PRIORIDAD_AVISO))
             self._voz_libre()                    # el anuncio del ejercicio va después
         except Exception:                                 # noqa: BLE001

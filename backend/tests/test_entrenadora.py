@@ -232,7 +232,13 @@ def test_la_colocacion_se_retiene_hasta_que_la_entrenadora_suelta(catalogo):
     estado = reloj.correr(3 * COLOCACION_ESTABLE_MS // DT)
     assert estado.colocando and estado.completadas == 0
     assert s.entrenadora_vigente(ev["turno"])
+    # mientras habla, su texto se lee donde va la instrucción de colocación
+    assert "cabeza a los pies" in estado.instruccion
+    assert s.mostrar_entrenadora(ev["turno"], "Hiciste 2 de 2 segundos.")
+    assert reloj.correr(1).instruccion == "Hiciste 2 de 2 segundos."
     s.soltar_entrenadora(ev["turno"])
+    assert "cabeza a los pies" in reloj.correr(1).instruccion
+    assert not s.mostrar_entrenadora(ev["turno"], "tarde")
     assert len(_anuncios(voz)) == 2                    # ahora sí se anuncia
     assert not s.entrenadora_vigente(ev["turno"])
     estado = reloj.hasta(lambda e: not e.colocando)

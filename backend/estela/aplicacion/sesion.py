@@ -327,6 +327,8 @@ class Sesion:
         self._retenida = False
         self._retencion_desde: Optional[int] = None
         self._anuncio_pendiente: Optional[str] = None
+        #: lo que dice la entrenadora, para leerlo en la capa de colocación
+        self._texto_entrenadora: Optional[str] = None
         self._cerrojo_retencion = threading.Lock()
         self._avanzar()
 
@@ -368,6 +370,7 @@ class Sesion:
             self._retenida = False
             self._retencion_desde = None
             self._anuncio_pendiente = None
+            self._texto_entrenadora = None
         if self.terminada:
             self.voz.decir("Rutina terminada. Buen trabajo.", PRIORIDAD_AVISO)
             self._avisa_cierre(cierre, None)
@@ -421,6 +424,16 @@ class Sesion:
         nunca con el ejercicio en marcha. Se puede llamar desde otro hilo."""
         return turno == self._turno and (self._retenida or self.terminada)
 
+    def mostrar_entrenadora(self, turno: int, texto: str) -> bool:
+        """Pone en pantalla lo que la entrenadora va a decir (en el lugar de la
+        instrucción de colocación) mientras dure la retención. False si ya no
+        es su momento. Se puede llamar desde otro hilo."""
+        with self._cerrojo_retencion:
+            if turno != self._turno or not self._retenida:
+                return False
+            self._texto_entrenadora = texto
+            return True
+
     def soltar_entrenadora(self, turno: int) -> None:
         """La entrenadora de `turno` terminó (o falló): se anuncia el
         ejercicio y la colocación puede acabar. Se puede llamar desde otro
@@ -429,7 +442,14 @@ class Sesion:
             if turno != self._turno or not self._retenida:
                 return
             self._retenida = False
+            self._texto_entrenadora = None
             anuncio, self._anuncio_pendiente = self._anuncio_pendiente, None
+            # El tiempo de colocación estable vuelve a contar: si la persona ya
+            # estaba bien colocada, «Ya te veo bien» se encolaría justo detrás
+            # del anuncio y lo sustituiría antes de sonar (un solo hueco).
+            p = self.paso_actual
+            if p is not None:
+                p.colocado_desde = None
         if anuncio:
             self.voz.decir(anuncio, PRIORIDAD_AVISO)
 
@@ -849,7 +869,8 @@ class Sesion:
             guia=_guia_actual(p, self._t_ms),
             correctas=correctas, con_error=con_error,
             colocando=p.colocando,
-            instruccion=(self._instruccion(p.ejercicio) if p.colocando else None),
+            instruccion=((self._texto_entrenadora or self._instruccion(p.ejercicio))
+                         if p.colocando else None),
             comprobaciones=dict(p.comprobaciones) if p.colocando else None,
             gesto=self._estado_gesto(p))
 
