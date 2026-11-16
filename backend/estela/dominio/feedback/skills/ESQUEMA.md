@@ -17,6 +17,7 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "descripcion": "…",                // opcional: frase corta que la interfaz muestra al elegir ejercicios
   "version": "0.1.0",
   "estado": "candidato",             // candidato | candidato_en_duda | adoptado | descartado
+  "clase_reconocimiento": "sentadilla", // opcional: clase con que la sesión reconoce «¿es este ejercicio?» (EXP-010); los dos lados de un ejercicio comparten clase. Sin el campo, no se reconoce
   "notas": "…",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital", // frontal | sagital | transversal | cualquiera

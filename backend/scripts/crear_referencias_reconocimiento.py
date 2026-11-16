@@ -4,10 +4,13 @@ sesión reconoce si se está haciendo el ejercicio elegido (EXP-010,
 
 Uso (desde `backend/`):
 
-    python scripts/crear_referencias_reconocimiento.py [--videos RUTA] [--modelo lite]
+    python scripts/crear_referencias_reconocimiento.py --videos ../../docs_estela/investigacion/fuentes/datasets/videos ../../grabaciones/zancada/recortados
+
+Si falta algún vídeo de `VIDEOS` en esas carpetas, termina con error sin escribir.
 
 Una referencia por cada vídeo correcto de `docs_estela/.../datasets/videos/`
-de los cuatro ejercicios (`VIDEOS`), en el vector común de medidas. Cada
+de `VIDEOS`, en el vector común de medidas; la clase de cada una es el
+`clase_reconocimiento` de su skill. Cada
 vídeo pasa por el pipeline de la sesión (pose → `observacion_desde_pose` →
 `_SaltoCadera`), se remuestrea a 30 fps y se corta con el segmentador de su
 skill; la referencia es la media alineada al medoide de sus repeticiones
@@ -32,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from crear_referencia import estadistica_alineada, medoide  # noqa: E402
 
 from estela import config  # noqa: E402
-from estela.aplicacion.reconocimiento import (CLASE_DE_SKILL, ESCALA_MIN,  # noqa: E402
+from estela.aplicacion.reconocimiento import (ESCALA_MIN,  # noqa: E402
                                               ESCALA_MIN_ANGULO, MEDIDAS,
                                               ruta_por_defecto, vector_comun)
 from estela.aplicacion.rutina import cargar_catalogo  # noqa: E402
@@ -48,9 +51,6 @@ VIDEOS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("1 hombre.mp4", ("jumping_jacks",)),
     ("2 mujer.mp4", ("jumping_jacks",)),
     ("7 hombre.mp4", ("jumping_jacks",)),
-    ("5 hombre.mp4", ("marcha_rodillas",)),
-    ("6 mujer.mp4", ("marcha_rodillas",)),
-    ("How to do high knees for beginners (online-video-cutter.com).mp4", ("marcha_rodillas",)),
     ("Abducción activa de cadera en bipedestación.mp4",
      ("abduccion_cadera_izq", "abduccion_cadera_der")),
     ("Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral.mp4",
@@ -62,6 +62,14 @@ VIDEOS: Tuple[Tuple[str, Tuple[str, ...]], ...] = (
     ("izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4",
      ("abduccion_cadera_izq",)),
     ("izquierda abductor.mp4", ("abduccion_cadera_izq",)),
+    ("der Zancada atrás con Kettlebell Derecha - Ejercicios de la App Malagaentrena.mp4",
+     ("zancada_atras_der",)),
+    ("izq Zancada hacia atrás con peso corporal_ técnica paso a paso.mp4", ("zancada_atras_izq",)),
+    # recortes de vídeos online (EXP-010 §12); sin lado conocido se queda el que cuenta más
+    ("zancada_dinamica_alterna.mp4", ("zancada_atras_izq", "zancada_atras_der")),
+    ("zancada_estatica_der_mujer.mp4", ("zancada_atras_der",)),
+    ("zancada_estatica_mancuernas.mp4", ("zancada_atras_izq", "zancada_atras_der")),
+    ("zancada_estatica_hombre.mp4", ("zancada_atras_izq", "zancada_atras_der")),
     ("PlanchaCorrecta1 (2).mp4", ("plancha",)),
     ("plancha correcta hombre.mp4", ("plancha",)),
     ("👉Como hacer plancha abdominal correctamente ✅ Galvistrainer.mp4", ("plancha",)),
@@ -146,21 +154,22 @@ def _lista(a: np.ndarray) -> List[List[Optional[float]]]:
 def main(argv: Optional[Sequence[str]] = None) -> int:
     p = argparse.ArgumentParser(description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument("--videos", type=Path, default=DOCS,
-                   help="carpeta de vídeos de docs_estela (se busca cada archivo dentro)")
+    p.add_argument("--videos", type=Path, nargs="+", default=[DOCS],
+                   help="carpetas donde se busca cada archivo de VIDEOS (defecto: docs_estela)")
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="lite",
                    help="el de la sesión (defecto lite, como en EXP-010)")
     p.add_argument("--salida", type=Path, default=ruta_por_defecto())
     a = p.parse_args(argv)
 
     catalogo = cargar_catalogo()
+    # sin todos los vídeos el JSON saldría con menos referencias y sin avisar
+    ruta_de = {n: next((r for c in a.videos for r in c.rglob(n)), None) for n, _ in VIDEOS}
+    if faltan := [n for n, r in ruta_de.items() if r is None]:
+        print("Faltan vídeos (pasa sus carpetas con --videos); no se escribe nada:", *faltan, sep="\n  ")
+        return 1
     referencias, fuentes = [], []
     for nombre, skills in VIDEOS:
-        rutas = list(a.videos.rglob(nombre))
-        if not rutas:
-            print(f"FALTA {nombre}")
-            continue
-        frames = extraer(rutas[0], a.modelo)
+        frames = extraer(ruta_de[nombre], a.modelo)
         mejor = None
         for sid in skills:
             r = cortar(frames, catalogo[sid])
@@ -170,7 +179,7 @@ def main(argv: Optional[Sequence[str]] = None) -> int:
             print(f"descartado {nombre}: menos de {MIN_REPETICIONES} repeticiones completas")
             continue
         sid, (tipo, media, info) = mejor
-        clase = CLASE_DE_SKILL[sid]
+        clase = catalogo[sid].skill.clase_reconocimiento
         referencias.append({"clase": clase, "tipo": tipo, "media": media})
         fuentes.append({"video": nombre, "clase": clase, "skill": sid, **info})
         print(f"{clase:16s} {sid:22s} {info}  {nombre}", flush=True)
