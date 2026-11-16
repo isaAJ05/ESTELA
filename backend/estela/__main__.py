@@ -53,6 +53,9 @@ def _argumentos(argv=None) -> argparse.Namespace:
     p.add_argument("--camara", type=int, default=0, help="índice de cámara")
     p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="lite",
                    help="variante de Pose Landmarker")
+    p.add_argument("--delegado", choices=("cpu", "gpu"), default="cpu",
+                   help="dónde corre la pose: cpu (defecto) o gpu (Metal en macOS; "
+                        "medido en el Mac Studio, EXP-004)")
     p.add_argument("--voz", choices=("piper", "sistema", "texto"), default="piper")
     p.add_argument("--interfaz", choices=("ventana", "opencv"), default="ventana",
                    help="interfaz de escritorio (defecto) o ventana de OpenCV")
@@ -301,7 +304,8 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
                 else Perfiles(config.HISTORIAL))
     orquestador = Orquestador(
         rutina, catalogo,
-        crear_estimador=lambda: EstimadorPose(config.modelo_pose(args.modelo)),
+        crear_estimador=lambda: EstimadorPose(config.modelo_pose(args.modelo),
+                                              delegado=args.delegado),
         # la cámara la puede cambiar la interfaz entre sesiones
         abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True,
                                            camara=orquestador.camara),
@@ -331,7 +335,7 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
     from .adaptadores.pose.estimador import EstimadorPose
     from .aplicacion.sesion import Sesion
 
-    estimador = EstimadorPose(config.modelo_pose(args.modelo))
+    estimador = EstimadorPose(config.modelo_pose(args.modelo), delegado=args.delegado)
     fuente = _abrir_fuente(args, tiempo_real=not args.sin_ventana)
     espejo = args.video is None
 

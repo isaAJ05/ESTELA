@@ -7,6 +7,12 @@ mediapipe 1.0.1.
 Se usa `RunningMode.VIDEO` (síncrono) en lugar de `LIVE_STREAM`: el hilo
 principal procesa siempre el frame más reciente, la latencia por frame se
 puede medir directamente y el resultado es determinista con un vídeo.
+
+`delegado="gpu"` pide el delegado GPU de MediaPipe (Metal en macOS). `[F]`
+Medido en el Mac Studio M2 Ultra el 2026-11-16 con mediapipe 1.2.3 (EXP-004,
+candidatos A4–A6): el delegado se crea también por SSH y exige imágenes de 4
+canales (SRGBA). El defecto sigue siendo CPU: es lo validado en todos los
+equipos del proyecto.
 """
 
 from __future__ import annotations
@@ -22,18 +28,27 @@ from ...aplicacion.puertos import ResultadoPose
 from .landmarks import NOMBRES_MEDIAPIPE, a_array, muestra_desde_arrays
 
 
+DELEGADOS = ("cpu", "gpu")
+
+
 class EstimadorPose:
     def __init__(self, ruta_modelo: Path, confianza_deteccion: float = 0.5,
-                 confianza_seguimiento: float = 0.5) -> None:
+                 confianza_seguimiento: float = 0.5, delegado: str = "cpu") -> None:
         from mediapipe.tasks.python import BaseOptions, vision
 
+        if delegado not in DELEGADOS:
+            raise ValueError(f"delegado desconocido: {delegado!r} (use {DELEGADOS})")
+        self.delegado = delegado
         ruta_modelo = Path(ruta_modelo)
         if not ruta_modelo.exists():
             raise FileNotFoundError(
                 f"No existe el modelo de pose {ruta_modelo}. "
                 "Ejecuta: python scripts/descargar_modelos.py")
         opciones = vision.PoseLandmarkerOptions(
-            base_options=BaseOptions(model_asset_path=str(ruta_modelo)),
+            base_options=BaseOptions(
+                model_asset_path=str(ruta_modelo),
+                delegate=(BaseOptions.Delegate.GPU if delegado == "gpu"
+                          else BaseOptions.Delegate.CPU)),
             running_mode=vision.RunningMode.VIDEO,
             num_poses=1,
             min_pose_detection_confidence=confianza_deteccion,
@@ -41,7 +56,7 @@ class EstimadorPose:
         )
         self._landmarker = vision.PoseLandmarker.create_from_options(opciones)
         self._ultimo_t = -1
-        self.fuente = f"mediapipe_tasks:{ruta_modelo.stem}"
+        self.fuente = f"mediapipe_tasks:{ruta_modelo.stem}" + (":gpu" if delegado == "gpu" else "")
 
     def estimar(self, frame_bgr: np.ndarray, t_ms: int) -> ResultadoPose:
         import mediapipe as mp
@@ -49,8 +64,12 @@ class EstimadorPose:
         # detect_for_video exige timestamps estrictamente crecientes.
         t_ms = max(int(t_ms), self._ultimo_t + 1)
         self._ultimo_t = t_ms
-        rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
-        imagen_mp = mp.Image(image_format=mp.ImageFormat.SRGB, data=rgb)
+        if self.delegado == "gpu":       # el delegado GPU solo acepta 4 canales
+            imagen_mp = mp.Image(image_format=mp.ImageFormat.SRGBA,
+                                 data=cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGBA))
+        else:
+            imagen_mp = mp.Image(image_format=mp.ImageFormat.SRGB,
+                                 data=cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB))
 
         t0 = time.perf_counter()
         r = self._landmarker.detect_for_video(imagen_mp, t_ms)
@@ -68,4 +87,4 @@ class EstimadorPose:
         self._landmarker.close()
 
 
-__all__ = ["EstimadorPose", "ResultadoPose"]
+__all__ = ["EstimadorPose", "ResultadoPose", "DELEGADOS"]
