@@ -32,29 +32,6 @@ from estela.dominio.feedback.motor.geometria import observacion_desde_pose
 
 ESQUEMA_VERSION = "0.1"
 CONFIANZA_MINIMA = 0.5
-MEDIDAS_POR_EJERCICIO: Dict[str, Tuple[str, ...]] = {
-    "jumping_jacks": ("hombro_medio", "codo_medio", "separacion_pies"),
-    "abduccion_cadera_izq": (
-        "abduccion_cadera_izq", "inclinacion_lateral_tronco",
-        "inclinacion_pelvis",
-    ),
-    "abduccion_cadera_der": (
-        "abduccion_cadera_der", "inclinacion_lateral_tronco",
-        "inclinacion_pelvis",
-    ),
-    "marcha_rodillas": (
-        "cadera_izq", "cadera_der", "tronco_inclinacion",
-    ),
-    "zancada_atras_izq": (
-        "rodilla_izq", "rodilla_der", "tronco_inclinacion",
-    ),
-    "zancada_atras_der": (
-        "rodilla_izq", "rodilla_der", "tronco_inclinacion",
-    ),
-    "plancha": (
-        "tronco_inclinacion", "cabeza_adelantada", "alineacion_cadera",
-    ),
-}
 
 
 def dtw(a: np.ndarray, b: np.ndarray,
@@ -271,10 +248,12 @@ def extraer_series(video: str, ejercicio_id: str) -> Tuple[
     List[str], Any, float
 ]:
     """Extrae medidas y repeticiones usando el pipeline de sesión."""
-    if ejercicio_id not in MEDIDAS_POR_EJERCICIO:
-        raise ValueError(f"ejercicio no soportado: {ejercicio_id}")
-    catalogo = cargar_catalogo()
-    ejercicio = catalogo[ejercicio_id]
+    ejercicio = cargar_catalogo().get(ejercicio_id)
+    # las medidas de la referencia las declara el skill (`medidas_referencia`)
+    if ejercicio is None or not ejercicio.medidas_referencia:
+        raise ValueError(
+            f"ejercicio no soportado: {ejercicio_id} (no está en el catálogo "
+            "o su skill no declara 'medidas_referencia')")
     segmentador = ejercicio.nuevo_segmentador()
     fps: Optional[float] = None
     import cv2
@@ -284,7 +263,7 @@ def extraer_series(video: str, ejercicio_id: str) -> Tuple[
         raise FileNotFoundError(f"no se pudo abrir el vídeo: {video}")
     fps = float(captura.get(cv2.CAP_PROP_FPS) or 30.0)
     estimador = EstimadorPose(modelo_pose("full"))
-    medidas = list(MEDIDAS_POR_EJERCICIO[ejercicio_id])
+    medidas = list(ejercicio.medidas_referencia)
     grupos: Dict[int, Dict[str, Any]] = {}
     completadas: set[int] = set()
     iso_valores: List[List[float]] = []

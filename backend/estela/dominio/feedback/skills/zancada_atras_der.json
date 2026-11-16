@@ -5,6 +5,14 @@
   "version": "0.2.0",
   "estado": "candidato",
   "clase_reconocimiento": "zancada",
+  "medidas_referencia": ["rodilla_izq", "rodilla_der", "tronco_inclinacion"],
+  "videos_reconocimiento": [
+    "der Zancada atrás con Kettlebell Derecha - Ejercicios de la App Malagaentrena.mp4",
+    "zancada_dinamica_alterna.mp4",
+    "zancada_estatica_der_mujer.mp4",
+    "zancada_estatica_mancuernas.mp4",
+    "zancada_estatica_hombre.mp4"
+  ],
   "notas": "Gemela de zancada_atras_izq.json con la pierna derecha atrás. Mismas reglas, mismas notas y mismos umbrales provisionales (ADR-005).",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",
