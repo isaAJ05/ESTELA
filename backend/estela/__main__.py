@@ -38,7 +38,8 @@ from . import config
 log = logging.getLogger("estela")
 
 
-def _argumentos(argv=None) -> argparse.Namespace:
+def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
+    """`en_mac`: None = el equipo en que corre (`config.EN_MAC`)."""
     p = argparse.ArgumentParser(prog="python -m estela", description=__doc__,
                                 formatter_class=argparse.RawDescriptionHelpFormatter)
     grupo = p.add_mutually_exclusive_group()
@@ -51,11 +52,12 @@ def _argumentos(argv=None) -> argparse.Namespace:
                         "un ejercicio isométrico como la plancha (defecto 10)")
     p.add_argument("--video", type=Path, help="usar un vídeo en lugar de la cámara")
     p.add_argument("--camara", type=int, default=0, help="índice de cámara")
-    p.add_argument("--modelo", choices=("lite", "full", "heavy"), default="lite",
-                   help="variante de Pose Landmarker")
-    p.add_argument("--delegado", choices=("cpu", "gpu"), default="cpu",
-                   help="dónde corre la pose: cpu (defecto) o gpu (Metal en macOS; "
-                        "medido en el Mac Studio, EXP-004)")
+    p.add_argument("--modelo", choices=("lite", "full", "heavy"),
+                   help="variante de Pose Landmarker (defecto: heavy en el Mac, lite en "
+                        "los demás equipos)")
+    p.add_argument("--delegado", choices=("cpu", "gpu"),
+                   help="dónde corre la pose (defecto: gpu en el Mac, que es Metal; cpu "
+                        "en los demás). Si la GPU no arranca se usa la CPU")
     p.add_argument("--voz", choices=("piper", "sistema", "texto"), default="piper")
     p.add_argument("--interfaz", choices=("ventana", "opencv"), default="ventana",
                    help="interfaz de escritorio (defecto) o ventana de OpenCV")
@@ -85,46 +87,89 @@ def _argumentos(argv=None) -> argparse.Namespace:
         "El motor determinista decide el error y si se habla; el LLM solo "
         "redacta la frase, con salida restringida y validador, y cae a la "
         "plantilla si falla o tarda más del tiempo límite.")
-    llm.add_argument("--verbalizador", choices=("plantillas", "llm"), default="plantillas",
-                     help="quién redacta las correcciones (defecto: plantillas)")
+    llm.add_argument("--verbalizador", choices=("plantillas", "llm"),
+                     help="quién redacta las correcciones (defecto: llm en el Mac, "
+                          "plantillas en los demás equipos)")
     llm.add_argument("--llm-backend", choices=("ollama", "llama-server"), default="ollama")
     llm.add_argument("--llm-url", help="defecto: el local del backend elegido")
-    llm.add_argument("--llm-modelo", help="obligatorio con --verbalizador llm "
-                                          "(p. ej. el nombre que da `ollama list`)")
-    llm.add_argument("--llm-timeout-ms", type=int,
-                     help="obligatorio con --verbalizador llm: tiempo límite por frase; "
-                          "pasado ese tiempo suena la plantilla")
+    llm.add_argument("--llm-modelo", default=config.LLM_MODELO,
+                     help=f"nombre que da `ollama list` (defecto: {config.LLM_MODELO})")
+    llm.add_argument("--llm-timeout-ms", type=int, default=config.LLM_TIMEOUT_MS,
+                     help="tiempo límite por frase; pasado ese tiempo suena la plantilla "
+                          f"(defecto: {config.LLM_TIMEOUT_MS})")
     ent = p.add_argument_group(
         "entrenadora (opcional)",
         "Resumen hablado entre ejercicios y al final, nunca durante el movimiento. "
         "Propone una acción de una lista cerrada (repetir, descansar, seguir, terminar); "
         "no la ejecuta. Dolor o lesión: respuesta fija, sin modelo.")
-    ent.add_argument("--entrenadora", choices=("no", "plantilla", "llm"), default="no",
+    ent.add_argument("--entrenadora", choices=("no", "plantilla", "llm"),
                      help="plantilla: sin modelo; llm: modelo local por Ollama con "
-                          "respaldo a plantilla (defecto: no)")
-    ent.add_argument("--entrenadora-modelo", help="obligatorio con --entrenadora llm")
+                          "respaldo a plantilla (defecto: llm en el Mac, no en los demás)")
+    ent.add_argument("--entrenadora-modelo", default=config.ENTRENADORA_MODELO,
+                     help=f"defecto: {config.ENTRENADORA_MODELO}")
     ent.add_argument("--entrenadora-timeout-s", type=float,
-                     help="obligatorio con --entrenadora llm: tiempo límite de la respuesta; "
-                          "pasado, se dice la plantilla")
+                     default=config.ENTRENADORA_TIMEOUT_S,
+                     help="tiempo límite de la respuesta; pasado, se dice la plantilla "
+                          f"(defecto: {config.ENTRENADORA_TIMEOUT_S:g})")
     ent.add_argument("--entrenadora-url", help="defecto: Ollama local")
     ent.add_argument("--entrenadora-historial", type=Path,
                      help="archivo JSONL de historial (p. ej. el de "
                           "scripts/historial_ejemplo.py) cuando no hay perfiles")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
-    if args.entrenadora == "llm" and (not args.entrenadora_modelo
-                                      or args.entrenadora_timeout_s is None):
-        p.error("--entrenadora llm necesita --entrenadora-modelo y --entrenadora-timeout-s")
-    if args.verbalizador == "llm" and (not args.llm_modelo or args.llm_timeout_ms is None):
-        # sin valores por defecto a propósito: el modelo y el tiempo límite son
-        # decisiones del equipo (ADR-004, rol C), no del código
-        p.error("--verbalizador llm necesita --llm-modelo y --llm-timeout-ms")
+    # Lo que no se pidió toma el valor del equipo: en el Mac va encendido lo
+    # que aprovecha ese equipo (`config.defectos`).
+    for nombre, valor in config.defectos(en_mac).items():
+        if getattr(args, nombre) is None:
+            setattr(args, nombre, valor)
     return args
+
+
+def _llm_listo(modelo: str, url: Optional[str], para: str) -> bool:
+    """¿Está Ollama y tiene el modelo? Si no, avisa: `para` sigue con plantillas."""
+    from .adaptadores.llm.llm_local import URL_OLLAMA
+    from .adaptadores.llm.ollama import modelo_disponible
+    listo, motivo = modelo_disponible(modelo, url or URL_OLLAMA)
+    if not listo:
+        log.warning("%s: %s. Se usan las plantillas.", para, motivo)
+    return listo
+
+
+def _crear_estimador(args: argparse.Namespace):
+    """Estimador de pose pedido; si la GPU o el modelo heavy no están, cae a
+    lo que sí cabe en el presupuesto (full en CPU) y lo avisa."""
+    from .adaptadores.pose.estimador import EstimadorPose
+    modelo, delegado = args.modelo, args.delegado
+    if (modelo == "heavy" and not config.modelo_pose("heavy").exists()
+            and config.modelo_pose("full").exists()):
+        log.warning("Falta el modelo heavy (python scripts/descargar_modelos.py --heavy): "
+                    "se usa full en CPU.")
+        modelo, delegado = "full", "cpu"
+    if delegado == "gpu":
+        try:
+            import numpy as np
+            est = EstimadorPose(config.modelo_pose(modelo), delegado="gpu")
+            # una inferencia de prueba: confirma el delegado y paga la carga del grafo
+            est.estimar(np.zeros((256, 256, 3), np.uint8), 0)
+            log.info("Pose: %s en GPU", modelo)
+            return est
+        except FileNotFoundError:
+            raise
+        except Exception as exc:                          # noqa: BLE001
+            # heavy en CPU no cabe en 33 ms (p95 58 ms en el Mac Studio): full sí
+            respaldo = "full" if modelo == "heavy" else modelo
+            log.warning("El delegado GPU no arrancó (%s): se usa %s en CPU.", exc, respaldo)
+            modelo = respaldo
+    log.info("Pose: %s en CPU", modelo)
+    return EstimadorPose(config.modelo_pose(modelo), delegado="cpu")
 
 
 def _crear_verbalizador(args: argparse.Namespace):
     """None = plantillas (el defecto de `Sesion`)."""
     if args.verbalizador != "llm":
+        return None
+    if args.llm_backend == "ollama" and not _llm_listo(args.llm_modelo, args.llm_url,
+                                                      "Verbalizador LLM"):
         return None
     import threading
     from .adaptadores.llm.llm_local import VerbalizadorLLMLocal
@@ -264,7 +309,8 @@ def _crear_entrenadora(args: argparse.Namespace, catalogo, voz, progreso=None):
     from .adaptadores.llm.entrenadora_en_vivo import EntrenadoraEnVivo
     from .aplicacion.entrenadora import Entrenadora
     generador, limite_s = None, 0.0
-    if args.entrenadora == "llm":
+    if args.entrenadora == "llm" and _llm_listo(args.entrenadora_modelo,
+                                                args.entrenadora_url, "Entrenadora"):
         import threading
         from .adaptadores.llm.entrenadora_ollama import URL_OLLAMA, GeneradorOllama
         limite_s = args.entrenadora_timeout_s
@@ -297,7 +343,6 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
                      verbalizador=None, entrenadora=None) -> int:
     """Interfaz de escritorio: la sesión corre en un hilo del orquestador y
     la ventana ocupa el hilo principal."""
-    from .adaptadores.pose.estimador import EstimadorPose
     from .adaptadores.captura.fuente import listar_camaras
     from .adaptadores.interfaz.orquestador import Orquestador
     from .adaptadores.interfaz.ventana import abrir
@@ -308,8 +353,7 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
                 else Perfiles(config.HISTORIAL))
     orquestador = Orquestador(
         rutina, catalogo,
-        crear_estimador=lambda: EstimadorPose(config.modelo_pose(args.modelo),
-                                              delegado=args.delegado),
+        crear_estimador=lambda: _crear_estimador(args),
         # la cámara la puede cambiar la interfaz entre sesiones
         abrir_fuente=lambda: _abrir_fuente(args, tiempo_real=True,
                                            camara=orquestador.camara),
@@ -336,10 +380,9 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
 
 def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
                    verbalizador=None, entrenadora=None) -> int:
-    from .adaptadores.pose.estimador import EstimadorPose
     from .aplicacion.sesion import Sesion
 
-    estimador = EstimadorPose(config.modelo_pose(args.modelo), delegado=args.delegado)
+    estimador = _crear_estimador(args)
     fuente = _abrir_fuente(args, tiempo_real=args.tiempo_real or not args.sin_ventana)
     espejo = args.video is None
 

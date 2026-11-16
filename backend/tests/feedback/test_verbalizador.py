@@ -190,9 +190,18 @@ class _OllamaFalso:
                 except OSError:                            # el cliente ya se fue
                     pass
 
+            def do_GET(self):                              # noqa: N802
+                resp = json.dumps({"models": [{"name": n} for n in falso.modelos]}).encode("utf-8")
+                self.send_response(200 if self.path == "/api/tags" else 404)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(resp)))
+                self.end_headers()
+                self.wfile.write(resp)
+
             def log_message(self, *a):                     # silencio en los tests
                 pass
 
+        self.modelos = ["modelo-de-prueba", "otro:latest"]
         self.servidor = HTTPServer(("127.0.0.1", 0), Manejador)
         self.url = f"http://127.0.0.1:{self.servidor.server_port}/api/chat"
         threading.Thread(target=self.servidor.serve_forever, daemon=True).start()
@@ -283,46 +292,98 @@ class TestLLMModoOllama(unittest.TestCase):
         self.assertEqual(falso.pedidos[0][1]["messages"], [])
 
 
-class TestArgumentosLLM(unittest.TestCase):
-    def test_el_llm_exige_modelo_y_tiempo_limite(self):
+class TestDefectosSegunElEquipo(unittest.TestCase):
+    """Rama feature/mac-flujo: en el Mac va encendido por defecto lo que
+    aprovecha ese equipo; en los demás, todo queda como antes. `en_mac` se pasa
+    a mano para que el test valga igual en Linux y en el Mac."""
+
+    def _args(self, argv=(), en_mac=False):
+        from estela.__main__ import _argumentos
+        return _argumentos(list(argv), en_mac=en_mac)
+
+    def test_fuera_del_mac_nada_cambia(self):
+        a = self._args()
+        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.tiempo_real),
+                         ("lite", "cpu", "plantillas", "no", False))
+
+    def test_en_el_mac_va_encendido_lo_que_aprovecha_el_equipo(self):
+        from estela import config
+        a = self._args(en_mac=True)
+        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora),
+                         ("heavy", "gpu", "llm", "llm"))
+        self.assertEqual((a.llm_modelo, a.llm_timeout_ms),
+                         (config.LLM_MODELO, config.LLM_TIMEOUT_MS))
+        self.assertEqual((a.entrenadora_modelo, a.entrenadora_timeout_s),
+                         (config.ENTRENADORA_MODELO, config.ENTRENADORA_TIMEOUT_S))
+
+    def test_lo_que_se_pide_gana_al_defecto_tambien_en_el_mac(self):
+        a = self._args(["--modelo", "lite", "--delegado", "cpu", "--verbalizador", "plantillas",
+                        "--entrenadora", "no", "--llm-timeout-ms", "250"], en_mac=True)
+        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.llm_timeout_ms),
+                         ("lite", "cpu", "plantillas", "no", 250))
+        with self.assertRaises(SystemExit):
+            self._args(["--delegado", "otro"])
+
+    def test_cada_defecto_es_un_valor_que_la_linea_de_comandos_acepta(self):
+        from estela import config
+        for en_mac in (False, True):
+            d = config.defectos(en_mac)
+            self.assertEqual(sorted(d), ["delegado", "entrenadora", "modelo", "verbalizador"])
+            argv = [x for k, v in d.items() for x in (f"--{k}", v)]
+            a = self._args(argv, en_mac=not en_mac)
+            self.assertEqual({k: getattr(a, k) for k in d}, d)
+
+
+class TestArranqueDelLLM(unittest.TestCase):
+    """Con el LLM encendido por defecto, el arranque comprueba que Ollama
+    responde y tiene el modelo; si no, se sigue con plantillas."""
+
+    def _args(self, *extra):
+        from estela.__main__ import _argumentos
+        return _argumentos(["--verbalizador", "llm", *extra], en_mac=False)
+
+    def test_modelo_disponible(self):
+        from estela.adaptadores.llm.ollama import modelo_disponible
+        falso = _OllamaFalso()
+        self.addCleanup(falso.cerrar)
+        self.assertEqual(modelo_disponible("modelo-de-prueba", falso.url), (True, ""))
+        self.assertEqual(modelo_disponible("otro", falso.url), (True, ""))      # «otro:latest»
+        listo, motivo = modelo_disponible("no-esta", falso.url)
+        self.assertFalse(listo)
+        self.assertIn("ollama pull no-esta", motivo)
+        listo, motivo = modelo_disponible("m", "http://127.0.0.1:9/api/chat", timeout_s=0.3)
+        self.assertFalse(listo)
+        self.assertIn("no responde", motivo)
+
+    def test_sin_ollama_o_sin_el_modelo_se_usan_plantillas(self):
+        from estela.__main__ import _crear_verbalizador
+        self.assertIsNone(_crear_verbalizador(
+            self._args("--llm-url", "http://127.0.0.1:9/api/chat")))
+        falso = _OllamaFalso()
+        self.addCleanup(falso.cerrar)
+        self.assertIsNone(_crear_verbalizador(
+            self._args("--llm-url", falso.url, "--llm-modelo", "no-esta")))
+
+    def test_con_ollama_y_el_modelo_se_crea_el_verbalizador(self):
         from estela.__main__ import _argumentos, _crear_verbalizador
-        self.assertIsNone(_crear_verbalizador(_argumentos([])))
-        with self.assertRaises(SystemExit):
-            _argumentos(["--verbalizador", "llm"])
-        with self.assertRaises(SystemExit):
-            _argumentos(["--verbalizador", "llm", "--llm-modelo", "m"])
-        a = _argumentos(["--verbalizador", "llm", "--llm-modelo", "m",
-                         "--llm-timeout-ms", "300", "--llm-url", "http://127.0.0.1:9/api/chat"])
-        v = _crear_verbalizador(a)
-        self.assertEqual((v.modelo, v.timeout_ms, v.backend), ("m", 300, BACKEND_OLLAMA))
+        falso = _OllamaFalso()
+        self.addCleanup(falso.cerrar)
+        v = _crear_verbalizador(self._args("--llm-url", falso.url, "--llm-modelo",
+                                           "modelo-de-prueba", "--llm-timeout-ms", "300"))
+        self.assertEqual((v.modelo, v.timeout_ms, v.backend),
+                         ("modelo-de-prueba", 300, BACKEND_OLLAMA))
+        self.assertIsNone(_crear_verbalizador(_argumentos([], en_mac=False)))   # plantillas
 
-
-class TestArgumentosDelMac(unittest.TestCase):
-    """Opciones añadidas para el Mac Studio: todas apagadas por defecto."""
-
-    def test_defectos_no_cambian_el_comportamiento(self):
-        from estela.__main__ import _argumentos
-        a = _argumentos([])
-        self.assertEqual((a.delegado, a.tiempo_real, a.verbalizador, a.entrenadora),
-                         ("cpu", False, "plantillas", "no"))
-
-    def test_delegado_gpu_y_tiempo_real(self):
-        from estela.__main__ import _argumentos
-        a = _argumentos(["--delegado", "gpu", "--tiempo-real"])
-        self.assertEqual((a.delegado, a.tiempo_real), ("gpu", True))
-        with self.assertRaises(SystemExit):
-            _argumentos(["--delegado", "otro"])
-
-    def test_la_entrenadora_con_modelo_exige_modelo_y_tiempo_limite(self):
-        from estela.__main__ import _argumentos
-        self.assertEqual(_argumentos(["--entrenadora", "plantilla"]).entrenadora, "plantilla")
-        with self.assertRaises(SystemExit):
-            _argumentos(["--entrenadora", "llm"])
-        with self.assertRaises(SystemExit):
-            _argumentos(["--entrenadora", "llm", "--entrenadora-modelo", "m"])
-        a = _argumentos(["--entrenadora", "llm", "--entrenadora-modelo", "m",
-                         "--entrenadora-timeout-s", "5"])
-        self.assertEqual((a.entrenadora_modelo, a.entrenadora_timeout_s), ("m", 5.0))
+    def test_la_entrenadora_sin_modelo_disponible_sigue_con_plantilla(self):
+        from estela.__main__ import _argumentos, _crear_entrenadora
+        from tests.test_sesion import VozFalsa
+        a = _argumentos(["--entrenadora", "llm", "--entrenadora-url",
+                         "http://127.0.0.1:9/api/chat"], en_mac=False)
+        en_vivo, retencion_ms = _crear_entrenadora(a, {}, VozFalsa())
+        self.assertIsNone(en_vivo.entrenadora.generador)      # responde con plantillas
+        self.assertGreater(retencion_ms, 0)
+        self.assertEqual(_crear_entrenadora(_argumentos([], en_mac=False), {}, VozFalsa()),
+                         (None, 0))
 
 
 class TestPlantillas(unittest.TestCase):

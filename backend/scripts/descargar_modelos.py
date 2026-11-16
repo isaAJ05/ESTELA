@@ -11,6 +11,7 @@ necesita red: la inferencia de pose y la voz son locales.
 from __future__ import annotations
 
 import argparse
+import platform
 import subprocess
 import sys
 import urllib.request
@@ -42,7 +43,9 @@ def main() -> int:
     a = p.parse_args()
 
     MODELOS.mkdir(exist_ok=True)
-    for v in ("lite", "full") + (("heavy",) if a.heavy else ()):
+    # En el Mac el modelo por defecto es heavy (estela.config.defectos): se baja siempre.
+    en_mac = sys.platform == "darwin" and platform.machine() == "arm64"
+    for v in ("lite", "full") + (("heavy",) if a.heavy or en_mac else ()):
         descargar(URL_POSE.format(v=v), MODELOS / f"pose_landmarker_{v}.task")
 
     if not a.sin_voz:
