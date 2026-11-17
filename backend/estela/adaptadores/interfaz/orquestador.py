@@ -421,17 +421,30 @@ class Orquestador:
             self._hilo.start()
         return True
 
+    def _callar(self) -> None:
+        """Una orden de la usuaria manda sobre lo que ESTELA estuviera diciendo
+        (una corrección, la entrenadora, un anuncio): se corta y se tira lo
+        pendiente. Pedido de Paula (2026-11-17): al saltar o pausar por voz las
+        frases se enredaban y se sobreponían."""
+        interrumpir = getattr(self._voz, "interrumpir", None)
+        if interrumpir is not None:
+            interrumpir()
+
     def siguiente(self) -> None:
+        self._callar()
         self._comandos.put("siguiente")
 
     def anterior(self) -> None:
+        self._callar()
         self._comandos.put("anterior")
 
     def reiniciar(self) -> None:
+        self._callar()
         self._comandos.put("reiniciar")
 
     def reiniciar_sesion(self) -> None:
         """Vuelve al primer ejercicio y borra lo hecho (orden de voz)."""
+        self._callar()
         self._comandos.put("reiniciar_sesion")
 
     def reconocer_si(self) -> None:
@@ -447,11 +460,14 @@ class Orquestador:
         self.configurar(voz=False)
 
     def listo(self) -> None:
-        """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
+        """Termina la fase de colocación del ejercicio actual (botón «Listo»).
+        Corta a la entrenadora si estaba hablando: la usuaria ya quiere empezar."""
+        self._callar()
         self._comandos.put("listo")
 
     def pausar(self) -> None:
         """Pausa pedida por la usuaria (botón o espacio); no se quita sola."""
+        self._callar()
         self._comandos.put("pausar")
 
     def reanudar(self) -> None:
@@ -459,6 +475,7 @@ class Orquestador:
 
     def terminar(self) -> None:
         """Termina la sesión en curso y pasa al resumen."""
+        self._callar()
         self._comandos.put("terminar")
 
     def configurar(self, voz: Optional[bool] = None,
@@ -522,7 +539,7 @@ class Orquestador:
         sesion = Sesion(self.rutina, self.catalogo, estimador, self._voz,
                         self._verbalizador, sin_dtw=self._sin_dtw,
                         colocacion=self._colocacion,
-                        reconocer=self._reconocer)
+                        reconocer=self._reconocer, verbalizar_aparte=True)
         if self._preparar_sesion is not None:
             self._preparar_sesion(sesion)
         self._publicar(fase=SESION)
@@ -554,6 +571,7 @@ class Orquestador:
         finally:
             fuente.cerrar()
             estimador.cerrar()
+            sesion.cerrar()
 
         resumen = sesion.resumen()
         if self._al_terminar is not None:

@@ -54,6 +54,7 @@ from .pausa import (EVENTO_PAUSA, EVENTO_REANUDA, INACTIVIDAD, SIN_PERSONA, USUA
                     DetectorPausa)
 from .reconocimiento import ReconocedorEjercicio, reconocedor_para
 from .registro import RegistroRepeticiones
+from .verbalizacion_aparte import VerbalizacionAparte
 from .rutina import Ejercicio, Rutina
 
 #: segundos seguidos mal orientada antes de avisar por voz, y separación
@@ -288,12 +289,24 @@ class Sesion:
                  sin_dtw: bool = False, reconocer: bool = False,
                  registrar: bool = False, colocacion: bool = False,
                  al_cerrar_paso: Optional[Callable[[Dict[str, Any]], None]] = None,
-                 retencion_max_ms: int = 0) -> None:
+                 retencion_max_ms: int = 0, verbalizar_aparte: bool = False) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
         self.voz = voz
         self.verbalizador = verbalizador or VerbalizadorPlantillas()
+        #: `verbalizar_aparte` con un verbalizador lento (el LLM, que tiene
+        #: `fallback`): el motor usa la plantilla al momento y el LLM redacta en
+        #: otro hilo (`VerbalizacionAparte`); el bucle por imagen no lo espera.
+        respaldo = getattr(self.verbalizador, "fallback", None)
+        self._aparte: Optional[VerbalizacionAparte] = None
+        self._verbalizador_motor: Verbalizador = self.verbalizador
+        if verbalizar_aparte and respaldo is not None:
+            self._aparte = VerbalizacionAparte(self.verbalizador, self._al_redactar)
+            self._verbalizador_motor = respaldo
+        #: correcciones redactadas que llegaron cuando ya no tocaba decirlas
+        self.redactadas_tarde = 0
+        self._cerrojo_mensajes = threading.Lock()
         self.sin_dtw = sin_dtw
         #: aviso «ese movimiento no es el de ahora» (EXP-010). Desactivado por
         #: defecto hasta medirlo con vídeos propios; se cambia en plena sesión
@@ -364,7 +377,9 @@ class Sesion:
     def _ir_a(self, i: int, felicitar: bool) -> None:
         """Cierra el paso actual y empieza el paso `i` de la rutina desde cero.
         Si ese paso ya se había hecho (se volvió con `anterior`), el intento
-        nuevo sustituye al anterior en el resumen."""
+        nuevo sustituye al anterior en el resumen. `felicitar`: el paso se
+        terminó de verdad (no se saltó); solo entonces se felicita y habla la
+        entrenadora, que si no resumiría un ejercicio a medias."""
         actual = self.paso_actual
         cierre: Optional[Dict[str, Any]] = None
         if actual is not None:
@@ -372,7 +387,7 @@ class Sesion:
             actual.motor.decision.cerrar_repeticion()
             if actual.registro is not None:
                 actual.registro.cerrar(self._t_ms)
-            if self.al_cerrar_paso is not None and i > self._i:
+            if self.al_cerrar_paso is not None and i > self._i and felicitar:
                 cierre = self._resumen_paso(actual)
             if felicitar:
                 self.voz.decir(f"Muy bien, terminaste {actual.ejercicio.skill.nombre.lower()}.",
@@ -393,7 +408,7 @@ class Sesion:
         ej = self.catalogo[p.skill_id]
         guia, guia_fps = _preparar_guia(ej.referencia)
         nuevo = _Paso(ej, p.repeticiones,
-                      MotorFeedback(ej.skill, self.verbalizador),
+                      MotorFeedback(ej.skill, self._verbalizador_motor),
                       ej.nuevo_segmentador(),
                       alineador=(None if self.sin_dtw
                                  else comparador_de_referencia(ej.referencia)),
@@ -548,10 +563,13 @@ class Sesion:
         return None
 
     def siguiente(self) -> None:
-        """Salta al siguiente ejercicio (tecla de la interfaz). En el último
-        no hace nada: para acabar está «Terminar»."""
+        """Salta al siguiente ejercicio (tecla, botón u orden de voz). En el
+        último no hace nada: para acabar está «Terminar». Es un salto, no un
+        ejercicio terminado: ni «Muy bien, terminaste…» ni resumen de la
+        entrenadora: resumiría un ejercicio a medias (Paula, 2026-11-17: al
+        pasar de ejercicio por voz «se inventa cosas que hice»)."""
         if self._i < len(self.rutina.pasos) - 1:
-            self._avanzar()
+            self._ir_a(self._i + 1, felicitar=False)
 
     def anterior(self) -> None:
         """Vuelve al ejercicio anterior y lo empieza desde cero. En el primero
@@ -721,7 +739,9 @@ class Sesion:
             # El pipeline ya separa decisión (motor determinista) y verbalización
             # (plantilla o LLM); la verbalización solo existe si hubo mensaje.
             lat["decision"] = p.motor.ultimos_tiempos.decision_ms
-            if isinstance(salida, MensajeFeedback):
+            # con la redacción aparte, su tiempo lo anota `_al_redactar`
+            if isinstance(salida, MensajeFeedback) and (self._aparte is None
+                                                        or salida.error is None):
                 lat["verbalizacion"] = p.motor.ultimos_tiempos.verbalizacion_ms
         for etapa in ("geometria", "segmentacion", "dtw", "reconocimiento",
                       "motor", "decision", "verbalizacion"):
@@ -730,17 +750,10 @@ class Sesion:
             self.latencias.anota(etapa, lat[etapa])
 
         if isinstance(salida, MensajeFeedback):
-            self._ultimo_mensaje = salida.texto
-            self._ultimo_feedback = salida
-            self._mensajes_emitidos += 1
-            self.voz.decir(salida.texto, PRIORIDAD_FEEDBACK)
-            err = salida.error
-            p.mensajes.append({"t_ms": t_ms, "texto": salida.texto,
-                               "error_id": err.error_id if err else None,
-                               "segmento": err.segmento if err else None,
-                               "lado": err.lado.value if err else None,
-                               "severidad": err.severidad.value if err else None,
-                               "repeticion": seg.repeticion})
+            if self._aparte is not None and salida.error is not None:
+                self._aparte.pedir((p, seg.repeticion, t_ms), salida.error)
+            else:
+                self._emitir(p, salida, seg.repeticion, t_ms)
 
         aviso = (self._revisa_orientacion(skill, obs.orientacion, t_ms)
                  or self._revisa_encuadre(seg.senal_valida, t_ms))
@@ -760,6 +773,38 @@ class Sesion:
         self.latencias.anota("total", lat["total"])
         self._registra(p, t_ms, lat, obs=obs, seg=seg, dtw=dtw, salida=salida)
         return estado
+
+    def _emitir(self, p: _Paso, salida: MensajeFeedback, repeticion: int, t_ms: int) -> None:
+        """Muestra y dice una corrección o un refuerzo. Puede llamarse desde el
+        hilo de `VerbalizacionAparte`."""
+        with self._cerrojo_mensajes:
+            self._ultimo_mensaje = salida.texto
+            self._ultimo_feedback = salida
+            self._mensajes_emitidos += 1
+            self.voz.decir(salida.texto, PRIORIDAD_FEEDBACK)
+            err = salida.error
+            p.mensajes.append({"t_ms": t_ms, "texto": salida.texto,
+                               "error_id": err.error_id if err else None,
+                               "segmento": err.segmento if err else None,
+                               "lado": err.lado.value if err else None,
+                               "severidad": err.severidad.value if err else None,
+                               "repeticion": repeticion})
+
+    def _al_redactar(self, clave: Tuple[Any, int, int], msg: MensajeFeedback,
+                     ms: float) -> None:
+        """Vuelve una corrección redactada aparte. Se dice solo si sigue el
+        mismo ejercicio y en marcha (no en pausa, ni colocándose)."""
+        p, repeticion, t_ms = clave
+        self.latencias.anota("verbalizacion", ms)
+        if p is not self.paso_actual or p.pausa.pausada or p.colocando:
+            self.redactadas_tarde += 1
+            return
+        self._emitir(p, msg, repeticion, t_ms)
+
+    def cerrar(self) -> None:
+        """Para el hilo de la redacción aparte, si lo hay."""
+        if self._aparte is not None:
+            self._aparte.cerrar()
 
     def _registra(self, p: _Paso, t_ms: int, lat: Dict[str, float],
                   obs=None, seg: Optional[EstadoSegmento] = None, dtw=None,
@@ -1011,6 +1056,10 @@ class Sesion:
             "frames_sin_persona": self.frames_sin_persona,
             "latencias": self.latencias.resumen(),
             "pasos": [self._resumen_paso(p) for p in self._pasos],
+            **({"verbalizacion_aparte": {"pedidas": self._aparte.pedidas,
+                                         "sustituidas": self._aparte.sustituidas,
+                                         "tarde": self.redactadas_tarde}}
+               if self._aparte is not None else {}),
         }
 
 

@@ -150,6 +150,9 @@ def _llm_listo(modelo: str, url: Optional[str], para: str) -> bool:
 
 ACCIONES_DE_VOZ = ("pausar", "reanudar", "listo", "siguiente", "anterior", "reiniciar",
                    "terminar", "reiniciar_sesion", "reconocer_si", "reconocer_no", "voz_si", "voz_no")
+#: órdenes que cortan lo que ESTELA esté diciendo (`Orquestador._callar` en la interfaz)
+ORDENES_QUE_CALLAN = frozenset(("pausar", "listo", "siguiente", "anterior", "reiniciar",
+                                "reiniciar_sesion", "terminar"))
 
 
 def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
@@ -508,7 +511,7 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
     sesion = Sesion(rutina, catalogo, estimador, voz, verbalizador=verbalizador,
                     sin_dtw=args.sin_dtw,
                     colocacion=not args.sin_colocacion,
-                    reconocer=args.reconocer)
+                    reconocer=args.reconocer, verbalizar_aparte=True)
     en_vivo, retencion_ms = _crear_entrenadora(args, catalogo, voz)
     if en_vivo is not None:
         en_vivo.conectar(sesion, retencion_ms)
@@ -517,7 +520,13 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
     # las órdenes de voz se apuntan aquí y se aplican en este hilo, entre dos frames
     import queue
     ordenes: "queue.SimpleQueue[str]" = queue.SimpleQueue()
-    escucha = _crear_escucha(args, voz, {n: (lambda n=n: ordenes.put(n)) for n in ACCIONES_DE_VOZ},
+    def orden_de_voz(n: str):
+        def apuntar() -> None:
+            if n in ORDENES_QUE_CALLAN and hasattr(voz, "interrumpir"):
+                voz.interrumpir()           # la orden manda sobre lo que suena (como en la interfaz)
+            ordenes.put(n)
+        return apuntar
+    escucha = _crear_escucha(args, voz, {n: orden_de_voz(n) for n in ACCIONES_DE_VOZ},
                              _responder_como_voy(lambda: en_vivo, catalogo))
     if escucha is not None:
         escucha.conectar(sesion)
@@ -583,6 +592,7 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
             escucha.cerrar()
         fuente.cerrar()
         estimador.cerrar()
+        sesion.cerrar()
         if ventana:
             cv2.destroyAllWindows()
 

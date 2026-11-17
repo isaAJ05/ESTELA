@@ -9,6 +9,9 @@ hueco queda libre se descarta sin sonar: llegaría tarde para la repetición
 que corrige. Los avisos no caducan. `anunciando` dice si suena o espera un
 aviso; la sesión no evalúa la técnica mientras tanto.
 Silenciada (ajuste de la interfaz), descarta todo lo que se le pide.
+`interrumpir` corta lo que suena y tira lo pendiente: lo usan las órdenes de la
+usuaria (pausa, siguiente, anterior, terminar…), que mandan sobre lo que ESTELA
+estuviera diciendo.
 
 `registro` guarda, por frase, cuándo se encoló, cuándo empezó a sonar y si
 se descartó y por qué (`DESCARTE_*`; marcas de `time.perf_counter()`, en
@@ -37,6 +40,7 @@ DESCARTE_SUSTITUIDA = "sustituida"      # llegó otra más reciente al hueco
 DESCARTE_AVISO = "aviso"                # el hueco lo tenía un aviso
 DESCARTE_CADUCADA = "caducada"          # esperó más de MAX_ESPERA_FEEDBACK_S
 DESCARTE_SILENCIADA = "silenciada"      # la interfaz silenció la voz
+DESCARTE_INTERRUMPIDA = "interrumpida"  # una orden de la usuaria la cortó
 
 @dataclass(frozen=True)
 class Locucion:
@@ -56,6 +60,9 @@ class ColaVoz:
         self._pendiente: Optional[Locucion] = None
         self._hablando = False
         self._prioridad_hablando: Optional[int] = None
+        self._indice_hablando: Optional[int] = None
+        #: frases cortadas a medias por `interrumpir`
+        self.interrumpidas = 0
         self._cerrada = False
         self._silenciada = False
         self.descartadas = 0
@@ -99,12 +106,35 @@ class ColaVoz:
             return True
 
     def silenciar(self, silenciada: bool = True) -> None:
-        """Deja de hablar (lo que ya suena termina) o vuelve a hablar."""
+        """Deja de hablar (también corta lo que suena) o vuelve a hablar."""
         with self._cv:
             self._silenciada = silenciada
             if silenciada and self._pendiente is not None:
                 self._descarta(self._pendiente.indice, DESCARTE_SILENCIADA)
                 self._pendiente = None
+            cortar = silenciada and self._hablando
+        if cortar:
+            try:
+                self.motor.detener()
+            except Exception:                     # noqa: BLE001
+                log.exception("no se pudo cortar la voz")
+
+    def interrumpir(self) -> None:
+        """Tira lo pendiente y corta la frase que suena (orden de la usuaria).
+        Lo que se encole después suena normalmente."""
+        with self._cv:
+            if self._pendiente is not None:
+                self._descarta(self._pendiente.indice, DESCARTE_INTERRUMPIDA)
+                self._pendiente = None
+            hablando = self._hablando
+            if hablando and self._indice_hablando is not None:
+                self.registro[self._indice_hablando]["interrumpida"] = True
+                self.interrumpidas += 1
+        if hablando:
+            try:
+                self.motor.detener()
+            except Exception:                     # noqa: BLE001
+                log.exception("no se pudo cortar la voz")
 
     @property
     def silenciada(self) -> bool:
@@ -132,9 +162,9 @@ class ColaVoz:
     def anunciando(self) -> bool:
         """Suena o espera un aviso (cambio de ejercicio, pausa, colocación)."""
         with self._cv:
-            return (self._prioridad_hablando == PRIORIDAD_AVISO
+            return ((self._prioridad_hablando or 0) >= PRIORIDAD_AVISO
                     or (self._pendiente is not None
-                        and self._pendiente.prioridad == PRIORIDAD_AVISO))
+                        and self._pendiente.prioridad >= PRIORIDAD_AVISO))
 
     @property
     def ocupada(self) -> bool:
@@ -160,6 +190,7 @@ class ColaVoz:
                     continue
                 self._hablando = True
                 self._prioridad_hablando = loc.prioridad
+                self._indice_hablando = loc.indice
             entrada = self.registro[loc.indice]
             try:
                 t_inicio = time.perf_counter()
@@ -179,6 +210,7 @@ class ColaVoz:
                 with self._cv:
                     self._hablando = False
                     self._prioridad_hablando = None
+                    self._indice_hablando = None
 
     def _descarta(self, indice: int, motivo: str) -> None:
         """Con `_cv` tomado."""
@@ -199,4 +231,4 @@ class ColaVoz:
 
 __all__ = ["ColaVoz", "PRIORIDAD_FEEDBACK", "PRIORIDAD_AVISO", "MAX_ESPERA_FEEDBACK_S",
            "DESCARTE_SUSTITUIDA", "DESCARTE_AVISO", "DESCARTE_CADUCADA",
-           "DESCARTE_SILENCIADA"]
+           "DESCARTE_SILENCIADA", "DESCARTE_INTERRUMPIDA"]

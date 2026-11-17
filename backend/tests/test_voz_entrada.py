@@ -10,7 +10,7 @@ from estela.adaptadores.voz_entrada.escucha import EscuchaVoz
 from estela.adaptadores.voz_entrada.frases import BLOQUE, FS, DetectorDeFrase
 from estela.aplicacion import comandos_voz as cv
 from estela.aplicacion.entrenadora import RESPUESTA_DOLOR
-from estela.aplicacion.puertos import PRIORIDAD_AVISO
+from estela.aplicacion.puertos import PRIORIDAD_AVISO, PRIORIDAD_URGENTE
 
 
 # -- corte de frases -----------------------------------------------------------
@@ -168,7 +168,7 @@ def test_silencio_reconocido_no_dice_nada():
 def test_dolor_da_la_respuesta_fija_y_no_ejecuta_nada():
     e, hechas, voz = _escucha("me duele la rodilla, mejor terminar", SesionFalsa(pausada=True))
     e.atender(np.zeros(FS, np.float32))
-    assert hechas == [] and voz.dichas == [(RESPUESTA_DOLOR, PRIORIDAD_AVISO)]
+    assert hechas == [] and voz.dichas == [(RESPUESTA_DOLOR, PRIORIDAD_URGENTE)]
     assert e.registro[-1]["motivo"] == "dolor"
 
 

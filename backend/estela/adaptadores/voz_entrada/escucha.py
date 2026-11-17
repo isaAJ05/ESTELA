@@ -31,7 +31,7 @@ from typing import Any, Callable, Dict, List, Mapping, Optional
 
 from ...aplicacion import comandos_voz as cv
 from ...aplicacion.entrenadora import RESPUESTA_DOLOR, menciona_dolor
-from ...aplicacion.puertos import PRIORIDAD_AVISO, Voz
+from ...aplicacion.puertos import PRIORIDAD_AVISO, PRIORIDAD_URGENTE, Voz
 
 log = logging.getLogger(__name__)
 
@@ -308,11 +308,13 @@ class EscuchaVoz:
                  "dolor" if dolor else i.motivo, ms)
         if dolor:
             self._anota(texto, None, False)
-            self.voz.decir(RESPUESTA_DOLOR, PRIORIDAD_AVISO)
-            # ante dolor se pausa sola (pedido de Paula); la sesión dice «En pausa.» después
+            # ante dolor se pausa sola (pedido de Paula). La pausa corta lo que
+            # suene, así que va antes que la respuesta; esta es urgente para que
+            # el «En pausa.» de la sesión no la sustituya en la cola.
             p = self._sesion.paso_actual if self._sesion is not None else None
             if p is not None and not p.pausa.pausada and "pausar" in self.acciones:
                 self.acciones["pausar"]()
+            self.voz.decir(RESPUESTA_DOLOR, PRIORIDAD_URGENTE)
             return i
         if i.comando is not None:
             self._anota(texto, i.comando, False)
@@ -367,9 +369,9 @@ class EscuchaVoz:
                               "reconocer_ms": round(ms)})
         if si and orden == cv.REINICIAR_SESION:
             self._anota(texto, orden, False)
-            self.voz.decir(cv.CONFIRMA_REINICIAR, PRIORIDAD_AVISO)
-            if "reiniciar_sesion" in self.acciones:
+            if "reiniciar_sesion" in self.acciones:    # corta lo que suene: antes que la confirmación
                 self.acciones["reiniciar_sesion"]()
+            self.voz.decir(cv.CONFIRMA_REINICIAR, PRIORIDAD_AVISO)
         return cv.Interpretacion(orden if si else None, cv.ENTENDIDO, "")
 
     def _ejecutar(self, comando: str) -> None:
@@ -415,13 +417,13 @@ class EscuchaVoz:
             accion = "reiniciar"
         else:
             accion = "terminar"
-        activar_voz = comando == cv.VOZ_SI        # con la voz silenciada no se puede confirmar
-        if activar_voz and accion in self.acciones:
+        # Primero la acción y después la confirmación: las órdenes de navegación
+        # cortan lo que suena (`Orquestador._callar`) y cortarían también la
+        # confirmación; y con la voz silenciada, «voz activada» no podría oírse.
+        if accion is not None and accion in self.acciones:
             self.acciones[accion]()
         if cv.CONFIRMACION[comando] and (accion is not None or comando in cv.ORDENES_DE_AJUSTE):
             self.voz.decir(cv.CONFIRMACION[comando], PRIORIDAD_AVISO)
-        if not activar_voz and accion is not None and accion in self.acciones:
-            self.acciones[accion]()
 
 
 __all__ = ["EscuchaVoz"]

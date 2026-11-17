@@ -21,6 +21,8 @@ from ..dominio.feedback.contrato import MuestraPose
 #: (cambio de ejercicio, pausa, fin) no lo pisa una corrección
 PRIORIDAD_FEEDBACK = 0
 PRIORIDAD_AVISO = 1
+#: respuesta al dolor: ningún aviso la sustituye en la cola (`ColaVoz.decir`)
+PRIORIDAD_URGENTE = 2
 
 
 @dataclass(frozen=True)
@@ -49,5 +51,5 @@ class Fuente(Protocol):
     def cerrar(self) -> None: ...
 
 
-__all__ = ["Estimador", "Fuente", "PRIORIDAD_AVISO", "PRIORIDAD_FEEDBACK",
+__all__ = ["Estimador", "Fuente", "PRIORIDAD_AVISO", "PRIORIDAD_FEEDBACK", "PRIORIDAD_URGENTE",
            "ResultadoPose", "Voz"]
