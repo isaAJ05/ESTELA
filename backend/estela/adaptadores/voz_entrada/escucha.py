@@ -309,6 +309,10 @@ class EscuchaVoz:
         if dolor:
             self._anota(texto, None, False)
             self.voz.decir(RESPUESTA_DOLOR, PRIORIDAD_AVISO)
+            # ante dolor se pausa sola (pedido de Paula); la sesión dice «En pausa.» después
+            p = self._sesion.paso_actual if self._sesion is not None else None
+            if p is not None and not p.pausa.pausada and "pausar" in self.acciones:
+                self.acciones["pausar"]()
             return i
         if i.comando is not None:
             self._anota(texto, i.comando, False)

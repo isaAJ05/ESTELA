@@ -69,9 +69,10 @@ NOTA_HISTORIAL = ("El historial cuenta tu constancia y los avisos que recibiste;
 
 #: Respuesta fija ante dolor o lesión: no pasa por el modelo. No diagnostica.
 #: Redacción aprobada por Paula el 2026-11-16 para la rama feature/mac-flujo.
-RESPUESTA_DOLOR = ("Para aquí y descansa. Si algo te duele, no sigas con el ejercicio. "
-                   "No puedo valorar dolores ni lesiones; si la molestia sigue, "
-                   "consulta a una persona profesional de la salud.")
+#: Versión breve pedida por Paula el 2026-11-16 (la anterior era más larga). No valora
+#: el dolor: pide parar y remite a un profesional. Con voz de entrada, además se pausa.
+RESPUESTA_DOLOR = ("Si te duele, no sigas. Si la molestia continúa, "
+                   "consulta a un profesional de la salud.")
 
 #: Señales de dolor o lesión en lo que dice la usuaria (sin tildes, minúsculas).
 #: Lista corta y amplia a propósito: ante la duda, respuesta fija.

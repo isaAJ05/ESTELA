@@ -117,8 +117,15 @@ def test_grafias_que_whisper_escribio_en_la_prueba(dicho, comando):
 def test_el_lexico_nuevo_no_se_confunde_con_el_resto():
     for forma in sum((cv.LEXICO[c] for c in cv.COMANDOS), ()):
         assert cv.interpretar(forma).comando is not None
-    # reiniciar a secas, sin decir qué, no se adivina
-    assert cv.interpretar("reiniciar").motivo == cv.SIN_COMANDO
+    # decidido por Paula: «reinicia» a secas es el ejercicio; «reiniciar todo», la sesión
+    assert cv.interpretar("reiniciar").comando == cv.REINICIAR_EJERCICIO
+    assert cv.interpretar("Reinicia.").comando == cv.REINICIAR_EJERCICIO
+    assert cv.interpretar("reiniciar todo").comando == cv.REINICIAR_SESION
+    assert cv.interpretar("reinicia la sesión").comando == cv.REINICIAR_SESION
+    for dicho, comando in (("desactivar ángulos", cv.ANGULOS_NO), ("quita los ángulos", cv.ANGULOS_NO),
+                           ("activar reconocimiento", cv.RECONOCER_SI),
+                           ("apaga el reconocimiento", cv.RECONOCER_NO)):
+        assert cv.interpretar(dicho).comando == comando
 
 
 # -- escuchar con el ejercicio en marcha ----------------------------------------
@@ -220,9 +227,15 @@ def test_dolor_tambien_pide_llamar_a_estela():
     e, hechas, voz = _escucha("me duele la rodilla")
     e.atender(AUDIO)
     assert voz.dichas == [] and e.ignoradas == 1
-    e, hechas, voz = _escucha("Estela, me duele la rodilla")
+    # no hace falta que sea la rodilla, y ante dolor se pausa sola
+    for dicho in ("Estela, me duele la rodilla", "Estela, me duele la espalda", "Estela, tengo dolor"):
+        e, hechas, voz = _escucha(dicho)
+        e.atender(AUDIO)
+        assert hechas == ["pausar"] and len(voz.dichas) == 1, dicho
+        assert e.registro[-1]["motivo"] == "dolor"
+    e, hechas, _ = _escucha("Estela, me duele", sesion=SesionFalsa(pausada=True))
     e.atender(AUDIO)
-    assert hechas == [] and len(voz.dichas) == 1 and e.registro[-1]["motivo"] == "dolor"
+    assert hechas == []                                      # ya estaba en pausa
 
 
 # -- reiniciar la sesión pide confirmación -----------------------------------------
