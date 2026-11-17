@@ -283,6 +283,49 @@ class TestLLMModoOllama(unittest.TestCase):
         self.assertEqual(llm.llamadas, 1)
         self.assertEqual(sum(llm.caidas.values()), 1)
 
+    def test_tras_un_fallo_por_tiempo_el_modelo_se_recarga_y_la_siguiente_frase_sale_del_llm(self):
+        """Lo de la sesión de Paula del 2026-11-16: con el modelo descargado, todas
+        las frases caían por tiempo y el modelo nunca volvía a cargarse."""
+        class OllamaQueSeDescarga(_OllamaFalso):
+            """Mientras no recibe una petición de carga (sin mensajes), tarda demasiado."""
+            def __init__(self):
+                super().__init__('{"mensaje": "Baja más y flexiona la rodilla derecha."}')
+                self.cargado = threading.Event()
+
+        falso = OllamaQueSeDescarga()
+        self.addCleanup(falso.cerrar)
+        llm = VerbalizadorLLMLocal(url=falso.url, backend=BACKEND_OLLAMA, timeout_ms=150)
+        lento = llm._post
+
+        def post(cuerpo, timeout_s):
+            if not cuerpo["messages"]:               # la petición de carga
+                falso.cargado.set()
+                return {}
+            if not falso.cargado.is_set():
+                time.sleep(timeout_s)
+                raise TimeoutError("sin cargar")
+            return lento(cuerpo, timeout_s)
+        llm._post = post
+        m = llm.verbalizar(self._error())
+        self.assertTrue(m.fallback)                  # la primera cae a plantilla…
+        self.assertEqual(llm.recargas, 1)
+        self.assertTrue(falso.cargado.wait(2.0))     # …y dispara la carga en segundo plano
+        m = llm.verbalizar(self._error())
+        self.assertFalse(m.fallback)                 # la siguiente ya la redacta el modelo
+        self.assertEqual(llm.caidas, {"fallo_backend:TimeoutError": 1})
+
+    def test_una_respuesta_mal_formada_no_dispara_recargas(self):
+        llm = self._llm(_OllamaFalso("Baja más."))
+        self.assertTrue(llm.verbalizar(self._error()).fallback)
+        self.assertEqual(llm.recargas, 0)
+
+    def test_las_recargas_no_se_amontonan(self):
+        llm = VerbalizadorLLMLocal(url="http://127.0.0.1:9/api/chat", backend=BACKEND_OLLAMA,
+                                   timeout_ms=100)
+        for _ in range(4):
+            llm.verbalizar(self._error())
+        self.assertEqual(llm.recargas, 1)            # una, no cuatro seguidas
+
     def test_precalentar_no_lanza_sin_servidor(self):
         llm = VerbalizadorLLMLocal(url="http://127.0.0.1:9/api/chat",
                                    backend=BACKEND_OLLAMA)

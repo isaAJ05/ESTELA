@@ -48,6 +48,7 @@ Modo Ollama (`backend="ollama"`, plan del Mac Studio, 2026-11-16):
 from __future__ import annotations
 
 import json
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -79,6 +80,8 @@ MAX_TOKENS = 48
 #: cuánto deja Ollama el modelo en memoria tras la última llamada. El defecto
 #: de Ollama (5 min) puede vencer entre dos correcciones de una misma sesión.
 MANTENER_CARGADO = "30m"
+#: segundos mínimos entre dos recargas del modelo tras un fallo del servidor
+RECARGA_CADA_S = 5.0
 #: Ventana de contexto que se pide a Ollama. `[F]` Medido en el Mac Studio el
 #: 2026-11-16: sin fijarla, qwen3:4b-instruct se carga con su contexto por
 #: defecto (262 144 tokens) y ocupa 43 GB. Aquí el prompt y la respuesta suman
@@ -155,6 +158,10 @@ class VerbalizadorLLMLocal(Verbalizador):
         #: cuenta de llamadas y de caídas a plantilla por motivo (para el resumen)
         self.llamadas = 0
         self.caidas: Dict[str, int] = {}
+        #: veces que hubo que volver a cargar el modelo tras un fallo del servidor
+        self.recargas = 0
+        self._recargando = threading.Lock()
+        self._ult_recarga = float("-inf")
 
     def _mensajes(self, error: ErrorTipificado) -> list:
         return [{"role": "system", "content": SISTEMA},
@@ -233,6 +240,32 @@ class VerbalizadorLLMLocal(Verbalizador):
         except Exception:                                 # noqa: BLE001
             return False
 
+    def _recargar_en_segundo_plano(self) -> None:
+        """Tras un fallo del servidor: vuelve a cargar el modelo sin bloquear.
+
+        `[F]` Medido en el Mac Studio el 2026-11-16: Ollama descarga el modelo
+        tras `keep_alive` sin uso; con él descargado, 5 de 5 llamadas con límite
+        de 400 ms fallaron por tiempo y el modelo siguió sin cargarse (al cortar
+        la espera, la carga se aborta), una llamada paciente lo cargó en 732 ms
+        y después 5 de 5 respondieron en 98–133 ms. Es lo que pasó en la sesión
+        de Paula de ese día (5 frases, 5 a plantilla por `TimeoutError`). Con
+        esto solo cae a plantilla la primera frase tras la descarga.
+        """
+        if self.backend != BACKEND_OLLAMA:
+            return
+        ahora = time.monotonic()
+        if ahora - self._ult_recarga < RECARGA_CADA_S or not self._recargando.acquire(blocking=False):
+            return
+        self._ult_recarga = ahora
+        self.recargas += 1
+
+        def recargar() -> None:
+            try:
+                self.precalentar()
+            finally:
+                self._recargando.release()
+        threading.Thread(target=recargar, name="estela-llm-recarga", daemon=True).start()
+
     def _anota_caida(self, motivo: str) -> None:
         # del validador solo el tipo de rechazo; del servidor, también la excepción
         clave = motivo if motivo.startswith("fallo_backend") else motivo.split(":", 1)[0]
@@ -245,6 +278,8 @@ class VerbalizadorLLMLocal(Verbalizador):
             texto = self._llamar(error)
         except Exception as exc:  # red, timeout, JSON inválido, todo cae igual
             self._anota_caida(f"fallo_backend:{type(exc).__name__}")
+            if isinstance(exc, OSError):          # tiempo o conexión (no una respuesta mal formada)
+                self._recargar_en_segundo_plano()
             msg = self.fallback.verbalizar(error)
             return MensajeFeedback(
                 texto=msg.texto, error=error, verbalizador=self.nombre,
