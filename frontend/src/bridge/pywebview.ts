@@ -1,6 +1,6 @@
 import type {
-  AjustesPython, Bridge, Camaras, DatosPerfil, DatosRutina, Estado, EstadoPerfiles, Info, OpcionesInicio, PasoElegido,
-  Progreso, ResultadoPerfil,
+  AjustesPython, Bridge, Camaras, DatosPerfil, DatosRutina, Estado, EstadoPerfiles, Info, Microfonos, OpcionesInicio,
+  PasoElegido, Progreso, ResultadoPerfil,
 } from './tipos'
 
 // Métodos de `backend/estela/adaptadores/interfaz/ventana.py:Api`, publicados por pywebview.
@@ -33,6 +33,9 @@ interface ApiPython {
   camaras?(): Promise<Camaras | null>
   vista_camara?(): Promise<string | null>
   cerrar_vista_camara?(): Promise<void>
+  // solo con la capacidad «vozEntrada»
+  microfono?(): Promise<Microfonos | null>
+  probar_microfono?(): Promise<boolean>
   // solo con la capacidad «pasoAnterior»
   anterior?(): Promise<void>
   // solo con la capacidad «pausaManual»
@@ -91,6 +94,8 @@ export function bridgePywebview(api: ApiPython): Bridge {
     camaras: async () => (await api.camaras?.()) ?? null,
     vistaCamara: async () => (await api.vista_camara?.()) ?? null,
     cerrarVistaCamara: async () => { await api.cerrar_vista_camara?.() },
+    microfono: async () => (await api.microfono?.()) ?? null,
+    probarMicrofono: async () => (await api.probar_microfono?.()) ?? false,
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

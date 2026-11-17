@@ -244,6 +244,36 @@
 .gesto-barra { display: block; width: 6rem; height: 0.5rem; border-radius: 1rem; background: rgba(255, 255, 255, 0.15); overflow: hidden; }
 .gesto-barra i { display: block; height: 100%; background: var(--color-violeta); transition: width 0.1s linear; }
 
+/* Órdenes de voz: mismo aspecto que el aviso del gesto, justo debajo de él */
+.escucha-voz {
+  position: absolute; top: calc(var(--espacio-5) + 4.75rem); left: 50%; transform: translateX(-50%); z-index: 2;
+  display: flex; align-items: center; gap: var(--espacio-3); max-width: min(90%, 44rem);
+  padding: var(--espacio-3) var(--espacio-5); border-radius: var(--radio-lg);
+  border: 1px solid rgba(169, 157, 255, 0.45); background: rgba(36, 30, 70, 0.92); box-shadow: var(--sombra-brillo);
+  color: #fff; font-size: clamp(1.125rem, 1.6vw, 1.5rem); font-weight: 650; pointer-events: none;
+}
+.escucha-voz svg { width: 1.3em; height: 1.3em; flex: none; color: var(--color-violeta-suave); opacity: 0.6; }
+.escucha-voz.escucha-activa svg { opacity: 1; animation: escucha-pulso 1.2s ease-in-out infinite; }
+.escucha-voz.escucha-duda { outline: 2px solid rgba(255, 196, 61, 0.7); }
+@keyframes escucha-pulso { 50% { transform: scale(1.25); } }
+/* oyó «Estela» y espera la orden: el aviso se enciende y late entero, no solo el icono */
+.escucha-voz.escucha-atenta { border-color: var(--color-violeta-suave); animation: escucha-anillo 1.2s ease-out infinite; }
+@keyframes escucha-anillo { 0% { box-shadow: 0 0 0 0 rgba(169, 157, 255, 0.65); } 100% { box-shadow: 0 0 0 1rem rgba(169, 157, 255, 0); } }
+
+/* Puntos de la cabecera: cámara y micrófono en uso */
+.indicadores-uso { display: flex; align-items: center; gap: var(--espacio-3); }
+.en-uso-item { position: relative; display: inline-flex; align-items: center; color: var(--color-texto-sutil); }
+.en-uso-item svg { width: 1.125rem; height: 1.125rem; }
+.en-uso-item i { display: block; width: 0.5rem; height: 0.5rem; margin-left: 0.3rem; border-radius: 50%; background: var(--color-texto-sutil); }
+.en-uso-item.en-uso i { background: var(--color-exito); box-shadow: 0 0 0.375rem var(--color-exito); }
+.en-uso-item.en-espera i { background: var(--color-ambar); }
+.en-uso-item.apagado { opacity: 0.55; }
+.en-uso-item.atenta { color: var(--color-violeta-suave); }
+.en-uso-item.atenta i { background: var(--color-violeta-suave); animation: escucha-anillo 1.2s ease-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .escucha-voz.escucha-activa svg, .escucha-voz.escucha-atenta, .en-uso-item.atenta i { animation: none; }
+}
+
 .capa-dialogo { position: fixed; inset: 0; z-index: 10; display: grid; place-items: center; padding: var(--espacio-5); background: var(--color-velo); backdrop-filter: blur(0.25rem); }
 .tarjeta-confirmar { width: min(32.5rem, 100%); text-align: center; border-color: rgba(244, 163, 64, 0.3); }
 .tarjeta-confirmar h2 { margin: 0.625rem 0; font-size: 2rem; }

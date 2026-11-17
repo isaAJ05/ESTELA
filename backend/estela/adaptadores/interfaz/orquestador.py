@@ -85,6 +85,8 @@ class Orquestador:
                  listar_camaras: Optional[Callable[[], List[Dict[str, Any]]]] = None,
                  abrir_camara: Optional[Callable[[int], Fuente]] = None,
                  perfiles: Optional[Perfiles] = None) -> None:
+                 perfiles: Optional[Perfiles] = None,
+                 preparar_sesion: Optional[Callable[[Sesion], None]] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
         «Repetir rutina» empieza con la cámara recién abierta y con marcas de
         tiempo desde cero. `al_terminar` recibe `Sesion.resumen()`.
@@ -113,6 +115,9 @@ class Orquestador:
         #: aviso de EXP-010; la interfaz lo cambia con `configurar`
         self._reconocer = reconocer
         self._perfiles = perfiles
+        #: se llama con cada `Sesion` recién creada, en el hilo de la sesión
+        #: (p. ej. para engancharle la entrenadora)
+        self._preparar_sesion = preparar_sesion
         #: quién entrena; None con `elegido` = invitada
         self._perfil_activo: Optional[str] = None
         self._perfil_elegido = False
@@ -129,6 +134,10 @@ class Orquestador:
         self._vista_reloj: Optional[threading.Timer] = None
         #: sube con cada frame pedido: distingue el último reloj de los viejos
         self._vista_turno = 0
+        #: voz de entrada (`EscuchaVoz`) y cómo listar los micrófonos; los pone
+        #: quien arranca la aplicación con `conectar_voz_entrada`
+        self._voz_entrada: Any = None
+        self._listar_microfonos: Optional[Callable[[], List[Dict[str, Any]]]] = None
 
         self._cv = threading.Condition()
         self._version = 0
@@ -150,7 +159,28 @@ class Orquestador:
         d["fuente"] = self._fuente
         d["capacidades"]["historial"] = self._perfiles is not None
         d["capacidades"]["perfiles"] = self._perfiles is not None
+        d["capacidades"]["vozEntrada"] = self._voz_entrada is not None
         return d
+
+    def conectar_voz_entrada(self, escucha: Any,
+                             listar_microfonos: Optional[Callable[[], List[Dict[str, Any]]]] = None
+                             ) -> None:
+        """Da a la interfaz la sección «Micrófono»: elegir, encender, apagar y probar."""
+        self._voz_entrada = escucha
+        self._listar_microfonos = listar_microfonos
+
+    def microfono(self) -> Optional[Dict[str, Any]]:
+        """Estado del micrófono para los ajustes (encendido, elegido, nivel, lo
+        último oído en la prueba) y la lista de entradas; None sin voz de entrada."""
+        if self._voz_entrada is None:
+            return None
+        d = dict(self._voz_entrada.ajustes())
+        d["lista"] = self._listar_microfonos() if self._listar_microfonos is not None else []
+        return d
+
+    def probar_microfono(self) -> bool:
+        """Empieza una prueba corta: los ajustes muestran lo que se oye, sin actuar."""
+        return bool(self._voz_entrada is not None and self._voz_entrada.probar())
 
     def camaras(self) -> Optional[Dict[str, Any]]:
         """Cámaras que se pueden elegir y la elegida, o None si no se puede
@@ -227,6 +257,13 @@ class Orquestador:
         registros = self._perfiles.historial_de(perfil["id"]).leer()
         return contrato.progreso_a_dict(progreso(registros, hoy or date.today()),
                                         self.catalogo, perfil.get("meta_semanal"))
+
+    def progreso_activo(self, hoy: Optional[date] = None) -> Optional[Dict[str, Any]]:
+        """`historial.progreso()` del perfil activo, sin dar formato, o None."""
+        perfil = self._perfiles.obtener(self._perfil_activo) if self._perfiles else None
+        if perfil is None:
+            return None
+        return progreso(self._perfiles.historial_de(perfil["id"]).leer(), hoy or date.today())
 
     def borrar_historial(self) -> bool:
         """Vacía el historial del perfil activo (el perfil se queda)."""
@@ -394,6 +431,22 @@ class Orquestador:
     def reiniciar(self) -> None:
         self._comandos.put("reiniciar")
 
+    def reiniciar_sesion(self) -> None:
+        """Vuelve al primer ejercicio y borra lo hecho (orden de voz)."""
+        self._comandos.put("reiniciar_sesion")
+
+    def reconocer_si(self) -> None:
+        self.configurar(reconocer=True)
+
+    def reconocer_no(self) -> None:
+        self.configurar(reconocer=False)
+
+    def voz_si(self) -> None:
+        self.configurar(voz=True)
+
+    def voz_no(self) -> None:
+        self.configurar(voz=False)
+
     def listo(self) -> None:
         """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
         self._comandos.put("listo")
@@ -411,10 +464,19 @@ class Orquestador:
 
     def configurar(self, voz: Optional[bool] = None,
                    reconocer: Optional[bool] = None,
-                   camara: Optional[int] = None) -> None:
+                   camara: Optional[int] = None,
+                   voz_entrada: Optional[bool] = None,
+                   microfono: Any = ...) -> None:
         """Ajustes de la interfaz que se pueden cambiar en cualquier momento.
         `reconocer` vale para la sesión en curso y para las siguientes;
-        `camara`, desde la próxima sesión."""
+        `camara`, desde la próxima sesión. `voz_entrada` enciende o apaga el
+        micrófono y `microfono` elige la entrada (índice, o None: la de defecto
+        del sistema); los dos valen al momento."""
+        if self._voz_entrada is not None:
+            if microfono is not ...:
+                self._voz_entrada.elegir_microfono(microfono)
+            if voz_entrada is not None:
+                self._voz_entrada.encender(voz_entrada)
         if camara is not None and self._listar_camaras is not None:
             self.camara = camara
         if voz is not None and hasattr(self._voz, "silenciar"):
@@ -462,6 +524,8 @@ class Orquestador:
                         self._verbalizador, sin_dtw=self._sin_dtw,
                         colocacion=self._colocacion,
                         reconocer=self._reconocer)
+        if self._preparar_sesion is not None:
+            self._preparar_sesion(sesion)
         self._publicar(fase=SESION)
         fps, t_prev = None, time.perf_counter()
         motivo = contrato.FIN_CIERRE
@@ -538,6 +602,8 @@ class Orquestador:
                 sesion.anterior()
             elif cmd == "reiniciar":
                 sesion.reiniciar_ejercicio()
+            elif cmd == "reiniciar_sesion":
+                sesion.reiniciar_sesion()
             elif cmd == "listo":
                 sesion.terminar_colocacion()
             elif cmd == "pausar":

@@ -145,6 +145,9 @@ CAPACIDADES: Dict[str, bool] = {
     "silenciarVoz": True,
     "elegirCamara": True,
     "reconocerEjercicio": True,
+    #: la pone el orquestador si hay voz de entrada (micrófono y modelo): sección
+    #: «Micrófono» de los ajustes (`microfono`, `probar_microfono`, `configurar`)
+    "vozEntrada": False,
     "pasoAnterior": True,
     "gestoPausa": True,
     #: la pone el orquestador según tenga o no historial (ADR-008)
@@ -414,6 +417,9 @@ def estado_a_dict(estado: EstadoFrame, fps: Optional[float] = None) -> Dict[str,
         "conError": opcional("con_error"),
         # brazo derecho arriba: {"progreso": 0–1, "accion": "pausar" | "reanudar"}
         "gesto": opcional("gesto"),
+        "escucha": opcional("escucha"),
+        # punto del micrófono: {"encendido", "escuchando", "atenta"}; null sin voz de entrada
+        "microfono": opcional("microfono"),
         # aún sin backend (ver CAPACIDADES): llega null
         "nivel": opcional("nivel"),
         "guia": _puntos(np.asarray(guia)) if guia is not None else None,

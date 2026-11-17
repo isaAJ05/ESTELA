@@ -492,6 +492,10 @@ class _EmisorComoCamara:
         self._cap.release()
 
 
+#: delegado de MediaPipe para toda la medición (`--delegado`; lo fija `ejecutar`)
+DELEGADO_POSE = "cpu"
+
+
 def _nuevo_estimador(modelo: str):
     from estela.adaptadores.pose.estimador import EstimadorPose
     import numpy as np
@@ -499,7 +503,7 @@ def _nuevo_estimador(modelo: str):
     if ruta is None:
         raise FileNotFoundError(f"no existe pose_landmarker_{modelo}.task "
                                 "(python scripts/descargar_modelos.py --heavy)")
-    est = EstimadorPose(ruta)
+    est = EstimadorPose(ruta, delegado=DELEGADO_POSE)
     # La primera inferencia es lenta (carga del grafo): se paga fuera de la
     # medición y se reporta aparte.
     negro = np.zeros((256, 256, 3), np.uint8)
@@ -940,6 +944,7 @@ class Opciones:
     videos: Optional[List[Tuple[Path, str]]] = None      # None = descubrir
     raices: Tuple[Path, ...] = RAICES_VIDEO
     modelo: str = "full"
+    delegado: str = "cpu"
     politicas: Tuple[str, ...] = ("ultimo", "cola")
     modelos: Tuple[str, ...] = MODELOS_POSE
     voz: str = "auto"
@@ -974,6 +979,8 @@ def _log(msg: str) -> None:
 
 def ejecutar(op: Opciones) -> Dict[str, Any]:
     """Corre todo lo que se pueda y devuelve los resultados (sin escribir)."""
+    global DELEGADO_POSE
+    DELEGADO_POSE = op.delegado
     catalogo = cargar_catalogo()
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
     R: Dict[str, Any] = {"equipo": equipo(), "pendientes": {}, "opciones": {
@@ -1200,11 +1207,17 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
     principal = ultimo or corridas
     P = R["pendientes"]
     L: List[str] = []
+    # el hardware final del proyecto es el Mac Studio M2 Ultra: se dice si lo es o no
+    en_mac = "M2 Ultra" in str(R["equipo"].get("cpu", ""))
+    equipo_txt = ("Medidas en el Mac Studio M2 Ultra del proyecto (tabla de abajo), "
+                  "con vídeos públicos sin anotar. No son sesiones de las participantes. "
+                  if en_mac else
+                  "Medidas en el equipo de desarrollo indicado abajo, "
+                  "con vídeos públicos sin anotar. No son el hardware final (Mac Studio M2 Ultra) "
+                  "ni sesiones de las participantes. ")
     L += ["# Informe 2 — métricas medidas", "",
-          "> **Cifras preliminares.** Medidas en el equipo de desarrollo indicado abajo, "
-          "con vídeos públicos sin anotar. No son el hardware final (Mac Studio M2 Ultra) "
-          "ni sesiones de las participantes. Generado por `python -m feedback_testing.informe2`; "
-          "no editar a mano.", "",
+          "> **Cifras preliminares.** " + equipo_txt
+          + "Generado por `python -m feedback_testing.informe2`; no editar a mano.", "",
           "Convención: `[F]` medido aquí · `[I]` inferencia · `[R]` recomendación · `[?]` pendiente.", "",
           "## Equipo", "",
           "| Campo | Valor |", "|---|---|"]
@@ -1212,6 +1225,7 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
               "mediapipe", "numpy", "opencv", "piper_tts", "commit"):
         L.append(f"| {k} | {eq.get(k) if eq.get(k) is not None else 'n/d'} |")
     L.append(f"| modelo de pose (corrida principal) | pose_landmarker_{R['opciones']['modelo']} |")
+    L.append(f"| delegado de pose | {R['opciones'].get('delegado', 'cpu')} |")
     L.append(f"| voz | {R.get('voz', 'n/d')} |")
     if "voz_precalentado_s" in R:
         L.append(f"| precalentado de la voz | {_n(R['voz_precalentado_s'], 1)} s antes de medir, "
@@ -1584,6 +1598,8 @@ def _argumentos(argv=None) -> Opciones:
     p.add_argument("--raices", nargs="+", type=Path, default=list(RAICES_VIDEO),
                    help="carpetas con subcarpetas por ejercicio (defecto: PRUEBAS/ y docs_estela/)")
     p.add_argument("--modelo", choices=MODELOS_POSE, default="full")
+    p.add_argument("--delegado", choices=("cpu", "gpu"), default="cpu",
+                   help="delegado de MediaPipe en toda la medición (gpu = Metal en macOS)")
     p.add_argument("--modelos", default=",".join(MODELOS_POSE),
                    help="variantes para la comparación (coma)")
     p.add_argument("--politicas", default="ultimo,cola")
@@ -1615,6 +1631,7 @@ def _argumentos(argv=None) -> Opciones:
                 p.error(f"--videos espera RUTA:EJERCICIO, no '{v}'")
             videos.append((Path(ruta), ej))
     return Opciones(videos=videos, raices=tuple(a.raices), modelo=a.modelo,
+                    delegado=a.delegado,
                     modelos=tuple(m for m in a.modelos.split(",") if m),
                     politicas=tuple(x for x in a.politicas.split(",") if x), voz=a.voz,
                     max_s=a.max_segundos, max_s_modelos=a.max_segundos_modelos,

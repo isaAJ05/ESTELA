@@ -297,6 +297,8 @@ export function bridgeSimulado(): Bridge {
   let reloj = 0                // segundos simulados dentro del paso
   let colocadoEn: number | null = null   // reloj al terminar la colocación
   let camara: number | null = null
+  // micrófono de mentira: para ver la sección de ajustes sin Python
+  const microfono = { encendido: true, elegido: null as number | null, probandoHasta: 0, pruebas: 0 }
   let pausaUsuaria = false     // la usuaria pulsó «Pausar»: el reloj se detiene
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
@@ -416,6 +418,9 @@ export function bridgeSimulado(): Bridge {
         : anuncio ? { evaluando: false, motivo: 'Escuchando una indicación' } : { evaluando: true, motivo: null },
       depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, segmentacion: 0.05, motor: 0.12, total: 19.3 },
                     motivoSilencio: enPausa ? null : anuncio ? 'anuncio' : 'sin_error' },
+      // punto del micrófono: callado mientras «habla» y, un momento, atenta como tras decir «Estela»
+      microfono: { encendido: microfono.encendido, escuchando: microfono.encendido && !anuncio,
+                   atenta: microfono.encendido && t > 3 && t < 6 },
     }
     if (actual.completadas >= paso.objetivo) avanzar()
   }
@@ -436,6 +441,7 @@ export function bridgeSimulado(): Bridge {
                     persona, orientacion, cuerpoEntero },
       evaluacion: { evaluando: false, motivo: 'Colocándote' },
       depuracion: { fps: 30, latenciaMs: { pose: 18.4, geometria: 0.21, total: 18.8 }, motivoSilencio: null },
+      microfono: { encendido: microfono.encendido, escuchando: microfono.encendido, atenta: false },
     }
   }
 
@@ -525,7 +531,7 @@ export function bridgeSimulado(): Bridge {
 
   const info: Info = {
     version: 1,
-    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, reconocerEjercicio: true, pasoAnterior: true, gestoPausa: true, historial: true, perfiles: true },
+    capacidades: { nivel: false, correctasConError: true, guia: true, resumenTexto: false, motivoSilencio: true, pausaManual: true, colocacion: true, avisoLuz: false, rutinaPersonalizada: true, silenciarVoz: true, elegirCamara: true, vozEntrada: true, reconocerEjercicio: true, pasoAnterior: true, gestoPausa: true, historial: true, perfiles: true },
     rutina: { nombre: 'Rutina de entrenamiento', pasos: CATALOGO },
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
@@ -552,7 +558,30 @@ export function bridgeSimulado(): Bridge {
     terminar: async () => { if (fase === 'sesion') cerrar(false) },
     volverAlInicio: async () => { if (fase === 'resumen' || fase === 'error') { fase = 'inicio'; resumen = null; error = null; publicar() } },
     salir: async () => { window.close() },
-    configurar: async (ajustes) => { if (ajustes.camara !== undefined) camara = ajustes.camara },
+    configurar: async (ajustes) => {
+      if (ajustes.camara !== undefined) camara = ajustes.camara
+      if (ajustes.vozEntrada !== undefined) microfono.encendido = ajustes.vozEntrada
+      if (ajustes.microfono !== undefined) microfono.elegido = ajustes.microfono
+    },
+    microfono: async () => {
+      const probando = Date.now() < microfono.probandoHasta
+      return {
+        lista: [{ indice: 1, nombre: 'Micrófono del iPhone', porDefecto: true },
+                { indice: 3, nombre: 'Micrófono USB', porDefecto: false }],
+        encendido: microfono.encendido, elegido: microfono.elegido,
+        nombre: microfono.encendido ? 'Micrófono del iPhone' : null,
+        nivel: microfono.encendido ? 0.02 + Math.random() * 0.1 : 0, probando,
+        prueba: microfono.pruebas && microfono.encendido
+          ? { n: microfono.pruebas, texto: 'Estela, pausa.', llamada: true, comando: 'pausa' } : null,
+        error: null, llamada: true,
+      }
+    },
+    probarMicrofono: async () => {
+      if (!microfono.encendido) return false
+      microfono.probandoHasta = Date.now() + 8000
+      setTimeout(() => { microfono.pruebas++ }, 1500)
+      return true
+    },
     camaras: async () => {
       if (fase === 'sesion' || fase === 'preparando') return null
       await new Promise((r) => setTimeout(r, 600))       // abrir cada cámara tarda

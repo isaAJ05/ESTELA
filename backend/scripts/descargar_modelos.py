@@ -2,6 +2,10 @@
 
     python scripts/descargar_modelos.py            # pose lite+full y voz es_MX
     python scripts/descargar_modelos.py --heavy    # añade pose heavy
+    python scripts/descargar_modelos.py --voz-entrada   # añade el modelo de órdenes de voz
+
+En un Mac con Apple Silicon se bajan siempre heavy y el modelo de órdenes de
+voz: son los valores por defecto de ese equipo (`estela.config.defectos`).
     python scripts/descargar_modelos.py --voz es_ES-davefx-medium
 
 Todo queda en `modelos/` (ignorado por git). Tras la descarga no se
@@ -11,6 +15,7 @@ necesita red: la inferencia de pose y la voz son locales.
 from __future__ import annotations
 
 import argparse
+import platform
 import subprocess
 import sys
 import urllib.request
@@ -39,11 +44,23 @@ def main() -> int:
     p.add_argument("--voz", default=VOZ_DEFECTO,
                    help=f"voz Piper (defecto {VOZ_DEFECTO})")
     p.add_argument("--sin-voz", action="store_true")
+    p.add_argument("--voz-entrada", action="store_true",
+                   help="bajar el modelo de órdenes de voz (en el Mac se baja siempre)")
     a = p.parse_args()
 
     MODELOS.mkdir(exist_ok=True)
-    for v in ("lite", "full") + (("heavy",) if a.heavy else ()):
+    # En el Mac el modelo por defecto es heavy (estela.config.defectos): se baja siempre.
+    en_mac = sys.platform == "darwin" and platform.machine() == "arm64"
+    for v in ("lite", "full") + (("heavy",) if a.heavy or en_mac else ()):
         descargar(URL_POSE.format(v=v), MODELOS / f"pose_landmarker_{v}.task")
+
+    if en_mac or a.voz_entrada:
+        # modelo de Whisper para las órdenes de voz (estela.config.VOZ_ENTRADA_MODELO)
+        sys.path.insert(0, str(RAIZ))
+        from estela import config
+        destino = config.modelo_voz_entrada()
+        destino.parent.mkdir(parents=True, exist_ok=True)
+        descargar(config.URL_WHISPER_CPP.format(modelo=config.VOZ_ENTRADA_MODELO), destino)
 
     if not a.sin_voz:
         voces = MODELOS / "voces"

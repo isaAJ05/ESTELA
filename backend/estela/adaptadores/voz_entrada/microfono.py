@@ -1,0 +1,102 @@
+"""Micrófono con `sounddevice`: entrega frases cortadas por `DetectorDeFrase`."""
+
+from __future__ import annotations
+
+import queue
+from typing import Any, Callable, Dict, List, Optional, Tuple
+
+import numpy as np
+
+from .frases import BLOQUE, FS, DetectorDeFrase
+
+
+def hay_microfono() -> Tuple[bool, str]:
+    """(hay, motivo si no). No lanza."""
+    try:
+        import sounddevice as sd
+        entradas = [d for d in sd.query_devices() if d.get("max_input_channels", 0) > 0]
+    except Exception as exc:                              # noqa: BLE001
+        return False, f"no se pudo consultar el audio ({type(exc).__name__}: {exc})"
+    if not entradas:
+        return False, "no hay ningún micrófono conectado"
+    return True, ""
+
+
+def listar_microfonos() -> List[Dict[str, Any]]:
+    """Entradas de audio que ve el sistema: [{"indice", "nombre", "porDefecto"}].
+    No lanza: sin audio devuelve []. `[?]` PortAudio lee la lista al arrancar: un
+    micrófono conectado después puede no aparecer hasta reiniciar la aplicación."""
+    try:
+        import sounddevice as sd
+        dispositivos = list(sd.query_devices())
+        por_defecto = sd.default.device[0]
+    except Exception:                                     # noqa: BLE001
+        return []
+    return [{"indice": i, "nombre": str(d.get("name", f"Micrófono {i}")),
+             "porDefecto": i == por_defecto}
+            for i, d in enumerate(dispositivos) if d.get("max_input_channels", 0) > 0]
+
+
+class Microfono:
+    """Abre una entrada a 16 kHz mono (`dispositivo` None: la de defecto del
+    sistema). `escuchar_frase` bloquea hasta que hay una frase, se cancela o
+    pasa `espera_s`. `nivel` es el volumen reciente (RMS, 0–1) para pintarlo."""
+
+    def __init__(self, dispositivo: Optional[int] = None) -> None:
+        import sounddevice as sd
+        self.dispositivo = dispositivo
+        self._cola: "queue.Queue[np.ndarray]" = queue.Queue()
+        self._detector = DetectorDeFrase()
+        self.nivel = 0.0
+        self._flujo = sd.InputStream(samplerate=FS, channels=1, dtype="float32",
+                                     blocksize=BLOQUE, callback=self._al_llegar,
+                                     device=dispositivo)
+        self._flujo.start()
+        try:
+            self.nombre: Optional[str] = str(sd.query_devices(
+                dispositivo if dispositivo is not None else sd.default.device[0])["name"])
+        except Exception:                                 # noqa: BLE001
+            self.nombre = None
+
+    def _al_llegar(self, datos, frames, tiempo, estado) -> None:   # hilo de audio
+        bloque = datos[:, 0].copy()
+        # volumen suavizado: sube enseguida y baja despacio, para que se lea en pantalla
+        rms = float(np.sqrt(np.mean(bloque ** 2))) if len(bloque) else 0.0
+        self.nivel = rms if rms > self.nivel else 0.8 * self.nivel + 0.2 * rms
+        self._cola.put(bloque)
+
+    def descartar(self) -> None:
+        """Tira lo capturado hasta ahora (p. ej. mientras hablaba ESTELA)."""
+        while not self._cola.empty():
+            try:
+                self._cola.get_nowait()
+            except queue.Empty:
+                break
+        self._detector.reiniciar()
+
+    def escuchar_frase(self, cancelar: Callable[[], bool],
+                       espera_s: float = 1.0) -> Optional[np.ndarray]:
+        import time
+        fin = time.monotonic() + espera_s
+        while not cancelar():
+            if time.monotonic() > fin and not self._detector.en_frase:
+                return None
+            try:
+                bloque = self._cola.get(timeout=0.1)
+            except queue.Empty:
+                continue
+            frase = self._detector.alimentar(bloque)
+            if frase is not None:
+                return frase
+        self.descartar()
+        return None
+
+    def cerrar(self) -> None:
+        try:
+            self._flujo.stop()
+            self._flujo.close()
+        except Exception:                                 # noqa: BLE001
+            pass
+
+
+__all__ = ["Microfono", "hay_microfono", "listar_microfonos"]

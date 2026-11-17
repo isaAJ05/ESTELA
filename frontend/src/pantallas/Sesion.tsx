@@ -1,4 +1,4 @@
-import { Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Camera, Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Mic, MicOff, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
@@ -6,7 +6,7 @@ import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
 import { GuiaAnimada, VistaCamara } from '../componentes/VistaCamara'
-import { cambiarAjustes, leerVoz } from '../estado/ajustes'
+import { cambiarAjustes, cambiarVozDeSesion, leerVoz, restaurarVoz } from '../estado/ajustes'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
 const MENSAJE_VISIBLE_MS = 4500
@@ -35,6 +35,27 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
     try { localStorage.setItem('estela.angulos', a ? '0' : '1') } catch { /* sin almacenamiento */ }
     return !a
   })
+  // «Estela, activa los ángulos», «reconocer activado», «voz desactivada»: la orden llega en
+  // el estado de la voz y los botones la siguen
+  const ordenDePantalla = useEstado((s) => s.estado?.sesion?.escucha?.pantalla ?? null,
+    (a, b) => a?.n === b?.n)
+  const ultimaOrden = useRef(0)
+  useEffect(() => {
+    const n = ordenDePantalla?.n ?? 0
+    if (n === ultimaOrden.current) return
+    ultimaOrden.current = n
+    if (n === 0 || !ordenDePantalla) return
+    if (typeof ordenDePantalla.angulos === 'boolean') {
+      const ver = ordenDePantalla.angulos
+      try { localStorage.setItem('estela.angulos', ver ? '1' : '0') } catch { /* sin almacenamiento */ }
+      setAngulos(ver)
+    }
+    if (typeof ordenDePantalla.reconocer === 'boolean') cambiarAjustes({ reconocer: ordenDePantalla.reconocer }, bridge)
+    // «Estela, silencio» vale por el resto de la sesión: no cambia la preferencia guardada
+    if (typeof ordenDePantalla.voz === 'boolean') cambiarVozDeSesion(ordenDePantalla.voz, bridge)
+  }, [ordenDePantalla, bridge])
+  // al salir de la sesión vuelve la voz que estaba elegida en los ajustes
+  useEffect(() => () => restaurarVoz(bridge), [bridge])
 
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -68,6 +89,7 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
             {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
             <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
             <GestoPausa />
+            <EscuchaVoz />
           </> : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
           )}
@@ -103,6 +125,7 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
         <Constelacion paso={paso} total={total} />
         <span className="etiqueta">Ejercicio {paso} de {total}</span>
       </div>
+      <EnUso />
       <nav className="acciones-sesion" aria-label="Controles de la sesión">
         {pausaManual && (
           <Boton variante="suave" onClick={() => void (pausada ? bridge.reanudar() : bridge.pausar())}
@@ -414,6 +437,78 @@ function GestoPausa() {
       <Hand aria-hidden="true" />
       <span>Mantén el brazo arriba para {gesto.accion === 'reanudar' ? 'seguir' : 'pausar'}</span>
       <i className="gesto-barra" aria-hidden="true"><i style={{ width: `${Math.round(gesto.progreso * 100)}%` }} /></i>
+    </div>
+  )
+}
+
+const ORDEN_DICHA: Record<string, string> = {
+  pausa: 'Pausa', seguir: 'Seguir', siguiente: 'Siguiente',
+  terminar: 'Terminar', como_voy: '¿Cómo voy?', anterior: 'Anterior',
+  reiniciar_ejercicio: 'Reiniciar ejercicio', reiniciar_sesion: 'Reiniciar sesión',
+  reconocer_si: 'Reconocer activado', reconocer_no: 'Reconocer desactivado',
+  repite_eso: 'Repite eso', voz_si: 'Voz activada', voz_no: 'Voz desactivada',
+  angulos_si: 'Ángulos activados', angulos_no: 'Ángulos desactivados',
+}
+
+/** Puntos pequeños: si ESTELA tiene la cámara y el micrófono en uso, y cómo está el
+ *  micrófono (apagado, escuchando, callado mientras habla ESTELA, o atenta tras «Estela»). */
+function EnUso() {
+  const conCamara = useEstado((s) => (s.info?.fuente ?? 'camara') === 'camara')
+  const mic = useEstado((s) => s.estado?.sesion?.microfono ?? null,
+    (a, b) => a?.encendido === b?.encendido && a?.escuchando === b?.escuchando && a?.atenta === b?.atenta)
+  const estadoMic = !mic ? null
+    : !mic.encendido ? { clase: 'apagado', texto: 'Micrófono apagado' }
+    : mic.atenta ? { clase: 'atenta', texto: 'Te escucho: di la orden' }
+    : mic.escuchando ? { clase: 'en-uso', texto: 'Micrófono en uso: di «Estela» y una orden' }
+    : { clase: 'en-espera', texto: 'Micrófono en uso; no escucho mientras hablo' }
+  return (
+    <div className="indicadores-uso" aria-label="Cámara y micrófono">
+      {conCamara && (
+        <span className="en-uso-item en-uso" title="Cámara en uso" role="img" aria-label="Cámara en uso">
+          <Camera aria-hidden="true" /><i />
+        </span>
+      )}
+      {estadoMic && (
+        <span className={`en-uso-item ${estadoMic.clase}`} title={estadoMic.texto} role="img" aria-label={estadoMic.texto}>
+          {mic?.encendido ? <Mic aria-hidden="true" /> : <MicOff aria-hidden="true" />}<i />
+        </span>
+      )}
+    </div>
+  )
+}
+
+/** Órdenes de voz: si ESTELA está escuchando y qué entendió. En modo «llamada» el aviso
+ *  «Te escucho» solo sale en pausa, en la colocación o tras decir «Estela» (durante el
+ *  ejercicio no estorba); sin ese modo, solo en pausa o entre ejercicios. */
+function EscuchaVoz() {
+  const e = useEstado((s) => s.estado?.sesion?.escucha ?? null,
+    (a, b) => a?.activa === b?.activa && a?.texto === b?.texto
+      && a?.comando === b?.comando && a?.noEntendi === b?.noEntendi && a?.llamada === b?.llamada)
+  // oyó «Estela» y espera la orden: la señal sale aunque no haya nada más que mostrar
+  const atenta = useEstado((s) => s.estado?.sesion?.microfono?.atenta ?? false)
+  const entendido = e?.comando ? ORDEN_DICHA[e.comando] ?? e.comando : null
+  if (atenta && !entendido && !e?.noEntendi) {
+    return (
+      <div className="escucha-voz escucha-activa escucha-atenta" role="status" aria-live="polite">
+        <Mic aria-hidden="true" />
+        <span>Te escucho… di la orden</span>
+      </div>
+    )
+  }
+  // solo cambió la pantalla (ángulos) y no hay nada que decir: no se pinta el aviso
+  if (!e || (!e.activa && !e.texto && !e.comando && !e.noEntendi)) return null
+  return (
+    <div className={`escucha-voz${e.activa ? ' escucha-activa' : ''}${e.noEntendi ? ' escucha-duda' : ''}`}
+         role="status" aria-live="polite">
+      <Mic aria-hidden="true" />
+      <span>
+        {entendido ? <>Entendí: <b>{entendido}</b></>
+          : e.noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
+          : e.activa && e.llamada
+            ? <>Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, reiniciar, repite eso, terminar o ¿cómo voy?</>
+          : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, terminar o ¿cómo voy?</>
+          : <>{e.texto ? `«${e.texto}»` : ''}</>}
+      </span>
     </div>
   )
 }

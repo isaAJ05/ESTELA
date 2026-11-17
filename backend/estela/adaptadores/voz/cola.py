@@ -59,6 +59,10 @@ class ColaVoz:
         self._cerrada = False
         self._silenciada = False
         self.descartadas = 0
+        #: lo último que sonó y se puede repetir («repite eso»); no cuenta lo que
+        #: la escucha dice por su cuenta (confirmaciones de órdenes)
+        self._ultima_repetible: Optional[str] = None
+        self._no_repetibles: frozenset = frozenset()
         #: descartadas por causa (`DESCARTE_*`)
         self.descartes: Dict[str, int] = {}
         #: (texto, segundos entre encolar y empezar a sonar)
@@ -106,6 +110,15 @@ class ColaVoz:
     def silenciada(self) -> bool:
         return self._silenciada
 
+    @property
+    def ultima_repetible(self) -> Optional[str]:
+        """La última frase que empezó a sonar y no es una confirmación de orden."""
+        return self._ultima_repetible
+
+    def no_repetibles(self, textos: Iterable[str]) -> None:
+        """Frases que «repite eso» no debe repetir (las que dice la escucha)."""
+        self._no_repetibles = frozenset(textos)
+
     def precalentar(self, textos: Iterable[str]) -> None:
         """Sintetiza en segundo plano las frases conocidas, sin bloquear.
 
@@ -152,6 +165,8 @@ class ColaVoz:
                 t_inicio = time.perf_counter()
                 entrada["t_inicio"] = t_inicio
                 self.historial.append((loc.texto, t_inicio - loc.t_encolado))
+                if loc.texto not in self._no_repetibles:
+                    self._ultima_repetible = loc.texto
                 self.motor.hablar(loc.texto)
                 audio = getattr(self.motor, "ultimo_inicio_audio", None)
                 # un valor anterior a t_inicio es de la frase previa

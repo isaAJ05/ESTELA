@@ -357,7 +357,9 @@ def test_flujo_inicio_sesion_resumen(catalogo, rutina):
 
 
 def test_estado_en_sesion_y_long_polling(catalogo, rutina):
-    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(50),
+    # Una sola zancada (la rutina pide 2): el paso no puede avanzar a la plancha
+    # antes de que el test lea el primer estado, por rápido que sea el equipo.
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(1),
                                   bloquear=True)
     orq.iniciar()
     e = esperar_fase(orq, SESION)
@@ -752,3 +754,63 @@ def test_error_en_distancia_senala_un_angulo_sin_grados_falsos():
     fb = contrato.feedback_a_dict(MensajeFeedback("Sube la cadera.", err, "plantillas"))
     assert fb["angulos"] == ["alineacion_cuerpo_izq", "alineacion_cuerpo_der"]
     assert fb["magnitud"] is None
+
+
+class EscuchaFalsa:
+    """Lo que el orquestador usa de `EscuchaVoz` para los ajustes del micrófono."""
+
+    def __init__(self):
+        self.encendida, self.dispositivo, self.pruebas = True, None, 0
+
+    def ajustes(self):
+        return {"encendido": self.encendida, "elegido": self.dispositivo, "nombre": "iPhone",
+                "nivel": 0.1, "probando": False, "prueba": None, "error": None, "llamada": True}
+
+    def encender(self, si):
+        self.encendida = si
+
+    def elegir_microfono(self, dispositivo):
+        self.dispositivo = dispositivo
+
+    def probar(self):
+        self.pruebas += 1
+        return self.encendida
+
+
+def test_microfono_desde_la_interfaz_elegir_encender_apagar_y_probar(catalogo, rutina):
+    orq = nuevo_orquestador(catalogo, rutina, [])[0]
+    api = Api(orq)
+    # sin voz de entrada: no hay sección de micrófono y configurar no rompe
+    assert orq.info()["capacidades"]["vozEntrada"] is False
+    assert api.microfono() is None and api.probar_microfono() is False
+    api.configurar({"vozEntrada": False, "microfono": 1})
+
+    escucha = EscuchaFalsa()
+    lista = [{"indice": 1, "nombre": "iPhone", "porDefecto": True},
+             {"indice": 4, "nombre": "USB", "porDefecto": False}]
+    orq.conectar_voz_entrada(escucha, lambda: lista)
+    assert orq.info()["capacidades"]["vozEntrada"] is True
+    m = api.microfono()
+    assert m["lista"] == lista and m["encendido"] and m["elegido"] is None and m["llamada"]
+    api.configurar({"microfono": 4})
+    assert escucha.dispositivo == 4
+    for malo in (True, -1, "4", 1.5):              # solo índices enteros o null
+        api.configurar({"microfono": malo})
+    assert escucha.dispositivo == 4
+    api.configurar({"microfono": None})            # null: la entrada de defecto del sistema
+    assert escucha.dispositivo is None
+    api.configurar({"voz": False})                 # otro ajuste no toca el micrófono
+    assert escucha.encendida and escucha.dispositivo is None
+    api.configurar({"vozEntrada": "no"})           # solo booleanos
+    assert escucha.encendida
+    api.configurar({"vozEntrada": False})
+    assert escucha.encendida is False and api.probar_microfono() is False
+    api.configurar({"vozEntrada": True})
+    assert api.probar_microfono() is True and escucha.pruebas == 2
+
+
+def test_acciones_de_voz_del_orquestador_existen_todas(catalogo, rutina):
+    from estela.__main__ import ACCIONES_DE_VOZ
+    orq = nuevo_orquestador(catalogo, rutina, [])[0]
+    for nombre in ACCIONES_DE_VOZ:
+        assert callable(getattr(orq, nombre)), nombre

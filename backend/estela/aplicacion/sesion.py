@@ -27,10 +27,12 @@ guarda imágenes ni landmarks, y el arnés no escribe las medidas a disco.
 
 from __future__ import annotations
 
+import logging
+import threading
 import time
 from collections import deque
 from dataclasses import dataclass, field, replace
-from typing import Any, Deque, Dict, List, Mapping, Optional, Set, Tuple
+from typing import Any, Callable, Deque, Dict, List, Mapping, Optional, Set, Tuple
 
 import numpy as np
 
@@ -44,6 +46,7 @@ from ..dominio.feedback.verbalizador.plantillas import VerbalizadorPlantillas
 from ..dominio.conteo.segmentador import (EVENTO_COMPLETA, EVENTO_INCOMPLETA, EstadoSegmento,
                                           Segmentador, leer_senal)
 from .dtw import CONFIANZA_MINIMA, Comparador, comparador_de_referencia
+from .comandos_voz import puede_escuchar
 from .gesto import DetectorGesto
 from .metricas import Latencias
 from .puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, Estimador, ResultadoPose, Voz
@@ -90,6 +93,8 @@ _VISIBILIDAD_MINIMA = 0.5
 _IDEAL = {Plano.FRONTAL: 0.0, Plano.SAGITAL: 90.0}
 _COLOCACION = {Plano.FRONTAL: "Colócate de frente a la cámara.",
                Plano.SAGITAL: "Colócate de perfil a la cámara."}
+
+log = logging.getLogger(__name__)
 
 
 def aspecto_guia(referencia: Mapping[str, Any]) -> float:
@@ -209,6 +214,12 @@ class EstadoFrame:
     #: gesto de pausa en curso (brazo derecho arriba, `gesto.py`):
     #: {"progreso": 0–1, "accion": "pausar" | "reanudar"}, o None
     gesto: Optional[Dict[str, Any]] = None
+    #: órdenes de voz (`comandos_voz.py`): {"activa": bool, "texto": str | None,
+    #: "comando": str | None, "noEntendi": bool}, o None sin voz de entrada
+    escucha: Optional[Dict[str, Any]] = None
+    #: indicador del micrófono: {"encendido": bool, "escuchando": bool, "atenta": bool},
+    #: o None sin voz de entrada. `atenta`: oyó «Estela» y espera la orden
+    microfono: Optional[Dict[str, Any]] = None
 
 
 class _SaltoCadera:
@@ -275,7 +286,9 @@ class Sesion:
                  estimador: Estimador, voz: Voz,
                  verbalizador: Optional[Verbalizador] = None,
                  sin_dtw: bool = False, reconocer: bool = False,
-                 registrar: bool = False, colocacion: bool = False) -> None:
+                 registrar: bool = False, colocacion: bool = False,
+                 al_cerrar_paso: Optional[Callable[[Dict[str, Any]], None]] = None,
+                 retencion_max_ms: int = 0) -> None:
         self.rutina = rutina
         self.catalogo = catalogo
         self.estimador = estimador
@@ -307,6 +320,30 @@ class Sesion:
         self._ult_aviso_encuadre_ms: Optional[int] = None
         self._t_ms = 0
         self._gesto = DetectorGesto()
+        #: Entrenadora (entre ejercicios y al final, nunca durante el
+        #: movimiento). `al_cerrar_paso` recibe un dict al cerrar cada paso
+        #: hacia delante: `turno`, `paso` (su resumen), `siguiente` (skill_id o
+        #: None), `final`, `retenida` y, al final, `pasos`. No debe bloquear:
+        #: quien lo atiende trabaja en otro hilo y al acabar llama a
+        #: `soltar_entrenadora(turno)`. Con colocación activa y
+        #: `retencion_max_ms` > 0, el ejercicio siguiente no empieza a contar
+        #: hasta entonces, o hasta que pasen esos milisegundos.
+        self.al_cerrar_paso = al_cerrar_paso
+        self.retencion_max_ms = retencion_max_ms
+        #: Voz de entrada (opcional): objeto con `estado()` → dict para
+        #: `EstadoFrame.escucha`. La sesión solo lo muestra; quien escucha
+        #: pregunta `puede_escuchar` y manda las órdenes por el camino de siempre.
+        self.oyente: Any = None
+        #: modo «llamada» de la voz de entrada: se escucha también durante el
+        #: ejercicio (la escucha lo activa en `conectar`)
+        self.escucha_siempre = False
+        self._turno = 0
+        self._retenida = False
+        self._retencion_desde: Optional[int] = None
+        self._anuncio_pendiente: Optional[str] = None
+        #: lo que dice la entrenadora, para leerlo en la capa de colocación
+        self._texto_entrenadora: Optional[str] = None
+        self._cerrojo_retencion = threading.Lock()
         self._avanzar()
 
     # -- rutina -------------------------------------------------------------
@@ -329,18 +366,28 @@ class Sesion:
         Si ese paso ya se había hecho (se volvió con `anterior`), el intento
         nuevo sustituye al anterior en el resumen."""
         actual = self.paso_actual
+        cierre: Optional[Dict[str, Any]] = None
         if actual is not None:
             actual.fin_ms = self._t_ms
             actual.motor.decision.cerrar_repeticion()
             if actual.registro is not None:
                 actual.registro.cerrar(self._t_ms)
+            if self.al_cerrar_paso is not None and i > self._i:
+                cierre = self._resumen_paso(actual)
             if felicitar:
                 self.voz.decir(f"Muy bien, terminaste {actual.ejercicio.skill.nombre.lower()}.",
                                PRIORIDAD_AVISO)
         self._i = i
         self._gesto.reiniciar()
+        with self._cerrojo_retencion:
+            self._turno += 1
+            self._retenida = False
+            self._retencion_desde = None
+            self._anuncio_pendiente = None
+            self._texto_entrenadora = None
         if self.terminada:
             self.voz.decir("Rutina terminada. Buen trabajo.", PRIORIDAD_AVISO)
+            self._avisa_cierre(cierre, None)
             return
         p = self.rutina.pasos[self._i]
         ej = self.catalogo[p.skill_id]
@@ -362,7 +409,106 @@ class Sesion:
         self._mal_orientada_desde = None
         self._ult_aviso_orient_ms = None
         self._ult_senal_ms = None
-        self.voz.decir(self._anuncio(ej, p.repeticiones), PRIORIDAD_AVISO)
+        anuncio = self._anuncio(ej, p.repeticiones)
+        if cierre is not None and nuevo.colocando and self.retencion_max_ms > 0:
+            # la entrenadora habla primero; el anuncio sale al soltar la retención
+            self._anuncio_pendiente = anuncio
+            self._retenida = True
+        else:
+            self.voz.decir(anuncio, PRIORIDAD_AVISO)
+        self._avisa_cierre(cierre, p.skill_id)
+
+    def _avisa_cierre(self, cierre: Optional[Dict[str, Any]],
+                      siguiente: Optional[str]) -> None:
+        if cierre is None or self.al_cerrar_paso is None:
+            return
+        final = self.terminada
+        evento = {"turno": self._turno, "paso": cierre, "siguiente": siguiente,
+                  "final": final, "retenida": self._retenida,
+                  "pasos": [self._resumen_paso(x) for x in self._pasos] if final else None}
+        try:
+            self.al_cerrar_paso(evento)
+        except Exception:                                 # noqa: BLE001
+            log.exception("fallo al avisar del cierre del paso")
+            self.soltar_entrenadora(evento["turno"])
+
+    @property
+    def puede_escuchar(self) -> bool:
+        """¿Se pueden oír órdenes de voz ahora? Por defecto solo en pausa o
+        entre ejercicios (colocación); con `escucha_siempre`, también durante
+        el ejercicio. Nunca mientras suena la voz de ESTELA
+        (`comandos_voz.puede_escuchar`). Se puede leer desde otro hilo."""
+        p = self.paso_actual
+        if p is None:
+            return False
+        return puede_escuchar(en_pausa=p.pausa.pausada, colocando=p.colocando,
+                              hablando=bool(getattr(self.voz, "ocupada", False)),
+                              terminada=self.terminada, siempre=self.escucha_siempre)
+
+    @property
+    def hay_siguiente(self) -> bool:
+        return self._i < len(self.rutina.pasos) - 1
+
+    @property
+    def hay_anterior(self) -> bool:
+        return 0 < self._i < len(self.rutina.pasos)
+
+    @property
+    def entre_ejercicios(self) -> bool:
+        """En la colocación de un ejercicio que no es el primero."""
+        p = self.paso_actual
+        return p is not None and p.colocando and self._i > 0
+
+    def resumen_ligero(self) -> List[Dict[str, Any]]:
+        """Cuentas de los pasos hechos hasta ahora, para «¿cómo voy?». Solo
+        lee (no cierra registros), así que se puede llamar desde otro hilo."""
+        pasos = []
+        for p in list(self._pasos):
+            seg = p.seg
+            pasos.append({
+                "skill_id": p.ejercicio.skill.skill_id, "objetivo": p.objetivo,
+                "unidad": p.ejercicio.unidad,
+                "completadas": seg.completadas if seg else 0,
+                "incompletas": seg.incompletas if seg else 0,
+                "pausas_sesion": p.pausa.veces, "mensajes": list(p.mensajes),
+                "duracion_s": 0.0,
+            })
+        return pasos
+
+    def entrenadora_vigente(self, turno: int) -> bool:
+        """¿Sigue siendo el momento de que hable la entrenadora de `turno`?
+        Solo mientras la colocación siga retenida o la rutina haya terminado:
+        nunca con el ejercicio en marcha. Se puede llamar desde otro hilo."""
+        return turno == self._turno and (self._retenida or self.terminada)
+
+    def mostrar_entrenadora(self, turno: int, texto: str) -> bool:
+        """Pone en pantalla lo que la entrenadora va a decir (en el lugar de la
+        instrucción de colocación) mientras dure la retención. False si ya no
+        es su momento. Se puede llamar desde otro hilo."""
+        with self._cerrojo_retencion:
+            if turno != self._turno or not self._retenida:
+                return False
+            self._texto_entrenadora = texto
+            return True
+
+    def soltar_entrenadora(self, turno: int) -> None:
+        """La entrenadora de `turno` terminó (o falló): se anuncia el
+        ejercicio y la colocación puede acabar. Se puede llamar desde otro
+        hilo; un turno viejo no hace nada."""
+        with self._cerrojo_retencion:
+            if turno != self._turno or not self._retenida:
+                return
+            self._retenida = False
+            self._texto_entrenadora = None
+            anuncio, self._anuncio_pendiente = self._anuncio_pendiente, None
+            # El tiempo de colocación estable vuelve a contar: si la persona ya
+            # estaba bien colocada, «Ya te veo bien» se encolaría justo detrás
+            # del anuncio y lo sustituiría antes de sonar (un solo hueco).
+            p = self.paso_actual
+            if p is not None:
+                p.colocado_desde = None
+        if anuncio:
+            self.voz.decir(anuncio, PRIORIDAD_AVISO)
 
     @staticmethod
     def _anuncio(ej: Ejercicio, reps: int) -> str:
@@ -373,6 +519,7 @@ class Sesion:
         """Da por terminada la colocación (botón «Listo» de la interfaz)."""
         p = self.paso_actual
         if p is not None and p.colocando:
+            self.soltar_entrenadora(self._turno)     # «Listo» también corta la espera
             self._fin_colocacion(p, self._t_ms)
 
     def _fin_colocacion(self, p: _Paso, t_ms: int) -> None:
@@ -396,7 +543,7 @@ class Sesion:
             return aviso
         if p.colocado_desde is None:
             p.colocado_desde = t_ms
-        if t_ms - p.colocado_desde >= COLOCACION_ESTABLE_MS:
+        if t_ms - p.colocado_desde >= COLOCACION_ESTABLE_MS and not self._retenida:
             self._fin_colocacion(p, t_ms)
         return None
 
@@ -421,6 +568,14 @@ class Sesion:
             p.unidades.clear()
             if p.alineador is not None:
                 p.alineador.reiniciar()
+
+    def reiniciar_sesion(self) -> None:
+        """Vuelve al primer ejercicio y borra lo hecho: el resumen final solo
+        trae los ejercicios del intento nuevo."""
+        if self.terminada:
+            return
+        self._ir_a(0, felicitar=False)
+        del self._pasos[1:]
 
     def pausar(self) -> None:
         """Pausa pedida por la usuaria: no se cuenta ni se corrige hasta que
@@ -455,6 +610,12 @@ class Sesion:
             return self._estado(None, None, None, {})
         if p.inicio_ms is None:
             p.inicio_ms = t_ms
+        if self._retenida:
+            # tope de la espera a la entrenadora: pasado, el ejercicio sigue
+            if self._retencion_desde is None:
+                self._retencion_desde = t_ms
+            elif t_ms - self._retencion_desde > self.retencion_max_ms:
+                self.soltar_entrenadora(self._turno)
 
         res = self.estimador.estimar(frame, t_ms)
         self.latencias.anota("pose", res.latencia_ms)
@@ -773,9 +934,13 @@ class Sesion:
             guia=_guia_actual(p, self._t_ms),
             correctas=correctas, con_error=con_error,
             colocando=p.colocando,
-            instruccion=(self._instruccion(p.ejercicio) if p.colocando else None),
+            instruccion=((self._texto_entrenadora or self._instruccion(p.ejercicio))
+                         if p.colocando else None),
             comprobaciones=dict(p.comprobaciones) if p.colocando else None,
-            gesto=self._estado_gesto(p))
+            gesto=self._estado_gesto(p),
+            escucha=self.oyente.estado() if self.oyente is not None else None,
+            microfono=(self.oyente.indicador() if hasattr(self.oyente, "indicador")
+                       else None))
 
     def _estado_gesto(self, p: _Paso) -> Optional[Dict[str, Any]]:
         progreso = self._gesto.progreso(self._t_ms)
@@ -807,38 +972,37 @@ class Sesion:
         calidad = p.motor.decision.calidad_por_repeticion
         return [{**f, "calidad": calidad.get(f["rep"])} for f in p.registro.filas]
 
-    def resumen(self) -> Dict[str, Any]:
+    def _resumen_paso(self, p: _Paso) -> Dict[str, Any]:
+        seg = p.seg
+        fin_ms = p.fin_ms if p.fin_ms is not None else self._t_ms
+        pausa_ms = p.pausa.tiempo_pausado_ms(fin_ms)
+        correctas, con_error = self._calidad(p)
+        return {
+            "skill_id": p.ejercicio.skill.skill_id,
+            "objetivo": p.objetivo,
+            "unidad": p.ejercicio.unidad,
+            "completadas": seg.completadas if seg else 0,
+            "incompletas": seg.incompletas if seg else 0,
+            "correctas": correctas,
+            "con_error": con_error,
+            # tiempo activo: sin contar las pausas
+            "duracion_s": (round((fin_ms - p.inicio_ms - pausa_ms) / 1000.0, 1)
+                           if p.inicio_ms is not None else 0.0),
+            "pausas_sesion": p.pausa.veces,
+            "pausa_s": round(pausa_ms / 1000.0, 1),
+            "mensajes": p.mensajes,
+            "abstenciones": p.motor.abstenciones,
+            # «absolutos» o «referencia» (aplicacion/umbrales.py), y frames
+            # en que cada regla relativa se evaluó con su respaldo absoluto
+            "umbrales": p.ejercicio.umbrales,
+            "respaldos": p.motor.respaldos,
+            # frames por resultado del DTW (`dtw.ALINEADO`, `dtw.SIN_*`...);
+            # None con `sin_dtw`
+            "dtw": dict(p.alineador.motivos) if p.alineador is not None else None,
+            "repeticiones": self._filas(p),
+        }
 
-        pasos = []
-        for p in self._pasos:
-            seg = p.seg
-            fin_ms = p.fin_ms if p.fin_ms is not None else self._t_ms
-            pausa_ms = p.pausa.tiempo_pausado_ms(fin_ms)
-            correctas, con_error = self._calidad(p)
-            pasos.append({
-                "skill_id": p.ejercicio.skill.skill_id,
-                "objetivo": p.objetivo,
-                "unidad": p.ejercicio.unidad,
-                "completadas": seg.completadas if seg else 0,
-                "incompletas": seg.incompletas if seg else 0,
-                "correctas": correctas,
-                "con_error": con_error,
-                # tiempo activo: sin contar las pausas
-                "duracion_s": (round((fin_ms - p.inicio_ms - pausa_ms) / 1000.0, 1)
-                               if p.inicio_ms is not None else 0.0),
-                "pausas_sesion": p.pausa.veces,
-                "pausa_s": round(pausa_ms / 1000.0, 1),
-                "mensajes": p.mensajes,
-                "abstenciones": p.motor.abstenciones,
-                # «absolutos» o «referencia» (aplicacion/umbrales.py), y frames
-                # en que cada regla relativa se evaluó con su respaldo absoluto
-                "umbrales": p.ejercicio.umbrales,
-                "respaldos": p.motor.respaldos,
-                # frames por resultado del DTW (`dtw.ALINEADO`, `dtw.SIN_*`...);
-                # None con `sin_dtw`
-                "dtw": dict(p.alineador.motivos) if p.alineador is not None else None,
-                "repeticiones": self._filas(p),
-            })
+    def resumen(self) -> Dict[str, Any]:
         return {
             "rutina": self.rutina.nombre,
             "terminada": self.terminada,
@@ -846,7 +1010,7 @@ class Sesion:
             "frames": self.frames,
             "frames_sin_persona": self.frames_sin_persona,
             "latencias": self.latencias.resumen(),
-            "pasos": pasos,
+            "pasos": [self._resumen_paso(p) for p in self._pasos],
         }
 
 
