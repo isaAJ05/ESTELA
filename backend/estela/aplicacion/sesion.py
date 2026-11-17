@@ -350,6 +350,9 @@ class Sesion:
         #: modo «llamada» de la voz de entrada: se escucha también durante el
         #: ejercicio (la escucha lo activa en `conectar`)
         self.escucha_siempre = False
+        #: modo «interrumpir»: también se escucha mientras ESTELA habla, para poder
+        #: cortarla con la voz (la escucha lo activa en `conectar`)
+        self.escucha_hablando = False
         self._turno = 0
         self._retenida = False
         self._retencion_desde: Optional[int] = None
@@ -452,12 +455,13 @@ class Sesion:
         """¿Se pueden oír órdenes de voz ahora? Por defecto solo en pausa o
         entre ejercicios (colocación); con `escucha_siempre`, también durante
         el ejercicio. Nunca mientras suena la voz de ESTELA
-        (`comandos_voz.puede_escuchar`). Se puede leer desde otro hilo."""
+        (`comandos_voz.puede_escuchar`), salvo con `escucha_hablando`. Se puede leer desde otro hilo."""
         p = self.paso_actual
         if p is None:
             return False
         return puede_escuchar(en_pausa=p.pausa.pausada, colocando=p.colocando,
-                              hablando=bool(getattr(self.voz, "ocupada", False)),
+                              hablando=(not self.escucha_hablando
+                                        and bool(getattr(self.voz, "ocupada", False))),
                               terminada=self.terminada, siempre=self.escucha_siempre)
 
     @property
@@ -635,6 +639,12 @@ class Sesion:
             elif t_ms - self._retencion_desde > self.retencion_max_ms:
                 self.soltar_entrenadora(self._turno)
 
+        # imagen sin evaluación: el estimador puede hacer aquí lo que sea lento
+        # (renovar el detector con GPU, `adaptadores/pose/estimador.py`)
+        libre = getattr(self.estimador, "momento_libre", None)
+        if libre is not None and (p.colocando or p.pausa.pausada
+                                  or getattr(self.voz, "anunciando", False)):
+            libre()
         res = self.estimador.estimar(frame, t_ms)
         self.latencias.anota("pose", res.latencia_ms)
         lat = {"pose": res.latencia_ms}
