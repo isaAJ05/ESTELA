@@ -279,9 +279,6 @@ class EscuchaVoz:
             accion = "anterior"
         elif comando == cv.REINICIAR_EJERCICIO:
             accion = "reiniciar"
-        elif comando == cv.REPETIR:
-            # entre ejercicios se repite el que acaba de terminar; en pausa, el actual
-            accion = "anterior" if (colocando and not en_pausa and bool(s.entre_ejercicios)) else "reiniciar"
         else:
             accion = "terminar"
         activar_voz = comando == cv.VOZ_SI        # con la voz silenciada no se puede confirmar

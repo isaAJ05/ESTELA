@@ -1,7 +1,7 @@
 """Comandos de voz: de un texto reconocido a una orden de una lista cerrada.
 
 La usuaria puede mandar con la voz: pausa, seguir, siguiente, anterior,
-repetir, reiniciar el ejercicio o la sesión, activar o desactivar el
+reiniciar el ejercicio o la sesión, repetir el último aviso («repite eso»), activar o desactivar el
 reconocimiento y los ángulos, terminar y «¿cómo voy?». El reconocedor de voz
 (un adaptador) entrega texto; aquí se decide, **con reglas fijas y sin ningún
 modelo de lenguaje**, qué orden es. Si el texto no contiene ninguna orden, o
@@ -27,15 +27,15 @@ from typing import Dict, Optional, Tuple
 
 from ..dominio.feedback.verbalizador.validador import normalizar
 
-PAUSA, SEGUIR, SIGUIENTE, REPETIR, TERMINAR, COMO_VOY = (
-    "pausa", "seguir", "siguiente", "repetir", "terminar", "como_voy")
+PAUSA, SEGUIR, SIGUIENTE, TERMINAR, COMO_VOY = (
+    "pausa", "seguir", "siguiente", "terminar", "como_voy")
 ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION = (
     "anterior", "reiniciar_ejercicio", "reiniciar_sesion")
 RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO = (
     "reconocer_si", "reconocer_no", "angulos_si", "angulos_no")
 REPITE_ESO, VOZ_SI, VOZ_NO = "repite_eso", "voz_si", "voz_no"
 #: lista cerrada de órdenes
-COMANDOS: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, REPETIR, TERMINAR, COMO_VOY,
+COMANDOS: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, TERMINAR, COMO_VOY,
                              ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION,
                              RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO,
                              REPITE_ESO, VOZ_SI, VOZ_NO)
@@ -55,7 +55,6 @@ LEXICO: Dict[str, Tuple[str, ...]] = {
     SEGUIR: ("seguir", "sigue", "sigamos", "seguimos", "continuar", "continua",
              "continuemos", "reanudar", "reanuda"),
     SIGUIENTE: ("siguiente", "proximo", "saltar", "salta", "saltemos"),
-    REPETIR: ("repetir", "repite", "repitamos", "otra vez", "de nuevo"),
     TERMINAR: ("terminar", "termina", "terminemos", "terminamos", "acabar", "finalizar"),
     COMO_VOY: ("como voy", "como vamos", "como lo estoy haciendo", "que tal voy"),
     ANTERIOR: ("anterior", "ejercicio anterior", "regresar", "regresa", "vuelve al anterior"),
@@ -88,7 +87,6 @@ CONFIRMACION: Dict[str, str] = {
     PAUSA: "Pausa.",
     SEGUIR: "Seguimos.",
     SIGUIENTE: "Siguiente ejercicio.",
-    REPETIR: "Repetimos.",
     TERMINAR: "Terminamos.",
     COMO_VOY: "",                       # responde la entrenadora
     ANTERIOR: "Ejercicio anterior.",
@@ -222,7 +220,7 @@ def puede_escuchar(en_pausa: bool, colocando: bool, hablando: bool,
     return (siempre or en_pausa or colocando) and not hablando and not terminada
 
 
-__all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "REPETIR", "TERMINAR", "COMO_VOY",
+__all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "TERMINAR", "COMO_VOY",
            "ANTERIOR", "REINICIAR_EJERCICIO", "REINICIAR_SESION", "RECONOCER_SI",
            "RECONOCER_NO", "ANGULOS_SI", "ANGULOS_NO", "REPITE_ESO", "VOZ_SI", "VOZ_NO",
            "AJUSTES_DE_PANTALLA", "ORDENES_DE_AJUSTE", "NO_HAY_QUE_REPETIR", "frases_propias",

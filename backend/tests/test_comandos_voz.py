@@ -9,7 +9,6 @@ from estela.aplicacion import comandos_voz as cv
     ("pausa", cv.PAUSA), ("Pausa.", cv.PAUSA), ("¡Espera!", cv.PAUSA),
     ("seguir", cv.SEGUIR), ("Sigue.", cv.SEGUIR), ("Continúa", cv.SEGUIR),
     ("siguiente", cv.SIGUIENTE), ("El próximo.", cv.SIGUIENTE),
-    ("repetir", cv.REPETIR), ("Otra vez, por favor", cv.REPETIR),
     ("terminar", cv.TERMINAR), ("Quiero terminar ya", cv.TERMINAR),
     ("¿Cómo voy?", cv.COMO_VOY), ("como voy", cv.COMO_VOY), ("¿Cómo vamos?", cv.COMO_VOY),
 ])
@@ -26,7 +25,7 @@ def test_sin_orden_clara_se_pide_repetir_y_no_se_adivina(dicho):
 
 
 @pytest.mark.parametrize("dicho", ["pausa o siguiente", "sigue, no, mejor termina",
-                                   "repite el siguiente"])
+                                   "pausa y termina"])
 def test_dos_ordenes_distintas_son_ambiguas(dicho):
     i = cv.interpretar(dicho)
     assert (i.comando, i.motivo, i.pedir_repetir) == (None, cv.AMBIGUO, True)

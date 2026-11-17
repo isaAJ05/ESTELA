@@ -116,7 +116,7 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                      help="archivo JSONL de historial (p. ej. el de "
                           "scripts/historial_ejemplo.py) cuando no hay perfiles")
     p.add_argument("--voz-entrada", choices=("si", "no"),
-                   help="órdenes de voz (pausa, seguir, siguiente, anterior, repetir, "
+                   help="órdenes de voz (pausa, seguir, siguiente, anterior, "
                         "reiniciar ejercicio o sesión, reconocer y ángulos activado o "
                         "desactivado, terminar, ¿cómo voy?). Defecto: si en el Mac, no en los "
                         "demás equipos")

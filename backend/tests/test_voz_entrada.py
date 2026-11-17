@@ -123,9 +123,8 @@ def _escucha(texto, sesion, como_voy=None):
     ("Seguir", SesionFalsa(pausada=True), "reanudar"),
     ("Sigue", SesionFalsa(colocando=True), "listo"),
     ("Siguiente", SesionFalsa(pausada=True), "siguiente"),
-    ("Repetir", SesionFalsa(colocando=True, entre=True), "anterior"),     # el que acaba de terminar
-    ("Repetir", SesionFalsa(pausada=True), "reiniciar"),                  # el que está en curso
-    ("Repetir", SesionFalsa(colocando=True, entre=False), "reiniciar"),   # primer ejercicio
+    ("Anterior", SesionFalsa(colocando=True, entre=True), "anterior"),
+    ("Reinicia el ejercicio", SesionFalsa(pausada=True), "reiniciar"),
     ("Terminar", SesionFalsa(pausada=True), "terminar"),
 ])
 def test_cada_orden_llama_a_la_accion_de_los_botones(texto, sesion, accion):

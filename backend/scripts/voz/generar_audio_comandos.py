@@ -30,12 +30,11 @@ FS = 16000
 #: (frase, orden esperada o None, tipo)
 FRASES = [
     ("Pausa.", "pausa", "orden"), ("Seguir.", "seguir", "orden"),
-    ("Siguiente.", "siguiente", "orden"), ("Repetir.", "repetir", "orden"),
+    ("Siguiente.", "siguiente", "orden"),
     ("Terminar.", "terminar", "orden"), ("¿Cómo voy?", "como_voy", "orden"),
     ("Estela, pausa por favor.", "pausa", "orden_en_frase"),
     ("Sigue, por favor.", "seguir", "orden_en_frase"),
     ("Vamos con el siguiente.", "siguiente", "orden_en_frase"),
-    ("Otra vez.", "repetir", "orden_en_frase"),
     ("Quiero terminar.", "terminar", "orden_en_frase"),
     ("¿Cómo vamos?", "como_voy", "orden_en_frase"),
     ("Hola, buenos días.", None, "sin_orden"), ("Qué calor hace hoy.", None, "sin_orden"),

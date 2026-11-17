@@ -26,7 +26,7 @@ export interface Escucha {
   activa: boolean
   /** lo que se reconoció, tal cual */
   texto: string | null
-  /** la orden entendida: pausa, seguir, siguiente, anterior, repetir, terminar, como_voy… */
+  /** la orden entendida: pausa, seguir, siguiente, anterior, terminar, como_voy, repite_eso… */
   comando: string | null
   /** hubo palabras pero ninguna orden clara: se pidió repetir */
   noEntendi: boolean

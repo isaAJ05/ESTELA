@@ -47,7 +47,7 @@ def reconocedor():
 
 @pytest.mark.parametrize("archivo, orden", [
     ("pausa.wav", cv.PAUSA), ("seguir.wav", cv.SEGUIR), ("siguiente.wav", cv.SIGUIENTE),
-    ("repetir.wav", cv.REPETIR), ("terminar.wav", cv.TERMINAR), ("como_voy.wav", cv.COMO_VOY),
+    ("terminar.wav", cv.TERMINAR), ("como_voy.wav", cv.COMO_VOY),
 ])
 def test_cada_orden_hablada_se_corta_se_reconoce_y_se_entiende(reconocedor, archivo, orden):
     frases = frases_de(leer(archivo))

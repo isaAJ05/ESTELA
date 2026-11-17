@@ -70,11 +70,12 @@ def main(argv=None) -> int:
     reconocedor.precalentar()
     microfono = Microfono()
     if llamada:
-        print("Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, repetir, "
-              "reiniciar ejercicio, reiniciar sesión, reconocer o ángulos activado/desactivado, "
+        print("Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, "
+              "reiniciar ejercicio, reiniciar sesión, repite eso, reconocer, ángulos o voz "
+              "activado/desactivado, "
               "terminar o ¿cómo voy?  (Ctrl+C para salir)\n", flush=True)
     else:
-        print("Te escucho. Di: pausa, seguir, siguiente, repetir, terminar o ¿cómo voy?  "
+        print("Te escucho. Di: pausa, seguir, siguiente, terminar o ¿cómo voy?  "
               "(Ctrl+C para salir)\n", flush=True)
     fin = time.monotonic() + a.segundos if a.segundos > 0 else None
     n = 0

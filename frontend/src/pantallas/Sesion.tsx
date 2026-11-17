@@ -438,7 +438,7 @@ function GestoPausa() {
 }
 
 const ORDEN_DICHA: Record<string, string> = {
-  pausa: 'Pausa', seguir: 'Seguir', siguiente: 'Siguiente', repetir: 'Repetir',
+  pausa: 'Pausa', seguir: 'Seguir', siguiente: 'Siguiente',
   terminar: 'Terminar', como_voy: '¿Cómo voy?', anterior: 'Anterior',
   reiniciar_ejercicio: 'Reiniciar ejercicio', reiniciar_sesion: 'Reiniciar sesión',
   reconocer_si: 'Reconocer activado', reconocer_no: 'Reconocer desactivado',
@@ -464,8 +464,8 @@ function EscuchaVoz() {
         {entendido ? <>Entendí: <b>{entendido}</b></>
           : e.noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
           : e.activa && e.llamada
-            ? <>Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, reiniciar, terminar o ¿cómo voy?</>
-          : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, repetir, terminar o ¿cómo voy?</>
+            ? <>Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, reiniciar, repite eso, terminar o ¿cómo voy?</>
+          : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, terminar o ¿cómo voy?</>
           : <>{e.texto ? `«${e.texto}»` : ''}</>}
       </span>
     </div>

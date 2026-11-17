@@ -45,7 +45,7 @@ import numpy as np
 RAIZ = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(RAIZ))
 
-CLIPS = ("pausa.wav", "seguir.wav", "siguiente.wav", "repetir.wav", "terminar.wav", "como_voy.wav")
+CLIPS = ("pausa.wav", "seguir.wav", "siguiente.wav", "terminar.wav", "como_voy.wav")
 
 
 def _rutina(skill: str, catalogo) -> dict:

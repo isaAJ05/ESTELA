@@ -335,11 +335,13 @@ def test_sin_guarda_se_escucha_en_cuanto_calla_estela():
 
 # -- «repite eso», «voz activada/desactivada» y la precedencia de frases ----------------
 
-def test_repite_eso_no_se_confunde_con_repetir_pero_repetir_sigue_igual():
+def test_repetir_ya_no_es_una_orden_y_repite_eso_si():
     assert cv.interpretar("repite eso").comando == cv.REPITE_ESO
-    assert cv.interpretar("dilo otra vez").comando == cv.REPITE_ESO     # «otra vez» es de repetir
-    assert cv.interpretar("repite").comando == cv.REPETIR
-    assert cv.interpretar("otra vez").comando == cv.REPETIR
+    assert cv.interpretar("dilo otra vez").comando == cv.REPITE_ESO
+    # decidido por Paula (2026-11-16): «repetir» a secas se quitó; reiniciar tiene su orden
+    for dicho in ("repite", "repetir", "otra vez", "de nuevo"):
+        assert cv.interpretar(dicho).comando is None and cv.interpretar(dicho).pedir_repetir
+    assert cv.interpretar("reinicia el ejercicio").comando == cv.REINICIAR_EJERCICIO
     # dos órdenes distintas y sin relación de frase siguen siendo ambiguas
     assert cv.interpretar("repite eso y pausa").motivo == cv.AMBIGUO
 
