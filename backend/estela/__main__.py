@@ -125,6 +125,9 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                         "que empieza por «Estela» u «Oye Estela». pausa: solo en pausa y entre "
                         "ejercicios, y se interpreta todo. Defecto: llamada en el Mac, pausa en "
                         "los demás equipos")
+    p.add_argument("--guarda-eco", type=float, default=config.GUARDA_ECO_S, metavar="SEGUNDOS",
+                   help="tras callar ESTELA, segundos que la voz de entrada sigue sin escuchar, "
+                        f"para no captar su eco (defecto: {config.GUARDA_ECO_S:g}, sin calibrar)")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
     # Lo que no se pidió toma el valor del equipo: en el Mac va encendido lo
@@ -172,7 +175,7 @@ def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
             threading.Thread(target=reconocedor.precalentar, name="estela-voz-entrada-precalentado",
                              daemon=True).start()
             escucha = EscuchaVoz(Microfono(), reconocedor, voz, acciones, como_voy,
-                                 llamada=llamada)
+                                 llamada=llamada, guarda_eco_s=args.guarda_eco)
             log.info("Órdenes de voz: activas (%s); %s", ruta.name,
                      "también durante el ejercicio, di «Estela» y la orden" if llamada
                      else "se escucha en pausa y entre ejercicios")

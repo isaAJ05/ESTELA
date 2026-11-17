@@ -45,7 +45,7 @@ class EscuchaVoz:
     def __init__(self, microfono: Any, reconocedor: Any, voz: Voz,
                  acciones: Mapping[str, Callable[[], None]],
                  como_voy: Optional[Callable[[Any], Optional[str]]] = None,
-                 llamada: bool = False) -> None:
+                 llamada: bool = False, guarda_eco_s: float = 0.0) -> None:
         """`microfono`: `escuchar_frase(cancelar, espera_s)` y `descartar()`.
         `reconocedor`: `transcribir(audio) -> str`. `acciones`: funciones
         «pausar», «reanudar», «listo», «siguiente», «anterior», «reiniciar» y
@@ -62,6 +62,9 @@ class EscuchaVoz:
         self._ultimo: Dict[str, Any] = {"texto": None, "comando": None, "noEntendi": False, "t": 0.0}
         self._ult_repetir = 0.0
         self.llamada = llamada
+        #: tras callar ESTELA, estos segundos más se sigue tirando el audio (eco de su voz)
+        self.guarda_eco_s = max(0.0, float(guarda_eco_s))
+        self._ult_habla = float("-inf")
         #: tras decir solo «Estela», hasta cuándo (monotonic) la frase siguiente cuenta
         self._ventana_hasta = 0.0
         #: orden que espera un sí o un no, y hasta cuándo
@@ -133,9 +136,15 @@ class EscuchaVoz:
         p = self._sesion.paso_actual if self._sesion is not None else None
         return p is None or bool(p.pausa.pausada or p.colocando)
 
+    def _en_guarda_de_eco(self) -> bool:
+        """ESTELA habló hace menos de `guarda_eco_s`: lo que se capta aún puede ser su eco."""
+        if getattr(self.voz, "ocupada", False):
+            self._ult_habla = time.monotonic()
+        return self.guarda_eco_s > 0 and time.monotonic() - self._ult_habla < self.guarda_eco_s
+
     def _bucle(self) -> None:
         while not self._parar.is_set():
-            if not self._se_puede():
+            if not self._se_puede() or self._en_guarda_de_eco():
                 with self._cerrojo:
                     self._activa = False
                 self.microfono.descartar()

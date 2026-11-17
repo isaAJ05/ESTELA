@@ -42,6 +42,10 @@ ENTRENADORA_TIMEOUT_S = 5.0
 #: `[R]` «small»: en el Mac Studio reconoce una orden en p95 69 ms, con los
 #: mismos aciertos que «large-v3-turbo» (64 de 72; p95 172 ms) en la prueba sintética.
 VOZ_ENTRADA_MODELO = "small"
+#: Segundos que la escucha sigue tirando el audio después de que ESTELA calla, para
+#: no captar la cola de su propia voz. `[?]` En 0 (sin guarda) hasta calibrarlo con
+#: micrófono real: nunca se midió si ESTELA se oye a sí misma al callar.
+GUARDA_ECO_S = 0.0
 URL_WHISPER_CPP = "https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-{modelo}.bin"
 
 

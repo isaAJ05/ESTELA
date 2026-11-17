@@ -268,3 +268,62 @@ def test_la_pista_del_modo_llamada_nombra_a_estela_una_sola_vez():
     """Con «Estela» repetida en la pista, Whisper la escribió sobre ruido puro."""
     from estela.adaptadores.voz_entrada.reconocedor import PISTA, PISTA_LLAMADA
     assert PISTA_LLAMADA.lower().count("estela") == 1 and "estela" not in PISTA.lower()
+
+
+# -- guarda de eco ------------------------------------------------------------------
+
+class MicrofonoDeUnaFrase:
+    def __init__(self):
+        self.entregada, self.descartes = False, 0
+
+    def descartar(self):
+        self.descartes += 1
+
+    def escuchar_frase(self, cancelar, espera_s=1.0):
+        if cancelar():
+            return None
+        time.sleep(0.01)
+        if not self.entregada:
+            self.entregada = True
+            return AUDIO
+        return None
+
+
+def _hasta_que(condicion, plazo=3.0):
+    fin = time.monotonic() + plazo
+    while not condicion() and time.monotonic() < fin:
+        time.sleep(0.01)
+
+
+def test_la_guarda_de_eco_retrasa_la_escucha_tras_callar_estela():
+    voz, hechas, mic = VozFalsa(), [], MicrofonoDeUnaFrase()
+    voz.ocupada = True                                       # ESTELA habla
+    e = EscuchaVoz(mic, ReconocedorDeLista("Estela, pausa"), voz,
+                   {"pausar": lambda: hechas.append("pausar")}, llamada=True, guarda_eco_s=0.4)
+    e.conectar(SesionFalsa())
+    try:
+        time.sleep(0.2)
+        assert mic.entregada is False and mic.descartes > 0
+        voz.ocupada = False                                   # calla
+        t0 = time.monotonic()
+        time.sleep(0.15)
+        assert mic.entregada is False                         # aún en la guarda
+        _hasta_que(lambda: hechas)
+        assert hechas == ["pausar"] and time.monotonic() - t0 >= 0.25    # la guarda cuenta desde la última vez que se la oyó hablar
+    finally:
+        e.cerrar()
+
+
+def test_sin_guarda_se_escucha_en_cuanto_calla_estela():
+    voz, hechas, mic = VozFalsa(), [], MicrofonoDeUnaFrase()
+    voz.ocupada = True
+    e = EscuchaVoz(mic, ReconocedorDeLista("Estela, pausa"), voz,
+                   {"pausar": lambda: hechas.append("pausar")}, llamada=True)
+    e.conectar(SesionFalsa())
+    try:
+        time.sleep(0.15)
+        voz.ocupada = False
+        _hasta_que(lambda: hechas)
+        assert hechas == ["pausar"]
+    finally:
+        e.cerrar()
