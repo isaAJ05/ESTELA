@@ -1,8 +1,8 @@
-import { ArrowLeft, Check, Loader2, Pencil, Play, Plus, Save, Trash2 } from 'lucide-react'
+import { Check, Loader2, Pencil, Play, Plus, Save, Trash2 } from 'lucide-react'
 import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
 import type { PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { problemaNombreRutina } from '../estado/perfiles'
-import { Boton, plural } from './basicos'
+import { Boton, BotonVolver, plural } from './basicos'
 import { FiguraEjercicio, textoEstimado, textoObjetivo } from './rutina'
 
 /** Una tarjeta de «Mis rutinas». */
@@ -44,7 +44,7 @@ export function VistaRutinas({ tarjetas, lleno, maxRutinas, preparando, alVolver
   return (
     <section className="mis-rutinas">
       <div className="mis-rutinas-cabeza">
-        <button className="enlace-volver" onClick={alVolver}><ArrowLeft />Volver al inicio</button>
+        <BotonVolver onClick={alVolver} />
         <span className="etiqueta etiqueta-marca">Mis rutinas</span>
         <h1>Elige tu rutina</h1>
         <p className="elegir-ayuda">Empieza una directamente o edítala para cambiar sus ejercicios y objetivos.</p>

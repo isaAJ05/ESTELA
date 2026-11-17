@@ -2,7 +2,7 @@ import {
   AlertTriangle, Check, ChevronDown, ChevronUp, Clock, Dumbbell, Loader2, Minus, Play, Plus, Repeat2, RotateCcw, Timer, X,
 } from 'lucide-react'
 import { useEffect, useId, useState, type ReactNode } from 'react'
-import type { EjercicioCatalogo, PasoRutina } from '../bridge/tipos'
+import type { EjercicioCatalogo, GuiaMovimiento, PasoRutina, Punto } from '../bridge/tipos'
 import { Aviso, Boton, plural } from './basicos'
 import { Figura, textoVista } from './Figura'
 import { GuiaAnimada } from './VistaCamara'
@@ -28,6 +28,32 @@ export function FiguraEjercicio({ paso, tam = 44 }: { paso: Pick<PasoRutina, 'sk
   return paso.guia
     ? <GuiaAnimada puntos={paso.guia} ejercicioId={paso.skillId} animar={false} />
     : <Figura skillId={paso.skillId} tam={tam} resaltar={false} />
+}
+
+/**
+ * Postura de la referencia en cada instante mientras `activa`; null si no hay
+ * que animar. Interpola entre posturas: se ve fluida aunque la referencia
+ * esté grabada a pocos fps. Respeta «reducir movimiento» del sistema.
+ */
+function useMovimiento(guia: GuiaMovimiento | null | undefined, activa: boolean): Punto[] | null {
+  const [puntos, setPuntos] = useState<Punto[] | null>(null)
+  useEffect(() => {
+    const n = guia?.frames.length ?? 0
+    const quieto = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches
+    if (!activa || !guia || n < 2 || quieto) { setPuntos(null); return }
+    const t0 = performance.now()
+    let raf = 0
+    const avanzar = (ahora: number) => {
+      const pos = (Math.max(0, ahora - t0) / 1000) * guia.fps
+      const a = guia.frames[Math.floor(pos) % n], b = guia.frames[(Math.floor(pos) + 1) % n]
+      const f = pos - Math.floor(pos)
+      setPuntos(a.map((p, i) => [p[0] + (b[i][0] - p[0]) * f, p[1] + (b[i][1] - p[1]) * f, p[2]] as Punto))
+      raf = requestAnimationFrame(avanzar)
+    }
+    raf = requestAnimationFrame(avanzar)
+    return () => cancelAnimationFrame(raf)
+  }, [guia, activa])
+  return puntos
 }
 
 /**
@@ -93,12 +119,19 @@ export function TarjetaEjercicio({ ej, posicion, objetivo, alAlternar, alCambiar
 }) {
   const elegido = posicion !== null
   const Unidad = ej.unidad === 'segundos' ? Timer : Repeat2
+  // con el ratón (o el foco) sobre la figura, se ve una repetición en bucle
+  const [encima, setEncima] = useState(false)
+  const movimiento = useMovimiento(ej.guiaAnimada, encima)
   return (
     <article className={`tarjeta-ejercicio ${elegido ? 'elegida' : ''}`}>
       {/* la figura también añade o quita: es la zona grande de la tarjeta */}
       <button type="button" className="tarjeta-ejercicio-figura" onClick={alAlternar}
-              aria-pressed={elegido} aria-label={`${elegido ? 'Quitar' : 'Añadir'} ${ej.nombre}`}>
-        <FiguraEjercicio paso={ej} tam={88} />
+              aria-pressed={elegido} aria-label={`${elegido ? 'Quitar' : 'Añadir'} ${ej.nombre}`}
+              onMouseEnter={() => setEncima(true)} onMouseLeave={() => setEncima(false)}
+              onFocus={() => setEncima(true)} onBlur={() => setEncima(false)}>
+        {movimiento
+          ? <GuiaAnimada puntos={movimiento} ejercicioId={ej.skillId} animar={false} />
+          : <FiguraEjercicio paso={ej} tam={88} />}
         <span className="tarjeta-ejercicio-vista">{textoVista(ej.orientacion)}</span>
       </button>
 

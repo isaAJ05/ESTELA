@@ -37,6 +37,17 @@
 .enlace-editar:hover svg { transform: translateX(3px); }
 .enlace-volver:hover svg { transform: translateX(-3px); }
 .enlace-quitar { color: var(--color-texto-sutil); font-size: 0.875rem; }
+/* volver: solo la flecha, dentro de un círculo (a dónde vuelve va en el tooltip) */
+.boton-volver {
+  display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0;
+  border: 1px solid var(--color-borde); border-radius: 50%;
+  background: var(--color-cristal); color: var(--color-violeta-suave); cursor: pointer;
+  transition: color var(--duracion-corta), border-color var(--duracion-corta), background var(--duracion-corta);
+}
+.boton-volver svg { width: 1.25rem; height: 1.25rem; transition: transform var(--duracion-corta); }
+.boton-volver:hover { border-color: var(--color-violeta); background: rgba(128, 107, 255, 0.14); color: var(--color-texto); }
+.boton-volver:hover svg { transform: translateX(-2px); }
+.boton-volver:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 2px; }
 .enlace-quitar:hover { color: var(--color-peligro); }
 
 /* -- elegir la rutina ------------------------------------------------------ */
@@ -294,6 +305,24 @@
 }
 .tarjeta-mi-rutina.en-uso .tarjeta-mi-rutina-cifras { border-color: rgba(128, 107, 255, 0.4); color: var(--color-texto); }
 
+/* Tema claro: el velo oscuro (`--color-hundido`) con el brillo encima daba un
+   gris sucio. Aquí la zona de figuras va en lila limpio sobre blanco, con el
+   brillo más contenido, y lo mismo en las tarjetas de «Personaliza tu rutina». */
+[data-tema="claro"] .tarjeta-mi-rutina-figuras,
+[data-tema="claro"] .tarjeta-ejercicio-figura {
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, #f3efff, #e9e3ff);
+}
+[data-tema="claro"] .tarjeta-mi-rutina-figuras:hover:not(:disabled),
+[data-tema="claro"] .tarjeta-ejercicio-figura:hover {
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #ece6ff, #dfd7ff);
+}
+[data-tema="claro"] .tarjeta-mi-rutina.en-uso .tarjeta-mi-rutina-figuras,
+[data-tema="claro"] .tarjeta-ejercicio.elegida .tarjeta-ejercicio-figura {
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, #e7e0ff, #d9cfff);
+}
+[data-tema="claro"] .tarjeta-mi-rutina-mini { background: rgba(255, 255, 255, 0.7); box-shadow: 0 0 0 1px rgba(106, 85, 232, 0.14); }
+[data-tema="claro"] .tarjeta-mi-rutina-mas { background: rgba(255, 255, 255, 0.7); }
+
 /* nombre, ejercicios y botones */
 .tarjeta-mi-rutina-info { display: flex; flex: 1; flex-direction: column; gap: var(--espacio-2); min-width: 0; padding: var(--espacio-4); }
 .tarjeta-mi-rutina-cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2); min-height: 2rem; }
@@ -411,7 +440,7 @@
 .boton-icono:hover { border-color: var(--color-violeta); color: var(--color-texto); }
 .boton-icono svg { width: 1.125rem; height: 1.125rem; }
 
-.panel-ajustes { display: grid; gap: var(--espacio-2); width: min(34rem, 100%); }
+.panel-ajustes { display: grid; gap: var(--espacio-2); width: min(34rem, 100%); max-height: 100%; overflow-y: auto; }
 .panel-ajustes-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-2); }
 .panel-ajustes-cabeza h2 { font-size: 1.75rem; }
 .opcion-ajuste {
@@ -423,7 +452,33 @@
 .segmentos button { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.5rem 0.875rem; font-size: 0.9375rem; }
 .segmentos svg { width: 1rem; height: 1rem; }
 .segmentos { flex-wrap: wrap; }
-.opcion-ajuste .camara-unica { display: inline-flex; align-items: center; gap: 0.375rem; max-width: none; color: var(--color-texto); font-size: 0.9375rem; }
+/* cámara: cabecera con el botón de cargar; debajo, elegir y la vista previa */
+.opcion-camara { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espacio-3); }
+.opcion-camara-cabeza { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--espacio-3) var(--espacio-5); }
+.opcion-camara .boton { min-height: 2.5rem; padding: 0 0.875rem; font-size: 0.9375rem; }
+.opcion-camara-fila { display: flex; align-items: center; flex-wrap: wrap; gap: var(--espacio-2) var(--espacio-3); }
+.opcion-camara-fila .camara-unica, .selector-dispositivo { flex: 1 1 12rem; min-width: 0; }
+.selector-dispositivo {
+  min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid var(--color-borde); border-radius: var(--radio-md);
+  background: var(--color-superficie); color: var(--color-texto); font: inherit; font-size: 0.9375rem; cursor: pointer;
+}
+.selector-dispositivo:focus-visible { outline: none; border-color: var(--color-violeta); box-shadow: 0 0 0 3px rgba(128, 107, 255, 0.25); }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.vista-previa-camara { display: grid; gap: var(--espacio-2); margin: 0; }
+/* siempre oscuro, como el escenario de la sesión */
+.vista-previa-camara-marco {
+  display: grid; place-items: center; aspect-ratio: 16 / 9; overflow: hidden;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-md); background: #0e0d16;
+}
+.vista-previa-camara img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.vista-previa-camara img.espejo { transform: scaleX(-1); }
+.vista-previa-camara-marco p {
+  display: flex; align-items: center; gap: var(--espacio-2); max-width: 22rem; padding: var(--espacio-4);
+  color: #b7b0c9; font-size: 0.875rem; text-align: left;
+}
+.vista-previa-camara-marco svg { flex: none; width: 1.125rem; height: 1.125rem; }
+.vista-previa-camara figcaption { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.opcion-ajuste .camara-unica { display: inline-flex; align-items: center; gap: 0.375rem; max-width: none; margin: 0; color: var(--color-texto); font-size: 0.9375rem; }
 .camara-unica svg { width: 1rem; height: 1rem; }
 
 /* Micrófono: entrada, nivel y prueba, debajo de su interruptor */

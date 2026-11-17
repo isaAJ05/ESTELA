@@ -1,6 +1,6 @@
 # Esquema de un archivo de `skill`
 
-Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un ejercicio es añadir un archivo `.json` en este directorio; no se modifica el motor.
+Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un ejercicio es añadir un archivo `.json` en este directorio; no se modifica el motor. Tampoco los scripts de referencias ni la interfaz: las medidas y los vídeos de sus referencias se declaran aquí (`medidas_referencia`, `videos_reconocimiento`) y la figura guía se dibuja con los puntos de su referencia (`keypoints_2d`). Solo hace falta código si el ejercicio necesita una medida que `motor/geometria.py` aún no calcula.
 
 El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archivo mal formado no se carga a medias.
 
@@ -18,6 +18,8 @@ Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abducc
   "version": "0.1.0",
   "estado": "candidato",             // candidato | candidato_en_duda | adoptado | descartado
   "clase_reconocimiento": "sentadilla", // opcional: clase con que la sesión reconoce «¿es este ejercicio?» (EXP-010); los dos lados de un ejercicio comparten clase. Sin el campo, no se reconoce
+  "medidas_referencia": ["rodilla_media", "tronco_inclinacion"], // opcional: medidas que guarda su referencia; las lee `scripts/crear_referencia.py`. Sin el campo, no se le puede crear referencia
+  "videos_reconocimiento": ["sentadilla 1.mp4"], // opcional: vídeos correctos de donde salen sus referencias de reconocimiento; los lee `scripts/crear_referencias_reconocimiento.py`. Un vídeo sin lado conocido se declara en los dos skills
   "notas": "…",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital", // frontal | sagital | transversal | cualquiera

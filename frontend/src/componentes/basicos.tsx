@@ -1,3 +1,4 @@
+import { ArrowLeft } from 'lucide-react'
 import type { ReactNode } from 'react'
 
 /**
@@ -34,6 +35,15 @@ export function Boton({ children, variante = 'primario', onClick, disabled, ataj
     <button type={type} className={`boton boton-${variante}`} onClick={onClick} disabled={disabled}
             aria-keyshortcuts={atajo} {...resto}>
       {children}
+    </button>
+  )
+}
+
+/** Volver: solo la flecha dentro de un círculo; a dónde vuelve va en el tooltip y el nombre accesible. */
+export function BotonVolver({ onClick, etiqueta = 'Volver al inicio' }: { onClick: () => void; etiqueta?: string }) {
+  return (
+    <button type="button" className="boton-volver" onClick={onClick} title={etiqueta} aria-label={etiqueta}>
+      <ArrowLeft />
     </button>
   )
 }

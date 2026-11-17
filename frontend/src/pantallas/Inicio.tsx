@@ -1,8 +1,8 @@
-import { AlertTriangle, ArrowLeft, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
+import { AlertTriangle, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
-import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
+import { Aviso, Boton, BotonVolver, Marca, plural } from '../componentes/basicos'
 import { Estrella } from '../componentes/Estrella'
 import { textoVista } from '../componentes/Figura'
 import { GuardarRutina, VistaRutinas, type DatosTarjetaRutina } from '../componentes/misRutinas'
@@ -282,13 +282,9 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
         <section className="elegir-cuerpo">
           <div className="elegir-catalogo">
             {conTarjetas ? (
-              <button className="enlace-volver" onClick={() => setEditando(false)}>
-                <ArrowLeft />Volver a mis rutinas
-              </button>
+              <BotonVolver onClick={() => setEditando(false)} etiqueta="Volver a mis rutinas" />
             ) : (
-              <button className="enlace-volver" onClick={() => setSeccion('bienvenida')}>
-                <ArrowLeft />Volver al inicio
-              </button>
+              <BotonVolver onClick={() => setSeccion('bienvenida')} />
             )}
             <span className="etiqueta etiqueta-marca">Paso 1 · Elige y ajusta</span>
             <h1>Personaliza tu rutina</h1>

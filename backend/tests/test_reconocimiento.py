@@ -129,6 +129,19 @@ def test_la_clase_sale_del_skill_y_tiene_referencias():
             assert R.reconocedor_para(clase) is not None, sid
 
 
+def test_medidas_y_videos_de_las_referencias_salen_del_skill():
+    """Los scripts de referencias no listan ejercicios: los leen del skill.
+    Lo declarado coincide con las referencias que hay en el repositorio."""
+    from estela.aplicacion.rutina import cargar_catalogo
+    catalogo = cargar_catalogo()
+    for sid, ej in catalogo.items():
+        if ej.referencia:
+            assert list(ej.medidas_referencia) == ej.referencia["medidas"], sid
+    fuentes = json.loads(R.ruta_por_defecto().read_text(encoding="utf-8"))["fuentes"]
+    for f in fuentes:
+        assert f["video"] in catalogo[f["skill"]].videos_reconocimiento, f["video"]
+
+
 def test_subsecuencia_vectorizada_igual_que_el_bucle():
     """La columna sin bucle da lo mismo que la recurrencia de EXP-010."""
     rng = np.random.default_rng(0)

@@ -37,6 +37,11 @@ class Ejercicio:
     umbrales: str = "absolutos"
     #: frase corta para la usuaria (campo opcional `descripcion` del skill)
     descripcion: Optional[str] = None
+    #: medidas que guarda su referencia (`scripts/crear_referencia.py`)
+    medidas_referencia: Tuple[str, ...] = ()
+    #: vídeos correctos de donde salen sus referencias de reconocimiento
+    #: (`scripts/crear_referencias_reconocimiento.py`)
+    videos_reconocimiento: Tuple[str, ...] = ()
 
     @property
     def soportado(self) -> bool:
@@ -78,7 +83,9 @@ def cargar_catalogo(directorio: Optional[Union[str, Path]] = None,
         if umbrales == "referencia":
             skill = con_umbrales_de_referencia(skill, referencia)
         ej = Ejercicio(skill, d.get("segmentacion"), referencia, umbrales,
-                       d.get("descripcion"))
+                       d.get("descripcion"),
+                       tuple(d.get("medidas_referencia", ())),
+                       tuple(d.get("videos_reconocimiento", ())))
         if ej.soportado:
             ej.nuevo_segmentador()            # valida la configuración ya
         catalogo[ej.skill.skill_id] = ej

@@ -53,6 +53,10 @@ INICIO, PREPARANDO, SESION, RESUMEN, ERROR = (
 #: ancho del frame que se envía a la ventana (solo para verlo)
 ANCHO_VIDEO = 640
 CALIDAD_JPEG = 70
+#: vista previa de la cámara en los ajustes: más pequeña, y se cierra sola
+#: si la interfaz deja de pedirla (p. ej. se cerró el panel sin avisar)
+ANCHO_VISTA = 480
+VISTA_INACTIVA_S = 3.0
 
 
 def _jpeg_base64(frame: Any, ancho: int = ANCHO_VIDEO) -> Optional[str]:
@@ -79,6 +83,8 @@ class Orquestador:
                  reconocer: bool = False,
                  camara: Optional[int] = None,
                  listar_camaras: Optional[Callable[[], List[Dict[str, Any]]]] = None,
+                 abrir_camara: Optional[Callable[[int], Fuente]] = None,
+                 perfiles: Optional[Perfiles] = None) -> None:
                  perfiles: Optional[Perfiles] = None,
                  preparar_sesion: Optional[Callable[[Sesion], None]] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
@@ -88,6 +94,8 @@ class Orquestador:
         `camara` es el índice que `abrir_fuente` debe usar (lo lee de
         `self.camara`); la interfaz lo cambia con `configurar` entre sesiones.
         Sin `listar_camaras` (p. ej. con un vídeo) no se puede elegir.
+        `abrir_camara(indice)` abre una cámara solo para verla desde los
+        ajustes (`vista_camara`); sin ella no hay vista previa.
 
         `perfiles`: perfiles y sus historiales (None: no se guarda nada ni
         se ofrecen perfiles ni panel de progreso)."""
@@ -118,6 +126,14 @@ class Orquestador:
         #: cámara de la próxima sesión; la interfaz la cambia con `configurar`
         self.camara = camara
         self._listar_camaras = listar_camaras
+        self._abrir_camara = abrir_camara
+        #: cámara abierta para la vista previa de los ajustes (fuera de sesión)
+        self._vista: Optional[Fuente] = None
+        self._vista_indice: Optional[int] = None
+        self._vista_lock = threading.Lock()
+        self._vista_reloj: Optional[threading.Timer] = None
+        #: sube con cada frame pedido: distingue el último reloj de los viejos
+        self._vista_turno = 0
         #: voz de entrada (`EscuchaVoz`) y cómo listar los micrófonos; los pone
         #: quien arranca la aplicación con `conectar_voz_entrada`
         self._voz_entrada: Any = None
@@ -171,7 +187,67 @@ class Orquestador:
         elegir (vídeo) o hay una sesión usando la cámara."""
         if self._listar_camaras is None or self._fase in (PREPARANDO, SESION):
             return None
+        # listar abre cada cámara: la de la vista previa tiene que estar libre
+        self.cerrar_vista_camara()
         return {"lista": self._listar_camaras(), "elegida": self.camara}
+
+    def vista_camara(self) -> Optional[str]:
+        """Último frame de la cámara elegida, en JPEG base64, para comprobarla
+        desde los ajustes. La abre en la primera llamada y la mantiene abierta
+        mientras se siga pidiendo; None si no hay vista previa, hay una sesión
+        o la cámara no abre. El frame no se guarda ni pasa por el estimador."""
+        if self._abrir_camara is None:
+            return None
+        with self._vista_lock:
+            if self._fase in (PREPARANDO, SESION):
+                self._soltar_vista()
+                return None
+            indice = self.camara if self.camara is not None else 0
+            if self._vista is None or self._vista_indice != indice:
+                self._soltar_vista()
+                try:
+                    self._vista = self._abrir_camara(indice)
+                except Exception as e:             # ocupada, desconectada…
+                    log.warning("No se pudo abrir la cámara %s para la vista previa: %s",
+                                indice, e)
+                    return None
+                self._vista_indice = indice
+            leido = self._vista.leer()
+            if leido is None:
+                self._soltar_vista()
+                return None
+            self._vista_turno += 1
+            if self._vista_reloj is not None:
+                self._vista_reloj.cancel()
+            self._vista_reloj = threading.Timer(VISTA_INACTIVA_S, self._caducar_vista,
+                                                args=(self._vista_turno,))
+            self._vista_reloj.daemon = True
+            self._vista_reloj.start()
+            return _jpeg_base64(leido[0], ANCHO_VISTA)
+
+    def _caducar_vista(self, turno: int) -> None:
+        with self._vista_lock:
+            # un reloj viejo que esperaba el candado no cierra una vista que
+            # se volvió a pedir después
+            if turno == self._vista_turno:
+                self._soltar_vista()
+
+    def cerrar_vista_camara(self) -> None:
+        """Suelta la cámara de la vista previa (si estaba abierta)."""
+        with self._vista_lock:
+            self._soltar_vista()
+
+    def _soltar_vista(self) -> None:
+        # con `_vista_lock` tomado
+        if self._vista_reloj is not None:
+            self._vista_reloj.cancel()
+            self._vista_reloj = None
+        if self._vista is not None:
+            try:
+                self._vista.cerrar()
+            except Exception:
+                log.exception("Error al cerrar la vista previa de la cámara")
+            self._vista, self._vista_indice = None, None
 
     def historial(self, hoy: Optional[date] = None) -> Optional[Dict[str, Any]]:
         """Panel «Mi progreso» del perfil activo, o None (sin perfiles o invitada)."""
@@ -338,6 +414,9 @@ class Orquestador:
                 self._comandos.get_nowait()
             self._publicar(fase=PREPARANDO, error=None, estado=None, frame=None,
                            resumen=None)
+            # la sesión necesita la cámara libre; con la fase ya cambiada,
+            # `vista_camara` no vuelve a abrirla
+            self.cerrar_vista_camara()
             self._hilo = threading.Thread(target=self._correr, name="estela-sesion",
                                           daemon=True)
             self._hilo.start()
@@ -413,6 +492,7 @@ class Orquestador:
 
     def cerrar(self, timeout: float = 5.0) -> None:
         self._parar.set()
+        self.cerrar_vista_camara()
         if self._hilo is not None:
             self._hilo.join(timeout)
 

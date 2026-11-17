@@ -180,7 +180,7 @@
   border: 1px solid var(--color-borde); border-radius: var(--radio-lg);
   background: linear-gradient(160deg, var(--color-superficie-elevada), var(--color-superficie));
 }
-.panel-nombre { margin: 0.5rem 0 0.75rem; font-size: clamp(1.625rem, 2.3vw, 2.5rem); }
+.panel-nombre { margin: 0.5rem 0 0.75rem; font-size: clamp(1.375rem, min(2.3vw, 3.6vh), 2.5rem); }
 .panel-detalles { display: grid; gap: 0.25rem; color: var(--color-texto-suave); font-size: 1.0625rem; }
 .panel-detalles:empty { display: none; }
 .panel-guia { flex: 1; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: var(--espacio-2); margin: 0; padding: var(--espacio-3); border-radius: var(--radio-md); background: var(--color-hundido); }
@@ -199,24 +199,24 @@
 .contador { display: grid; gap: 0.25rem; }
 .contador-cifras { display: flex; align-items: baseline; gap: 0.625rem; }
 .contador-cifras strong {
-  font-size: clamp(6rem, 10.5vw, 11rem); font-weight: 650; line-height: 0.85; letter-spacing: -0.07em;
+  font-size: clamp(4rem, min(10.5vw, 12vh), 11rem); font-weight: 650; line-height: 0.85; letter-spacing: -0.07em;
   font-variant-numeric: tabular-nums;
 }
 .contador-cifras strong.destello { animation: destello 0.8s ease; }
-.contador-cifras span { color: var(--color-texto-suave); font-size: clamp(1.75rem, 2.6vw, 2.75rem); font-weight: 600; font-variant-numeric: tabular-nums; }
+.contador-cifras span { color: var(--color-texto-suave); font-size: clamp(1.5rem, min(2.6vw, 4vh), 2.75rem); font-weight: 600; font-variant-numeric: tabular-nums; }
 .contador-unidad { color: var(--color-texto-sutil); font-size: 0.9375rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .barra { height: 0.5rem; margin-top: var(--espacio-2); overflow: hidden; border-radius: var(--radio-pildora); background: var(--color-relleno-fuerte); }
 .barra i { display: block; height: 100%; border-radius: inherit; background: var(--color-violeta); transition: width var(--duracion-media); }
 @keyframes destello { 0%, 100% { transform: scale(1); color: var(--color-texto); } 40% { transform: scale(1.06); color: var(--color-amarillo); } }
 .contador-cifras strong { transform-origin: left bottom; }
 
-.temporizador { position: relative; width: clamp(11.875rem, 17vw, 17.5rem); aspect-ratio: 1; align-self: center; }
+.temporizador { position: relative; width: clamp(7.5rem, min(17vw, 22vh), 17.5rem); aspect-ratio: 1; align-self: center; }
 .temporizador svg { width: 100%; height: 100%; transform: rotate(-90deg); }
 .temporizador circle { fill: none; stroke-width: 9; }
 .temporizador-fondo { stroke: var(--color-relleno-fuerte); }
 .temporizador-avance { stroke: var(--color-violeta); stroke-linecap: round; transition: stroke-dashoffset var(--duracion-media); filter: drop-shadow(0 0 0.5rem rgba(128, 107, 255, 0.5)); }
 .temporizador-cifras { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; }
-.temporizador-cifras strong { font-size: clamp(4rem, 6vw, 6.5rem); font-weight: 650; line-height: 0.9; letter-spacing: -0.06em; font-variant-numeric: tabular-nums; }
+.temporizador-cifras strong { font-size: clamp(2.75rem, min(6vw, 7vh), 6.5rem); font-weight: 650; line-height: 0.9; letter-spacing: -0.06em; font-variant-numeric: tabular-nums; }
 .temporizador-cifras span { color: var(--color-texto-suave); font-size: 1.25rem; }
 
 .capa-pausa {
@@ -333,6 +333,22 @@ button.fila-resumen-cabeza:not(:disabled):hover { background: var(--color-rellen
 .panel-tecnico table { width: 100%; border-collapse: collapse; }
 .panel-tecnico th { color: var(--color-texto-sutil); font-weight: 500; text-align: left; }
 .panel-tecnico th, .panel-tecnico td { padding: 0.375rem 0.5rem; border-bottom: 1px solid var(--color-linea); }
+
+/* -- alto de la ventana ----------------------------------------------------- */
+/* El panel de la sesión apila nombre, contador, estado, guía y «a continuación»
+   en una columna de alto fijo, y la figura guía se queda con lo que sobra. Por
+   eso el contador, el temporizador y el nombre crecen con el ancho (vw) pero
+   topados por el alto (vh): en portátiles o con el escalado de Windows al
+   125–150 % la ventana es baja y, si solo siguieran al ancho, la figura casi
+   desaparecería. En ventanas bajas también se aprietan márgenes y separaciones. */
+.panel-guia .guia-animada { min-height: 0; }   /* se ajusta a la caja en vez de imponer 14rem y quedar recortada */
+@media (max-height: 900px) {
+  .panel-ejercicio { gap: clamp(0.5rem, 1.8vh, 1rem); padding: clamp(0.875rem, 2vh, 1.25rem) 1.25rem; }
+  .panel-nombre { margin: 0.25rem 0 0.375rem; line-height: 1.1; }
+  .barra { margin-top: var(--espacio-1); }
+  .temporizador-cifras span { font-size: 1rem; }
+  .panel-guia { padding: var(--espacio-2); padding-top: var(--espacio-4); }
+}
 
 /* -- pantallas estrechas ---------------------------------------------------- */
 @media (max-width: 1100px) {
