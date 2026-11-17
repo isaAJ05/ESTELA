@@ -329,7 +329,7 @@ class TestDefectosSegunElEquipo(unittest.TestCase):
         for en_mac in (False, True):
             d = config.defectos(en_mac)
             self.assertEqual(sorted(d), ["delegado", "entrenadora", "modelo", "verbalizador",
-                                         "voz_entrada"])
+                                         "voz_entrada", "voz_entrada_modo"])
             argv = [x for k, v in d.items() for x in (f"--{k.replace('_', '-')}", v)]
             a = self._args(argv, en_mac=not en_mac)
             self.assertEqual({k: getattr(a, k) for k in d}, d)

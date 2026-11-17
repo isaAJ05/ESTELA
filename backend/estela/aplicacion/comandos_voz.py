@@ -1,13 +1,20 @@
 """Comandos de voz: de un texto reconocido a una orden de una lista cerrada.
 
-La usuaria puede mandar con la voz seis cosas: pausa, seguir, siguiente,
-repetir, terminar y «¿cómo voy?». El reconocedor de voz (un adaptador) entrega
-texto; aquí se decide, **con reglas fijas y sin ningún modelo de lenguaje**,
-qué orden es. Si el texto no contiene ninguna orden, o contiene dos distintas,
-no se adivina: se pide repetir.
+La usuaria puede mandar con la voz: pausa, seguir, siguiente, anterior,
+repetir, reiniciar el ejercicio o la sesión, activar o desactivar el
+reconocimiento y los ángulos, terminar y «¿cómo voy?». El reconocedor de voz
+(un adaptador) entrega texto; aquí se decide, **con reglas fijas y sin ningún
+modelo de lenguaje**, qué orden es. Si el texto no contiene ninguna orden, o
+contiene dos distintas, no se adivina: se pide repetir.
 
-Primera versión: solo se escucha en pausas y entre ejercicios, y nunca
-mientras ESTELA habla, para que no se oiga a sí misma (`puede_escuchar`).
+Dos modos de escucha (`puede_escuchar`), y nunca mientras ESTELA habla, para
+que no se oiga a sí misma:
+- «pausa» (primera versión): solo en pausas y entre ejercicios; todo lo que
+  se oye se interpreta.
+- «llamada» (estilo asistente de voz): también durante el ejercicio, pero una
+  frase solo cuenta si empieza por «Estela» o «Oye Estela» (`separar_llamada`).
+  Lo demás se ignora en silencio, para que hablar de otras cosas no genere
+  «no te entendí».
 
 Capa de aplicación: no importa micrófono ni reconocedor.
 """
@@ -22,8 +29,16 @@ from ..dominio.feedback.verbalizador.validador import normalizar
 
 PAUSA, SEGUIR, SIGUIENTE, REPETIR, TERMINAR, COMO_VOY = (
     "pausa", "seguir", "siguiente", "repetir", "terminar", "como_voy")
+ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION = (
+    "anterior", "reiniciar_ejercicio", "reiniciar_sesion")
+RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO = (
+    "reconocer_si", "reconocer_no", "angulos_si", "angulos_no")
 #: lista cerrada de órdenes
-COMANDOS: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, REPETIR, TERMINAR, COMO_VOY)
+COMANDOS: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, REPETIR, TERMINAR, COMO_VOY,
+                             ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION,
+                             RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO)
+#: órdenes que cambian la pantalla o un ajuste, no el curso de la rutina
+ORDENES_DE_AJUSTE: Tuple[str, ...] = (RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO)
 
 #: Formas de decir cada orden, sin tildes y en minúsculas. Se buscan como
 #: palabras enteras. `[R]` Léxico corto a propósito: cada forma nueva es una
@@ -36,6 +51,24 @@ LEXICO: Dict[str, Tuple[str, ...]] = {
     REPETIR: ("repetir", "repite", "repitamos", "otra vez", "de nuevo"),
     TERMINAR: ("terminar", "termina", "terminemos", "terminamos", "acabar", "finalizar"),
     COMO_VOY: ("como voy", "como vamos", "como lo estoy haciendo", "que tal voy"),
+    ANTERIOR: ("anterior", "ejercicio anterior", "regresar", "regresa", "vuelve al anterior"),
+    REINICIAR_EJERCICIO: ("reiniciar ejercicio", "reinicia ejercicio", "reiniciar el ejercicio",
+                          "reinicia el ejercicio"),
+    REINICIAR_SESION: ("reiniciar sesion", "reinicia sesion", "reiniciar la sesion",
+                       "reinicia la sesion", "reiniciar rutina", "reinicia la rutina",
+                       "reiniciar la rutina"),
+    RECONOCER_SI: ("reconocer activado", "reconocer encendido", "activar reconocer",
+                   "activa reconocer", "reconocimiento activado", "activar el reconocimiento",
+                   "activa el reconocimiento"),
+    RECONOCER_NO: ("reconocer desactivado", "reconocer apagado", "desactivar reconocer",
+                   "desactiva reconocer", "reconocimiento desactivado",
+                   "desactivar el reconocimiento", "desactiva el reconocimiento"),
+    ANGULOS_SI: ("angulos activado", "angulos activados", "activar angulos", "activa angulos",
+                 "activar los angulos", "activa los angulos", "muestra los angulos",
+                 "mostrar angulos", "muestra angulos"),
+    ANGULOS_NO: ("angulos desactivado", "angulos desactivados", "desactivar angulos",
+                 "desactiva angulos", "desactivar los angulos", "desactiva los angulos",
+                 "oculta los angulos", "ocultar angulos", "oculta angulos"),
 }
 
 #: lo que ESTELA dice al confirmar cada orden (texto fijo)
@@ -46,12 +79,42 @@ CONFIRMACION: Dict[str, str] = {
     REPETIR: "Repetimos.",
     TERMINAR: "Terminamos.",
     COMO_VOY: "",                       # responde la entrenadora
+    ANTERIOR: "Ejercicio anterior.",
+    REINICIAR_EJERCICIO: "Reiniciamos el ejercicio.",
+    REINICIAR_SESION: "",               # antes pide confirmación (`PREGUNTA_REINICIAR`)
+    RECONOCER_SI: "Reconocimiento activado.",
+    RECONOCER_NO: "Reconocimiento desactivado.",
+    ANGULOS_SI: "Ángulos activados.",
+    ANGULOS_NO: "Ángulos desactivados.",
 }
+#: reiniciar toda la sesión borra el avance: se pide confirmación (texto fijo)
+PREGUNTA_REINICIAR = "¿Reinicio toda la sesión? Di: Estela, sí."
+CONFIRMA_REINICIAR = "Reiniciamos la sesión."
 #: lo que se dice cuando hubo palabras pero ninguna orden clara (texto fijo)
 NO_ENTENDI = "No te entendí. Repite, por favor."
 
-#: motivos de `Interpretacion.motivo`
+#: motivos de `Interpretacion.motivo`. `SIN_LLAMADA`: modo «llamada» y la frase
+#: no empezaba por «Estela»; se ignora sin decir nada.
 ENTENDIDO, VACIO, SIN_COMANDO, AMBIGUO = "entendido", "vacio", "sin_comando", "ambiguo"
+SIN_LLAMADA = "sin_llamada"
+#: dijo solo «Estela»: la frase siguiente cuenta como orden
+SOLO_LLAMADA = "solo_llamada"
+
+#: Cómo puede escribir el reconocedor «Estela». `[F]` «Stella» y «Estila» salieron
+#: en la prueba con voces sintéticas del Mac (2 de 26 llamadas, 2026-11-16).
+#: `[?]` Sin calibrar con la voz de Paula y el micrófono real; ampliar con lo
+#: que se oiga en las pruebas.
+LLAMADAS: Tuple[str, ...] = ("estela", "estella", "estel", "stela", "stella", "estila",
+                             "esthela")
+#: palabras que pueden ir antes: «Oye Estela»
+_ANTES_DE_LLAMAR: Tuple[str, ...] = ("oye", "hey", "ey")
+#: segundos que, tras decir solo «Estela», la siguiente frase cuenta como orden
+VENTANA_LLAMADA_S = 6.0
+#: segundos para confirmar una pregunta («¿Reinicio toda la sesión?»); incluyen lo
+#: que tarda ESTELA en hacerla, porque mientras habla no escucha
+VENTANA_CONFIRMACION_S = 12.0
+_SI = ("si", "confirmo", "confirmar", "dale", "hazlo", "adelante")
+_NO = ("no", "cancela", "cancelar", "mejor no", "olvidalo")
 
 #: Whisper, ante silencio o ruido, a veces escribe frases que nadie dijo. Estas
 #: se tratan como silencio para no pedir repetir sin motivo. `[I]` Lista
@@ -77,7 +140,9 @@ class Interpretacion:
 
 def _limpiar(texto: Optional[str]) -> str:
     t = normalizar(texto or "")
-    return re.sub(r"\s+", " ", re.sub(r"[^a-zñ0-9 ]", " ", t)).strip()
+    t = re.sub(r"\s+", " ", re.sub(r"[^a-zñ0-9 ]", " ", t)).strip()
+    # `[F]` con la voz Mónica, Whisper escribió «águlos» por «ángulos»
+    return re.sub(r"\bagulos\b", "angulos", t)
 
 
 def interpretar(texto: Optional[str]) -> Interpretacion:
@@ -93,13 +158,42 @@ def interpretar(texto: Optional[str]) -> Interpretacion:
     return Interpretacion(None, AMBIGUO if halladas else SIN_COMANDO, t)
 
 
+def separar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
+    """(¿empieza por «Estela» u «Oye Estela»?, lo que sigue ya limpio)."""
+    palabras = _limpiar(texto).split()
+    i = 1 if palabras and palabras[0] in _ANTES_DE_LLAMAR else 0
+    if i < len(palabras) and palabras[i] in LLAMADAS:
+        return True, " ".join(palabras[i + 1:])
+    return False, " ".join(palabras)
+
+
+def respuesta_de_confirmacion(texto: Optional[str]) -> Optional[bool]:
+    """True si dice sí, False si dice no o cancela, None si es otra cosa. Solo
+    se usa tras una pregunta, y con frases cortas."""
+    t = _limpiar(texto)
+    palabras = t.split()
+    if not palabras or len(palabras) > 4:
+        return None
+    relleno = f" {t} "
+    dice_no = any(f" {f} " in relleno for f in _NO)
+    dice_si = any(f" {f} " in relleno for f in _SI)
+    if dice_si == dice_no:
+        return None
+    return dice_si
+
+
 def puede_escuchar(en_pausa: bool, colocando: bool, hablando: bool,
-                   terminada: bool = False) -> bool:
-    """Solo en pausa o entre ejercicios (colocación), y nunca mientras suena
-    la voz de ESTELA ni con la rutina terminada."""
-    return (en_pausa or colocando) and not hablando and not terminada
+                   terminada: bool = False, siempre: bool = False) -> bool:
+    """Por defecto, solo en pausa o entre ejercicios (colocación). Con
+    `siempre` (modo «llamada») también durante el ejercicio. En los dos casos,
+    nunca mientras suena la voz de ESTELA ni con la rutina terminada."""
+    return (siempre or en_pausa or colocando) and not hablando and not terminada
 
 
 __all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "REPETIR", "TERMINAR", "COMO_VOY",
-           "LEXICO", "CONFIRMACION", "NO_ENTENDI", "ENTENDIDO", "VACIO", "SIN_COMANDO",
-           "AMBIGUO", "Interpretacion", "interpretar", "puede_escuchar"]
+           "ANTERIOR", "REINICIAR_EJERCICIO", "REINICIAR_SESION", "RECONOCER_SI",
+           "RECONOCER_NO", "ANGULOS_SI", "ANGULOS_NO", "ORDENES_DE_AJUSTE",
+           "LEXICO", "CONFIRMACION", "PREGUNTA_REINICIAR", "CONFIRMA_REINICIAR",
+           "NO_ENTENDI", "ENTENDIDO", "VACIO", "SIN_COMANDO", "AMBIGUO", "SIN_LLAMADA", "SOLO_LLAMADA",
+           "LLAMADAS", "VENTANA_LLAMADA_S", "VENTANA_CONFIRMACION_S", "Interpretacion",
+           "interpretar", "separar_llamada", "respuesta_de_confirmacion", "puede_escuchar"]

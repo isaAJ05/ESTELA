@@ -1,6 +1,12 @@
 """Prueba las órdenes de voz con el micrófono, sin cámara ni sesión.
 
     python scripts/voz/probar_microfono.py [--registro hoja.jsonl] [--segundos 120]
+                                           [--modo llamada|pausa]
+
+Modo «llamada» (defecto en el Mac): solo cuenta lo que empieza por «Estela» u
+«Oye Estela»; lo demás sale como «ignorada». Modo «pausa»: se interpreta todo.
+Aquí sí se imprime y se anota lo ignorado, para poder calibrar; la aplicación
+no guarda el texto de lo que ignora.
 
 Abre el micrófono, corta cada frase igual que la aplicación, la reconoce con
 Whisper y dice qué orden entendió. Sirve para comprobar el micrófono y los
@@ -29,7 +35,8 @@ sys.path.insert(0, str(RAIZ))
 from estela import config  # noqa: E402
 from estela.adaptadores.voz_entrada.frases import FS, RMS_MINIMO  # noqa: E402
 from estela.adaptadores.voz_entrada.microfono import Microfono, hay_microfono  # noqa: E402
-from estela.adaptadores.voz_entrada.reconocedor import ReconocedorWhisperCpp  # noqa: E402
+from estela.adaptadores.voz_entrada.reconocedor import (  # noqa: E402
+    PISTA, PISTA_LLAMADA, ReconocedorWhisperCpp)
 from estela.aplicacion import comandos_voz as cv  # noqa: E402
 from estela.aplicacion.entrenadora import menciona_dolor  # noqa: E402
 
@@ -38,7 +45,11 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     p.add_argument("--registro", type=Path, help="archivo .jsonl donde anotar lo oído (sin audio)")
     p.add_argument("--segundos", type=float, default=0.0, help="parar sola tras este tiempo (0 = no)")
+    p.add_argument("--modo", choices=("llamada", "pausa"),
+                   default=config.defectos()["voz_entrada_modo"],
+                   help="llamada: solo cuenta lo que empieza por «Estela»; pausa: todo")
     a = p.parse_args(argv)
+    llamada = a.modo == "llamada"
 
     hay, motivo = hay_microfono()
     if not hay:
@@ -55,11 +66,16 @@ def main(argv=None) -> int:
         print(f"No se pudo leer el micrófono por defecto ({type(e).__name__}: {e}).")
         return 2
     print("Cargando el reconocedor…", flush=True)
-    reconocedor = ReconocedorWhisperCpp(ruta)
+    reconocedor = ReconocedorWhisperCpp(ruta, pista=PISTA_LLAMADA if llamada else PISTA)
     reconocedor.precalentar()
     microfono = Microfono()
-    print("Te escucho. Di: pausa, seguir, siguiente, repetir, terminar o ¿cómo voy?  (Ctrl+C para salir)\n",
-          flush=True)
+    if llamada:
+        print("Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, repetir, "
+              "reiniciar ejercicio, reiniciar sesión, reconocer o ángulos activado/desactivado, "
+              "terminar o ¿cómo voy?  (Ctrl+C para salir)\n", flush=True)
+    else:
+        print("Te escucho. Di: pausa, seguir, siguiente, repetir, terminar o ¿cómo voy?  "
+              "(Ctrl+C para salir)\n", flush=True)
     fin = time.monotonic() + a.segundos if a.segundos > 0 else None
     n = 0
     try:
@@ -70,11 +86,20 @@ def main(argv=None) -> int:
             t0 = time.perf_counter()
             texto = reconocedor.transcribir(audio)
             ms = (time.perf_counter() - t0) * 1000
-            i = cv.interpretar(texto)
-            dolor = menciona_dolor(texto)
-            entendido = ("DOLOR (respuesta fija)" if dolor else i.comando.upper() if i.comando
-                         else "no entendí (pediría repetir)" if i.pedir_repetir else "nada (no contesta)")
-            fila = {"n": (n := n + 1), "texto": texto, "comando": i.comando, "motivo": i.motivo,
+            llamado, orden = cv.separar_llamada(texto) if llamada else (True, texto)
+            i = cv.interpretar(orden)
+            dolor = llamado and menciona_dolor(orden)
+            if not llamado:
+                entendido = "ignorada (no dijiste «Estela»; no contesta)"
+            elif llamada and not orden.strip():
+                entendido = "«Estela» sola (la frase siguiente contaría como orden)"
+            else:
+                entendido = ("DOLOR (respuesta fija)" if dolor else i.comando.upper() if i.comando
+                             else "no entendí (pediría repetir)" if i.pedir_repetir
+                             else "nada (no contesta)")
+            fila = {"n": (n := n + 1), "texto": texto, "llamada": llamado if llamada else None,
+                    "comando": i.comando if llamado else None,
+                    "motivo": i.motivo if llamado else cv.SIN_LLAMADA,
                     "dolor": dolor, "duracion_s": round(len(audio) / FS, 2),
                     "volumen_rms": round(float(np.sqrt(np.mean(audio ** 2))), 4),
                     "volumen_pico": round(float(np.abs(audio).max()), 3),

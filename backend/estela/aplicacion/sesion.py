@@ -331,6 +331,9 @@ class Sesion:
         #: `EstadoFrame.escucha`. La sesión solo lo muestra; quien escucha
         #: pregunta `puede_escuchar` y manda las órdenes por el camino de siempre.
         self.oyente: Any = None
+        #: modo «llamada» de la voz de entrada: se escucha también durante el
+        #: ejercicio (la escucha lo activa en `conectar`)
+        self.escucha_siempre = False
         self._turno = 0
         self._retenida = False
         self._retencion_desde: Optional[int] = None
@@ -428,15 +431,16 @@ class Sesion:
 
     @property
     def puede_escuchar(self) -> bool:
-        """¿Se pueden oír órdenes de voz ahora? Solo en pausa o entre
-        ejercicios (colocación), y nunca mientras suena la voz de ESTELA
+        """¿Se pueden oír órdenes de voz ahora? Por defecto solo en pausa o
+        entre ejercicios (colocación); con `escucha_siempre`, también durante
+        el ejercicio. Nunca mientras suena la voz de ESTELA
         (`comandos_voz.puede_escuchar`). Se puede leer desde otro hilo."""
         p = self.paso_actual
         if p is None:
             return False
         return puede_escuchar(en_pausa=p.pausa.pausada, colocando=p.colocando,
                               hablando=bool(getattr(self.voz, "ocupada", False)),
-                              terminada=self.terminada)
+                              terminada=self.terminada, siempre=self.escucha_siempre)
 
     @property
     def entre_ejercicios(self) -> bool:
@@ -553,6 +557,14 @@ class Sesion:
             p.unidades.clear()
             if p.alineador is not None:
                 p.alineador.reiniciar()
+
+    def reiniciar_sesion(self) -> None:
+        """Vuelve al primer ejercicio y borra lo hecho: el resumen final solo
+        trae los ejercicios del intento nuevo."""
+        if self.terminada:
+            return
+        self._ir_a(0, felicitar=False)
+        del self._pasos[1:]
 
     def pausar(self) -> None:
         """Pausa pedida por la usuaria: no se cuenta ni se corrige hasta que

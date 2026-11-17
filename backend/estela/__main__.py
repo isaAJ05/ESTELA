@@ -116,9 +116,15 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                      help="archivo JSONL de historial (p. ej. el de "
                           "scripts/historial_ejemplo.py) cuando no hay perfiles")
     p.add_argument("--voz-entrada", choices=("si", "no"),
-                   help="órdenes de voz (pausa, seguir, siguiente, repetir, terminar, ¿cómo "
-                        "voy?). Solo se escucha en pausa y entre ejercicios. Defecto: si en "
-                        "el Mac, no en los demás equipos")
+                   help="órdenes de voz (pausa, seguir, siguiente, anterior, repetir, "
+                        "reiniciar ejercicio o sesión, reconocer y ángulos activado o "
+                        "desactivado, terminar, ¿cómo voy?). Defecto: si en el Mac, no en los "
+                        "demás equipos")
+    p.add_argument("--voz-entrada-modo", choices=("llamada", "pausa"),
+                   help="llamada: se escucha también durante el ejercicio, pero solo cuenta lo "
+                        "que empieza por «Estela» u «Oye Estela». pausa: solo en pausa y entre "
+                        "ejercicios, y se interpreta todo. Defecto: llamada en el Mac, pausa en "
+                        "los demás equipos")
     p.add_argument("-v", "--verbose", action="store_true")
     args = p.parse_args(argv)
     # Lo que no se pidió toma el valor del equipo: en el Mac va encendido lo
@@ -140,7 +146,7 @@ def _llm_listo(modelo: str, url: Optional[str], para: str) -> bool:
 
 
 ACCIONES_DE_VOZ = ("pausar", "reanudar", "listo", "siguiente", "anterior", "reiniciar",
-                   "terminar")
+                   "terminar", "reiniciar_sesion", "reconocer_si", "reconocer_no")
 
 
 def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
@@ -159,13 +165,17 @@ def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
             import threading
             from .adaptadores.voz_entrada.escucha import EscuchaVoz
             from .adaptadores.voz_entrada.microfono import Microfono
-            from .adaptadores.voz_entrada.reconocedor import ReconocedorWhisperCpp
-            reconocedor = ReconocedorWhisperCpp(ruta)
+            from .adaptadores.voz_entrada.reconocedor import (
+                PISTA, PISTA_LLAMADA, ReconocedorWhisperCpp)
+            llamada = args.voz_entrada_modo == "llamada"
+            reconocedor = ReconocedorWhisperCpp(ruta, pista=PISTA_LLAMADA if llamada else PISTA)
             threading.Thread(target=reconocedor.precalentar, name="estela-voz-entrada-precalentado",
                              daemon=True).start()
-            escucha = EscuchaVoz(Microfono(), reconocedor, voz, acciones, como_voy)
-            log.info("Órdenes de voz: activas (%s); se escucha en pausa y entre ejercicios",
-                     ruta.name)
+            escucha = EscuchaVoz(Microfono(), reconocedor, voz, acciones, como_voy,
+                                 llamada=llamada)
+            log.info("Órdenes de voz: activas (%s); %s", ruta.name,
+                     "también durante el ejercicio, di «Estela» y la orden" if llamada
+                     else "se escucha en pausa y entre ejercicios")
             return escucha
         except Exception as exc:                          # noqa: BLE001
             listo, motivo = False, f"{type(exc).__name__}: {exc}"
@@ -263,6 +273,10 @@ def _imprimir_resumen(r: dict) -> None:
                      or "ninguno"))
     print(f"Frames: {r['frames']} (sin persona: {r['frames_sin_persona']})")
     for f in (r.get("voz_entrada") or {}).get("frases", ()):
+        if f["texto"] is None:                  # sin «Estela»: solo se guardó cuántas palabras
+            print(f"Voz ignorada (sin «Estela»): {f.get('palabras', 0)} palabras "
+                  f"({f['reconocer_ms']} ms)")
+            continue
         print(f"Voz oída: «{f['texto']}» → {f['comando'] or f['motivo']} ({f['reconocer_ms']} ms)")
     for e in (r.get("entrenadora") or {}).get("respuestas", ()):
         resp = e["respuesta"] or {}
@@ -482,7 +496,10 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
             entrenadora["escucha"] = escucha
     aplicar = {"pausar": sesion.pausar, "reanudar": sesion.reanudar,
                "listo": sesion.terminar_colocacion, "siguiente": sesion.siguiente,
-               "anterior": sesion.anterior, "reiniciar": sesion.reiniciar_ejercicio}
+               "anterior": sesion.anterior, "reiniciar": sesion.reiniciar_ejercicio,
+               "reiniciar_sesion": sesion.reiniciar_sesion,
+               "reconocer_si": lambda: sesion.activar_reconocimiento(True),
+               "reconocer_no": lambda: sesion.activar_reconocimiento(False)}
 
     ventana = not args.sin_ventana
     if ventana:

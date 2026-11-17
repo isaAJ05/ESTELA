@@ -41,6 +41,20 @@ from .frases import RMS_MINIMO
 
 #: vocabulario que se le da a Whisper como pista
 PISTA = "Pausa. Seguir. Siguiente. Repetir. Terminar. ¿Cómo voy?"
+#: Pista del modo «llamada». `[F]` Medida el 2026-11-16 en el Mac con audio sintético
+#: (voces Paulina y Mónica de `say`; 26 frases con «Estela», 16 sin ella y 24 ruidos
+#: sintéticos, con las mismas frases en cada pista; no es la voz de Paula ni un
+#: micrófono real):
+#:   · sin «Estela» en la pista: llamada detectada 24/26, 0 falsas llamadas con ruido.
+#:   · con «Estela, …» repetido en cada orden: 26/26, pero con ruido puro Whisper
+#:     escribió «Estela, …» 12 de 12 veces (falsas llamadas). Descartada.
+#:   · con «Estela» una sola vez al principio (esta): 26/26 llamadas, 24/24 órdenes
+#:     y 0 falsas llamadas con ruido. Con ruido escribe a veces «¡Siguiente!» o
+#:     «¡Suscríbete!»: sin «Estela» por delante se ignora (en el modo antiguo habría
+#:     sido una orden falsa).
+PISTA_LLAMADA = ("Estela. Pausa. Seguir. Siguiente. Anterior. Reiniciar ejercicio. "
+                 "Reiniciar sesión. Ángulos activados. Reconocer desactivado. Terminar. "
+                 "¿Cómo voy?")
 #: Whisper marca así el audio sin habla: «[BLANK_AUDIO]», «(música)», «*ruido*»
 _ANOTACION = re.compile(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*")
 
@@ -86,4 +100,4 @@ class ReconocedorWhisperCpp:
         self.transcribir(np.zeros(16000, np.float32))
 
 
-__all__ = ["ReconocedorWhisperCpp", "PISTA", "limpiar"]
+__all__ = ["ReconocedorWhisperCpp", "PISTA", "PISTA_LLAMADA", "limpiar"]

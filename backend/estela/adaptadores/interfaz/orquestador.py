@@ -327,6 +327,16 @@ class Orquestador:
     def reiniciar(self) -> None:
         self._comandos.put("reiniciar")
 
+    def reiniciar_sesion(self) -> None:
+        """Vuelve al primer ejercicio y borra lo hecho (orden de voz)."""
+        self._comandos.put("reiniciar_sesion")
+
+    def reconocer_si(self) -> None:
+        self.configurar(reconocer=True)
+
+    def reconocer_no(self) -> None:
+        self.configurar(reconocer=False)
+
     def listo(self) -> None:
         """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
         self._comandos.put("listo")
@@ -472,6 +482,8 @@ class Orquestador:
                 sesion.anterior()
             elif cmd == "reiniciar":
                 sesion.reiniciar_ejercicio()
+            elif cmd == "reiniciar_sesion":
+                sesion.reiniciar_sesion()
             elif cmd == "listo":
                 sesion.terminar_colocacion()
             elif cmd == "pausar":

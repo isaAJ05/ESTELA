@@ -35,6 +35,20 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
     try { localStorage.setItem('estela.angulos', a ? '0' : '1') } catch { /* sin almacenamiento */ }
     return !a
   })
+  // «Estela, activa los ángulos» / «oculta los ángulos»: la orden llega en el estado de la voz
+  const ordenDePantalla = useEstado((s) => s.estado?.sesion?.escucha?.pantalla ?? null,
+    (a, b) => a?.n === b?.n)
+  const ultimaOrden = useRef(0)
+  useEffect(() => {
+    const n = ordenDePantalla?.n ?? 0
+    if (n === ultimaOrden.current) return
+    ultimaOrden.current = n
+    if (n > 0 && typeof ordenDePantalla?.angulos === 'boolean') {
+      const ver = ordenDePantalla.angulos
+      try { localStorage.setItem('estela.angulos', ver ? '1' : '0') } catch { /* sin almacenamiento */ }
+      setAngulos(ver)
+    }
+  }, [ordenDePantalla])
 
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -421,16 +435,21 @@ function GestoPausa() {
 
 const ORDEN_DICHA: Record<string, string> = {
   pausa: 'Pausa', seguir: 'Seguir', siguiente: 'Siguiente', repetir: 'Repetir',
-  terminar: 'Terminar', como_voy: '¿Cómo voy?',
+  terminar: 'Terminar', como_voy: '¿Cómo voy?', anterior: 'Anterior',
+  reiniciar_ejercicio: 'Reiniciar ejercicio', reiniciar_sesion: 'Reiniciar sesión',
+  reconocer_si: 'Reconocer activado', reconocer_no: 'Reconocer desactivado',
+  angulos_si: 'Ángulos activados', angulos_no: 'Ángulos desactivados',
 }
 
-/** Órdenes de voz: si ESTELA está escuchando y qué entendió. Solo aparece en pausa
- *  o entre ejercicios, que es cuando se escucha. */
+/** Órdenes de voz: si ESTELA está escuchando y qué entendió. En modo «llamada» el aviso
+ *  «Te escucho» solo sale en pausa, en la colocación o tras decir «Estela» (durante el
+ *  ejercicio no estorba); sin ese modo, solo en pausa o entre ejercicios. */
 function EscuchaVoz() {
   const e = useEstado((s) => s.estado?.sesion?.escucha ?? null,
     (a, b) => a?.activa === b?.activa && a?.texto === b?.texto
-      && a?.comando === b?.comando && a?.noEntendi === b?.noEntendi)
-  if (!e) return null
+      && a?.comando === b?.comando && a?.noEntendi === b?.noEntendi && a?.llamada === b?.llamada)
+  // solo cambió la pantalla (ángulos) y no hay nada que decir: no se pinta el aviso
+  if (!e || (!e.activa && !e.texto && !e.comando && !e.noEntendi)) return null
   const entendido = e.comando ? ORDEN_DICHA[e.comando] ?? e.comando : null
   return (
     <div className={`escucha-voz${e.activa ? ' escucha-activa' : ''}${e.noEntendi ? ' escucha-duda' : ''}`}
@@ -439,6 +458,8 @@ function EscuchaVoz() {
       <span>
         {entendido ? <>Entendí: <b>{entendido}</b></>
           : e.noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
+          : e.activa && e.llamada
+            ? <>Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, reiniciar, terminar o ¿cómo voy?</>
           : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, repetir, terminar o ¿cómo voy?</>
           : <>{e.texto ? `«${e.texto}»` : ''}</>}
       </span>
