@@ -23,6 +23,8 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   const hayDatos = useEstado((s) => s.estado?.sesion != null)
   const pausaManual = useCapacidad('pausaManual')
   const pausada = useSesion('motivoPausa') === 'usuaria'
+  const enPausa = useSesion('pausada') === true          // por cualquier motivo
+  const colocando = useSesion('colocacion') != null
   const silenciable = useCapacidad('silenciarVoz')
   const conColocacion = useCapacidad('colocacion')
   const { hayAnterior, haySiguiente } = useNavegacion()
@@ -83,14 +85,23 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
         <div className="escenario-zona">
         <section className="escenario">
           <VistaCamara mostrarAngulos={angulos} />
-          {hayDatos ? <>
-            <AvisoSesion />
-            <BandaMensaje />
-            {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
-            <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
-            <GestoPausa />
-            <EscuchaVoz />
-          </> : (
+          {hayDatos ? (
+            /* Tres zonas que no se pisan (Paula, 2026-11-17: las tarjetas se sobreponían):
+               arriba los avisos cortos apilados, en el centro una sola tarjeta (la pausa
+               manda sobre la colocación) y abajo la última indicación. */
+            <div className={`escenario-capas${enPausa ? ' velo-fuerte' : colocando && conColocacion ? ' velo' : ''}`}>
+              <div className="zona-arriba">
+                <AvisoSesion />
+                <GestoPausa />
+                <EscuchaVoz />
+              </div>
+              <div className="zona-centro">
+                {enPausa ? <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
+                  : conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
+              </div>
+              <div className="zona-abajo"><BandaMensaje /></div>
+            </div>
+          ) : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
           )}
           {depurar && <Depuracion />}
@@ -505,7 +516,7 @@ function EscuchaVoz() {
         {entendido ? <>Entendí: <b>{entendido}</b></>
           : e.noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
           : e.activa && e.llamada
-            ? <>Te escucho. Di «Estela» y una orden: pausa, seguir, siguiente, anterior, reiniciar, repite eso, terminar o ¿cómo voy?</>
+            ? <>Te escucho · di «Estela» y la orden</>
           : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, terminar o ¿cómo voy?</>
           : <>{e.texto ? `«${e.texto}»` : ''}</>}
       </span>
