@@ -157,8 +157,14 @@ def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
     micrófono, el motor o el modelo, avisa y la sesión sigue sin órdenes de voz."""
     if args.voz_entrada != "si":
         return None
-    from .adaptadores.voz_entrada.microfono import hay_microfono
+    from .adaptadores.voz_entrada.microfono import SIN_MICROFONO, hay_microfono
     listo, motivo = hay_microfono()
+    if not listo and motivo == SIN_MICROFONO:
+        # sin micrófono al arrancar la escucha existe igual: la sección «Micrófono» de los
+        # ajustes se ve, dice qué falta y al encenderla se vuelve a buscar
+        log.warning("Órdenes de voz: %s ahora. Conéctalo y enciende el micrófono en Ajustes.",
+                    motivo)
+        listo, motivo = True, ""
     ruta = config.modelo_voz_entrada()
     if listo and not ruta.exists():
         listo, motivo = False, (f"falta el modelo {ruta.name} "

@@ -10,22 +10,46 @@ import numpy as np
 from .frases import BLOQUE, FS, DetectorDeFrase
 
 
+#: motivo de `hay_microfono` cuando el audio funciona pero no hay ninguna entrada
+SIN_MICROFONO = "no hay ningún micrófono conectado"
+
+
+class SinMicrofono(RuntimeError):
+    """No hay ninguna entrada de audio: se puede conectar una y volver a encender."""
+
+
+def _entradas() -> List[Dict[str, Any]]:
+    import sounddevice as sd
+    return [d for d in sd.query_devices() if d.get("max_input_channels", 0) > 0]
+
+
+def volver_a_buscar() -> None:
+    """Vuelve a leer los dispositivos de audio. PortAudio los lee al arrancar: un
+    micrófono conectado después no aparece hasta reiniciarlo. Solo se llama sin
+    ninguna entrada abierta. `[?]` no probado con un micrófono conectado en caliente."""
+    try:
+        import sounddevice as sd
+        sd._terminate()
+        sd._initialize()
+    except Exception:                                     # noqa: BLE001 — se sigue con lo que había
+        pass
+
+
 def hay_microfono() -> Tuple[bool, str]:
     """(hay, motivo si no). No lanza."""
     try:
-        import sounddevice as sd
-        entradas = [d for d in sd.query_devices() if d.get("max_input_channels", 0) > 0]
+        entradas = _entradas()
     except Exception as exc:                              # noqa: BLE001
         return False, f"no se pudo consultar el audio ({type(exc).__name__}: {exc})"
     if not entradas:
-        return False, "no hay ningún micrófono conectado"
+        return False, SIN_MICROFONO
     return True, ""
 
 
 def listar_microfonos() -> List[Dict[str, Any]]:
     """Entradas de audio que ve el sistema: [{"indice", "nombre", "porDefecto"}].
-    No lanza: sin audio devuelve []. `[?]` PortAudio lee la lista al arrancar: un
-    micrófono conectado después puede no aparecer hasta reiniciar la aplicación."""
+    No lanza: sin audio devuelve []. La lista se vuelve a leer al encender el micrófono
+    (`Microfono` llama a `volver_a_buscar` si no ve ninguna entrada)."""
     try:
         import sounddevice as sd
         dispositivos = list(sd.query_devices())
@@ -44,6 +68,10 @@ class Microfono:
 
     def __init__(self, dispositivo: Optional[int] = None) -> None:
         import sounddevice as sd
+        if not _entradas():                       # puede ser un micrófono recién conectado
+            volver_a_buscar()
+            if not _entradas():
+                raise SinMicrofono(SIN_MICROFONO)
         self.dispositivo = dispositivo
         self._cola: "queue.Queue[np.ndarray]" = queue.Queue()
         self._detector = DetectorDeFrase()
@@ -99,4 +127,5 @@ class Microfono:
             pass
 
 
-__all__ = ["Microfono", "hay_microfono", "listar_microfonos"]
+__all__ = ["Microfono", "SIN_MICROFONO", "SinMicrofono", "hay_microfono",
+           "listar_microfonos", "volver_a_buscar"]

@@ -440,10 +440,12 @@ class TestArranqueDeLaVozDeEntrada(unittest.TestCase):
         from estela.__main__ import _argumentos, _crear_escucha
         a = _argumentos(["--voz-entrada", "si"], en_mac=False)
         mic = "estela.adaptadores.voz_entrada.microfono.hay_microfono"
-        with mock.patch(mic, return_value=(False, "no hay ningún micrófono conectado")):
+        # sin poder consultar el audio no hay escucha; sin micrófono conectado sí la hay
+        # (la sección «Micrófono» se ve): eso lo cubre test_microfono_sin_conexion.py
+        with mock.patch(mic, return_value=(False, "no se pudo consultar el audio (OSError)")):
             with self.assertLogs("estela", level="WARNING") as reg:
                 self.assertIsNone(_crear_escucha(a, None, {}, None))
-        self.assertIn("micrófono", reg.output[0])
+        self.assertIn("audio", reg.output[0])
         with mock.patch(mic, return_value=(True, "")), \
                 mock.patch("estela.config.modelo_voz_entrada",
                            return_value=__import__("pathlib").Path("/no/existe/ggml-small.bin")):
