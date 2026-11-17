@@ -467,6 +467,9 @@ def test_siguiente_en_el_ultimo_y_anterior_en_el_primero_lo_dicen_y_no_hacen_nad
     ("Estela, silencio", cv.VOZ_NO), ("Estela, cállate", cv.VOZ_NO),
     ("Estela, háblame", cv.VOZ_SI), ("Estela, vuelve a hablar", cv.VOZ_SI),
     ("Estela, seguire.", cv.SEGUIR),                # así lo escribió Whisper en su sesión
+    ("Estela activa reconocimiento.", cv.RECONOCER_SI),     # segunda sesión: no se entendió
+    ("Estela activa y reconoce.", cv.RECONOCER_SI),
+    ("Estela, desactiva reconocimiento", cv.RECONOCER_NO),
 ])
 def test_silencio_hablame_y_lo_que_whisper_escribio_en_su_sesion(dicho, comando):
     llamado, resto = cv.separar_llamada(dicho)
