@@ -1,10 +1,10 @@
 import {
-  AlertTriangle, ArrowLeft, ArrowRight, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame,
+  AlertTriangle, ArrowRight, CalendarDays, Check, ChevronDown, ChevronLeft, ChevronRight, Clock, Flame,
   History, Loader2, Lock, MessageCircle, RotateCcw, Target, Trash2,
 } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Bridge, DiaProgreso, EjercicioProgreso, Progreso, SemanaComparada, SemanaProgreso, SesionHistorial } from '../bridge/tipos'
-import { Aviso, Boton, plural } from '../componentes/basicos'
+import { Aviso, Boton, BotonVolver, plural } from '../componentes/basicos'
 import { Estrella } from '../componentes/Estrella'
 import { FiguraEjercicio } from '../componentes/rutina'
 import { useEstado } from '../estado/almacen'
@@ -40,7 +40,7 @@ export function PanelProgreso({ bridge, alVolver }: { bridge: Bridge; alVolver: 
   return (
     <section className="progreso-cuerpo">
       <div className="progreso-cabeza">
-        <button className="enlace-volver" onClick={alVolver}><ArrowLeft />Volver al inicio</button>
+        <BotonVolver onClick={alVolver} />
         <span className="etiqueta etiqueta-marca">Mi progreso</span>
         <h1>Tu constancia,<br /><em>sesión a sesión.</em></h1>
         <p className="progreso-privacidad">
@@ -88,11 +88,14 @@ export function PanelProgreso({ bridge, alVolver }: { bridge: Bridge; alVolver: 
             </div>
           </div>
           <HistorialSesiones sesiones={datos.sesiones} />
-          <p className="descargo">
-            Estas cifras muestran tu constancia y las indicaciones que recibiste. No miden tu técnica con precisión
-            ni son una evaluación de salud: ESTELA no da una indicación cada vez que ve algo, y a veces no puede ver bien.
-          </p>
-          <BorrarHistorial bridge={bridge} alBorrar={() => void cargar()} />
+          {/* pie a todo el ancho: el descargo a la izquierda y «Borrar historial» al otro extremo */}
+          <div className="progreso-pie">
+            <p className="descargo">
+              Estas cifras muestran tu constancia y las indicaciones que recibiste. No miden tu técnica con precisión
+              ni son una evaluación de salud: ESTELA no da una indicación cada vez que ve algo, y a veces no puede ver bien.
+            </p>
+            <BorrarHistorial bridge={bridge} alBorrar={() => void cargar()} />
+          </div>
         </>
       )}
     </section>

@@ -81,6 +81,12 @@ class Api:
     def camaras(self) -> Optional[Dict[str, Any]]:
         return self._orq.camaras()
 
+    def vista_camara(self) -> Optional[str]:
+        # vista previa de la cámara elegida (ajustes); JPEG en base64 o None
+        return self._orq.vista_camara()
+
+    def cerrar_vista_camara(self) -> None:
+        self._orq.cerrar_vista_camara()
     def microfono(self) -> Optional[Dict[str, Any]]:
         # sección «Micrófono» de los ajustes (capacidad «vozEntrada»)
         return self._orq.microfono()

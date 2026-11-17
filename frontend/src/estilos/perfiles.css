@@ -49,6 +49,9 @@
 .perfil-titulo { display: flex; align-items: center; gap: var(--espacio-4); }
 /* solo la fecha: un selector «span» a secas también pintaría las iniciales del avatar */
 .perfil-titulo > div > span { color: var(--color-texto-sutil); font-size: 0.9375rem; }
+.perfil-titulo h1 { overflow-wrap: anywhere; }
+/* mientras se edita: avisa de que lo de arriba aún no está guardado */
+.perfil-titulo > div > .perfil-vista-previa { color: var(--color-ambar); font-weight: 650; }
 
 /* «¿Quién entrena hoy?»: composición centrada, como una pantalla de entrada */
 .perfiles-selector { justify-items: center; align-content: center; gap: var(--espacio-6); text-align: center; }

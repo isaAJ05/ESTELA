@@ -31,6 +31,8 @@ interface ApiPython {
   borrar_rutina_nombrada?(perfilId: string, rutinaId: string): Promise<ResultadoPerfil>
   // solo con la capacidad «elegirCamara»
   camaras?(): Promise<Camaras | null>
+  vista_camara?(): Promise<string | null>
+  cerrar_vista_camara?(): Promise<void>
   // solo con la capacidad «vozEntrada»
   microfono?(): Promise<Microfonos | null>
   probar_microfono?(): Promise<boolean>
@@ -90,6 +92,8 @@ export function bridgePywebview(api: ApiPython): Bridge {
     borrarRutinaNombrada: async (perfilId, rutinaId) =>
       (await api.borrar_rutina_nombrada?.(perfilId, rutinaId)) ?? SIN_PERFILES,
     camaras: async () => (await api.camaras?.()) ?? null,
+    vistaCamara: async () => (await api.vista_camara?.()) ?? null,
+    cerrarVistaCamara: async () => { await api.cerrar_vista_camara?.() },
     microfono: async () => (await api.microfono?.()) ?? null,
     probarMicrofono: async () => (await api.probar_microfono?.()) ?? false,
     pausar: async () => { await api.pausar?.() },

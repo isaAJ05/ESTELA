@@ -5,6 +5,13 @@
   "version": "0.2.0",
   "estado": "candidato",
   "clase_reconocimiento": "zancada",
+  "medidas_referencia": ["rodilla_izq", "rodilla_der", "tronco_inclinacion"],
+  "videos_reconocimiento": [
+    "izq Zancada hacia atrás con peso corporal_ técnica paso a paso.mp4",
+    "zancada_dinamica_alterna.mp4",
+    "zancada_estatica_mancuernas.mp4",
+    "zancada_estatica_hombre.mp4"
+  ],
   "notas": "Zancada estática (los pies no se mueven: se baja y se sube) con la pierna izquierda atrás, de perfil a la cámara (ADR-005). Hay un skill por pierna para poder anunciar qué pierna va atrás: es un ejercicio en la rutina y dos archivos aquí. La profundidad se mide en la rodilla que ve la cámara, delantera o trasera (DEC-013), y no se corrige si el paso está fuera de rango, porque entonces la causa es el paso (ZR-04). La gemela es zancada_atras_der.json. Da igual hacia qué lado mire la persona: la orientación se mide sin signo, la profundidad en la rodilla que ve la cámara y el paso con los dos tobillos. v0.2.0 (2026-11-06): umbrales recalibrados con los criterios de la licenciada y dos vídeos online de zancada dinámica (EXP-009 §10). Siguen siendo provisionales: falta grabar la zancada estática. La tolerancia de orientación es el defecto: falta repetir EXP-002 con este ejercicio.",
   "fases": ["arriba", "descenso", "fondo", "ascenso"],
   "orientacion_preferida": "sagital",
