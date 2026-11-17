@@ -189,6 +189,9 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion) -> int:
                                            camara=orquestador.camara),
         camara=None if args.video else args.camara,
         listar_camaras=None if args.video else listar_camaras,
+        # vista previa en los ajustes: la misma cámara que abrirá la sesión
+        abrir_camara=None if args.video else (
+            lambda indice: _abrir_fuente(args, tiempo_real=True, camara=indice)),
         voz=voz, espejo=args.video is None,
         fuente="video" if args.video else "camara",
         al_terminar=cerrar_sesion, sin_dtw=args.sin_dtw,

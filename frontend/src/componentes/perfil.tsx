@@ -1,5 +1,5 @@
-import { Check, Loader2 } from 'lucide-react'
-import { useId, useState } from 'react'
+import { Check, Loader2, Undo2 } from 'lucide-react'
+import { useEffect, useId, useState } from 'react'
 import type { DatosPerfil, EstadoPerfiles, Perfil, ResultadoPerfil } from '../bridge/tipos'
 import { iniciales, problemaNombre } from '../estado/perfiles'
 import { Boton } from './basicos'
@@ -21,6 +21,9 @@ export function ChipPerfil({ perfil, onClick, activa }: { perfil: Perfil | null;
   )
 }
 
+/** Lo que se está editando en el formulario y aún no se guardó. */
+export interface BorradorPerfil { nombre: string; color: string; metaSemanal: number | null }
+
 const NOMBRE_COLOR: Record<string, string> = {
   violeta: 'Violeta', naranja: 'Naranja', turquesa: 'Turquesa', rosa: 'Rosa', azul: 'Azul', mostaza: 'Mostaza',
 }
@@ -29,12 +32,14 @@ const NOMBRE_COLOR: Record<string, string> = {
  * Nombre, color y meta semanal. Sirve para crear (sin `inicial`) y editar.
  * El aviso del nombre es inmediato, pero el que vale es el de Python.
  */
-export function FormularioPerfil({ estado, inicial, textoGuardar, alGuardar, alCancelar }: {
+export function FormularioPerfil({ estado, inicial, textoGuardar, alGuardar, alCancelar, alPrevisualizar }: {
   estado: EstadoPerfiles
   inicial?: Perfil
   textoGuardar: string
   alGuardar: (datos: DatosPerfil) => Promise<ResultadoPerfil>
   alCancelar?: () => void
+  /** al editar: lo escrito mientras difiera de lo guardado (null si no hay cambios) */
+  alPrevisualizar?: (borrador: BorradorPerfil | null) => void
 }) {
   const id = useId()
   const [nombre, setNombre] = useState(inicial?.nombre ?? '')
@@ -49,6 +54,19 @@ export function FormularioPerfil({ estado, inicial, textoGuardar, alGuardar, alC
   const problema = problemaNombre(nombre, otros, estado.maxNombre)
   const [minMeta, maxMeta] = estado.meta
   const sinCambios = inicial != null && nombre.trim() === inicial.nombre && color === inicial.color && meta === inicial.metaSemanal
+
+  useEffect(() => {
+    alPrevisualizar?.(sinCambios || !inicial ? null : { nombre, color, metaSemanal: meta })
+  }, [alPrevisualizar, sinCambios, inicial, nombre, color, meta])
+  // al salir de «Mi perfil» no queda una vista previa colgada
+  useEffect(() => () => alPrevisualizar?.(null), [alPrevisualizar])
+
+  /** Vuelve a lo guardado. */
+  const descartar = () => {
+    if (!inicial) return
+    setNombre(inicial.nombre); setColor(inicial.color); setMeta(inicial.metaSemanal)
+    setTocado(false); setErrorPython(null); setGuardado(false)
+  }
 
   const enviar = async () => {
     setTocado(true)
@@ -112,6 +130,10 @@ export function FormularioPerfil({ estado, inicial, textoGuardar, alGuardar, alC
         <Boton type="submit" disabled={guardando || sinCambios}>
           {guardando ? <><Loader2 className="girando" />Guardando…</> : guardado ? <><Check />Guardado</> : textoGuardar}
         </Boton>
+        {inicial && (
+          <Boton variante="suave" onClick={descartar} disabled={guardando || sinCambios}
+                 title="Volver a lo que estaba guardado"><Undo2 />Descartar</Boton>
+        )}
         {alCancelar && <Boton variante="suave" onClick={alCancelar}>Cancelar</Boton>}
       </div>
       <p className="formulario-perfil-nota">No pedimos edad, peso ni datos de salud: ESTELA no los usa.</p>

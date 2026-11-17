@@ -56,6 +56,13 @@ export interface PasoRutina {
   guia: Punto[] | null
 }
 
+/** Una repetición de la referencia para animar la figura del catálogo. */
+export interface GuiaMovimiento {
+  /** posturas por segundo */
+  fps: number
+  frames: Punto[][]
+}
+
 /** Cómo se cuenta: ciclo completo, una por cada pierna que se eleva, o segundos. */
 export type Conteo = 'ciclo' | 'alternante' | 'isometrico'
 
@@ -65,6 +72,8 @@ export interface EjercicioCatalogo extends PasoRutina {
   conteo: Conteo
   minimo: number
   maximo: number
+  /** null o ausente: no hay movimiento que enseñar (sin referencia, o plancha) */
+  guiaAnimada?: GuiaMovimiento | null
 }
 
 export interface Info {
@@ -440,6 +449,13 @@ export interface Bridge {
   borrarRutinaNombrada(perfilId: string, rutinaId: string): Promise<ResultadoPerfil>
   /** Cámaras que se pueden elegir; null con un vídeo o con la cámara en uso. Tarda: abre cada una. */
   camaras(): Promise<Camaras | null>
+  /**
+   * Vista previa de la cámara elegida: un JPEG en base64, o null si no se puede
+   * (vídeo, sesión en curso, la cámara no abre). Python la deja abierta mientras
+   * se siga pidiendo; `cerrarVistaCamara` la suelta.
+   */
+  vistaCamara(): Promise<string | null>
+  cerrarVistaCamara(): Promise<void>
   /** Termina la fase de colocación (capacidad «colocacion»). */
   listo(): Promise<void>
   /** Solo con la capacidad «pausaManual». */

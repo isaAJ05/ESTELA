@@ -492,6 +492,76 @@ def test_no_se_listan_camaras_con_la_sesion_en_curso(catalogo, rutina):
     orq.cerrar()
 
 
+def test_vista_previa_de_la_camara(catalogo, rutina):
+    abiertas = []
+
+    def abrir_camara(indice):
+        if indice == 9:
+            raise RuntimeError("no se pudo abrir la cámara 9")
+        f = FuenteLista([np.zeros((72, 128, 3), np.uint8)], bloquear_al_final=True)
+        abiertas.append((indice, f))
+        return f
+
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [170.0] * 10_000, bloquear=True,
+                                  camara=0, listar_camaras=lambda: [],
+                                  abrir_camara=abrir_camara)
+    api = Api(orq)
+    assert isinstance(api.vista_camara(), str) and api.vista_camara()
+    assert len(abiertas) == 1                      # se abre una vez y se reutiliza
+    api.configurar({"camara": 2})                  # otra cámara: suelta la anterior
+    assert api.vista_camara() and [i for i, _ in abiertas] == [0, 2]
+    assert abiertas[0][1].cerrada and not abiertas[1][1].cerrada
+    api.camaras()                                  # listar necesita las cámaras libres
+    assert abiertas[1][1].cerrada
+    api.configurar({"camara": 9})
+    assert api.vista_camara() is None              # no abre: sin vista, sin error
+    api.configurar({"camara": 0})
+    assert api.vista_camara()
+    orq.iniciar()                                  # la sesión se queda con la cámara
+    esperar_fase(orq, SESION)
+    assert abiertas[2][1].cerrada and api.vista_camara() is None and len(abiertas) == 3
+    orq.terminar()
+    esperar_fase(orq, RESUMEN)
+    assert api.vista_camara()
+    api.cerrar_vista_camara()
+    assert abiertas[3][1].cerrada
+    orq.cerrar()
+    # sin `abrir_camara` (vídeo) no hay vista previa
+    assert Api(nuevo_orquestador(catalogo, rutina, [])[0]).vista_camara() is None
+
+
+def test_vista_previa_se_cierra_sola(catalogo, rutina, monkeypatch):
+    from estela.adaptadores.interfaz import orquestador
+    monkeypatch.setattr(orquestador, "VISTA_INACTIVA_S", 0.05)
+    fuentes = []
+
+    def abrir_camara(indice):
+        fuentes.append(FuenteLista([np.zeros((72, 128, 3), np.uint8)], True))
+        return fuentes[-1]
+
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, [], abrir_camara=abrir_camara)
+    assert orq.vista_camara()
+    limite = time.monotonic() + 2.0
+    while not fuentes[0].cerrada and time.monotonic() < limite:
+        time.sleep(0.02)
+    assert fuentes[0].cerrada                      # la interfaz dejó de pedirla
+
+
+def test_catalogo_lleva_la_figura_en_movimiento(catalogo, rutina):
+    porid = {e["skillId"]: e for e in contrato.info(rutina, catalogo, espejo=True)["catalogo"]}
+    anim = porid["jumping_jacks"]["guiaAnimada"]
+    assert anim["fps"] > 0 and 2 <= len(anim["frames"]) <= contrato.MAX_FRAMES_GUIA
+    assert all(len(f) == 33 and len(f[0]) == 3 for f in anim["frames"])
+    xs = [p[0] for f in anim["frames"] for p in f]
+    assert 0.0 <= min(xs) and max(xs) <= 1.0       # mismo encuadre que la figura fija
+    assert porid["plancha"]["guiaAnimada"] is None  # una sola postura: no hay movimiento
+    larga = {"fps": 30.0, "keypoints_2d": np.random.default_rng(0).random((400, 33, 2)).tolist()}
+    sub = contrato._referencia_animada(larga)
+    assert len(sub["frames"]) <= contrato.MAX_FRAMES_GUIA and sub["fps"] == 6.0
+    assert contrato._referencia_animada(None) is None
+    json.dumps(anim)
+
+
 def test_listar_camaras_solo_trae_las_que_abren(monkeypatch):
     from estela.adaptadores.captura import fuente
 
