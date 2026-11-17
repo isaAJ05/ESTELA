@@ -174,8 +174,11 @@ def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
             reconocedor = ReconocedorWhisperCpp(ruta, pista=PISTA_LLAMADA if llamada else PISTA)
             threading.Thread(target=reconocedor.precalentar, name="estela-voz-entrada-precalentado",
                              daemon=True).start()
-            escucha = EscuchaVoz(Microfono(), reconocedor, voz, acciones, como_voy,
-                                 llamada=llamada, guarda_eco_s=args.guarda_eco)
+            # el micrófono lo abre el hilo de la escucha: así se puede apagar, volver a
+            # encender y cambiar por otro desde los ajustes
+            escucha = EscuchaVoz(None, reconocedor, voz, acciones, como_voy,
+                                 llamada=llamada, guarda_eco_s=args.guarda_eco,
+                                 abrir_microfono=Microfono)
             log.info("Órdenes de voz: activas (%s); %s", ruta.name,
                      "también durante el ejercicio, di «Estela» y la orden" if llamada
                      else "se escucha en pausa y entre ejercicios")
@@ -292,7 +295,8 @@ def _imprimir_resumen(r: dict) -> None:
         caidas = ", ".join(f"{k} {n}" for k, n in sorted(m["caidas_a_plantilla"].items()))
         print(f"LLM {m['modelo']} (límite {m['timeout_ms']} ms): {m['llamadas']} frases pedidas, "
               f"{sum(m['caidas_a_plantilla'].values())} cayeron a plantilla"
-              + (f" ({caidas})" if caidas else ""))
+              + (f" ({caidas})" if caidas else "")
+              + (f"; modelo recargado {m['recargas']} veces" if m.get("recargas") else ""))
     print("Latencia por etapa (ms):")
     for etapa, v in r["latencias"].items():
         print(f"    {etapa:15s} p50 {v['p50_ms']:8.3f}   p95 {v['p95_ms']:8.3f}   n={v['n']}")
@@ -358,7 +362,8 @@ def main(argv=None) -> int:
             resumen["llm"] = {"modelo": verbalizador.modelo, "backend": verbalizador.backend,
                               "timeout_ms": verbalizador.timeout_ms,
                               "llamadas": verbalizador.llamadas,
-                              "caidas_a_plantilla": dict(verbalizador.caidas)}
+                              "caidas_a_plantilla": dict(verbalizador.caidas),
+                              "recargas": getattr(verbalizador, "recargas", 0)}
         _imprimir_resumen(resumen)
         if args.guardar_metricas:
             config.SESIONES.mkdir(exist_ok=True)
@@ -455,12 +460,24 @@ def _correr_interfaz(args, rutina, catalogo, voz, cerrar_sesion,
         _responder_como_voy(lambda: en_vivo, catalogo))
     if entrenadora is not None:
         entrenadora["escucha"] = escucha
+    if escucha is not None:
+        # sección «Micrófono» de los ajustes, y prueba del micrófono antes de la sesión
+        from .adaptadores.voz_entrada.microfono import listar_microfonos
+        orquestador.conectar_voz_entrada(escucha, listar_microfonos)
+        escucha.arrancar()
 
     def _preparar(sesion) -> None:
         if en_vivo is not None:
             en_vivo.conectar(sesion, retencion_ms)
         if escucha is not None:
             escucha.conectar(sesion)
+        # Ollama descarga el modelo tras un rato sin uso: se vuelve a cargar al empezar
+        # cada sesión (no bloquea; si ya está cargado, solo renueva el plazo)
+        precalentar = getattr(verbalizador, "precalentar", None)
+        if precalentar is not None:
+            import threading
+            threading.Thread(target=precalentar, name="estela-llm-precalentado",
+                             daemon=True).start()
     try:
         abrir(orquestador, config.INTERFAZ, depurar=args.verbose)
     finally:

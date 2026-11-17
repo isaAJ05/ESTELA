@@ -134,7 +134,7 @@ def test_en_modo_llamada_se_escucha_durante_el_ejercicio_y_en_el_otro_modo_no():
 def test_pausa_durante_el_ejercicio_con_llamada_pausa():
     e, hechas, voz = _escucha("Estela, pausa")
     e.atender(AUDIO)
-    assert hechas == ["pausar"] and voz.dichas == [("Pausa.", PRIORIDAD_AVISO)]
+    assert hechas == ["pausar"] and voz.dichas == []      # «En pausa.» lo dice la sesión
 
 
 def test_sin_estela_se_ignora_en_silencio_y_no_se_guarda_el_texto():
@@ -168,7 +168,8 @@ def test_solo_estela_abre_una_ventana_para_la_frase_siguiente():
     e, hechas, voz = _escucha("Estela.", "siguiente")
     e.atender(AUDIO)
     assert hechas == [] and voz.dichas == [] and e.estado()["activa"] is False
-    assert e._indicador()                                    # muestra «Te escucho»
+    assert e._mostrar_te_escucho()                           # muestra «Te escucho»
+    assert e.indicador() == {"encendido": True, "escuchando": True, "atenta": True}
     e.atender(AUDIO)
     assert hechas == ["siguiente"]
 
@@ -189,7 +190,6 @@ def test_la_ventana_se_gasta_con_una_frase_y_caduca():
 # -- órdenes nuevas -------------------------------------------------------------
 
 @pytest.mark.parametrize("dicho, accion, confirmacion", [
-    ("Estela, anterior", "anterior", "Ejercicio anterior."),
     ("Estela, reiniciar ejercicio", "reiniciar", "Reiniciamos el ejercicio."),
     ("Estela, reconocer activado", "reconocer_si", "Reconocimiento activado."),
     ("Estela, reconocer desactivado", "reconocer_no", "Reconocimiento desactivado."),
@@ -415,3 +415,171 @@ def test_la_cola_recuerda_lo_ultimo_repetible():
     cola.esperar_vacia()
     assert cola.ultima_repetible == "Baja la cadera"
     cola.cerrar()
+
+
+# -- notas de la sesión de Paula (2026-11-16) ----------------------------------------
+
+@pytest.mark.parametrize("dicho, sesion, accion", [
+    ("Estela, pausa", None, "pausar"),
+    ("Estela, seguir", SesionFalsa(pausada=True), "reanudar"),
+    ("Estela, seguir", SesionFalsa(colocando=True), "listo"),
+    ("Estela, siguiente", None, "siguiente"),
+    ("Estela, anterior", None, "anterior"),
+])
+def test_lo_que_la_sesion_ya_anuncia_no_se_dice_dos_veces(dicho, sesion, accion):
+    e, hechas, voz = _escucha(dicho, sesion=sesion)
+    e.atender(AUDIO)
+    assert hechas == [accion] and voz.dichas == []
+
+
+def test_con_la_sesion_real_seguimos_suena_una_sola_vez():
+    """Lo que oyó Paula: «Seguimos.» dos veces al reanudar por voz."""
+    from estela.aplicacion.rutina import cargar_catalogo, rutina_de_un_ejercicio
+    catalogo = cargar_catalogo()
+    from estela.aplicacion.sesion import AVISO_PAUSA, AVISO_REANUDA, Sesion
+    from estela.aplicacion.pausa import USUARIA
+    from tests.test_sesion import EstimadorFalso
+    voz = VozFalsa()
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 3, catalogo), catalogo,
+               EstimadorFalso(tronco=10), voz)
+    s.procesar(170.0, 0)
+    e = EscuchaVoz(MicrofonoNulo(), ReconocedorDeLista("Estela, pausa", "Estela, seguir"), voz,
+                   {"pausar": s.pausar, "reanudar": s.reanudar}, llamada=True)
+    e._sesion = s
+    antes = len(voz.dichas)
+    e.atender(AUDIO)
+    e.atender(AUDIO)
+    dichas = [t for t, _ in voz.dichas[antes:]]
+    assert dichas == [AVISO_PAUSA[USUARIA], AVISO_REANUDA]
+
+
+def test_siguiente_en_el_ultimo_y_anterior_en_el_primero_lo_dicen_y_no_hacen_nada():
+    sesion = SesionFalsa()
+    sesion.hay_siguiente, sesion.hay_anterior = False, False
+    e, hechas, voz = _escucha("Estela, siguiente", "Estela, anterior", sesion=sesion)
+    e.atender(AUDIO)
+    e.atender(AUDIO)
+    assert hechas == []
+    assert [t for t, _ in voz.dichas] == [cv.ES_EL_ULTIMO, cv.ES_EL_PRIMERO]
+
+
+@pytest.mark.parametrize("dicho, comando", [
+    ("Estela, silencio", cv.VOZ_NO), ("Estela, cállate", cv.VOZ_NO),
+    ("Estela, háblame", cv.VOZ_SI), ("Estela, vuelve a hablar", cv.VOZ_SI),
+    ("Estela, seguire.", cv.SEGUIR),                # así lo escribió Whisper en su sesión
+])
+def test_silencio_hablame_y_lo_que_whisper_escribio_en_su_sesion(dicho, comando):
+    llamado, resto = cv.separar_llamada(dicho)
+    assert llamado and cv.interpretar(resto).comando == comando
+
+
+def test_el_punto_del_microfono_dice_si_esta_encendido_escucha_y_esta_atenta():
+    e, _, voz = _escucha("Estela")
+    assert e.indicador() == {"encendido": True, "escuchando": True, "atenta": False}
+    voz.ocupada = True                                       # habla ESTELA: no escucha
+    e._sesion.puede_escuchar = False
+    assert e.indicador() == {"encendido": True, "escuchando": False, "atenta": False}
+    voz.ocupada, e._sesion.puede_escuchar = False, True
+    e.atender(AUDIO)                                         # oyó «Estela»
+    assert e.indicador()["atenta"] is True
+    e._ventana_hasta = time.monotonic() - 1
+    assert e.indicador()["atenta"] is False
+
+
+# -- micrófono: apagar, encender, elegir y probar --------------------------------------
+
+class MicrofonoDeFabrica(MicrofonoNulo):
+    abiertos = []
+
+    def __init__(self, dispositivo=None):
+        self.dispositivo, self.cerrado, self.nivel = dispositivo, False, 0.25
+        self.nombre = f"Micrófono {dispositivo}"
+        self.frases = []
+        MicrofonoDeFabrica.abiertos.append(self)
+
+    def escuchar_frase(self, cancelar, espera_s=1.0):
+        if cancelar():
+            return None
+        time.sleep(0.01)
+        return self.frases.pop(0) if self.frases else None
+
+    def cerrar(self):
+        self.cerrado = True
+
+
+def _con_fabrica(*textos, abrir=MicrofonoDeFabrica):
+    MicrofonoDeFabrica.abiertos = []
+    hechas, voz = [], VozFalsa()
+    e = EscuchaVoz(None, ReconocedorDeLista(*textos), voz,
+                   {a: (lambda a=a: hechas.append(a)) for a in ACCIONES}, llamada=True,
+                   abrir_microfono=abrir)
+    return e, hechas, voz
+
+
+def test_apagar_cierra_el_microfono_y_encender_lo_vuelve_a_abrir():
+    e, _, _ = _con_fabrica()
+    e.arrancar()
+    try:
+        _hasta_que(lambda: e.microfono is not None)
+        primero = e.microfono
+        assert e.ajustes()["encendido"] and e.ajustes()["nivel"] == 0.25
+        e.encender(False)
+        _hasta_que(lambda: e.microfono is None)
+        assert primero.cerrado and e.ajustes()["encendido"] is False
+        assert e.indicador() == {"encendido": False, "escuchando": False, "atenta": False}
+        e.encender(True)
+        _hasta_que(lambda: e.microfono is not None)
+        assert e.microfono is not primero and e.ajustes()["encendido"]
+    finally:
+        e.cerrar()
+
+
+def test_elegir_otro_microfono_cierra_el_anterior_y_abre_el_nuevo():
+    e, _, _ = _con_fabrica()
+    e.arrancar()
+    try:
+        _hasta_que(lambda: e.microfono is not None)
+        primero = e.microfono
+        e.elegir_microfono(3)
+        _hasta_que(lambda: e.microfono is not None and e.microfono.dispositivo == 3)
+        assert primero.cerrado and e.ajustes()["elegido"] == 3
+        assert e.ajustes()["nombre"] == "Micrófono 3"
+    finally:
+        e.cerrar()
+
+
+def test_si_el_microfono_no_abre_queda_apagado_y_dice_por_que():
+    def falla(dispositivo):
+        raise OSError("no hay entrada")
+    e, _, _ = _con_fabrica(abrir=falla)
+    e.arrancar()
+    try:
+        _hasta_que(lambda: e.ajustes()["error"] is not None)
+        a = e.ajustes()
+        assert a["encendido"] is False and "no hay entrada" in a["error"]
+    finally:
+        e.cerrar()
+
+
+def test_probar_muestra_lo_que_oye_sin_sesion_y_sin_ejecutar_nada():
+    e, hechas, voz = _con_fabrica("Estela, pausa", "qué calor")
+    e.arrancar()
+    try:
+        _hasta_que(lambda: e.microfono is not None)
+        e.microfono.frases = [AUDIO]
+        assert e.probar(5.0) and e.ajustes()["probando"]
+        _hasta_que(lambda: e.ajustes()["prueba"] is not None)
+        assert e.ajustes()["prueba"] == {"n": 1, "texto": "Estela, pausa", "llamada": True,
+                                         "comando": cv.PAUSA}
+        e.microfono.frases = [AUDIO]
+        _hasta_que(lambda: e.ajustes()["prueba"]["n"] == 2)
+        assert e.ajustes()["prueba"]["llamada"] is False and e.ajustes()["prueba"]["comando"] is None
+        assert hechas == [] and voz.dichas == [] and e.registro == []   # ni actúa ni lo guarda
+    finally:
+        e.cerrar()
+
+
+def test_no_se_puede_probar_con_el_microfono_apagado():
+    e, _, _ = _con_fabrica()
+    e.encender(False)
+    assert e.probar() is False

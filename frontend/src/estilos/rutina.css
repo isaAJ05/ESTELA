@@ -426,6 +426,19 @@
 .opcion-ajuste .camara-unica { display: inline-flex; align-items: center; gap: 0.375rem; max-width: none; color: var(--color-texto); font-size: 0.9375rem; }
 .camara-unica svg { width: 1rem; height: 1rem; }
 
+/* Micrófono: entrada, nivel y prueba, debajo de su interruptor */
+.microfono-detalle { display: grid; gap: var(--espacio-2); padding: 0 0 var(--espacio-3); color: var(--color-texto-suave); font-size: 0.9375rem; }
+.microfono-apagado { display: flex; align-items: center; gap: 0.5rem; color: var(--color-texto-sutil); }
+.microfono-apagado svg, .microfono-entrada svg { flex: none; width: 1.125rem; height: 1.125rem; }
+.microfono-entrada { display: flex; align-items: center; gap: 0.5rem; }
+.microfono-entrada select {
+  flex: 1; min-width: 0; padding: 0.5rem 0.625rem; border: 1px solid var(--color-borde); border-radius: var(--radio-md);
+  background: var(--color-superficie); color: var(--color-texto); font: inherit;
+}
+.nivel-entrada { height: 0.5rem; border-radius: 1rem; background: var(--color-relleno); overflow: hidden; }
+.nivel-entrada i { display: block; height: 100%; border-radius: 1rem; background: var(--color-exito); transition: width 0.15s linear; }
+.microfono-prueba { display: flex; align-items: center; gap: var(--espacio-3); }
+.microfono-prueba > span { min-width: 0; }
 .interruptor {
   position: relative; flex: 0 0 auto; width: 3.25rem; height: 1.875rem; padding: 0;
   border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);

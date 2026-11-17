@@ -52,7 +52,8 @@ ORDENES_DE_AJUSTE: Tuple[str, ...] = tuple(AJUSTES_DE_PANTALLA)
 #: forma más de confundirse; ampliarlo con lo que se oiga en las pruebas.
 LEXICO: Dict[str, Tuple[str, ...]] = {
     PAUSA: ("pausa", "pausar", "pausalo", "pausemos", "espera", "esperame"),
-    SEGUIR: ("seguir", "sigue", "sigamos", "seguimos", "continuar", "continua",
+    # `[F]` «seguire»: así escribió Whisper «seguir» en la sesión de Paula del 2026-11-16
+    SEGUIR: ("seguir", "sigue", "sigamos", "seguimos", "seguire", "continuar", "continua",
              "continuemos", "reanudar", "reanuda"),
     SIGUIENTE: ("siguiente", "proximo", "saltar", "salta", "saltemos"),
     TERMINAR: ("terminar", "termina", "terminemos", "terminamos", "acabar", "finalizar"),
@@ -77,19 +78,24 @@ LEXICO: Dict[str, Tuple[str, ...]] = {
                  "oculta los angulos", "ocultar angulos", "oculta angulos"),
     REPITE_ESO: ("repite eso", "repite lo ultimo", "repite el aviso", "que dijiste",
                  "dilo otra vez"),
-    VOZ_SI: ("voz activada", "activa la voz", "activar la voz", "enciende la voz"),
+    # «Estela, háblame» / «Estela, silencio»: pedidos por Paula (2026-11-16)
+    VOZ_SI: ("voz activada", "activa la voz", "activar la voz", "enciende la voz",
+             "hablame", "habla", "vuelve a hablar"),
     VOZ_NO: ("voz desactivada", "desactiva la voz", "desactivar la voz", "apaga la voz",
-             "silencia la voz"),
+             "silencia la voz", "silencio", "callate"),
 }
 
-#: lo que ESTELA dice al confirmar cada orden (texto fijo)
+#: Lo que ESTELA dice al confirmar cada orden (texto fijo). Vacío donde la sesión
+#: ya lo anuncia al ejecutar la acción («En pausa.», «Seguimos.», «Ahora, …»): si
+#: la escucha también lo dijera, sonaría dos veces (visto en la sesión de Paula
+#: del 2026-11-16: «Seguimos.» repetido al reanudar por voz).
 CONFIRMACION: Dict[str, str] = {
-    PAUSA: "Pausa.",
-    SEGUIR: "Seguimos.",
-    SIGUIENTE: "Siguiente ejercicio.",
+    PAUSA: "",
+    SEGUIR: "",
+    SIGUIENTE: "",
     TERMINAR: "Terminamos.",
     COMO_VOY: "",                       # responde la entrenadora
-    ANTERIOR: "Ejercicio anterior.",
+    ANTERIOR: "",
     REINICIAR_EJERCICIO: "Reiniciamos el ejercicio.",
     REINICIAR_SESION: "",               # antes pide confirmación (`PREGUNTA_REINICIAR`)
     RECONOCER_SI: "Reconocimiento activado.",
@@ -102,12 +108,16 @@ CONFIRMACION: Dict[str, str] = {
 }
 #: si no se ha dicho nada que repetir
 NO_HAY_QUE_REPETIR = "No tengo nada que repetir."
+#: «siguiente» en el último ejercicio y «anterior» en el primero no hacen nada: se dice
+ES_EL_ULTIMO = "Este es el último ejercicio."
+ES_EL_PRIMERO = "Este es el primer ejercicio."
 
 
 def frases_propias() -> Tuple[str, ...]:
     """Lo que la escucha dice por su cuenta; «repite eso» no lo repite."""
     return tuple(t for t in (*CONFIRMACION.values(), NO_ENTENDI, PREGUNTA_REINICIAR,
-                             CONFIRMA_REINICIAR, NO_HAY_QUE_REPETIR) if t)
+                             CONFIRMA_REINICIAR, NO_HAY_QUE_REPETIR, ES_EL_ULTIMO,
+                             ES_EL_PRIMERO) if t)
 #: reiniciar toda la sesión borra el avance: se pide confirmación (texto fijo)
 PREGUNTA_REINICIAR = "¿Reinicio toda la sesión? Di: Estela, sí."
 CONFIRMA_REINICIAR = "Reiniciamos la sesión."
@@ -223,7 +233,7 @@ def puede_escuchar(en_pausa: bool, colocando: bool, hablando: bool,
 __all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "TERMINAR", "COMO_VOY",
            "ANTERIOR", "REINICIAR_EJERCICIO", "REINICIAR_SESION", "RECONOCER_SI",
            "RECONOCER_NO", "ANGULOS_SI", "ANGULOS_NO", "REPITE_ESO", "VOZ_SI", "VOZ_NO",
-           "AJUSTES_DE_PANTALLA", "ORDENES_DE_AJUSTE", "NO_HAY_QUE_REPETIR", "frases_propias",
+           "AJUSTES_DE_PANTALLA", "ORDENES_DE_AJUSTE", "NO_HAY_QUE_REPETIR", "ES_EL_ULTIMO", "ES_EL_PRIMERO", "frases_propias",
            "LEXICO", "CONFIRMACION", "PREGUNTA_REINICIAR", "CONFIRMA_REINICIAR",
            "NO_ENTENDI", "ENTENDIDO", "VACIO", "SIN_COMANDO", "AMBIGUO", "SIN_LLAMADA", "SOLO_LLAMADA",
            "LLAMADAS", "VENTANA_LLAMADA_S", "VENTANA_CONFIRMACION_S", "Interpretacion",

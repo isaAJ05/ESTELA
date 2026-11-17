@@ -131,7 +131,9 @@ def test_cada_orden_llama_a_la_accion_de_los_botones(texto, sesion, accion):
     e, hechas, voz = _escucha(texto, sesion)
     i = e.atender(np.zeros(FS, np.float32))
     assert hechas == [accion]
-    assert voz.dichas == [(cv.CONFIRMACION[i.comando], PRIORIDAD_AVISO)]
+    # lo que la sesión ya anuncia al actuar («En pausa.», «Seguimos.», «Ahora, …») no se repite
+    confirmacion = cv.CONFIRMACION[i.comando]
+    assert voz.dichas == ([(confirmacion, PRIORIDAD_AVISO)] if confirmacion else [])
     assert e.estado()["comando"] == i.comando and not e.estado()["noEntendi"]
 
 

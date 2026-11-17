@@ -53,6 +53,8 @@ export interface Capacidades {
   elegirCamara?: boolean
   /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
   reconocerEjercicio?: boolean
+  /** hay órdenes de voz: sección «Micrófono» de los ajustes (`microfono`, `probarMicrofono`, `configurar`) */
+  vozEntrada?: boolean
   /** las sesiones se guardan en este equipo y hay panel «Mi progreso» (ADR-008) */
   historial?: boolean
   /** varias personas en el equipo, cada una con su historial (ADR-009) */
@@ -168,6 +170,8 @@ export interface EstadoSesion {
   gesto?: { progreso: number; accion: 'pausar' | 'reanudar' } | null
   /** órdenes de voz: si ESTELA escucha ahora y lo último que entendió; null sin voz de entrada */
   escucha?: Escucha | null
+  /** punto del micrófono; null sin voz de entrada */
+  microfono?: MicrofonoSesion | null
   // Aún sin backend: llegan null (ver Capacidades).
   correctas: number | null
   conError: number | null
@@ -419,9 +423,47 @@ export interface Camaras {
   elegida: number | null
 }
 
+/** Punto del micrófono durante la sesión. */
+export interface MicrofonoSesion {
+  /** el micrófono está abierto */
+  encendido: boolean
+  /** ahora mismo se atienden órdenes (no mientras habla ESTELA) */
+  escuchando: boolean
+  /** oyó «Estela» y espera la orden (o un sí o un no) */
+  atenta: boolean
+}
+
+export interface EntradaAudio {
+  indice: number
+  nombre: string
+  porDefecto: boolean
+}
+
+/** Sección «Micrófono» de los ajustes (capacidad «vozEntrada»). */
+export interface Microfonos {
+  lista: EntradaAudio[]
+  encendido: boolean
+  /** null: la entrada de defecto del sistema */
+  elegido: number | null
+  nombre: string | null
+  /** volumen de entrada reciente, de 0 a 1 */
+  nivel: number
+  probando: boolean
+  /** lo último que se oyó en la prueba; `llamada` null si no hace falta decir «Estela» */
+  prueba: { n: number; texto: string; llamada: boolean | null; comando: string | null } | null
+  /** por qué no se pudo abrir el micrófono */
+  error: string | null
+  /** las órdenes empiezan por «Estela» */
+  llamada: boolean
+}
+
 /** Ajustes que Python aplica en cualquier fase (capacidad «silenciarVoz»). */
 export interface AjustesPython {
   voz?: boolean
+  /** encender o apagar el micrófono (capacidad «vozEntrada») */
+  vozEntrada?: boolean
+  /** entrada de audio; null: la de defecto del sistema (capacidad «vozEntrada») */
+  microfono?: number | null
   /** cámara de la próxima sesión (capacidad «elegirCamara») */
   camara?: number
   /** capacidad «reconocerEjercicio»; empieza desactivado */
@@ -459,6 +501,10 @@ export interface Bridge {
   borrarRutinaNombrada(perfilId: string, rutinaId: string): Promise<ResultadoPerfil>
   /** Cámaras que se pueden elegir; null con un vídeo o con la cámara en uso. Tarda: abre cada una. */
   camaras(): Promise<Camaras | null>
+  /** Estado del micrófono para los ajustes; null sin la capacidad «vozEntrada». */
+  microfono(): Promise<Microfonos | null>
+  /** Empieza una prueba corta del micrófono; false si está apagado. */
+  probarMicrofono(): Promise<boolean>
   /** Termina la fase de colocación (capacidad «colocacion»). */
   listo(): Promise<void>
   /** Solo con la capacidad «pausaManual». */

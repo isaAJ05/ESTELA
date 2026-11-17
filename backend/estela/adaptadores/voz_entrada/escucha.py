@@ -45,8 +45,11 @@ class EscuchaVoz:
     def __init__(self, microfono: Any, reconocedor: Any, voz: Voz,
                  acciones: Mapping[str, Callable[[], None]],
                  como_voy: Optional[Callable[[Any], Optional[str]]] = None,
-                 llamada: bool = False, guarda_eco_s: float = 0.0) -> None:
-        """`microfono`: `escuchar_frase(cancelar, espera_s)` y `descartar()`.
+                 llamada: bool = False, guarda_eco_s: float = 0.0,
+                 abrir_microfono: Optional[Callable[[Optional[int]], Any]] = None) -> None:
+        """`microfono`: `escuchar_frase(cancelar, espera_s)` y `descartar()`; None si
+        se abrirá después con `abrir_microfono(dispositivo)`. Con esa fábrica el
+        micrófono se puede apagar de verdad (se cierra), encender y cambiar por otro.
         `reconocedor`: `transcribir(audio) -> str`. `acciones`: funciones
         «pausar», «reanudar», «listo», «siguiente», «anterior», «reiniciar» y
         «terminar»; con `llamada` también «reiniciar_sesion», «reconocer_si»,
@@ -54,6 +57,18 @@ class EscuchaVoz:
         «¿cómo voy?» (puede tardar: corre en este hilo, no en el de la sesión)."""
         self.microfono, self.reconocedor, self.voz = microfono, reconocedor, voz
         self.acciones, self.como_voy = acciones, como_voy
+        self._abrir = abrir_microfono
+        #: lo que se quiere: escuchar o no, y con qué entrada (None: la de defecto).
+        #: Lo aplica el hilo de la escucha (`_aplicar_cambios`), que es el dueño del micrófono.
+        self._encendida = True
+        self._dispositivo: Optional[int] = getattr(microfono, "dispositivo", None)
+        self._hay_cambios = threading.Event()
+        if microfono is None:
+            self._hay_cambios.set()                 # abrirlo al arrancar
+        self._error_microfono: Optional[str] = None
+        #: prueba desde los ajustes: hasta cuándo, y lo último que se oyó en ella
+        self._prueba_hasta = 0.0
+        self._prueba: Optional[Dict[str, Any]] = None
         self._sesion: Any = None
         self._parar = threading.Event()
         self._hilo: Optional[threading.Thread] = None
@@ -81,15 +96,97 @@ class EscuchaVoz:
         self.registro: List[Dict[str, Any]] = []
 
     # -- conexión ---------------------------------------------------------------
+    def arrancar(self) -> None:
+        """Arranca el hilo (si no corre). Sin sesión no atiende órdenes, pero
+        ya se puede probar el micrófono desde los ajustes."""
+        if self._hilo is None or not self._hilo.is_alive():
+            self._parar.clear()
+            self._hilo = threading.Thread(target=self._bucle, name="estela-escucha", daemon=True)
+            self._hilo.start()
+
     def conectar(self, sesion: Any) -> None:
         """Engancha la escucha a una `Sesion` recién creada y arranca el hilo."""
         self._sesion = sesion
         sesion.oyente = self
         sesion.escucha_siempre = self.llamada
-        if self._hilo is None or not self._hilo.is_alive():
-            self._parar.clear()
-            self._hilo = threading.Thread(target=self._bucle, name="estela-escucha", daemon=True)
-            self._hilo.start()
+        self.arrancar()
+
+    # -- ajustes del micrófono (los llama la interfaz desde otro hilo) -------------
+    def encender(self, encendida: bool) -> None:
+        """Enciende o apaga la voz de entrada. Apagada, el micrófono se cierra
+        (si se puede volver a abrir) y no se escucha nada."""
+        with self._cerrojo:
+            self._encendida = bool(encendida)
+        self._hay_cambios.set()
+
+    def elegir_microfono(self, dispositivo: Optional[int]) -> None:
+        """Cambia de entrada (índice de `listar_microfonos`; None: la de defecto)."""
+        with self._cerrojo:
+            self._dispositivo = dispositivo
+        self._hay_cambios.set()
+
+    def probar(self, segundos: float = 8.0) -> bool:
+        """Durante `segundos` muestra en los ajustes lo que oye y qué entendería,
+        sin ejecutar ninguna orden ni guardarlo. False si el micrófono está apagado."""
+        if not self._encendida:
+            return False
+        with self._cerrojo:
+            self._prueba = None
+            self._prueba_hasta = time.monotonic() + max(1.0, float(segundos))
+        self.arrancar()
+        return True
+
+    def _probando(self) -> bool:
+        return time.monotonic() < self._prueba_hasta
+
+    def ajustes(self) -> Dict[str, Any]:
+        """Para la sección «Micrófono» de los ajustes."""
+        mic = self.microfono
+        with self._cerrojo:
+            return {"encendido": self._encendida and mic is not None,
+                    "elegido": self._dispositivo,
+                    "nombre": getattr(mic, "nombre", None),
+                    "nivel": round(min(1.0, float(getattr(mic, "nivel", 0.0) or 0.0)), 4),
+                    "probando": self._probando(),
+                    "prueba": dict(self._prueba) if self._prueba else None,
+                    "error": self._error_microfono,
+                    "llamada": self.llamada}
+
+    def indicador(self) -> Dict[str, bool]:
+        """Para el punto del micrófono en pantalla: si está encendido, si ahora
+        mismo escucha (no mientras habla ESTELA) y si oyó «Estela» y espera la orden."""
+        encendido = self._encendida and self.microfono is not None
+        ahora = time.monotonic()
+        atenta = self.llamada and (ahora < self._ventana_hasta or (
+            self._pendiente is not None and ahora < self._pendiente_hasta))
+        return {"encendido": encendido,
+                "escuchando": bool(encendido and self._se_puede() and not self._en_guarda_de_eco()),
+                "atenta": bool(encendido and atenta)}
+
+    def _aplicar_cambios(self) -> None:
+        """En el hilo de la escucha: abre, cierra o cambia el micrófono según lo pedido."""
+        if not self._hay_cambios.is_set():
+            return
+        self._hay_cambios.clear()
+        with self._cerrojo:
+            quiero, dispositivo = self._encendida, self._dispositivo
+        if self._abrir is None:                      # micrófono fijo: solo se deja de escuchar
+            return
+        mic = self.microfono
+        if mic is not None and (not quiero or getattr(mic, "dispositivo", None) != dispositivo):
+            cerrar = getattr(mic, "cerrar", None)
+            if cerrar is not None:
+                cerrar()
+            self.microfono = None
+        if quiero and self.microfono is None:
+            try:
+                self.microfono = self._abrir(dispositivo)
+                self._error_microfono = None
+            except Exception as exc:                  # noqa: BLE001 — sin micrófono se sigue sin voz
+                log.warning("No se pudo abrir el micrófono: %s: %s", type(exc).__name__, exc)
+                self._error_microfono = f"{type(exc).__name__}: {exc}"
+                with self._cerrojo:
+                    self._encendida = False
 
     def cerrar(self) -> None:
         self._parar.set()
@@ -127,7 +224,7 @@ class EscuchaVoz:
         s = self._sesion
         return s is not None and bool(s.puede_escuchar)
 
-    def _indicador(self) -> bool:
+    def _mostrar_te_escucho(self) -> bool:
         """¿Se muestra «Te escucho»? En modo «llamada» se escucha todo el rato,
         pero el aviso solo sale cuando es un buen momento para hablar (pausa,
         colocación) o tras decir «Estela»; durante el ejercicio no estorba."""
@@ -148,23 +245,48 @@ class EscuchaVoz:
 
     def _bucle(self) -> None:
         while not self._parar.is_set():
-            if not self._se_puede() or self._en_guarda_de_eco():
+            self._aplicar_cambios()
+            mic = self.microfono
+            if mic is None or not self._encendida:
                 with self._cerrojo:
                     self._activa = False
-                self.microfono.descartar()
+                if mic is not None:
+                    mic.descartar()
+                time.sleep(0.1)
+                continue
+            probando = self._probando()
+            if not probando and (not self._se_puede() or self._en_guarda_de_eco()):
+                with self._cerrojo:
+                    self._activa = False
+                mic.descartar()
                 time.sleep(0.1)
                 continue
             with self._cerrojo:
-                self._activa = self._indicador()
+                self._activa = False if probando else self._mostrar_te_escucho()
             try:
-                audio = self.microfono.escuchar_frase(
-                    cancelar=lambda: self._parar.is_set() or not self._se_puede())
-                if audio is None or not self._se_puede():
-                    continue                      # nada, o ESTELA empezó a hablar: se descarta
-                self.atender(audio)
+                audio = mic.escuchar_frase(
+                    cancelar=lambda: (self._parar.is_set() or self._hay_cambios.is_set()
+                                      or not (self._probando() or self._se_puede())))
+                if audio is None:
+                    continue
+                if self._probando():
+                    self._atender_prueba(audio)
+                elif self._se_puede():                # si ESTELA empezó a hablar, se descarta
+                    self.atender(audio)
             except Exception:                             # noqa: BLE001
                 log.exception("fallo en la escucha de voz")
                 time.sleep(0.5)
+
+    def _atender_prueba(self, audio: Any) -> None:
+        """Prueba desde los ajustes: qué se oyó y qué se entendería. No actúa ni
+        lo guarda en el registro de la sesión."""
+        texto = (self.reconocedor.transcribir(audio) or "").strip()
+        llamado, orden = cv.separar_llamada(texto) if self.llamada else (True, texto)
+        comando = cv.interpretar(orden).comando if llamado else None
+        with self._cerrojo:
+            n = (self._prueba or {}).get("n", 0) + 1
+            self._prueba = {"n": n, "texto": texto, "llamada": bool(llamado) if self.llamada else None,
+                            "comando": comando}
 
     def atender(self, audio: Any) -> cv.Interpretacion:
         """Una frase ya cortada: reconocer, interpretar y actuar."""
@@ -178,13 +300,15 @@ class EscuchaVoz:
                 return ya
             orden = ya
         i = cv.interpretar(orden)
-        self.registro.append({"texto": texto, "comando": i.comando, "motivo": i.motivo,
+        dolor = menciona_dolor(orden)
+        self.registro.append({"texto": texto, "comando": i.comando,
+                              "motivo": "dolor" if dolor else i.motivo,
                               "reconocer_ms": round(ms)})
-        log.info("Voz: «%s» → %s (%s, %.0f ms)", texto, i.comando, i.motivo, ms)
-        if menciona_dolor(orden):
+        log.info("Voz: «%s» → %s (%s, %.0f ms)", texto, i.comando,
+                 "dolor" if dolor else i.motivo, ms)
+        if dolor:
             self._anota(texto, None, False)
             self.voz.decir(RESPUESTA_DOLOR, PRIORIDAD_AVISO)
-            self.registro[-1]["motivo"] = "dolor"
             return i
         if i.comando is not None:
             self._anota(texto, i.comando, False)
@@ -274,8 +398,14 @@ class EscuchaVoz:
         elif comando == cv.SEGUIR:
             accion = "reanudar" if en_pausa else ("listo" if colocando else None)
         elif comando == cv.SIGUIENTE:
+            if not getattr(s, "hay_siguiente", True):     # la sesión no haría nada: se dice
+                self.voz.decir(cv.ES_EL_ULTIMO, PRIORIDAD_AVISO)
+                return
             accion = "siguiente"
         elif comando == cv.ANTERIOR:
+            if not getattr(s, "hay_anterior", True):
+                self.voz.decir(cv.ES_EL_PRIMERO, PRIORIDAD_AVISO)
+                return
             accion = "anterior"
         elif comando == cv.REINICIAR_EJERCICIO:
             accion = "reiniciar"

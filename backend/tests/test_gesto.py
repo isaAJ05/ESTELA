@@ -203,3 +203,29 @@ def test_la_sesion_escucha_en_movimiento_solo_con_escucha_siempre(catalogo):
     assert s.puede_escuchar
     voz.ocupada = True                                         # mientras habla ESTELA, no
     assert not s.puede_escuchar
+
+
+def test_hay_siguiente_y_hay_anterior(catalogo):
+    rutina = rutina_desde_dict({"nombre": "t", "pasos": [
+        {"skill_id": "zancada_atras_izq", "repeticiones": 3},
+        {"skill_id": "jumping_jacks", "repeticiones": 3}]}, catalogo)
+    s = Sesion(rutina, catalogo, EstimadorFalso(tronco=10), VozFalsa())
+    assert s.hay_siguiente and not s.hay_anterior
+    s.siguiente()
+    assert not s.hay_siguiente and s.hay_anterior
+
+
+def test_el_estado_lleva_el_punto_del_microfono(catalogo):
+    class Oyente:
+        def estado(self):
+            return None
+
+        def indicador(self):
+            return {"encendido": True, "escuchando": True, "atenta": False}
+
+    s = Sesion(rutina_de_un_ejercicio("jumping_jacks", 3, catalogo), catalogo,
+               EstimadorFalso(tronco=10), VozFalsa())
+    assert s.procesar(170.0, 0).microfono is None          # sin voz de entrada
+    s.oyente = Oyente()
+    assert s.procesar(170.0, 33).microfono == {"encendido": True, "escuchando": True,
+                                               "atenta": False}

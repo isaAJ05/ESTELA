@@ -217,6 +217,9 @@ class EstadoFrame:
     #: órdenes de voz (`comandos_voz.py`): {"activa": bool, "texto": str | None,
     #: "comando": str | None, "noEntendi": bool}, o None sin voz de entrada
     escucha: Optional[Dict[str, Any]] = None
+    #: indicador del micrófono: {"encendido": bool, "escuchando": bool, "atenta": bool},
+    #: o None sin voz de entrada. `atenta`: oyó «Estela» y espera la orden
+    microfono: Optional[Dict[str, Any]] = None
 
 
 class _SaltoCadera:
@@ -441,6 +444,14 @@ class Sesion:
         return puede_escuchar(en_pausa=p.pausa.pausada, colocando=p.colocando,
                               hablando=bool(getattr(self.voz, "ocupada", False)),
                               terminada=self.terminada, siempre=self.escucha_siempre)
+
+    @property
+    def hay_siguiente(self) -> bool:
+        return self._i < len(self.rutina.pasos) - 1
+
+    @property
+    def hay_anterior(self) -> bool:
+        return 0 < self._i < len(self.rutina.pasos)
 
     @property
     def entre_ejercicios(self) -> bool:
@@ -927,7 +938,9 @@ class Sesion:
                          if p.colocando else None),
             comprobaciones=dict(p.comprobaciones) if p.colocando else None,
             gesto=self._estado_gesto(p),
-            escucha=self.oyente.estado() if self.oyente is not None else None)
+            escucha=self.oyente.estado() if self.oyente is not None else None,
+            microfono=(self.oyente.indicador() if hasattr(self.oyente, "indicador")
+                       else None))
 
     def _estado_gesto(self, p: _Paso) -> Optional[Dict[str, Any]]:
         progreso = self._gesto.progreso(self._t_ms)

@@ -118,6 +118,10 @@ class Orquestador:
         #: cámara de la próxima sesión; la interfaz la cambia con `configurar`
         self.camara = camara
         self._listar_camaras = listar_camaras
+        #: voz de entrada (`EscuchaVoz`) y cómo listar los micrófonos; los pone
+        #: quien arranca la aplicación con `conectar_voz_entrada`
+        self._voz_entrada: Any = None
+        self._listar_microfonos: Optional[Callable[[], List[Dict[str, Any]]]] = None
 
         self._cv = threading.Condition()
         self._version = 0
@@ -139,7 +143,28 @@ class Orquestador:
         d["fuente"] = self._fuente
         d["capacidades"]["historial"] = self._perfiles is not None
         d["capacidades"]["perfiles"] = self._perfiles is not None
+        d["capacidades"]["vozEntrada"] = self._voz_entrada is not None
         return d
+
+    def conectar_voz_entrada(self, escucha: Any,
+                             listar_microfonos: Optional[Callable[[], List[Dict[str, Any]]]] = None
+                             ) -> None:
+        """Da a la interfaz la sección «Micrófono»: elegir, encender, apagar y probar."""
+        self._voz_entrada = escucha
+        self._listar_microfonos = listar_microfonos
+
+    def microfono(self) -> Optional[Dict[str, Any]]:
+        """Estado del micrófono para los ajustes (encendido, elegido, nivel, lo
+        último oído en la prueba) y la lista de entradas; None sin voz de entrada."""
+        if self._voz_entrada is None:
+            return None
+        d = dict(self._voz_entrada.ajustes())
+        d["lista"] = self._listar_microfonos() if self._listar_microfonos is not None else []
+        return d
+
+    def probar_microfono(self) -> bool:
+        """Empieza una prueba corta: los ajustes muestran lo que se oye, sin actuar."""
+        return bool(self._voz_entrada is not None and self._voz_entrada.probar())
 
     def camaras(self) -> Optional[Dict[str, Any]]:
         """Cámaras que se pueden elegir y la elegida, o None si no se puede
@@ -360,10 +385,19 @@ class Orquestador:
 
     def configurar(self, voz: Optional[bool] = None,
                    reconocer: Optional[bool] = None,
-                   camara: Optional[int] = None) -> None:
+                   camara: Optional[int] = None,
+                   voz_entrada: Optional[bool] = None,
+                   microfono: Any = ...) -> None:
         """Ajustes de la interfaz que se pueden cambiar en cualquier momento.
         `reconocer` vale para la sesión en curso y para las siguientes;
-        `camara`, desde la próxima sesión."""
+        `camara`, desde la próxima sesión. `voz_entrada` enciende o apaga el
+        micrófono y `microfono` elige la entrada (índice, o None: la de defecto
+        del sistema); los dos valen al momento."""
+        if self._voz_entrada is not None:
+            if microfono is not ...:
+                self._voz_entrada.elegir_microfono(microfono)
+            if voz_entrada is not None:
+                self._voz_entrada.encender(voz_entrada)
         if camara is not None and self._listar_camaras is not None:
             self.camara = camara
         if voz is not None and hasattr(self._voz, "silenciar"):

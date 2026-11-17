@@ -50,6 +50,9 @@ function cargar(): Ajustes {
 }
 
 let actual: Ajustes = cargar()
+/** No null: la voz se cambió con una orden hablada («Estela, silencio») y eso vale solo
+ *  hasta que acabe la sesión; aquí queda la preferencia guardada, que es la que vuelve. */
+let vozGuardada: boolean | null = null
 const oyentes = new Set<() => void>()
 const consultaOscuro = typeof matchMedia === 'function' ? matchMedia('(prefers-color-scheme: dark)') : null
 
@@ -66,9 +69,31 @@ consultaOscuro?.addEventListener('change', () => { if (actual.tema === 'sistema'
 export function cambiarAjustes(cambios: Partial<Ajustes>, bridge?: Bridge): void {
   actual = { ...actual, ...cambios }
   aplicarAjustes()
-  try { localStorage.setItem(CLAVE, JSON.stringify(actual)) } catch { /* sin almacenamiento */ }
+  if (cambios.voz !== undefined) vozGuardada = null      // elegida a mano: pasa a ser la preferencia
+  const aGuardar = vozGuardada === null ? actual : { ...actual, voz: vozGuardada }
+  try { localStorage.setItem(CLAVE, JSON.stringify(aGuardar)) } catch { /* sin almacenamiento */ }
   if (bridge && cambios.voz !== undefined) void bridge.configurar({ voz: cambios.voz })
   if (bridge && cambios.reconocer !== undefined) void bridge.configurar({ reconocer: cambios.reconocer })
+  oyentes.forEach((f) => f())
+}
+
+/** «Estela, silencio» / «Estela, háblame»: cambia la voz solo por el resto de la sesión.
+ *  No se guarda: al terminar la sesión vuelve la preferencia (`restaurarVoz`). */
+export function cambiarVozDeSesion(voz: boolean, bridge: Bridge): void {
+  if (vozGuardada === null) vozGuardada = actual.voz
+  actual = { ...actual, voz }
+  void bridge.configurar({ voz })
+  oyentes.forEach((f) => f())
+}
+
+/** Al salir de la sesión: deshace lo que se cambió con una orden hablada. */
+export function restaurarVoz(bridge: Bridge): void {
+  if (vozGuardada === null) return
+  const voz = vozGuardada
+  vozGuardada = null
+  if (voz === actual.voz) return
+  actual = { ...actual, voz }
+  void bridge.configurar({ voz })
   oyentes.forEach((f) => f())
 }
 
