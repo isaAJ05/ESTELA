@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import logging
 import platform
+import re
 import shutil
 import subprocess
 import tempfile
@@ -149,6 +150,51 @@ class VozPiper(MotorVoz):
         shutil.rmtree(self._dir, ignore_errors=True)
 
 
+# ---------------------------------------------------------------------------
+# Pronunciación de palabras en inglés
+# ---------------------------------------------------------------------------
+
+#: Palabras inglesas que una voz en español leería con reglas del español. Cada
+#: patrón se cambia por cómo suena, solo para el audio: la pantalla sigue
+#: mostrando el texto original. Ignora mayúsculas y acepta guion o espacio y
+#: singular o plural (el LLM puede escribirlas de varias formas).
+PRONUNCIACIONES = (
+    (re.compile(r"\bjumping[\s_-]*jacks?\b", re.IGNORECASE), "yámping yaks"),
+)
+
+
+def con_pronunciacion(texto: str) -> str:
+    """Texto con las palabras en inglés reemplazadas por su pronunciación."""
+    for patron, sonido in PRONUNCIACIONES:
+        texto = patron.sub(sonido, texto)
+    return texto
+
+
+class VozConPronunciacion(MotorVoz):
+    """Envuelve un motor y corrige cómo se leen las palabras en inglés.
+
+    Es un diccionario fijo (no un detector de idioma) y sirve para cualquier
+    motor. El texto que se muestra o se registra no cambia; solo lo que se dice.
+    """
+
+    def __init__(self, motor: MotorVoz) -> None:
+        self._motor = motor
+        self.nombre = motor.nombre
+
+    @property
+    def ultimo_inicio_audio(self) -> Optional[float]:   # type: ignore[override]
+        return self._motor.ultimo_inicio_audio
+
+    def hablar(self, texto: str) -> None:
+        self._motor.hablar(con_pronunciacion(texto))
+
+    def precalentar(self, textos: Iterable[str]) -> None:
+        self._motor.precalentar([con_pronunciacion(t) for t in textos])
+
+    def cerrar(self) -> None:
+        self._motor.cerrar()
+
+
 def crear_motor(preferido: str, ruta_voz_piper: Optional[Path]) -> MotorVoz:
     """Crea el motor pedido y cae al siguiente si no está disponible."""
     cadena = {"piper": ["piper", "sistema", "texto"],
@@ -161,9 +207,9 @@ def crear_motor(preferido: str, ruta_voz_piper: Optional[Path]) -> MotorVoz:
             if nombre == "piper":
                 if ruta_voz_piper is None:
                     raise FileNotFoundError("no se encontró ninguna voz Piper")
-                return VozPiper(ruta_voz_piper)
+                return VozConPronunciacion(VozPiper(ruta_voz_piper))
             if nombre == "sistema":
-                return VozSistema()
+                return VozConPronunciacion(VozSistema())
             return VozTexto()
         except Exception as e:                # noqa: BLE001 — fallback explícito
             log.warning("Voz '%s' no disponible (%s); probando la siguiente.",
@@ -179,5 +225,6 @@ def buscar_voz_piper(directorio: Path) -> Optional[Path]:
     return voces[0] if voces else None
 
 
-__all__ = ["MotorVoz", "VozTexto", "VozSistema", "VozPiper", "crear_motor",
+__all__ = ["MotorVoz", "VozTexto", "VozSistema", "VozPiper",
+           "VozConPronunciacion", "con_pronunciacion", "crear_motor",
            "buscar_voz_piper"]
