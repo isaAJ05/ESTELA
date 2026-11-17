@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 import queue
-from typing import Any, Callable, Dict, List, Optional, Tuple
+from collections import deque
+from typing import Any, Callable, Deque, Dict, List, Optional, Tuple
 
 import numpy as np
 
@@ -101,6 +102,32 @@ class Microfono:
             except queue.Empty:
                 break
         self._detector.reiniciar()
+
+    def escuchar_ventana(self, cancelar: Callable[[], bool], ventana_s: float = 2.5,
+                         paso_s: float = 1.0) -> Optional[np.ndarray]:
+        """Mientras ESTELA habla, el corte por energía no sirve (su voz también
+        cuenta como voz). Aquí se junta audio durante `paso_s` y se devuelven los
+        últimos `ventana_s` segundos, solapados con la ventana anterior, para que
+        una orden no quede partida. None si se cancela."""
+        import time
+        n = int(ventana_s * FS / BLOQUE)
+        if not hasattr(self, "_ventana") or self._ventana.maxlen != n:
+            self._ventana: Deque[np.ndarray] = deque(maxlen=n)
+        fin = time.monotonic() + paso_s
+        while time.monotonic() < fin:
+            if cancelar():
+                return None
+            try:
+                self._ventana.append(self._cola.get(timeout=0.1))
+            except queue.Empty:
+                continue
+        self._detector.reiniciar()          # al volver al corte por frases, empieza limpio
+        return np.concatenate(list(self._ventana)) if self._ventana else None
+
+    def olvidar_ventana(self) -> None:
+        """Tras actuar sobre una ventana, que la siguiente no vuelva a oír lo mismo."""
+        if hasattr(self, "_ventana"):
+            self._ventana.clear()
 
     def escuchar_frase(self, cancelar: Callable[[], bool],
                        espera_s: float = 1.0) -> Optional[np.ndarray]:

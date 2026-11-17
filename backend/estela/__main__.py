@@ -120,6 +120,9 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                         "reiniciar ejercicio o sesión, reconocer y ángulos activado o "
                         "desactivado, terminar, ¿cómo voy?). Defecto: si en el Mac, no en los "
                         "demás equipos")
+    p.add_argument("--voz-entrada-interrumpir", choices=("si", "no"), default="no",
+                   help="modo llamada: escuchar también mientras ESTELA habla, para cortarla "
+                        "con «Estela, pausa» (defecto no: sin medir con micrófono real)")
     p.add_argument("--voz-entrada-modo", choices=("llamada", "pausa"),
                    help="llamada: se escucha también durante el ejercicio, pero solo cuenta lo "
                         "que empieza por «Estela» u «Oye Estela». pausa: solo en pausa y entre "
@@ -187,9 +190,12 @@ def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
             # encender y cambiar por otro desde los ajustes
             escucha = EscuchaVoz(None, reconocedor, voz, acciones, como_voy,
                                  llamada=llamada, guarda_eco_s=args.guarda_eco,
-                                 abrir_microfono=Microfono)
+                                 abrir_microfono=Microfono,
+                                 interrumpir_hablando=getattr(args, "voz_entrada_interrumpir", "no") == "si")
             log.info("Órdenes de voz: activas (%s); %s", ruta.name,
-                     "también durante el ejercicio, di «Estela» y la orden" if llamada
+                     ("también durante el ejercicio, di «Estela» y la orden"
+                      + (", y también mientras ESTELA habla"
+                         if getattr(args, "voz_entrada_interrumpir", "no") == "si" else "")) if llamada
                      else "se escucha en pausa y entre ejercicios")
             return escucha
         except Exception as exc:                          # noqa: BLE001

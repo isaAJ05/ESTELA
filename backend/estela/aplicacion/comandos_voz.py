@@ -145,7 +145,9 @@ def frases_propias() -> Tuple[str, ...]:
                              CONFIRMA_REINICIAR, NO_HAY_QUE_REPETIR, ES_EL_ULTIMO,
                              ES_EL_PRIMERO) if t)
 #: reiniciar toda la sesión borra el avance: se pide confirmación (texto fijo)
-PREGUNTA_REINICIAR = "¿Reinicio toda la sesión? Di: Estela, sí."
+#: Sin «Estela» en el texto: si se escucha mientras ESTELA habla, oírse a sí misma
+#: diciendo «Estela, sí» confirmaría sola el reinicio. Basta un «sí» sin «Estela».
+PREGUNTA_REINICIAR = "¿Reinicio toda la sesión? Responde sí o no."
 CONFIRMA_REINICIAR = "Reiniciamos la sesión."
 #: lo que se dice cuando hubo palabras pero ninguna orden clara (texto fijo)
 NO_ENTENDI = "No te entendí. Repite, por favor."
@@ -233,6 +235,24 @@ def separar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
     return False, " ".join(palabras)
 
 
+#: Órdenes que se aceptan mientras ESTELA habla (modo «interrumpir»): las que
+#: mandan sobre lo que dice. «Reiniciar sesión» no (pide confirmación) ni «¿cómo voy?».
+ORDENES_QUE_INTERRUMPEN: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, ANTERIOR, TERMINAR,
+                                            REINICIAR_EJERCICIO, VOZ_NO)
+
+
+def buscar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
+    """Como `separar_llamada`, pero «Estela» puede ir en cualquier punto: mientras
+    ESTELA habla, el reconocedor oye su voz y la de la usuaria mezcladas, y lo que
+    ella dijo puede quedar detrás de palabras de ESTELA. Devuelve lo que sigue a
+    la última llamada."""
+    palabras = _limpiar(texto).split()
+    for i in range(len(palabras) - 1, -1, -1):
+        if palabras[i] in LLAMADAS:
+            return True, " ".join(palabras[i + 1:])
+    return False, " ".join(palabras)
+
+
 def respuesta_de_confirmacion(texto: Optional[str]) -> Optional[bool]:
     """True si dice sí, False si dice no o cancela, None si es otra cosa. Solo
     se usa tras una pregunta, y con frases cortas."""
@@ -263,4 +283,4 @@ __all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "TERMINAR", "COMO_VOY",
            "LEXICO", "CONFIRMACION", "PREGUNTA_REINICIAR", "CONFIRMA_REINICIAR",
            "NO_ENTENDI", "ENTENDIDO", "VACIO", "SIN_COMANDO", "AMBIGUO", "SIN_LLAMADA", "SOLO_LLAMADA",
            "LLAMADAS", "VENTANA_LLAMADA_S", "VENTANA_CONFIRMACION_S", "Interpretacion",
-           "interpretar", "separar_llamada", "respuesta_de_confirmacion", "puede_escuchar"]
+           "interpretar", "separar_llamada", "buscar_llamada", "ORDENES_QUE_INTERRUMPEN", "respuesta_de_confirmacion", "puede_escuchar"]

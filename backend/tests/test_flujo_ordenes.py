@@ -225,3 +225,97 @@ def test_sin_redaccion_aparte_todo_sigue_como_antes(catalogo):
         s.procesar(0.08, i * 100)
     assert s._aparte is None and "verbalizacion_aparte" not in s.resumen()
     assert any(t == "LLM: baja la cadera." for t, _ in voz.dichas)
+
+
+# ---------------------------------------------------------------------------
+# Modo «interrumpir»: escuchar mientras ESTELA habla (pregunta 11, 2026-11-17)
+# ---------------------------------------------------------------------------
+
+def test_buscar_llamada_la_encuentra_detras_de_la_voz_de_estela():
+    assert cv.buscar_llamada("te propongo seguir con el Estela, pausa") == (True, "pausa")
+    assert cv.buscar_llamada("Oye Estela siguiente") == (True, "siguiente")
+    assert cv.buscar_llamada("baja la cadera") == (False, "baja la cadera")
+
+
+def test_la_pregunta_de_reinicio_no_dice_estela():
+    """Si ESTELA se oyera decir «Estela, sí», confirmaría sola el reinicio."""
+    assert not any(p in cv.LLAMADAS for p in cv._limpiar(cv.PREGUNTA_REINICIAR).split())
+
+
+class VozHablando(VozFalsa):
+    ocupada = True
+    texto_hablando = "Has hecho 3 repeticiones de jumping jacks."
+
+
+def _escucha_hablando(texto, voz=None):
+    hechas = []
+    acciones = {n: (lambda n=n: hechas.append(n))
+                for n in ("pausar", "reanudar", "listo", "siguiente", "anterior", "reiniciar",
+                          "terminar", "voz_no")}
+
+    class Rec:
+        def transcribir(self, audio):
+            return texto
+    voz = voz or VozHablando()
+    e = EscuchaVoz(object(), Rec(), voz, acciones, llamada=True, interrumpir_hablando=True)
+    e._sesion = SesionFalsa()
+    return e, hechas, voz
+
+
+def test_mientras_habla_estela_pausa_corta_y_se_ejecuta():
+    e, hechas, _ = _escucha_hablando("con el siguiente ejercicio Estela pausa")
+    i = e.atender_hablando(np.zeros(160, np.float32))
+    assert i.comando == cv.PAUSA and hechas == ["pausar"]
+    assert e.registro[-1]["durante_voz"]
+
+
+def test_mientras_habla_lo_que_no_interrumpe_se_ignora_callado():
+    for dicho in ("Estela, ¿cómo voy?", "Estela, reiniciar todo", "Estela, blablá",
+                  "te propongo seguir"):
+        e, hechas, voz = _escucha_hablando(dicho)
+        assert e.atender_hablando(np.zeros(160, np.float32)) is None
+        assert hechas == [] and voz.dichas == [] and e.registro == []
+
+
+def test_si_lo_que_suena_dice_estela_no_se_toma_por_orden():
+    voz = VozHablando()
+    voz.texto_hablando = "Soy Estela, pausa un momento si lo necesitas."
+    e, hechas, _ = _escucha_hablando("Soy Estela pausa un momento", voz)
+    assert e.atender_hablando(np.zeros(160, np.float32)) is None and hechas == []
+
+
+def test_la_sesion_deja_escuchar_mientras_habla_solo_en_modo_interrumpir(catalogo):
+    class VozOcupada(VozFalsa):
+        ocupada = True
+    s = Sesion(rutina_de_un_ejercicio("plancha", 5, catalogo), catalogo,
+               EstimadorPlancha(), VozOcupada(), colocacion=True)
+    s.procesar(0.0, 0)
+    s.escucha_siempre = True
+    assert not s.puede_escuchar
+    s.escucha_hablando = True
+    assert s.puede_escuchar
+
+
+def test_interrumpir_sin_modo_llamada_no_se_activa():
+    e = EscuchaVoz(object(), None, VozFalsa(), {}, llamada=False, interrumpir_hablando=True)
+    assert not e.interrumpir_hablando
+
+
+def test_la_sesion_avisa_al_estimador_de_los_momentos_sin_evaluacion(catalogo):
+    """Con GPU, el cambio de detector (primera imagen lenta) espera a estos momentos."""
+    class EstimadorQueEscucha(EstimadorPlancha):
+        libres = 0
+
+        def momento_libre(self):
+            self.libres += 1
+    est = EstimadorQueEscucha()
+    s = Sesion(rutina_de_un_ejercicio("plancha", 99, catalogo), catalogo, est, VozFalsa(),
+               colocacion=True)
+    for i in range(5):
+        s.procesar(0.0, i * 100)                  # colocándose
+    assert est.libres == 5
+    s.terminar_colocacion()
+    antes = est.libres
+    for i in range(5, 10):
+        s.procesar(0.0, i * 100)                  # en marcha y sin aviso sonando
+    assert est.libres == antes

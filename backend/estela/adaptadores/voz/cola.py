@@ -137,6 +137,13 @@ class ColaVoz:
                 log.exception("no se pudo cortar la voz")
 
     @property
+    def texto_hablando(self) -> Optional[str]:
+        """La frase que suena ahora, o None."""
+        with self._cv:
+            i = self._indice_hablando
+            return self.registro[i]["texto"] if i is not None else None
+
+    @property
     def silenciada(self) -> bool:
         return self._silenciada
 

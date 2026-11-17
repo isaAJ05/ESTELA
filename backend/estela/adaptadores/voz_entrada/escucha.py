@@ -17,6 +17,15 @@ Dos modos:
   palabras y cuánto tardó, **nunca el texto** (podría ser una conversación);
   el texto sale únicamente en el registro de depuración (`-v`).
 
+Modo «interrumpir» (`interrumpir_hablando=True`, solo con `llamada`): también se
+escucha mientras ESTELA habla, para cortarla con «Estela, pausa». Su voz entra
+en el micrófono, así que en ese rato no se corta por frases (su voz también
+cuenta como voz): cada segundo se reconocen los últimos 2,5 s (`escuchar_ventana`)
+y se busca «Estela» en cualquier punto. Solo valen las órdenes que mandan sobre
+lo que dice (`ORDENES_QUE_INTERRUMPEN`) y el dolor; lo demás se ignora callada.
+`[?]` Sin medir con micrófono real: el eco de su propia voz y cuánto se entiende
+la orden por encima de ella.
+
 La orden no toca la sesión desde este hilo: llama a `acciones`, que son las
 mismas funciones de los botones (en la interfaz, la cola del orquestador).
 `estado()` da lo que la pantalla muestra: si escucha y qué entendió.
@@ -39,6 +48,9 @@ log = logging.getLogger(__name__)
 MOSTRAR_S = 4.0
 #: no pedir repetir más de una vez cada tantos segundos
 REPETIR_CADA_S = 6.0
+#: modo «interrumpir»: audio que se reconoce de una vez y cada cuánto, y pausa
+#: tras actuar para no ejecutar dos veces la misma orden (ventanas solapadas)
+VENTANA_S, PASO_S, ENFRIAR_S = 2.5, 1.0, 2.0
 
 
 class EscuchaVoz:
@@ -46,7 +58,8 @@ class EscuchaVoz:
                  acciones: Mapping[str, Callable[[], None]],
                  como_voy: Optional[Callable[[Any], Optional[str]]] = None,
                  llamada: bool = False, guarda_eco_s: float = 0.0,
-                 abrir_microfono: Optional[Callable[[Optional[int]], Any]] = None) -> None:
+                 abrir_microfono: Optional[Callable[[Optional[int]], Any]] = None,
+                 interrumpir_hablando: bool = False) -> None:
         """`microfono`: `escuchar_frase(cancelar, espera_s)` y `descartar()`; None si
         se abrirá después con `abrir_microfono(dispositivo)`. Con esa fábrica el
         micrófono se puede apagar de verdad (se cierra), encender y cambiar por otro.
@@ -77,6 +90,12 @@ class EscuchaVoz:
         self._ultimo: Dict[str, Any] = {"texto": None, "comando": None, "noEntendi": False, "t": 0.0}
         self._ult_repetir = 0.0
         self.llamada = llamada
+        #: escuchar también mientras ESTELA habla (solo con `llamada`)
+        self.interrumpir_hablando = bool(interrumpir_hablando and llamada)
+        self._enfriar_hasta = 0.0
+        #: ventanas reconocidas mientras ESTELA hablaba, y cuántas traían «Estela»
+        self.ventanas = 0
+        self.ventanas_con_llamada = 0
         #: tras callar ESTELA, estos segundos más se sigue tirando el audio (eco de su voz)
         self.guarda_eco_s = max(0.0, float(guarda_eco_s))
         self._ult_habla = float("-inf")
@@ -109,6 +128,7 @@ class EscuchaVoz:
         self._sesion = sesion
         sesion.oyente = self
         sesion.escucha_siempre = self.llamada
+        sesion.escucha_hablando = self.interrumpir_hablando
         self.arrancar()
 
     # -- ajustes del micrófono (los llama la interfaz desde otro hilo) -------------
@@ -263,10 +283,23 @@ class EscuchaVoz:
                 continue
             with self._cerrojo:
                 self._activa = False if probando else self._mostrar_te_escucho()
+            if not probando and self._hablando_ahora() and hasattr(mic, "escuchar_ventana"):
+                try:
+                    audio = mic.escuchar_ventana(
+                        cancelar=lambda: (self._parar.is_set() or self._hay_cambios.is_set()
+                                          or not self._se_puede() or not self._hablando_ahora()),
+                        ventana_s=VENTANA_S, paso_s=PASO_S)
+                    if audio is not None and time.monotonic() >= self._enfriar_hasta:
+                        self.atender_hablando(audio)
+                except Exception:                         # noqa: BLE001
+                    log.exception("fallo en la escucha mientras habla ESTELA")
+                    time.sleep(0.5)
+                continue
             try:
                 audio = mic.escuchar_frase(
                     cancelar=lambda: (self._parar.is_set() or self._hay_cambios.is_set()
-                                      or not (self._probando() or self._se_puede())))
+                                      or not (self._probando() or self._se_puede())
+                                      or (not self._probando() and self._hablando_ahora())))
                 if audio is None:
                     continue
                 if self._probando():
@@ -276,6 +309,54 @@ class EscuchaVoz:
             except Exception:                             # noqa: BLE001
                 log.exception("fallo en la escucha de voz")
                 time.sleep(0.5)
+
+    def _hablando_ahora(self) -> bool:
+        """¿Toca el modo de ventanas? Solo con «interrumpir» y mientras ESTELA habla."""
+        return self.interrumpir_hablando and bool(getattr(self.voz, "ocupada", False))
+
+    def atender_hablando(self, audio: Any) -> Optional[cv.Interpretacion]:
+        """Una ventana oída mientras ESTELA habla: solo «Estela» + una orden que
+        mande sobre lo que dice, o el dolor. Lo demás no se contesta ni se guarda."""
+        t0 = time.perf_counter()
+        texto = (self.reconocedor.transcribir(audio) or "").strip()
+        ms = (time.perf_counter() - t0) * 1000.0
+        self.ventanas += 1
+        llamado, resto = cv.buscar_llamada(texto)
+        if not llamado:
+            return None
+        actual = getattr(self.voz, "texto_hablando", None)
+        if actual and any(p in cv.LLAMADAS for p in cv._limpiar(actual).split()):
+            return None                              # puede ser su propia voz diciendo «Estela»
+        self.ventanas_con_llamada += 1
+        i = cv.interpretar(resto)
+        dolor = menciona_dolor(resto)
+        if not dolor and i.comando not in cv.ORDENES_QUE_INTERRUMPEN:
+            return None
+        self.registro.append({"texto": texto, "comando": i.comando,
+                              "motivo": "dolor" if dolor else i.motivo,
+                              "reconocer_ms": round(ms), "durante_voz": True})
+        log.info("Voz (mientras hablaba): «%s» → %s (%.0f ms)", texto,
+                 "dolor" if dolor else i.comando, ms)
+        self._enfriar_hasta = time.monotonic() + ENFRIAR_S
+        olvidar = getattr(self.microfono, "olvidar_ventana", None)
+        if olvidar is not None:
+            olvidar()
+        if dolor:
+            self._responder_dolor(texto)
+        else:
+            self._anota(texto, i.comando, False)
+            self._ejecutar(i.comando)
+        return i
+
+    def _responder_dolor(self, texto: str) -> None:
+        self._anota(texto, None, False)
+        # ante dolor se pausa sola (pedido de Paula). La pausa corta lo que
+        # suene, así que va antes que la respuesta; esta es urgente para que
+        # el «En pausa.» de la sesión no la sustituya en la cola.
+        p = self._sesion.paso_actual if self._sesion is not None else None
+        if p is not None and not p.pausa.pausada and "pausar" in self.acciones:
+            self.acciones["pausar"]()
+        self.voz.decir(RESPUESTA_DOLOR, PRIORIDAD_URGENTE)
 
     def _atender_prueba(self, audio: Any) -> None:
         """Prueba desde los ajustes: qué se oyó y qué se entendería. No actúa ni
@@ -307,14 +388,7 @@ class EscuchaVoz:
         log.info("Voz: «%s» → %s (%s, %.0f ms)", texto, i.comando,
                  "dolor" if dolor else i.motivo, ms)
         if dolor:
-            self._anota(texto, None, False)
-            # ante dolor se pausa sola (pedido de Paula). La pausa corta lo que
-            # suene, así que va antes que la respuesta; esta es urgente para que
-            # el «En pausa.» de la sesión no la sustituya en la cola.
-            p = self._sesion.paso_actual if self._sesion is not None else None
-            if p is not None and not p.pausa.pausada and "pausar" in self.acciones:
-                self.acciones["pausar"]()
-            self.voz.decir(RESPUESTA_DOLOR, PRIORIDAD_URGENTE)
+            self._responder_dolor(texto)
             return i
         if i.comando is not None:
             self._anota(texto, i.comando, False)
