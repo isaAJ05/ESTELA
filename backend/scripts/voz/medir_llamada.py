@@ -43,6 +43,7 @@ CON_ESTELA = [
     ("Estela, activa los ángulos", cv.ANGULOS_SI), ("Estela, desactiva los ángulos", cv.ANGULOS_NO),
     ("Estela, reconocer activado", cv.RECONOCER_SI), ("Estela, reconocer desactivado", cv.RECONOCER_NO),
     ("Estela, terminar", cv.TERMINAR), ("Estela, ¿cómo voy?", cv.COMO_VOY),
+    ("Estela, repite eso", cv.REPITE_ESO), ("Estela, voz desactivada", cv.VOZ_NO),
     ("Estela", None),
 ]
 SIN_ESTELA = ["Hola, buenos días", "Qué calor hace hoy", "Pausa", "Siguiente ejercicio por favor",

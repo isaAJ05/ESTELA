@@ -149,7 +149,7 @@ def _llm_listo(modelo: str, url: Optional[str], para: str) -> bool:
 
 
 ACCIONES_DE_VOZ = ("pausar", "reanudar", "listo", "siguiente", "anterior", "reiniciar",
-                   "terminar", "reiniciar_sesion", "reconocer_si", "reconocer_no")
+                   "terminar", "reiniciar_sesion", "reconocer_si", "reconocer_no", "voz_si", "voz_no")
 
 
 def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
@@ -502,7 +502,8 @@ def _correr_opencv(args, rutina, catalogo, voz, cerrar_sesion,
                "anterior": sesion.anterior, "reiniciar": sesion.reiniciar_ejercicio,
                "reiniciar_sesion": sesion.reiniciar_sesion,
                "reconocer_si": lambda: sesion.activar_reconocimiento(True),
-               "reconocer_no": lambda: sesion.activar_reconocimiento(False)}
+               "reconocer_no": lambda: sesion.activar_reconocimiento(False),
+               "voz_si": lambda: voz.silenciar(False), "voz_no": lambda: voz.silenciar(True)}
 
     ventana = not args.sin_ventana
     if ventana:

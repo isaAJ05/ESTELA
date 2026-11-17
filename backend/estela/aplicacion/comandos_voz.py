@@ -33,12 +33,19 @@ ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION = (
     "anterior", "reiniciar_ejercicio", "reiniciar_sesion")
 RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO = (
     "reconocer_si", "reconocer_no", "angulos_si", "angulos_no")
+REPITE_ESO, VOZ_SI, VOZ_NO = "repite_eso", "voz_si", "voz_no"
 #: lista cerrada de órdenes
 COMANDOS: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, REPETIR, TERMINAR, COMO_VOY,
                              ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION,
-                             RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO)
-#: órdenes que cambian la pantalla o un ajuste, no el curso de la rutina
-ORDENES_DE_AJUSTE: Tuple[str, ...] = (RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO)
+                             RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO,
+                             REPITE_ESO, VOZ_SI, VOZ_NO)
+#: Órdenes que cambian un ajuste de la pantalla, no el curso de la rutina: (ajuste, valor).
+#: La escucha las publica en `pantalla` para que los botones de la interfaz las sigan.
+AJUSTES_DE_PANTALLA: Dict[str, Tuple[str, bool]] = {
+    ANGULOS_SI: ("angulos", True), ANGULOS_NO: ("angulos", False),
+    RECONOCER_SI: ("reconocer", True), RECONOCER_NO: ("reconocer", False),
+    VOZ_SI: ("voz", True), VOZ_NO: ("voz", False)}
+ORDENES_DE_AJUSTE: Tuple[str, ...] = tuple(AJUSTES_DE_PANTALLA)
 
 #: Formas de decir cada orden, sin tildes y en minúsculas. Se buscan como
 #: palabras enteras. `[R]` Léxico corto a propósito: cada forma nueva es una
@@ -69,6 +76,11 @@ LEXICO: Dict[str, Tuple[str, ...]] = {
     ANGULOS_NO: ("angulos desactivado", "angulos desactivados", "desactivar angulos",
                  "desactiva angulos", "desactivar los angulos", "desactiva los angulos",
                  "oculta los angulos", "ocultar angulos", "oculta angulos"),
+    REPITE_ESO: ("repite eso", "repite lo ultimo", "repite el aviso", "que dijiste",
+                 "dilo otra vez"),
+    VOZ_SI: ("voz activada", "activa la voz", "activar la voz", "enciende la voz"),
+    VOZ_NO: ("voz desactivada", "desactiva la voz", "desactivar la voz", "apaga la voz",
+             "silencia la voz"),
 }
 
 #: lo que ESTELA dice al confirmar cada orden (texto fijo)
@@ -86,7 +98,18 @@ CONFIRMACION: Dict[str, str] = {
     RECONOCER_NO: "Reconocimiento desactivado.",
     ANGULOS_SI: "Ángulos activados.",
     ANGULOS_NO: "Ángulos desactivados.",
+    REPITE_ESO: "",                     # repite lo último que se dijo
+    VOZ_SI: "Voz activada.",
+    VOZ_NO: "",                         # silenciada: no puede decir nada
 }
+#: si no se ha dicho nada que repetir
+NO_HAY_QUE_REPETIR = "No tengo nada que repetir."
+
+
+def frases_propias() -> Tuple[str, ...]:
+    """Lo que la escucha dice por su cuenta; «repite eso» no lo repite."""
+    return tuple(t for t in (*CONFIRMACION.values(), NO_ENTENDI, PREGUNTA_REINICIAR,
+                             CONFIRMA_REINICIAR, NO_HAY_QUE_REPETIR) if t)
 #: reiniciar toda la sesión borra el avance: se pide confirmación (texto fijo)
 PREGUNTA_REINICIAR = "¿Reinicio toda la sesión? Di: Estela, sí."
 CONFIRMA_REINICIAR = "Reiniciamos la sesión."
@@ -145,14 +168,23 @@ def _limpiar(texto: Optional[str]) -> str:
     return re.sub(r"\bagulos\b", "angulos", t)
 
 
+def _es_subfrase(corta: str, larga: str) -> bool:
+    """`corta` está dentro de `larga` (palabras enteras) y no es igual."""
+    return corta != larga and f" {corta} " in f" {larga} "
+
+
 def interpretar(texto: Optional[str]) -> Interpretacion:
     """Texto reconocido → orden. Nunca adivina: una sola orden o ninguna."""
     t = _limpiar(texto)
     if not t or t in _ALUCINACIONES:
         return Interpretacion(None, VACIO, t)
     relleno = f" {t} "
-    halladas = [c for c in COMANDOS
-                if any(f" {forma} " in relleno for forma in LEXICO[c])]
+    formas = {c: [f for f in LEXICO[c] if f" {f} " in relleno] for c in COMANDOS}
+    halladas = [c for c in COMANDOS if formas[c]]
+    # «repite eso» contiene «repite»: gana la forma más larga, no es ambiguo
+    halladas = [c for c in halladas
+                if not any(_es_subfrase(f, g) for f in formas[c]
+                           for d in halladas if d != c for g in formas[d])]
     if len(halladas) == 1:
         return Interpretacion(halladas[0], ENTENDIDO, t)
     return Interpretacion(None, AMBIGUO if halladas else SIN_COMANDO, t)
@@ -192,7 +224,8 @@ def puede_escuchar(en_pausa: bool, colocando: bool, hablando: bool,
 
 __all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "REPETIR", "TERMINAR", "COMO_VOY",
            "ANTERIOR", "REINICIAR_EJERCICIO", "REINICIAR_SESION", "RECONOCER_SI",
-           "RECONOCER_NO", "ANGULOS_SI", "ANGULOS_NO", "ORDENES_DE_AJUSTE",
+           "RECONOCER_NO", "ANGULOS_SI", "ANGULOS_NO", "REPITE_ESO", "VOZ_SI", "VOZ_NO",
+           "AJUSTES_DE_PANTALLA", "ORDENES_DE_AJUSTE", "NO_HAY_QUE_REPETIR", "frases_propias",
            "LEXICO", "CONFIRMACION", "PREGUNTA_REINICIAR", "CONFIRMA_REINICIAR",
            "NO_ENTENDI", "ENTENDIDO", "VACIO", "SIN_COMANDO", "AMBIGUO", "SIN_LLAMADA", "SOLO_LLAMADA",
            "LLAMADAS", "VENTANA_LLAMADA_S", "VENTANA_CONFIRMACION_S", "Interpretacion",

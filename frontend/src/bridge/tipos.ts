@@ -32,8 +32,8 @@ export interface Escucha {
   noEntendi: boolean
   /** modo «Estela + orden» */
   llamada?: boolean
-  /** lo último que se pidió cambiar en pantalla por voz; `n` sube con cada orden */
-  pantalla?: { angulos: boolean | null; n: number }
+  /** lo último que se pidió cambiar por voz (solo ese ajuste trae valor); `n` sube con cada orden */
+  pantalla?: { angulos: boolean | null; reconocer: boolean | null; voz: boolean | null; n: number }
 }
 
 export interface Capacidades {

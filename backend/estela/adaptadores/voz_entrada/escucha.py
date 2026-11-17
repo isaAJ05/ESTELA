@@ -49,8 +49,8 @@ class EscuchaVoz:
         """`microfono`: `escuchar_frase(cancelar, espera_s)` y `descartar()`.
         `reconocedor`: `transcribir(audio) -> str`. `acciones`: funciones
         «pausar», «reanudar», «listo», «siguiente», «anterior», «reiniciar» y
-        «terminar»; con `llamada` también «reiniciar_sesion», «reconocer_si» y
-        «reconocer_no». `como_voy`: recibe la sesión y da el texto de respuesta a
+        «terminar»; con `llamada` también «reiniciar_sesion», «reconocer_si»,
+        «reconocer_no», «voz_si» y «voz_no». `como_voy`: recibe la sesión y da el texto de respuesta a
         «¿cómo voy?» (puede tardar: corre en este hilo, no en el de la sesión)."""
         self.microfono, self.reconocedor, self.voz = microfono, reconocedor, voz
         self.acciones, self.como_voy = acciones, como_voy
@@ -71,8 +71,12 @@ class EscuchaVoz:
         self._pendiente: Optional[str] = None
         self._pendiente_hasta = 0.0
         #: lo último que se pidió cambiar en pantalla por voz; `n` sube con cada orden
-        self._pantalla: Dict[str, Any] = {"angulos": None, "n": 0}
+        #: `angulos`, `reconocer` y `voz`: solo el ajuste pedido en esa orden lleva valor
+        self._pantalla: Dict[str, Any] = {"angulos": None, "reconocer": None, "voz": None, "n": 0}
         self.ignoradas = 0
+        marcar = getattr(voz, "no_repetibles", None)
+        if marcar is not None:
+            marcar(cv.frases_propias())            # «repite eso» no repite las confirmaciones
         #: una entrada por frase oída: texto, orden, motivo y milisegundos de reconocimiento
         self.registro: List[Dict[str, Any]] = []
 
@@ -255,11 +259,16 @@ class EscuchaVoz:
             self._pendiente_hasta = time.monotonic() + cv.VENTANA_CONFIRMACION_S
             self.voz.decir(cv.PREGUNTA_REINICIAR, PRIORIDAD_AVISO)
             return
-        if comando in (cv.ANGULOS_SI, cv.ANGULOS_NO):  # lo aplica la pantalla al ver el estado
+        if comando == cv.REPITE_ESO:
+            self.voz.decir(getattr(self.voz, "ultima_repetible", None) or cv.NO_HAY_QUE_REPETIR,
+                           PRIORIDAD_AVISO)
+            return
+        if comando in cv.AJUSTES_DE_PANTALLA:     # lo aplica la pantalla al ver el estado
+            ajuste, valor = cv.AJUSTES_DE_PANTALLA[comando]
             with self._cerrojo:
-                self._pantalla = {"angulos": comando == cv.ANGULOS_SI,
-                                  "n": self._pantalla["n"] + 1}
-            accion = None
+                self._pantalla = {"angulos": None, "reconocer": None, "voz": None,
+                                  ajuste: valor, "n": self._pantalla["n"] + 1}
+            accion = None if ajuste == "angulos" else comando
         elif comando == cv.PAUSA:
             accion = None if en_pausa else "pausar"
         elif comando == cv.SEGUIR:
@@ -273,13 +282,14 @@ class EscuchaVoz:
         elif comando == cv.REPETIR:
             # entre ejercicios se repite el que acaba de terminar; en pausa, el actual
             accion = "anterior" if (colocando and not en_pausa and bool(s.entre_ejercicios)) else "reiniciar"
-        elif comando in (cv.RECONOCER_SI, cv.RECONOCER_NO):
-            accion = comando
         else:
             accion = "terminar"
+        activar_voz = comando == cv.VOZ_SI        # con la voz silenciada no se puede confirmar
+        if activar_voz and accion in self.acciones:
+            self.acciones[accion]()
         if cv.CONFIRMACION[comando] and (accion is not None or comando in cv.ORDENES_DE_AJUSTE):
             self.voz.decir(cv.CONFIRMACION[comando], PRIORIDAD_AVISO)
-        if accion is not None and accion in self.acciones:
+        if not activar_voz and accion is not None and accion in self.acciones:
             self.acciones[accion]()
 
 

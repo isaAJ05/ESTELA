@@ -52,9 +52,13 @@ PISTA = "Pausa. Seguir. Siguiente. Repetir. Terminar. ¿Cómo voy?"
 #:     y 0 falsas llamadas con ruido. Con ruido escribe a veces «¡Siguiente!» o
 #:     «¡Suscríbete!»: sin «Estela» por delante se ignora (en el modo antiguo habría
 #:     sido una orden falsa).
+#: Con «Repite eso» y «Voz activada» añadidas (30 frases con «Estela»): 30/30 llamadas,
+#: 28/28 órdenes y 0/24 falsas llamadas con ruido; el ruido produce más texto suelto
+#: («¡Vamos!», 15/24), que sin «Estela» también se ignora. Repetible con
+#: `scripts/voz/medir_llamada.py`.
 PISTA_LLAMADA = ("Estela. Pausa. Seguir. Siguiente. Anterior. Reiniciar ejercicio. "
-                 "Reiniciar sesión. Ángulos activados. Reconocer desactivado. Terminar. "
-                 "¿Cómo voy?")
+                 "Reiniciar sesión. Ángulos activados. Reconocer desactivado. Repite eso. "
+                 "Voz activada. Terminar. ¿Cómo voy?")
 #: Whisper marca así el audio sin habla: «[BLANK_AUDIO]», «(música)», «*ruido*»
 _ANOTACION = re.compile(r"\[[^\]]*\]|\([^)]*\)|\*[^*]*\*")
 

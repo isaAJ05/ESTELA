@@ -337,6 +337,12 @@ class Orquestador:
     def reconocer_no(self) -> None:
         self.configurar(reconocer=False)
 
+    def voz_si(self) -> None:
+        self.configurar(voz=True)
+
+    def voz_no(self) -> None:
+        self.configurar(voz=False)
+
     def listo(self) -> None:
         """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
         self._comandos.put("listo")

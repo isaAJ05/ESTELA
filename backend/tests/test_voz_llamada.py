@@ -50,7 +50,7 @@ class MicrofonoNulo:
         return None
 
 ACCIONES = ("pausar", "reanudar", "listo", "siguiente", "anterior", "reiniciar", "terminar",
-            "reiniciar_sesion", "reconocer_si", "reconocer_no")
+            "reiniciar_sesion", "reconocer_si", "reconocer_no", "voz_si", "voz_no")
 AUDIO = np.zeros(FS, np.float32)
 
 
@@ -87,6 +87,10 @@ def _escucha(*textos, sesion=None, llamada=True, como_voy=None):
     ("Estela, desactiva los ángulos", cv.ANGULOS_NO),
     ("Estella, terminar", cv.TERMINAR),
     ("Estela, ¿cómo voy?", cv.COMO_VOY),
+    ("Estela, repite eso", cv.REPITE_ESO),
+    ("Estela, ¿qué dijiste?", cv.REPITE_ESO),
+    ("Estela, voz activada", cv.VOZ_SI),
+    ("Estela, desactiva la voz", cv.VOZ_NO),
 ])
 def test_la_llamada_se_separa_y_la_orden_se_entiende(dicho, comando):
     llamado, resto = cv.separar_llamada(dicho)
@@ -201,9 +205,9 @@ def test_angulos_no_tocan_la_sesion_pero_cambian_lo_que_muestra_la_pantalla():
     e, hechas, voz = _escucha("Estela, activa los ángulos", "Estela, oculta los ángulos")
     e.atender(AUDIO)
     assert hechas == [] and voz.dichas == [("Ángulos activados.", PRIORIDAD_AVISO)]
-    assert e.estado()["pantalla"] == {"angulos": True, "n": 1}
+    assert e.estado()["pantalla"] == {"angulos": True, "reconocer": None, "voz": None, "n": 1}
     e.atender(AUDIO)
-    assert e.estado()["pantalla"] == {"angulos": False, "n": 2}
+    assert e.estado()["pantalla"] == {"angulos": False, "reconocer": None, "voz": None, "n": 2}
 
 
 def test_seguir_durante_el_ejercicio_no_dice_seguimos():
@@ -327,3 +331,85 @@ def test_sin_guarda_se_escucha_en_cuanto_calla_estela():
         assert hechas == ["pausar"]
     finally:
         e.cerrar()
+
+
+# -- «repite eso», «voz activada/desactivada» y la precedencia de frases ----------------
+
+def test_repite_eso_no_se_confunde_con_repetir_pero_repetir_sigue_igual():
+    assert cv.interpretar("repite eso").comando == cv.REPITE_ESO
+    assert cv.interpretar("dilo otra vez").comando == cv.REPITE_ESO     # «otra vez» es de repetir
+    assert cv.interpretar("repite").comando == cv.REPETIR
+    assert cv.interpretar("otra vez").comando == cv.REPETIR
+    # dos órdenes distintas y sin relación de frase siguen siendo ambiguas
+    assert cv.interpretar("repite eso y pausa").motivo == cv.AMBIGUO
+
+
+class VozConUltima(VozFalsa):
+    """Como `ColaVoz`: recuerda lo último repetible y deja marcar lo que no lo es."""
+
+    def __init__(self):
+        super().__init__()
+        self.ultima_repetible = None
+        self._no = frozenset()
+
+    def no_repetibles(self, textos):
+        self._no = frozenset(textos)
+
+    def decir(self, texto, prioridad=0):
+        if texto not in self._no:
+            self.ultima_repetible = texto
+        return super().decir(texto, prioridad)
+
+
+def test_repite_eso_repite_la_ultima_correccion_y_no_la_confirmacion_de_otra_orden():
+    voz, hechas = VozConUltima(), []
+    e = EscuchaVoz(MicrofonoNulo(), ReconocedorDeLista("Estela, pausa", "Estela, repite eso"), voz,
+                   {a: (lambda a=a: hechas.append(a)) for a in ACCIONES}, llamada=True)
+    e._sesion = SesionFalsa()
+    voz.decir("Baja más la cadera", 0)                       # una corrección
+    e.atender(AUDIO)                                         # «Pausa.» no cuenta como repetible
+    e.atender(AUDIO)
+    assert voz.dichas[-1] == ("Baja más la cadera", PRIORIDAD_AVISO)
+
+
+def test_repite_eso_sin_nada_que_repetir_lo_dice():
+    e, hechas, voz = _escucha("Estela, repite eso")
+    e.atender(AUDIO)
+    assert voz.dichas == [(cv.NO_HAY_QUE_REPETIR, PRIORIDAD_AVISO)] and hechas == []
+
+
+def test_voz_activada_actua_y_confirma_pero_desactivada_no_dice_nada():
+    e, hechas, voz = _escucha("Estela, voz activada", "Estela, voz desactivada")
+    e.atender(AUDIO)
+    assert hechas == ["voz_si"] and voz.dichas == [("Voz activada.", PRIORIDAD_AVISO)]
+    assert e.estado()["pantalla"] == {"angulos": None, "reconocer": None, "voz": True, "n": 1}
+    e.atender(AUDIO)
+    assert hechas == ["voz_si", "voz_no"] and len(voz.dichas) == 1      # silenciada: no habla
+    assert e.estado()["pantalla"]["voz"] is False and e.estado()["pantalla"]["n"] == 2
+
+
+def test_reconocer_tambien_avisa_a_la_pantalla_para_que_su_boton_lo_siga():
+    e, hechas, _ = _escucha("Estela, reconocer activado")
+    e.atender(AUDIO)
+    assert hechas == ["reconocer_si"]
+    assert e.estado()["pantalla"] == {"angulos": None, "reconocer": True, "voz": None, "n": 1}
+
+
+def test_la_cola_recuerda_lo_ultimo_repetible():
+    from estela.adaptadores.voz.cola import ColaVoz
+    from estela.adaptadores.voz.motores import MotorVoz
+
+    class Mudo(MotorVoz):
+        nombre = "mudo"
+
+        def hablar(self, texto):
+            pass
+
+    cola = ColaVoz(Mudo())
+    cola.no_repetibles({"Pausa."})
+    cola.decir("Baja la cadera")
+    cola.esperar_vacia()
+    cola.decir("Pausa.")
+    cola.esperar_vacia()
+    assert cola.ultima_repetible == "Baja la cadera"
+    cola.cerrar()

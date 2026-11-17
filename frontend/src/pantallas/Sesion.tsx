@@ -35,7 +35,8 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
     try { localStorage.setItem('estela.angulos', a ? '0' : '1') } catch { /* sin almacenamiento */ }
     return !a
   })
-  // «Estela, activa los ángulos» / «oculta los ángulos»: la orden llega en el estado de la voz
+  // «Estela, activa los ángulos», «reconocer activado», «voz desactivada»: la orden llega en
+  // el estado de la voz y los botones la siguen
   const ordenDePantalla = useEstado((s) => s.estado?.sesion?.escucha?.pantalla ?? null,
     (a, b) => a?.n === b?.n)
   const ultimaOrden = useRef(0)
@@ -43,12 +44,15 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
     const n = ordenDePantalla?.n ?? 0
     if (n === ultimaOrden.current) return
     ultimaOrden.current = n
-    if (n > 0 && typeof ordenDePantalla?.angulos === 'boolean') {
+    if (n === 0 || !ordenDePantalla) return
+    if (typeof ordenDePantalla.angulos === 'boolean') {
       const ver = ordenDePantalla.angulos
       try { localStorage.setItem('estela.angulos', ver ? '1' : '0') } catch { /* sin almacenamiento */ }
       setAngulos(ver)
     }
-  }, [ordenDePantalla])
+    if (typeof ordenDePantalla.reconocer === 'boolean') cambiarAjustes({ reconocer: ordenDePantalla.reconocer }, bridge)
+    if (typeof ordenDePantalla.voz === 'boolean') cambiarAjustes({ voz: ordenDePantalla.voz }, bridge)
+  }, [ordenDePantalla, bridge])
 
   useEffect(() => {
     const tecla = (e: KeyboardEvent) => {
@@ -438,6 +442,7 @@ const ORDEN_DICHA: Record<string, string> = {
   terminar: 'Terminar', como_voy: '¿Cómo voy?', anterior: 'Anterior',
   reiniciar_ejercicio: 'Reiniciar ejercicio', reiniciar_sesion: 'Reiniciar sesión',
   reconocer_si: 'Reconocer activado', reconocer_no: 'Reconocer desactivado',
+  repite_eso: 'Repite eso', voz_si: 'Voz activada', voz_no: 'Voz desactivada',
   angulos_si: 'Ángulos activados', angulos_no: 'Ángulos desactivados',
 }
 
