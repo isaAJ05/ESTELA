@@ -87,6 +87,7 @@ class Api:
 
     def cerrar_vista_camara(self) -> None:
         self._orq.cerrar_vista_camara()
+
     def microfono(self) -> Optional[Dict[str, Any]]:
         # sección «Micrófono» de los ajustes (capacidad «vozEntrada»)
         return self._orq.microfono()

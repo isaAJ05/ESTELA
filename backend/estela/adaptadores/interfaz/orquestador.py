@@ -84,7 +84,6 @@ class Orquestador:
                  camara: Optional[int] = None,
                  listar_camaras: Optional[Callable[[], List[Dict[str, Any]]]] = None,
                  abrir_camara: Optional[Callable[[int], Fuente]] = None,
-                 perfiles: Optional[Perfiles] = None) -> None:
                  perfiles: Optional[Perfiles] = None,
                  preparar_sesion: Optional[Callable[[Sesion], None]] = None) -> None:
         """`crear_estimador` y `abrir_fuente` se llaman en cada sesión: así
