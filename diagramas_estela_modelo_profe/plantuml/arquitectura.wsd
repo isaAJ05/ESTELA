@@ -1,0 +1,28 @@
+@startuml
+title Arquitectura del Sistema ESTELA
+
+actor Usuario
+actor "Equipo de desarrollo" as Dev
+
+[Interfaz de escritorio\n(React en ventana pywebview)] as UI
+[Núcleo ESTELA\n(Python: análisis y retroalimentación)] as Core
+[Cámara web] as Cam
+[MediaPipe\nPose Landmarker] as MP
+[Piper\n(síntesis de voz)] as Piper
+[llama-server\n(modelo de lenguaje, opcional)] as LLM
+[Creador de referencias\n(offline)] as CR
+[Video de referencia] as Vid
+[Skills y referencias\n(archivos JSON)] as Skills
+
+Usuario --> UI
+UI --> Core
+Core --> Cam
+Core --> MP
+Core --> Piper
+Core --> LLM
+Core --> Skills
+
+Dev --> CR
+CR --> Vid
+CR --> Skills
+@enduml

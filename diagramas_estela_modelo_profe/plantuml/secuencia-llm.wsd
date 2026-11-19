@@ -1,0 +1,34 @@
+@startuml
+title Secuencia - Verbalizador con modelo de lenguaje y caída a plantilla
+
+participant "Motor de Feedback" as MF
+participant "Verbalizador LLM" as L
+participant "llama-server" as H
+participant "Validador" as V
+participant "Plantillas" as T
+
+MF -> L : verbalizar(error tipificado)
+L -> H : petición HTTP local (solo el error)
+
+alt responde dentro del tiempo
+  H --> L : texto
+  alt condición F (con validación)
+    L -> V : validar(texto, error)
+    alt texto válido
+      V --> L : válido
+      L --> MF : mensaje (texto del modelo)
+    else texto rechazado
+      V --> L : inválido (motivo)
+      L -> T : verbalizar(error)
+      T --> L : texto de plantilla
+      L --> MF : mensaje (plantilla)
+    end
+  else condición F' (control, sin validación)
+    L --> MF : mensaje (texto del modelo)
+  end
+else error de conexión, tiempo agotado o respuesta ilegible
+  L -> T : verbalizar(error)
+  T --> L : texto de plantilla
+  L --> MF : mensaje (plantilla)
+end
+@enduml

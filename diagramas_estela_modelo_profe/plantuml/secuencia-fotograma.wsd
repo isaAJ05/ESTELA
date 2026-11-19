@@ -1,0 +1,45 @@
+@startuml
+title Secuencia - Corrección de un fotograma en la sesión en vivo
+
+actor Usuario
+participant "Interfaz" as UI
+participant "Orquestador" as ORQ
+participant "Cámara" as CAM
+participant "Sesión" as SES
+participant "Estimador de Pose" as EP
+participant "Motor de Feedback" as MF
+participant "Cola de Voz" as VOZ
+
+loop mientras la sesión esté activa
+  ORQ -> CAM : leer()
+  CAM --> ORQ : último fotograma
+  ORQ -> SES : procesar(fotograma)
+  SES -> EP : estimar(fotograma)
+  EP --> SES : puntos articulares
+
+  alt no se detecta a la persona
+    SES --> ORQ : estado con aviso (sin persona)
+  else hay persona
+    SES -> SES : calcular ángulos, fase y repetición\n(Geometría, Segmentador, DTW)
+    alt sesión en pausa
+      SES -> VOZ : decir(aviso de pausa)
+    else sesión activa
+      SES -> MF : procesar(observación)
+      alt hay error o refuerzo
+        MF --> SES : mensaje de feedback
+        SES -> VOZ : decir(mensaje)
+        VOZ --> Usuario : frase hablada
+      else se calla
+        MF --> SES : silencio (motivo)
+      end
+    end
+    SES --> ORQ : estado del fotograma
+  end
+end
+
+group En paralelo, en el hilo de la interfaz
+  UI -> ORQ : consultar estado
+  ORQ --> UI : estado más reciente (JSON)
+  UI --> Usuario : mostrar sesión
+end
+@enduml

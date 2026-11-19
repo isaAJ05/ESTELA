@@ -1,0 +1,38 @@
+@startuml
+title Diagrama de Despliegue - ESTELA
+
+actor Usuario
+
+node "Equipo del Usuario (Windows, Linux o macOS)" as PC {
+  node "Ventana de Escritorio (pywebview)" as WV {
+    [Interfaz React] as React
+  }
+  node "Proceso Python (python -m estela)" as PY {
+    [Núcleo ESTELA] as Core
+    [MediaPipe] as MP
+    [Piper] as Piper
+    [Skills y referencias (JSON)] as Skills
+  }
+  node "Proceso externo opcional" as EXT {
+    [llama-server] as LLM
+  }
+  node "Cámara web" as Cam
+  node "Salida de audio" as Aud
+}
+
+node "Servicio Externo (solo instalación)" as NET {
+  [Repositorio GitHub y modelos] as Repo
+}
+
+Usuario --> React
+Usuario --> Cam
+Aud --> Usuario
+React --> Core
+Core --> Cam
+Core --> MP
+Core --> Piper
+Core --> Skills
+Core --> LLM
+Piper --> Aud
+Core ..> Repo
+@enduml
