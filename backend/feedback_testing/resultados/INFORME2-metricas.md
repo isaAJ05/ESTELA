@@ -8,33 +8,33 @@ Convención: `[F]` medido aquí · `[I]` inferencia · `[R]` recomendación · `
 
 | Campo | Valor |
 |---|---|
-| fecha | 2026-10-12T19:23:51+00:00 |
-| so | Linux-6.12.87-x86_64-with-glibc2.40 |
-| arquitectura | x86_64 |
-| cpu | 12th Gen Intel(R) Core(TM) i5-1235U |
-| nucleos_logicos | 12 |
-| memoria_gb | 7.5 |
-| python | 3.12.14 |
-| mediapipe | 1.0.1 |
-| numpy | 2.5.2 |
+| fecha | 2026-11-16T17:20:56-05:00 |
+| so | Windows-11-10.0.26300-SP0 |
+| arquitectura | AMD64 |
+| cpu | Intel64 Family 6 Model 126 Stepping 5, GenuineIntel |
+| nucleos_logicos | 8 |
+| memoria_gb | n/d |
+| python | 3.13.5 |
+| mediapipe | 1.1.0 |
+| numpy | 2.5.4 |
 | opencv | 5.0.0.93 |
 | piper_tts | 1.8.0 |
-| commit | a412696 |
+| commit | 2474225 |
 | modelo de pose (corrida principal) | pose_landmarker_full |
 | voz | Piper sin audio (es_MX-claude-high.onnx) |
-| precalentado de la voz | 2,6 s antes de medir, sin contar las frases ya sintetizadas al medir el RTF (en la app es en segundo plano al arrancar) |
+| precalentado de la voz | 4,2 s antes de medir, sin contar las frases ya sintetizadas al medir el RTF (en la app es en segundo plano al arrancar) |
 
 ## Resumen frente a los objetivos
 
 | Métrica | Objetivo | Medido | Estado |
 |---|---|---|---|
-| p95 de la estimación de pose | ≤ 33 ms | 28,7 ms (modelo full, n = 10753) | **cumple** |
-| FPS sostenidos | ≥ 25 fps | mínimo por vídeo 23,1 fps (13 vídeos con fuente ≥ 25 fps, política «último frame») | **no cumple** |
-| p95 detección → inicio de voz | ≤ 1 s | 3,66 s (n = 21 correcciones habladas; Piper sin audio (es_MX-claude-high.onnx)) | **no cumple** |
-| Precisión por ejercicio | ≥ 80 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA/backend/datos_locales/anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
-| Recobrado por ejercicio | ≥ 70 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA/backend/datos_locales/anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
-| Sobrecorrección en repeticiones correctas | ≤ 10 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA/backend/datos_locales/anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
-| Mensajes correctos | ≥ 90 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA/backend/datos_locales/anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
+| p95 de la estimación de pose | ≤ 33 ms | 53,2 ms (modelo full, n = 10260) | **no cumple** |
+| FPS sostenidos | ≥ 25 fps | mínimo por vídeo 16,8 fps (13 vídeos con fuente ≥ 25 fps, política «último frame») | **no cumple** |
+| p95 detección → inicio de voz | ≤ 1 s | 0,08 s (n = 19 correcciones habladas; 0 descartadas por esperar más de 1 s; Piper sin audio (es_MX-claude-high.onnx)) | **cumple** |
+| Precisión por ejercicio | ≥ 80 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA\backend\datos_locales\anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
+| Recobrado por ejercicio | ≥ 70 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA\backend\datos_locales\anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
+| Sobrecorrección en repeticiones correctas | ≤ 10 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA\backend\datos_locales\anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
+| Mensajes correctos | ≥ 90 % | pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA\backend\datos_locales\anotaciones); las 5 sesiones grabadas aún no existen | **pendiente** |
 
 Objetivos aceptados por el equipo (`OBJETIVOS_INFORME2` en `feedback_testing/metricas_informe.py`).
 
@@ -53,18 +53,16 @@ Vídeos públicos de internet (no son personas del proyecto), deduplicados por S
 | 7 hombre.mp4 | jumping_jack | jumping_jacks | 59,94 | 720x1280 | 36,4 s | sí |
 | 8 hombre.mp4 | jumping_jack | jumping_jacks | 30,00 | 720x1280 | 12,6 s |  |
 | 9 mujer.mp4 | jumping_jack | jumping_jacks | 23,98 | 720x1280 | 6,1 s |  |
-| 1 mujer.mp4 | marcha_rodillas | marcha_rodillas | 30,00 | 1280x720 | 14,2 s |  |
-| 2 mujer.mp4 | marcha_rodillas | marcha_rodillas | 29,97 | 1280x720 | 28,3 s |  |
-| 3 mujer.mp4 | marcha_rodillas | marcha_rodillas | 30,00 | 1274x720 | 50,7 s |  |
-| 4 hombre.mp4 | marcha_rodillas | marcha_rodillas | 23,98 | 1280x720 | 8,7 s |  |
-| 5 hombre.mp4 | marcha_rodillas | marcha_rodillas | 29,97 | 1280x720 | 11,3 s | sí |
-| 6 mujer.mp4 | marcha_rodillas | marcha_rodillas | 23,98 | 1280x720 | 16,3 s |  |
 | der 876. Abducción de cadera con apoyo en silla.mp4 | Abdución de caderas pies | abduccion_cadera_der | 29,97 | 1280x720 | 10,6 s |  |
 | der Abducción de cadera con banda_ técnica paso a paso.mp4 | Abdución de caderas pies | abduccion_cadera_der | 18,00 | 1280x720 | 92,3 s |  |
 | der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4 | Abdución de caderas pies | abduccion_cadera_der | 18,00 | 684x566 | 31,3 s | sí |
 | izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 | Abdución de caderas pies | abduccion_cadera_izq | 18,00 | 684x566 | 31,3 s | sí |
 | izquierda abductor.mp4 | Abdución de caderas pies | abduccion_cadera_izq | 24,00 | 1280x720 | 10,0 s |  |
-| Ejercicio De Plancha.mp4 | Plancha | plancha | 25,00 | 1280x720 | 34,9 s | sí |
+| plancha correcta hombre.mp4 | Plancha | plancha | 29,97 | 1280x720 | 13,8 s | sí |
+| plancha incorrecta 2.mp4 | Plancha | plancha | 29,97 | 1280x720 | 1,9 s |  |
+| plancha incorrrecta 1.mp4 | Plancha | plancha | 29,97 | 1280x720 | 3,8 s |  |
+| PlanchaCorrecta1 (2).mp4 | Plancha | plancha | 30,00 | 1920x1080 | 27,8 s |  |
+| 👉Como hacer plancha abdominal correctamente ✅ Galvistrainer.mp4 | Plancha | plancha | 29,97 | 1280x720 | 143,6 s |  |
 
 Excluidos:
 
@@ -73,6 +71,12 @@ Excluidos:
 - `elevacion_brazos/3 hombre.mp4`: carpeta 'elevacion_brazos' fuera de los 4 ejercicios (ADR-005/007)
 - `elevacion_brazos/4 mujer.mp4`: carpeta 'elevacion_brazos' fuera de los 4 ejercicios (ADR-005/007)
 - `elevacion_brazos/5 hombre.mp4`: carpeta 'elevacion_brazos' fuera de los 4 ejercicios (ADR-005/007)
+- `marcha_rodillas/1 mujer.mp4`: carpeta 'marcha_rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `marcha_rodillas/2 mujer.mp4`: carpeta 'marcha_rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `marcha_rodillas/3 mujer.mp4`: carpeta 'marcha_rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `marcha_rodillas/4 hombre.mp4`: carpeta 'marcha_rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `marcha_rodillas/5 hombre.mp4`: carpeta 'marcha_rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `marcha_rodillas/6 mujer.mp4`: carpeta 'marcha_rodillas' fuera de los 4 ejercicios (ADR-005/007)
 - `sentadilla/1e2c254b-0d5a-4fd6-a6d4-2681333d927b.mp4`: carpeta 'sentadilla' fuera de los 4 ejercicios (ADR-005/007)
 - `sentadilla/2a516b63-bccf-490e-807a-e6102303381f.mp4`: carpeta 'sentadilla' fuera de los 4 ejercicios (ADR-005/007)
 - `sentadilla/385c01f2-e604-46d4-a84b-949b733395dd.mp4`: carpeta 'sentadilla' fuera de los 4 ejercicios (ADR-005/007)
@@ -81,42 +85,47 @@ Excluidos:
 - `sentadilla/7ddd38c8-0649-4092-8ddc-5ce2ba0bd4d1.mp4`: carpeta 'sentadilla' fuera de los 4 ejercicios (ADR-005/007)
 - `sentadilla/897f5a21-f1a1-477e-aa8b-11b7ee9378d2.mp4`: carpeta 'sentadilla' fuera de los 4 ejercicios (ADR-005/007)
 - `Abdución de caderas pies/Abducción activa de cadera en bipedestación.mp4`: abducción sin lado en el nombre (izq/der)
+- `Abdución de caderas pies/ABDUCCIÓN DE CADERA CON BANDA ELÁSTICA DE PIE.mp4`: abducción sin lado en el nombre (izq/der)
 - `Abdución de caderas pies/Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral.mp4`: abducción sin lado en el nombre (izq/der)
 - `Abdución de caderas pies/izq Aducción de cadera de pie con máquina.mp4`: aducción, no abducción
 - `Jumping Jacks/1 hombre.mp4`: duplicado de jumping_jack/1 hombre.mp4
 - `Jumping Jacks/2 mujer.mp4`: duplicado de jumping_jack/2 mujer.mp4
 - `Jumping Jacks/7 hombre.mp4`: duplicado de jumping_jack/7 hombre.mp4
-- `Marcha rodillas/5 hombre.mp4`: duplicado de marcha_rodillas/5 hombre.mp4
-- `Marcha rodillas/6 mujer.mp4`: duplicado de marcha_rodillas/6 mujer.mp4
+- `Marcha rodillas/5 hombre.mp4`: carpeta 'Marcha rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `Marcha rodillas/6 mujer.mp4`: carpeta 'Marcha rodillas' fuera de los 4 ejercicios (ADR-005/007)
+- `Marcha rodillas/How to do high knees for beginners (online-video-cutter.com).mp4`: carpeta 'Marcha rodillas' fuera de los 4 ejercicios (ADR-005/007)
 - `Zancada atrás estática por pierna/der Zancada atrás con Kettlebell Derecha - Ejercicios de la App Malagaentrena.mp4`: carpeta 'Zancada atrás estática por pierna' fuera de los 4 ejercicios (ADR-005/007)
 - `Zancada atrás estática por pierna/izq Zancada hacia atrás con peso corporal_ técnica paso a paso.mp4`: carpeta 'Zancada atrás estática por pierna' fuera de los 4 ejercicios (ADR-005/007)
+- `Zancada atrás estática por pierna/videoplayback (1).mp4`: carpeta 'Zancada atrás estática por pierna' fuera de los 4 ejercicios (ADR-005/007)
+- `Zancada atrás estática por pierna/videoplayback (2).mp4`: carpeta 'Zancada atrás estática por pierna' fuera de los 4 ejercicios (ADR-005/007)
+- `Zancada atrás estática por pierna/videoplayback (3).mp4`: carpeta 'Zancada atrás estática por pierna' fuera de los 4 ejercicios (ADR-005/007)
+- `Zancada atrás estática por pierna/videoplayback.mp4`: carpeta 'Zancada atrás estática por pierna' fuera de los 4 ejercicios (ADR-005/007)
 
 ## 2. Latencia por etapa (ms) — modelo full, política «último frame», ritmo real
 
 | Etapa | n | media | p50 | p95 | máx |
 |---|---|---|---|---|---|
-| pose | 10753 | 19,56 | 18,20 | 28,67 | 117,47 |
-| geometria | 9908 | 0,19 | 0,17 | 0,32 | 2,47 |
-| segmentacion | 9908 | 0,03 | 0,02 | 0,04 | 0,57 |
-| dtw | 9908 | 5,79 | 2,55 | 20,89 | 71,94 |
-| decision | 9750 | 0,04 | 0,03 | 0,07 | 0,31 |
-| verbalizacion | 28 | 0,12 | 0,11 | 0,21 | 0,25 |
-| motor | 9750 | 0,04 | 0,03 | 0,07 | 0,40 |
-| total | 9750 | 27,25 | 25,10 | 45,07 | 122,38 |
-| procesar (pared) | 10753 | 26,69 | 24,51 | 44,45 | 122,44 |
+| pose | 10260 | 35,19 | 33,02 | 53,17 | 302,68 |
+| geometria | 9801 | 0,98 | 0,83 | 1,65 | 91,93 |
+| segmentacion | 9801 | 0,05 | 0,04 | 0,08 | 19,98 |
+| dtw | 9801 | 0,13 | 0,12 | 0,33 | 3,13 |
+| decision | 6468 | 0,11 | 0,08 | 0,22 | 50,80 |
+| verbalizacion | 23 | 0,31 | 0,24 | 0,60 | 0,90 |
+| motor | 6468 | 0,12 | 0,08 | 0,24 | 50,81 |
+| total | 8716 | 41,53 | 38,71 | 61,35 | 553,53 |
+| procesar (pared) | 10260 | 40,63 | 37,94 | 60,26 | 553,65 |
 
 `total` solo existe en los frames que llegan al motor (con persona y sin pausa); `procesar (pared)` es `Sesion.procesar` entero en todos los frames. `verbalizacion` solo en los frames con mensaje. `motor` = decisión + verbalización.
-La primera inferencia de cada estimador (calentamiento, fuera de la medición) tardó 12 ms de mediana.
+La primera inferencia de cada estimador (calentamiento, fuera de la medición) tardó 24 ms de mediana.
 
 Pose por ejercicio:
 
 | Ejercicio | n | media | p50 | p95 | máx |
 |---|---|---|---|---|---|
-| abduccion_cadera_der | 2472 | 19,46 | 18,61 | 26,74 | 57,66 |
-| abduccion_cadera_izq | 747 | 19,66 | 18,86 | 27,56 | 60,15 |
-| jumping_jacks | 2966 | 19,27 | 17,58 | 28,30 | 62,59 |
-| marcha_rodillas | 3703 | 19,22 | 17,71 | 29,18 | 117,47 |
-| plancha | 865 | 22,21 | 20,71 | 36,44 | 113,84 |
+| abduccion_cadera_der | 2397 | 35,41 | 33,57 | 53,55 | 137,30 |
+| abduccion_cadera_izq | 802 | 32,63 | 31,41 | 45,19 | 78,19 |
+| jumping_jacks | 2322 | 38,39 | 36,05 | 61,00 | 113,45 |
+| plancha | 4739 | 33,95 | 31,73 | 48,57 | 302,68 |
 
 ## 3. FPS sostenidos, frames descartados y retraso acumulado
 
@@ -126,57 +135,53 @@ Retraso por frame = fin de su procesamiento − su marca nominal de llegada (ms)
 
 | Vídeo | Ejercicio | FPS fuente | FPS sostenidos | Descartados | Retraso p50 | p95 | máx | final | Deriva |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 hombre.mp4 | jumping_jacks | 23,98 | 24,0 | 0 (0,0 %) | 25 | 35 | 55 | 22 | 0,10 |
-| 2 mujer.mp4 | jumping_jacks | 25,00 | 24,7 | 1 (0,7 %) | 25 | 42 | 84 | 73 | 2,21 |
-| 3 mujer.mp4 | jumping_jacks | 29,97 | 23,1 | 120 (22,9 %) | 41 | 96 | 120 | 28 | 0,40 |
-| 4 mujer.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 24 | 34 | 39 | 24 | -0,29 |
-| 5 hombre.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 25 | 36 | 52 | 23 | 0,08 |
-| 6 mujer.mp4 | jumping_jacks | 30,00 | 30,1 | 0 (0,0 %) | 25 | 41 | 54 | 22 | -0,27 |
-| 7 hombre.mp4 | jumping_jacks | 59,94 | 34,3 | 930 (42,7 %) | 39 | 56 | 122 | 54 | 0,19 |
-| 8 hombre.mp4 | jumping_jacks | 30,00 | 29,4 | 8 (2,1 %) | 24 | 59 | 83 | 20 | -1,49 |
-| 9 mujer.mp4 | jumping_jacks | 23,98 | 24,0 | 0 (0,0 %) | 28 | 40 | 77 | 24 | -0,43 |
-| 1 mujer.mp4 | marcha_rodillas | 30,00 | 30,0 | 0 (0,0 %) | 20 | 30 | 51 | 14 | 0,28 |
-| 2 mujer.mp4 | marcha_rodillas | 29,97 | 29,6 | 12 (1,4 %) | 21 | 42 | 90 | 27 | -0,16 |
-| 3 mujer.mp4 | marcha_rodillas | 30,00 | 29,8 | 12 (0,8 %) | 21 | 36 | 137 | 18 | 0,04 |
-| 4 hombre.mp4 | marcha_rodillas | 23,98 | 24,0 | 0 (0,0 %) | 22 | 37 | 51 | 19 | -0,30 |
-| 5 hombre.mp4 | marcha_rodillas | 29,97 | 30,0 | 0 (0,0 %) | 20 | 29 | 47 | 26 | 0,02 |
-| 6 mujer.mp4 | marcha_rodillas | 23,98 | 24,0 | 0 (0,0 %) | 22 | 33 | 60 | 22 | -0,40 |
-| der 876. Abducción de cadera con apoyo en silla.mp4 | abduccion_cadera_der | 29,97 | 23,7 | 66 (20,9 %) | 51 | 89 | 100 | 32 | 5,24 |
-| der Abducción de cadera con banda_ técnica paso a paso.mp4 | abduccion_cadera_der | 18,00 | 18,0 | 0 (0,0 %) | 28 | 44 | 91 | 22 | -0,09 |
-| der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4 | abduccion_cadera_der | 18,00 | 18,0 | 0 (0,0 %) | 28 | 41 | 56 | 28 | 0,02 |
-| izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 | abduccion_cadera_izq | 18,00 | 18,0 | 0 (0,0 %) | 28 | 38 | 64 | 28 | -0,05 |
-| izquierda abductor.mp4 | abduccion_cadera_izq | 24,00 | 18,3 | 56 (23,3 %) | 67 | 111 | 122 | 79 | 8,37 |
-| Ejercicio De Plancha.mp4 | plancha | 25,00 | 24,9 | 4 (0,5 %) | 23 | 41 | 151 | 15 | 0,12 |
+| 1 hombre.mp4 | jumping_jacks | 23,98 | 19,6 | 44 (17,7 %) | 75 | 101 | 128 | 107 | 0,95 |
+| 2 mujer.mp4 | jumping_jacks | 25,00 | 21,8 | 17 (11,6 %) | 64 | 89 | 121 | 121 | 3,21 |
+| 3 mujer.mp4 | jumping_jacks | 29,97 | 24,7 | 91 (17,3 %) | 55 | 81 | 93 | 69 | -1,70 |
+| 4 mujer.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 40 | 76 | 80 | 29 | -0,29 |
+| 5 hombre.mp4 | jumping_jacks | 25,00 | 24,5 | 4 (2,1 %) | 40 | 75 | 96 | 45 | 2,02 |
+| 6 mujer.mp4 | jumping_jacks | 30,00 | 21,3 | 30 (28,6 %) | 63 | 89 | 110 | 61 | -6,12 |
+| 7 hombre.mp4 | jumping_jacks | 59,94 | 23,0 | 1339 (61,5 %) | 51 | 79 | 228 | 68 | 0,36 |
+| 8 hombre.mp4 | jumping_jacks | 30,00 | 21,2 | 109 (29,1 %) | 63 | 91 | 118 | 58 | 0,41 |
+| 9 mujer.mp4 | jumping_jacks | 23,98 | 12,6 | 69 (46,9 %) | 101 | 144 | 168 | 125 | 3,67 |
+| der 876. Abducción de cadera con apoyo en silla.mp4 | abduccion_cadera_der | 29,97 | 17,0 | 137 (43,4 %) | 77 | 104 | 152 | 33 | -3,07 |
+| der Abducción de cadera con banda_ técnica paso a paso.mp4 | abduccion_cadera_der | 18,00 | 18,0 | 1 (0,1 %) | 39 | 65 | 113 | 28 | -0,17 |
+| der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4 | abduccion_cadera_der | 18,00 | 17,9 | 3 (0,5 %) | 39 | 54 | 208 | 52 | 0,05 |
+| izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 | abduccion_cadera_izq | 18,00 | 18,0 | 0 (0,0 %) | 37 | 52 | 84 | 35 | -0,05 |
+| izquierda abductor.mp4 | abduccion_cadera_izq | 24,00 | 23,9 | 1 (0,4 %) | 36 | 59 | 97 | 51 | -0,98 |
+| plancha correcta hombre.mp4 | plancha | 29,97 | 25,7 | 58 (14,0 %) | 51 | 77 | 107 | 60 | 1,88 |
+| plancha incorrecta 2.mp4 | plancha | 29,97 | 26,4 | 6 (10,5 %) | 53 | 77 | 92 | 60 | -9,52 |
+| plancha incorrrecta 1.mp4 | plancha | 29,97 | 27,5 | 9 (7,9 %) | 51 | 74 | 85 | 47 | -4,15 |
+| PlanchaCorrecta1 (2).mp4 | plancha | 30,00 | 16,8 | 350 (41,9 %) | 65 | 346 | 1509 | 1036 | 18,49 |
+| 👉Como hacer plancha abdominal correctamente ✅ Galvistrainer.mp4 | plancha | 29,97 | 26,1 | 561 (13,0 %) | 53 | 78 | 212 | 23 | -0,06 |
 
-Total: 10753 de 11962 frames procesados (10,1 % descartados); retraso p50 26 ms, p95 56 ms, máx 151 ms.
+Total: 10260 de 13089 frames procesados (21,6 % descartados); retraso p50 50 ms, p95 83 ms, máx 1509 ms.
 
 ### Política «cola sin descarte (como `FuenteVideo`)»
 
 | Vídeo | Ejercicio | FPS fuente | FPS sostenidos | Descartados | Retraso p50 | p95 | máx | final | Deriva |
 |---|---|---|---|---|---|---|---|---|---|
-| 1 hombre.mp4 | jumping_jacks | 23,98 | 24,0 | 0 (0,0 %) | 22 | 34 | 46 | 28 | 0,35 |
-| 2 mujer.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 23 | 38 | 65 | 25 | -0,82 |
-| 3 mujer.mp4 | jumping_jacks | 29,97 | 17,5 | 0 (0,0 %) | 2447 | 12987 | 13207 | 12497 | 949,94 |
-| 4 mujer.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 22 | 33 | 54 | 24 | -0,22 |
-| 5 hombre.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 22 | 35 | 49 | 22 | -0,31 |
-| 6 mujer.mp4 | jumping_jacks | 30,00 | 30,1 | 0 (0,0 %) | 22 | 33 | 44 | 24 | 1,34 |
-| 7 hombre.mp4 | jumping_jacks | 59,94 | 31,6 | 0 (0,0 %) | 16541 | 31029 | 32513 | 32513 | 890,61 |
-| 8 hombre.mp4 | jumping_jacks | 30,00 | 30,0 | 0 (0,0 %) | 26 | 297 | 422 | 22 | -10,50 |
-| 9 mujer.mp4 | jumping_jacks | 23,98 | 24,0 | 0 (0,0 %) | 25 | 37 | 46 | 27 | -0,14 |
-| 1 mujer.mp4 | marcha_rodillas | 30,00 | 30,0 | 0 (0,0 %) | 17 | 26 | 49 | 14 | 0,26 |
-| 2 mujer.mp4 | marcha_rodillas | 29,97 | 30,0 | 0 (0,0 %) | 17 | 24 | 45 | 15 | -0,02 |
-| 3 mujer.mp4 | marcha_rodillas | 30,00 | 30,0 | 0 (0,0 %) | 18 | 28 | 94 | 20 | 0,07 |
-| 4 hombre.mp4 | marcha_rodillas | 23,98 | 24,0 | 0 (0,0 %) | 24 | 65 | 101 | 17 | 0,77 |
-| 5 hombre.mp4 | marcha_rodillas | 29,97 | 30,0 | 0 (0,0 %) | 21 | 414 | 448 | 25 | 15,16 |
-| 6 mujer.mp4 | marcha_rodillas | 23,98 | 24,0 | 0 (0,0 %) | 21 | 39 | 83 | 27 | -0,22 |
-| der 876. Abducción de cadera con apoyo en silla.mp4 | abduccion_cadera_der | 29,97 | 20,8 | 0 (0,0 %) | 549 | 3987 | 4704 | 4691 | 359,87 |
-| der Abducción de cadera con banda_ técnica paso a paso.mp4 | abduccion_cadera_der | 18,00 | 18,0 | 0 (0,0 %) | 27 | 39 | 67 | 18 | -0,06 |
-| der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4 | abduccion_cadera_der | 18,00 | 18,0 | 0 (0,0 %) | 28 | 40 | 73 | 36 | 0,01 |
-| izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 | abduccion_cadera_izq | 18,00 | 18,0 | 0 (0,0 %) | 28 | 38 | 69 | 32 | -0,03 |
-| izquierda abductor.mp4 | abduccion_cadera_izq | 24,00 | 16,5 | 0 (0,0 %) | 549 | 3985 | 4546 | 4546 | 424,88 |
-| Ejercicio De Plancha.mp4 | plancha | 25,00 | 25,0 | 0 (0,0 %) | 19 | 27 | 43 | 17 | 0,00 |
+| 1 hombre.mp4 | jumping_jacks | 23,98 | 24,0 | 0 (0,0 %) | 32 | 80 | 101 | 27 | -1,67 |
+| 2 mujer.mp4 | jumping_jacks | 25,00 | 24,9 | 0 (0,0 %) | 34 | 68 | 74 | 67 | 0,66 |
+| 3 mujer.mp4 | jumping_jacks | 29,97 | 27,7 | 0 (0,0 %) | 563 | 1389 | 1472 | 1463 | 81,92 |
+| 4 mujer.mp4 | jumping_jacks | 25,00 | 25,1 | 0 (0,0 %) | 37 | 86 | 100 | 30 | -5,61 |
+| 5 hombre.mp4 | jumping_jacks | 25,00 | 25,0 | 0 (0,0 %) | 35 | 69 | 80 | 42 | -1,72 |
+| 6 mujer.mp4 | jumping_jacks | 30,00 | 26,0 | 0 (0,0 %) | 413 | 532 | 568 | 567 | 137,79 |
+| 7 hombre.mp4 | jumping_jacks | 59,94 | 27,8 | 0 (0,0 %) | 21545 | 39839 | 41933 | 41933 | 1156,66 |
+| 8 hombre.mp4 | jumping_jacks | 30,00 | 25,7 | 0 (0,0 %) | 821 | 1844 | 2130 | 2130 | 143,76 |
+| 9 mujer.mp4 | jumping_jacks | 23,98 | 24,0 | 0 (0,0 %) | 36 | 86 | 109 | 31 | -0,56 |
+| der 876. Abducción de cadera con apoyo en silla.mp4 | abduccion_cadera_der | 29,97 | 26,3 | 0 (0,0 %) | 914 | 1435 | 1504 | 1484 | 149,22 |
+| der Abducción de cadera con banda_ técnica paso a paso.mp4 | abduccion_cadera_der | 18,00 | 18,0 | 0 (0,0 %) | 42 | 2795 | 2971 | 36 | -1,38 |
+| der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4 | abduccion_cadera_der | 18,00 | 17,7 | 0 (0,0 %) | 44 | 560 | 738 | 505 | 8,05 |
+| izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 | abduccion_cadera_izq | 18,00 | 18,0 | 0 (0,0 %) | 38 | 55 | 100 | 56 | -0,09 |
+| izquierda abductor.mp4 | abduccion_cadera_izq | 24,00 | 24,0 | 0 (0,0 %) | 255 | 412 | 455 | 29 | -4,40 |
+| plancha correcta hombre.mp4 | plancha | 29,97 | 15,6 | 0 (0,0 %) | 8063 | 12723 | 12786 | 12784 | 1026,33 |
+| plancha incorrecta 2.mp4 | plancha | 29,97 | 26,2 | 0 (0,0 %) | 172 | 303 | 306 | 306 | 145,95 |
+| plancha incorrrecta 1.mp4 | plancha | 29,97 | 24,8 | 0 (0,0 %) | 393 | 798 | 824 | 824 | 246,68 |
+| PlanchaCorrecta1 (2).mp4 | plancha | 30,00 | 19,3 | 0 (0,0 %) | 6813 | 14787 | 15372 | 15372 | 573,76 |
+| 👉Como hacer plancha abdominal correctamente ✅ Galvistrainer.mp4 | plancha | 29,97 | 23,5 | 0 (0,0 %) | 29452 | 39516 | 40123 | 39450 | 294,72 |
 
-Total: 11962 de 11962 frames procesados (0,0 % descartados); retraso p50 25 ms, p95 23553 ms, máx 32513 ms.
+Total: 13089 de 13089 frames procesados (0,0 % descartados); retraso p50 4914 ms, p95 38369 ms, máx 41933 ms.
 
 `[I]` En vídeo los FPS sostenidos no pueden superar los FPS de la fuente: el objetivo de 25 fps solo se evalúa en vídeos de ≥ 25 fps. La capacidad del equipo (FPS a ritmo máximo) está en la sección 7.
 
@@ -186,70 +191,67 @@ Voz: Piper sin audio (es_MX-claude-high.onnx). Por mensaje: llegada del frame qu
 
 | Tramo (s) | n | media | p50 | p95 | máx |
 |---|---|---|---|---|---|
-| frame → encolado | 21 | 0,031 | 0,025 | 0,052 | 0,093 |
-| encolado → audio | 21 | 1,045 | 0,000 | 3,633 | 3,959 |
-| total (correcciones) | 21 | 1,076 | 0,035 | 3,657 | 3,984 |
+| frame → encolado | 19 | 0,051 | 0,051 | 0,079 | 0,084 |
+| encolado → audio | 19 | 0,000 | 0,000 | 0,001 | 0,001 |
+| total (correcciones) | 19 | 0,052 | 0,052 | 0,079 | 0,084 |
 
-Correcciones que esperaron a que terminara otra frase (> 0,1 s en la cola): 8 de 21. Con la cola libre, total p50 0,027 s, p95 0,043 s (n = 13). `[I]` La espera la causan sobre todo el anuncio del ejercicio al empezar y la frase anterior: la cola tiene un solo hueco y no interrumpe lo que está sonando.
+Correcciones que esperaron a que terminara otra frase (> 0,1 s en la cola): 0 de 19. Con la cola libre, total p50 0,052 s, p95 0,079 s (n = 19). `[I]` La espera la causan sobre todo el anuncio del ejercicio al empezar y la frase anterior: la cola tiene un solo hueco y no interrumpe lo que está sonando.
 
-Correcciones emitidas: 21; no llegaron a sonar (sustituidas en la cola o tapadas por un aviso): 0 (0,0 %). Refuerzos: 7.
+Correcciones emitidas: 19; no llegaron a sonar: 0 (0,0 %; por causa: ninguna). «sustituida»: llegó otra más reciente; «aviso»: el hueco lo tenía un aviso; «caducada»: esperó más de 1 s (`MAX_ESPERA_FEEDBACK_S`). El p95 de arriba solo cuenta las que sonaron. Refuerzos: 4.
 `[?]` No incluye la latencia del dispositivo de audio.
 
 ## 5. Silencios por causa
 
-Frames: 10753; sin persona: 845 (7,9 %); en pausa: 158 (1,5 %) {'inactividad': 20, 'sin_persona': 138}; evaluados por el motor: 9750.
+Frames: 10260; sin persona: 459 (4,5 %); en pausa: 1085 (10,6 %) {'inactividad': 1085}; evaluados por el motor: 6468.
 
 | Motivo (`MOTIVO_*`) | Frames | % de los evaluados |
 |---|---|---|
-| `sin_error` | 6568 | 67,4 % |
-| `plano_no_observable` | 1492 | 15,3 % |
-| `periodo_refractario` | 1300 | 13,3 % |
-| `evidencia_insuficiente` | 305 | 3,1 % |
-| `desvanecimiento` | 57 | 0,6 % |
-| corrección | 21 | 0,2 % |
-| refuerzo | 7 | 0,1 % |
+| `sin_error` | 4064 | 62,8 % |
+| `periodo_refractario` | 1249 | 19,3 % |
+| `desvanecimiento` | 783 | 12,1 % |
+| `evidencia_insuficiente` | 319 | 4,9 % |
+| `plano_no_observable` | 30 | 0,5 % |
+| corrección | 19 | 0,3 % |
+| refuerzo | 4 | 0,1 % |
 
 Por ejercicio (% de los frames evaluados):
 
 | Ejercicio | Frames | Sin persona | En pausa | Evaluados | sin_error | confianza_baja | plano_no_observable | evidencia_insuficiente | refractario | fase_silenciada | otros | mensajes |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| abduccion_cadera_der | 2472 | 10,8 % | 0,0 % | 2205 | 74,6 % | n/d | 0,0 % | 3,0 % | 19,4 % | n/d | 2,6 % | 8 |
-| abduccion_cadera_izq | 747 | 0,8 % | 2,7 % | 721 | 79,6 % | n/d | n/d | 7,6 % | 12,2 % | n/d | 0 % | 4 |
-| jumping_jacks | 2966 | 0,4 % | 0,0 % | 2953 | 65,0 % | n/d | 3,6 % | 4,5 % | 26,6 % | n/d | 0 % | 10 |
-| marcha_rodillas | 3703 | 12,6 % | 3,7 % | 3098 | 55,1 % | n/d | 44,7 % | n/d | n/d | n/d | 0 % | 5 |
-| plancha | 865 | 10,6 % | 0,0 % | 773 | 93,4 % | n/d | n/d | 6,5 % | n/d | n/d | 0 % | 1 |
+| abduccion_cadera_der | 2397 | 8,7 % | 0,0 % | 1879 | 76,4 % | n/d | n/d | 2,0 % | 18,4 % | n/d | 2,9 % | 6 |
+| abduccion_cadera_izq | 802 | 0,6 % | 4,4 % | 426 | 74,6 % | n/d | n/d | 6,1 % | 18,5 % | n/d | 0 % | 3 |
+| jumping_jacks | 2322 | 0,6 % | 0,0 % | 1300 | 95,0 % | n/d | 0,1 % | 3,5 % | 1,0 % | n/d | 0 % | 5 |
+| plancha | 4739 | 4,9 % | 22,2 % | 2863 | 37,6 % | n/d | 1,0 % | 7,3 % | 28,4 % | n/d | 25,4 % | 9 |
 
 ## 6. Exactitud del feedback frente a anotación humana
 
-**pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA/backend/datos_locales/anotaciones); las 5 sesiones grabadas aún no existen.** Precisión, recobrado, F1, sobrecorrección, mensajes correctos y κ necesitan la hoja de anotación (`estela-anotacion-v1`, ver README).
+**pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA\backend\datos_locales\anotaciones); las 5 sesiones grabadas aún no existen.** Precisión, recobrado, F1, sobrecorrección, mensajes correctos y κ necesitan la hoja de anotación (`estela-anotacion-v1`, ver README).
 
-Aserciones no soportadas (M2 de EXP-001) en los mensajes emitidos sobre los vídeos: 0,0 % (0 de 21 correcciones). No necesita anotación.
+Aserciones no soportadas (M2 de EXP-001) en los mensajes emitidos sobre los vídeos: 0,0 % (0 de 19 correcciones). No necesita anotación.
 
 **Correcciones en los vídeos de control (descriptivo, no es la sobrecorrección).** EXP-009 §4 trata estos vídeos como ejecuciones supuestamente correctas, pero nadie los ha anotado: una corrección aquí es un candidato a falso positivo, no un falso positivo.
 
 | Vídeo | Ejercicio | Reps contadas | Correcciones (error_id × veces) | Refuerzos |
 |---|---|---|---|---|
-| 1 hombre.mp4 | jumping_jacks | 11 | `codos_flexionados` × 1 | 0 |
-| 2 mujer.mp4 | jumping_jacks | 6 | — | 1 |
-| 3 mujer.mp4 | jumping_jacks | 6 | `brazos_no_llegan_arriba` × 1, `codos_flexionados` × 1 | 0 |
+| 1 hombre.mp4 | jumping_jacks | 7 | `sin_salto` × 1 | 0 |
+| 2 mujer.mp4 | jumping_jacks | 6 | — | 0 |
+| 3 mujer.mp4 | jumping_jacks | 6 | `codos_flexionados` × 1 | 0 |
 | 4 mujer.mp4 | jumping_jacks | 5 | — | 0 |
-| 5 hombre.mp4 | jumping_jacks | 9 | — | 0 |
+| 5 hombre.mp4 | jumping_jacks | 7 | — | 0 |
 | 6 mujer.mp4 | jumping_jacks | 4 | — | 0 |
-| 7 hombre.mp4 (ref.) | jumping_jacks | 35 | `brazos_no_llegan_arriba` × 2, `codos_flexionados` × 2 | 0 |
-| 8 hombre.mp4 | jumping_jacks | 15 | `brazos_no_llegan_arriba` × 1, `codos_flexionados` × 1 | 0 |
+| 7 hombre.mp4 (ref.) | jumping_jacks | 35 | — | 2 |
+| 8 hombre.mp4 | jumping_jacks | 15 | — | 1 |
 | 9 mujer.mp4 | jumping_jacks | 3 | — | 0 |
-| 1 mujer.mp4 | marcha_rodillas | 19 | — | 1 |
-| 2 mujer.mp4 | marcha_rodillas | 45 | — | 1 |
-| 3 mujer.mp4 | marcha_rodillas | 87 | — | 2 |
-| 4 hombre.mp4 | marcha_rodillas | 21 | — | 0 |
-| 5 hombre.mp4 (ref.) | marcha_rodillas | 28 | — | 0 |
-| 6 mujer.mp4 | marcha_rodillas | 41 | — | 1 |
-| der 876. Abducción de cadera con apoyo en silla.mp4 | abduccion_cadera_der | 2 | `cadera_der_sube` × 1, `tronco_inclinado_izq` × 1 | 0 |
+| der 876. Abducción de cadera con apoyo en silla.mp4 | abduccion_cadera_der | 2 | — | 0 |
 | der Abducción de cadera con banda_ técnica paso a paso.mp4 | abduccion_cadera_der | 26 | `cadera_der_sube` × 4 | 0 |
 | der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4 (ref.) | abduccion_cadera_der | 11 | `cadera_der_sube` × 2 | 0 |
-| izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 (ref.) | abduccion_cadera_izq | 11 | `cadera_izq_sube` × 2, `tronco_inclinado_der` × 2 | 0 |
+| izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4 (ref.) | abduccion_cadera_izq | 11 | `cadera_izq_sube` × 1, `tronco_inclinado_der` × 2 | 0 |
 | izquierda abductor.mp4 | abduccion_cadera_izq | 1 | — | 0 |
-| Ejercicio De Plancha.mp4 (ref.) | plancha | 26 | — | 1 |
+| plancha correcta hombre.mp4 (ref.) | plancha | 12 | `cadera_elevada` × 1, `rodilla_der_flexionada` × 1 | 0 |
+| plancha incorrecta 2.mp4 | plancha | 0 | — | 0 |
+| plancha incorrrecta 1.mp4 | plancha | 2 | — | 0 |
+| PlanchaCorrecta1 (2).mp4 | plancha | 26 | — | 1 |
+| 👉Como hacer plancha abdominal correctamente ✅ Galvistrainer.mp4 | plancha | 52 | `cadera_elevada` × 3, `hombros_adelantados` × 2, `rodilla_der_flexionada` × 1 | 0 |
 
 ## 7. Variantes de MediaPipe (EXP-004) — ritmo máximo, cola sin descarte
 
@@ -257,92 +259,86 @@ Mismos vídeos, recortados a 30 s. Capacidad = frames / tiempo de pared procesan
 
 | Modelo | Frames | Pose media | p50 | p95 | máx | Capacidad (fps) | % frames con persona | Reps contadas | Correcciones |
 |---|---|---|---|---|---|---|---|---|---|
-| lite | 9678 | 13,1 | 11,7 | 20,1 | 47,7 | 43,8 | 93,8 % | 312 | 20 |
-| full | 9678 | 21,0 | 18,3 | 35,0 | 110,6 | 29,8 | 93,8 % | 322 | 19 |
-| heavy | 9678 | 60,3 | 58,0 | 87,1 | 308,6 | 12,4 | 93,8 % | 288 | 22 |
+| lite | 8143 | 27,0 | 24,1 | 46,3 | 288,0 | 26,3 | 97,4 % | 112 | 15 |
+| full | 8143 | 36,7 | 34,3 | 57,1 | 152,0 | 21,4 | 97,3 % | 115 | 16 |
 
-p95 de pose frente al objetivo (≤ 33 ms): lite **cumple**, full **no cumple**, heavy **no cumple**.
+p95 de pose frente al objetivo (≤ 33 ms): lite **no cumple**, full **no cumple**.
 
 Jitter en la plancha mantenida (fase `mantenimiento`, confianza ≥ 0,5): desviación del residuo frente a una media móvil de 15 frames. Es el único tramo quieto de los vídeos; en los demás el temblor se mezcla con el movimiento.
 
 | Modelo | tronco_inclinacion | cabeza_adelantada | alineacion_cadera |
 |---|---|---|---|
-| lite | 0,081 | 0,256 | 0,001 |
-| full | 0,085 | 0,123 | 0,001 |
-| heavy | 0,059 | 0,113 | 0,001 |
+| lite | 0,276 | 0,487 | 0,005 |
+| full | 0,224 | 0,580 | 0,004 |
 
 Unidades: grados en los ángulos; escalas corporales en `alineacion_cadera`.
 
-## 8. DTW clásico frente a banda Sakoe-Chiba (EXP-010)
+## 8. DTW incremental sin banda frente a banda Sakoe-Chiba (EXP-010)
 
 Réplica fuera de línea de las observaciones de la corrida «cola» (modelo full), con las mismas llamadas que hace la sesión. Banda en frames = fracción × longitud de la referencia (0,10, 0,20).
 
 | Ejercicio | Ref. (frames) | Variante | Frames | Con resultado | Latencia media | p50 | p95 | máx | ms por frame de prefijo | Prefijo máx | progreso = 1 | Δ progreso máx | Δ ángulos_ref máx |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| jumping_jacks | 61 | clásico | 4012 | 100,0 % | 12,04 | 7,89 | 34,65 | 140,28 | 0,330 | 309 | 100,0 % | n/d | n/d |
-| jumping_jacks | 61 | banda 10% (6 fr) | 4012 | 88,3 % | 2,41 | 1,60 | 6,97 | 27,53 | 0,066 | 309 | 100,0 % | 0,000 | 0,00 |
-| jumping_jacks | 61 | banda 20% (12 fr) | 4012 | 93,0 % | 4,34 | 2,83 | 12,79 | 39,77 | 0,120 | 309 | 100,0 % | 0,000 | 0,00 |
-| marcha_rodillas | 11 | clásico | 3260 | 100,0 % | 0,58 | 0,49 | 1,43 | 4,06 | 0,066 | 47 | 100,0 % | n/d | n/d |
-| marcha_rodillas | 11 | banda 10% (1 fr) | 3260 | 68,1 % | 0,14 | 0,13 | 0,33 | 1,33 | 0,016 | 47 | 100,0 % | 0,000 | 0,00 |
-| marcha_rodillas | 11 | banda 20% (2 fr) | 3260 | 84,0 % | 0,21 | 0,19 | 0,53 | 2,01 | 0,026 | 47 | 100,0 % | 0,000 | 0,00 |
-| abduccion_cadera_der | 57 | clásico | 2272 | 100,0 % | 11,45 | 9,38 | 32,14 | 66,33 | 0,306 | 206 | 100,0 % | n/d | n/d |
-| abduccion_cadera_der | 57 | banda 10% (6 fr) | 2272 | 91,2 % | 2,41 | 2,00 | 6,70 | 17,28 | 0,064 | 206 | 100,0 % | 0,000 | 0,00 |
-| abduccion_cadera_der | 57 | banda 20% (11 fr) | 2272 | 94,7 % | 4,07 | 3,35 | 11,49 | 27,11 | 0,109 | 206 | 100,0 % | 0,000 | 0,00 |
-| abduccion_cadera_izq | 57 | clásico | 797 | 100,0 % | 17,50 | 11,16 | 64,19 | 103,85 | 0,323 | 234 | 100,0 % | n/d | n/d |
-| abduccion_cadera_izq | 57 | banda 10% (6 fr) | 797 | 92,5 % | 3,68 | 2,37 | 13,49 | 19,08 | 0,067 | 234 | 100,0 % | 0,000 | 0,00 |
-| abduccion_cadera_izq | 57 | banda 20% (11 fr) | 797 | 95,5 % | 6,25 | 3,92 | 23,07 | 41,93 | 0,116 | 234 | 100,0 % | 0,000 | 0,00 |
+| jumping_jacks | 62 | sin banda | 4012 | 98,0 % | 0,16 | 0,11 | 0,49 | 1,79 | 0,000 | 328 | 0,9 % | n/d | n/d |
+| jumping_jacks | 62 | banda 10% (6 fr) | 4012 | 98,0 % | 0,08 | 0,06 | 0,20 | 1,03 | 0,000 | 328 | 8,4 % | 0,918 | 123,68 |
+| jumping_jacks | 62 | banda 20% (12 fr) | 4012 | 98,0 % | 0,08 | 0,06 | 0,19 | 1,10 | 0,000 | 328 | 8,2 % | 0,902 | 124,14 |
+| abduccion_cadera_der | 55 | sin banda | 2325 | 97,0 % | 0,19 | 0,13 | 0,55 | 2,29 | -0,000 | 204 | 1,7 % | n/d | n/d |
+| abduccion_cadera_der | 55 | banda 10% (6 fr) | 2325 | 94,0 % | 0,11 | 0,07 | 0,28 | 2,61 | -0,000 | 204 | 7,5 % | 0,722 | 45,96 |
+| abduccion_cadera_der | 55 | banda 20% (11 fr) | 2325 | 94,0 % | 0,10 | 0,07 | 0,25 | 1,93 | -0,000 | 204 | 7,0 % | 0,722 | 36,48 |
+| abduccion_cadera_izq | 55 | sin banda | 797 | 98,6 % | 0,20 | 0,15 | 0,53 | 1,29 | 0,001 | 232 | 1,1 % | n/d | n/d |
+| abduccion_cadera_izq | 55 | banda 10% (6 fr) | 797 | 98,6 % | 0,12 | 0,09 | 0,28 | 2,28 | 0,001 | 232 | 0,9 % | 0,481 | 23,75 |
+| abduccion_cadera_izq | 55 | banda 20% (11 fr) | 797 | 98,6 % | 0,11 | 0,09 | 0,26 | 1,34 | 0,001 | 232 | 1,1 % | 0,148 | 20,24 |
 | plancha | — | sin referencia DTW (isométrico o ausente) | | | | | | | | | | | |
 
 Latencia según la longitud del prefijo, todos los ejercicios juntos (ms):
 
 | Prefijo (frames) | Variante | n | media | p50 | p95 | máx |
 |---|---|---|---|---|---|---|
-| 1–15 | clásico | 5153 | 1,50 | 0,72 | 4,70 | 8,51 |
-| 16–30 | clásico | 2037 | 6,70 | 7,03 | 9,93 | 20,16 |
-| 31–60 | clásico | 2332 | 14,21 | 14,03 | 18,97 | 26,91 |
-| 61–120 | clásico | 430 | 26,07 | 24,80 | 37,48 | 44,48 |
-| 121–240 | clásico | 320 | 56,94 | 55,87 | 76,37 | 140,28 |
-| 241–∞ | clásico | 69 | 90,26 | 90,07 | 99,23 | 117,61 |
-| 1–15 | banda 10% | 5153 | 0,32 | 0,15 | 1,01 | 2,01 |
-| 16–30 | banda 10% | 2037 | 1,40 | 1,48 | 2,03 | 3,53 |
-| 31–60 | banda 10% | 2332 | 2,89 | 2,87 | 3,77 | 11,35 |
-| 61–120 | banda 10% | 430 | 5,28 | 4,97 | 7,47 | 8,96 |
-| 121–240 | banda 10% | 320 | 11,82 | 11,50 | 16,15 | 27,53 |
-| 241–∞ | banda 10% | 69 | 18,00 | 17,94 | 19,86 | 21,54 |
-| 1–15 | banda 20% | 5153 | 0,53 | 0,24 | 1,71 | 3,36 |
-| 16–30 | banda 20% | 2037 | 2,42 | 2,54 | 3,54 | 10,53 |
-| 31–60 | banda 20% | 2332 | 5,09 | 5,03 | 6,82 | 11,19 |
-| 61–120 | banda 20% | 430 | 9,33 | 8,85 | 13,52 | 16,73 |
-| 121–240 | banda 20% | 320 | 20,45 | 19,86 | 27,86 | 41,93 |
-| 241–∞ | banda 20% | 69 | 32,86 | 33,03 | 37,26 | 39,77 |
+| 1–15 | sin banda | 2189 | 0,17 | 0,11 | 0,50 | 1,70 |
+| 16–30 | sin banda | 1765 | 0,17 | 0,11 | 0,52 | 1,79 |
+| 31–60 | sin banda | 2295 | 0,18 | 0,12 | 0,53 | 2,29 |
+| 61–120 | sin banda | 318 | 0,19 | 0,14 | 0,49 | 1,67 |
+| 121–240 | sin banda | 316 | 0,20 | 0,13 | 0,59 | 1,18 |
+| 241–∞ | sin banda | 88 | 0,15 | 0,11 | 0,35 | 0,88 |
+| 1–15 | banda 10% | 2252 | 0,09 | 0,06 | 0,22 | 1,20 |
+| 16–30 | banda 10% | 1750 | 0,09 | 0,06 | 0,23 | 0,78 |
+| 31–60 | banda 10% | 2265 | 0,10 | 0,07 | 0,24 | 2,61 |
+| 61–120 | banda 10% | 300 | 0,10 | 0,08 | 0,26 | 0,85 |
+| 121–240 | banda 10% | 316 | 0,13 | 0,07 | 0,41 | 2,28 |
+| 241–∞ | banda 10% | 88 | 0,09 | 0,06 | 0,26 | 0,64 |
+| 1–15 | banda 20% | 2252 | 0,09 | 0,06 | 0,22 | 1,36 |
+| 16–30 | banda 20% | 1750 | 0,09 | 0,06 | 0,21 | 1,93 |
+| 31–60 | banda 20% | 2265 | 0,09 | 0,07 | 0,23 | 0,88 |
+| 61–120 | banda 20% | 300 | 0,10 | 0,07 | 0,24 | 0,83 |
+| 121–240 | banda 20% | 316 | 0,12 | 0,07 | 0,33 | 1,34 |
+| 241–∞ | banda 20% | 88 | 0,07 | 0,06 | 0,18 | 0,25 |
 
-`[F]` Con el DTW actual el camino termina siempre en la última celda (n, m): `progreso` sale 1,0 y `angulos_ref` es el último frame de la referencia en todos los frames con resultado (columna «progreso = 1»). Hoy no cambia ninguna decisión porque ninguna regla usa `desviacion` (EXP-009 §9). La banda no lo corrige: solo recorta celdas. `[R]` Un DTW de extremo abierto (mínimo sobre la última fila) es el paso previo a usar la referencia; queda para el equipo.
-
-`[I]` Si el segmentador no cierra la repetición (antes de la primera, en pausa o sin conteo), el prefijo crece sin límite y el coste del DTW clásico con él.
+El DTW es incremental y de final abierto: cada frame actualiza una columna de la matriz en O(m) y se reinicia en cada repetición, así que la latencia no debería crecer con el prefijo (columna «ms por frame de prefijo»). La banda se centra en el instante que tocaría al ritmo de la referencia; las columnas «Δ» comparan cada banda con la variante sin banda.
 
 ## 9. Plantilla frente a LLM local (EXP-001, banco sintético)
 
 | Condición | Episodios | M2 aserciones no soportadas | M3 sobrecorrección | M5 determinismo | M7 fallback | Verbalización p50 (ms) | p95 | máx |
 |---|---|---|---|---|---|---|---|---|
-| A | 100 | 0,0 % (102) | 0,0 % (15) | 100,0 % | 0,0 % | 0,1378 | 0,1760 | 0,2519 |
+| A | 163 | 0,0 % (174) | 0,0 % (18) | 100,0 % | 0,0 % | 0,2105 | 0,6579 | 1,4734 |
 | F | pendiente de medición en la Mac: llama-server no responde en http://127.0.0.1:8080 (URLError) | | | | | | | |
 
 La M1 real (exactitud de contenido) y la comparación sobre vídeo necesitan las anotaciones (sección 6). La condición F solo puede correr donde haya `llama-server` (la Mac).
 
 ## 10. Piper: factor de tiempo real
 
-Voz `es_MX-claude-high.onnx`, 77 frases de `frases_de_rutina` (calentamiento básico). RTF = tiempo de síntesis / duración del audio; < 1 es más rápido que el tiempo real. La primera frase (inicialización) tardó 378 ms y no entra en la tabla.
+Voz `es_MX-claude-high.onnx`, 110 frases de `frases_de_rutina` (calentamiento básico). RTF = tiempo de síntesis / duración del audio; < 1 es más rápido que el tiempo real. La primera frase (inicialización) tardó 3042 ms y no entra en la tabla.
 
 | Medida | n | media | p50 | p95 | máx |
 |---|---|---|---|---|---|
-| síntesis (ms) | 76 | 305,8 | 300,7 | 447,1 | 647,3 |
-| duración del audio (s) | 76 | 3,55 | 3,50 | 5,26 | 7,57 |
-| RTF | 76 | 0,086 | 0,085 | 0,099 | 0,116 |
+| síntesis (ms) | 109 | 375,4 | 363,5 | 564,3 | 880,6 |
+| duración del audio (s) | 109 | 3,67 | 3,49 | 5,67 | 7,58 |
+| RTF | 109 | 0,103 | 0,100 | 0,123 | 0,184 |
 
 ## Pendiente de medición
 
 - **exp001_F**: pendiente de medición en la Mac: llama-server no responde en http://127.0.0.1:8080 (URLError)
-- **anotaciones**: pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA/backend/datos_locales/anotaciones); las 5 sesiones grabadas aún no existen
+- **modelo_heavy**: pendiente de medición: falta pose_landmarker_heavy.task (python scripts/descargar_modelos.py --heavy)
+- **anotaciones**: pendiente de medición: no hay anotaciones humanas (formato estela-anotacion-v1 en ESTELA\backend\datos_locales\anotaciones); las 5 sesiones grabadas aún no existen
 - **hardware final**: todas las cifras de tiempo hay que repetirlas en la Mac Studio M2 Ultra.
 - **sesiones reales**: las 5 participantes aún no han grabado la rutina; ninguna cifra de esta página procede de ellas.
 
