@@ -1,8 +1,8 @@
-import { ArrowLeft, Lock, Plus, Target, Trash2, TrendingUp, UserRound, Users } from 'lucide-react'
+import { Lock, Plus, Target, Trash2, TrendingUp, UserRound, Users } from 'lucide-react'
 import { useState } from 'react'
 import type { Bridge, EstadoPerfiles } from '../bridge/tipos'
-import { Aviso, Boton } from '../componentes/basicos'
-import { Avatar, FormularioPerfil } from '../componentes/perfil'
+import { Aviso, Boton, BotonVolver } from '../componentes/basicos'
+import { Avatar, FormularioPerfil, type BorradorPerfil } from '../componentes/perfil'
 import { fechaCorta } from '../estado/progreso'
 import { borrarPerfil, crearPerfil, editarPerfil, elegirPerfil, perfilActivo, textoMeta } from '../estado/perfiles'
 
@@ -87,18 +87,25 @@ export function PanelPerfil({ bridge, estado, alVolver, alCambiar, alProgreso }:
   const perfil = perfilActivo(estado)
   const [confirmar, setConfirmar] = useState(false)
   const [fallo, setFallo] = useState(false)
+  // lo que se está editando y aún no se guardó: la cabecera lo enseña al momento
+  const [borrador, setBorrador] = useState<BorradorPerfil | null>(null)
+  const visto = perfil && borrador
+    ? { nombre: borrador.nombre.trim() || perfil.nombre, color: borrador.color, metaSemanal: borrador.metaSemanal }
+    : perfil
 
   return (
     <section className="perfiles-cuerpo">
       <div className="perfiles-cabeza">
-        <button className="enlace-volver" onClick={alVolver}><ArrowLeft />Volver al inicio</button>
+        <BotonVolver onClick={alVolver} />
         <span className="etiqueta etiqueta-marca">Mi perfil</span>
-        {perfil ? (
+        {perfil && visto ? (
           <div className="perfil-titulo">
-            <Avatar nombre={perfil.nombre} color={perfil.color} tam="lg" />
+            <Avatar nombre={visto.nombre} color={visto.color} tam="lg" />
             <div>
-              <h1>{perfil.nombre}</h1>
-              {perfil.creado && <span>Perfil creado el {fechaCorta(perfil.creado)}</span>}
+              <h1>{visto.nombre}</h1>
+              {borrador
+                ? <span className="perfil-vista-previa" role="status">Vista previa · cambios sin guardar</span>
+                : perfil.creado && <span>Perfil creado el {fechaCorta(perfil.creado)}</span>}
             </div>
           </div>
         ) : (
@@ -113,13 +120,13 @@ export function PanelPerfil({ bridge, estado, alVolver, alCambiar, alProgreso }:
             <h2>Editar perfil</h2>
             {/* key: si cambia el perfil activo, el formulario empieza de nuevo */}
             <FormularioPerfil key={perfil.id} estado={estado} inicial={perfil} textoGuardar="Guardar cambios"
-              alGuardar={(datos) => editarPerfil(bridge, perfil.id, datos)} />
+              alGuardar={(datos) => editarPerfil(bridge, perfil.id, datos)} alPrevisualizar={setBorrador} />
           </article>
 
           <aside className="perfil-lateral">
             <article className="tarjeta perfil-opciones">
               <h2>Meta y opciones</h2>
-              <p className="meta-actual"><Target aria-hidden="true" />{textoMeta(perfil.metaSemanal)}</p>
+              <p className="meta-actual"><Target aria-hidden="true" />{textoMeta((visto ?? perfil).metaSemanal)}</p>
               <div className="perfil-opciones-botones">
                 {alProgreso && <Boton variante="secundario" onClick={alProgreso}><TrendingUp />Ver mi progreso</Boton>}
                 <Boton variante="secundario" onClick={alCambiar}><Users />Cambiar de perfil</Boton>

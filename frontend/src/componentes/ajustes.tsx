@@ -1,5 +1,7 @@
-import { Camera, Loader2, Monitor, Moon, ScanEye, Settings, Sun, Volume2, VolumeX, X } from 'lucide-react'
-import { useEffect, useState, type ReactNode } from 'react'
+import {
+  Camera, Loader2, Monitor, Moon, RefreshCw, ScanEye, Settings, Sun, Video, VideoOff, Volume2, VolumeX, X,
+} from 'lucide-react'
+import { useEffect, useId, useState, type ReactNode } from 'react'
 import type { Bridge, Camaras } from '../bridge/tipos'
 import { useCapacidad, useEstado } from '../estado/almacen'
 import { cambiarAjustes, temaVisible, useAjustes, type TamanoTexto, type Tema } from '../estado/ajustes'
@@ -105,40 +107,113 @@ function PanelAjustes({ bridge, alCerrar }: { bridge: Bridge; alCerrar: () => vo
   )
 }
 
-/** Elegir la cámara de la próxima sesión (capacidad «elegirCamara»). Python la
- *  recuerda hasta cerrar la aplicación; aquí no se guarda. */
+/**
+ * Cámara de la próxima sesión (capacidad «elegirCamara»): se carga con un
+ * botón (buscar tarda, porque abre cada cámara), se elige si hay varias y se
+ * comprueba con una vista previa que se puede apagar. Python recuerda la
+ * elegida hasta cerrar la aplicación; aquí no se guarda.
+ */
 function OpcionCamara({ bridge }: { bridge: Bridge }) {
   const capacidad = useCapacidad('elegirCamara')
   const fuente = useEstado((s) => s.info?.fuente ?? 'camara')
-  const conCamara = capacidad && fuente === 'camara'
-  const [camaras, setCamaras] = useState<Camaras | null | undefined>(undefined)   // undefined: buscando
-  useEffect(() => {
-    if (!conCamara) return
-    let vigente = true
-    bridge.camaras().then((c) => { if (vigente) setCamaras(c) }, () => { if (vigente) setCamaras(null) })
-    return () => { vigente = false }
-  }, [bridge, conCamara])
-  if (!conCamara || camaras === null) return null
+  const espejo = useEstado((s) => s.info?.espejo ?? true)
+  const id = useId()
+  // null: aún no se cargó · 'buscando' · 'ocupada': la usa la sesión
+  const [camaras, setCamaras] = useState<Camaras | 'buscando' | 'ocupada' | null>(null)
+  const [viendo, setViendo] = useState(false)
+  if (!capacidad || fuente !== 'camara') return null
 
+  const cargar = async () => {
+    setViendo(false)                 // buscar necesita las cámaras libres
+    setCamaras('buscando')
+    const c = await bridge.camaras().catch(() => null)
+    setCamaras(c ?? 'ocupada')
+    setViendo((c?.lista.length ?? 0) > 0)
+  }
   const elegir = (indice: number) => {
-    setCamaras((c) => c && { ...c, elegida: indice })
+    setCamaras((c) => (c && typeof c === 'object' ? { ...c, elegida: indice } : c))
     void bridge.configurar({ camara: indice })
   }
-  const lista = camaras?.lista ?? []
-  const elegida = camaras?.elegida ?? lista[0]?.indice
+
+  const lista = camaras && typeof camaras === 'object' ? camaras.lista : []
+  const elegida = camaras && typeof camaras === 'object'
+    ? (lista.some((c) => c.indice === camaras.elegida) ? camaras.elegida! : lista[0]?.indice) : undefined
+  const cargada = camaras !== null && camaras !== 'buscando'
   return (
-    <Opcion titulo="Cámara"
-            ayuda={camaras === undefined ? 'Buscando cámaras…'
+    <div className="opcion-ajuste opcion-camara">
+      <div className="opcion-camara-cabeza">
+        <div>
+          <strong>Cámara</strong>
+          <span>
+            {camaras === null ? 'Cárgala para elegirla y comprobar cómo te ve.'
+              : camaras === 'buscando' ? 'Buscando cámaras…'
+              : camaras === 'ocupada' ? 'La cámara está en uso. Inténtalo al terminar la sesión.'
               : lista.length === 0 ? 'No encuentro ninguna cámara. Comprueba que esté conectada.'
               : lista.length === 1 ? 'Es la única cámara que encuentro.'
-              : 'Se usa desde la próxima sesión.'}>
-      {camaras === undefined ? <Loader2 className="girando" aria-label="Buscando cámaras" />
-        : lista.length === 1 ? <span className="camara-unica"><Camera />{lista[0].nombre}</span>
-        : lista.length > 1 && (
-          <Segmentos<string> valor={String(elegida)} alCambiar={(v) => elegir(Number(v))} etiqueta="Cámara"
-            opciones={lista.map((c) => [String(c.indice), <><Camera />{c.nombre}</>])} />
-        )}
-    </Opcion>
+              : 'Elige cuál usar. Se aplica desde la próxima sesión.'}
+          </span>
+        </div>
+        <Boton variante="secundario" onClick={() => void cargar()} disabled={camaras === 'buscando'}>
+          {camaras === 'buscando' ? <><Loader2 className="girando" />Buscando…</>
+            : cargada ? <><RefreshCw />Volver a buscar</> : <><Camera />Cargar cámara</>}
+        </Boton>
+      </div>
+
+      {lista.length > 0 && elegida !== undefined && (
+        <>
+          <div className="opcion-camara-fila">
+            {lista.length === 1 ? (
+              <p className="camara-unica"><Camera aria-hidden="true" />{lista[0].nombre}</p>
+            ) : (
+              <>
+                <label htmlFor={id} className="solo-lectores">Cámara</label>
+                <select id={id} className="selector-dispositivo" value={elegida}
+                        onChange={(e) => elegir(Number(e.target.value))}>
+                  {lista.map((c) => <option key={c.indice} value={c.indice}>{c.nombre}</option>)}
+                </select>
+              </>
+            )}
+            <Boton variante="suave" onClick={() => setViendo(!viendo)} aria-pressed={viendo}>
+              {viendo ? <><VideoOff />Apagar vista</> : <><Video />Ver cámara</>}
+            </Boton>
+          </div>
+          {viendo && <VistaPreviaCamara key={elegida} bridge={bridge} espejo={espejo} />}
+        </>
+      )}
+    </div>
+  )
+}
+
+/** Pide frames a Python mientras está montada; al desmontarse, suelta la cámara. */
+function VistaPreviaCamara({ bridge, espejo }: { bridge: Bridge; espejo: boolean }) {
+  const [imagen, setImagen] = useState<string | null>(null)
+  const [fallo, setFallo] = useState(false)
+  useEffect(() => {
+    let vigente = true
+    const esperar = (ms: number) => new Promise((r) => setTimeout(r, ms))
+    void (async () => {
+      while (vigente) {
+        const jpeg = await bridge.vistaCamara().catch(() => null)
+        if (!vigente) break
+        if (jpeg) setImagen(`data:image/jpeg;base64,${jpeg}`)
+        setFallo(!jpeg)
+        // ~12 imágenes por segundo bastan para comprobar el encuadre; si falla, reintenta despacio
+        await esperar(jpeg ? 80 : 1500)
+      }
+    })()
+    return () => { vigente = false; void bridge.cerrarVistaCamara() }
+  }, [bridge])
+  return (
+    <figure className="vista-previa-camara">
+      <div className="vista-previa-camara-marco">
+        {imagen && !fallo
+          ? <img src={imagen} alt="Lo que ve la cámara ahora" className={espejo ? 'espejo' : undefined} />
+          : fallo
+            ? <p role="status"><VideoOff aria-hidden="true" />No puedo abrir esta cámara. Puede que otra aplicación la esté usando.</p>
+            : <p role="status"><Loader2 className="girando" aria-hidden="true" />Abriendo la cámara…</p>}
+      </div>
+      <figcaption>Solo se muestra aquí: no se guarda ni sale de este equipo.</figcaption>
+    </figure>
   )
 }
 

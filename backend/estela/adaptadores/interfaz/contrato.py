@@ -57,7 +57,10 @@ tamaño del texto son solo de la interfaz y no llegan a Python.
 Con `elegirCamara`, `camaras()` devuelve `{"lista": [{"indice", "nombre"}],
 "elegida"}` (o null con un vídeo o con la cámara en uso) y
 `configurar({"camara": 1})` elige la cámara de la próxima sesión. Vale hasta
-cerrar la aplicación.
+cerrar la aplicación. `vista_camara()` devuelve un JPEG en base64 de la cámara
+elegida para comprobarla desde los ajustes (null si no se puede abrir o hay una
+sesión) y `cerrar_vista_camara()` la suelta; si la interfaz deja de pedirla,
+se cierra sola. Esa imagen tampoco se guarda.
 
 Colocación y evaluación
 -----------------------
@@ -246,6 +249,39 @@ def _referencia_estatica(referencia: Optional[Mapping[str, Any]]
             for x, y in puntos]
 
 
+#: tope de posturas de `guiaAnimada`; una referencia más larga se submuestrea
+MAX_FRAMES_GUIA = 90
+
+
+def _referencia_animada(referencia: Optional[Mapping[str, Any]]
+                        ) -> Optional[Dict[str, Any]]:
+    """Una repetición de la referencia para animar la figura del catálogo:
+    `{"fps", "frames": [[[x, y, vis], …33], …]}`, con el mismo encuadre que
+    `_referencia_estatica`. None sin referencia o si no hay movimiento que
+    enseñar (plancha: una sola postura)."""
+    if not referencia:
+        return None
+    frames = np.asarray(referencia.get("keypoints_2d", ()), dtype=float)
+    try:
+        fps = float(referencia.get("fps", 30.0))
+    except (TypeError, ValueError):
+        return None
+    if (frames.ndim != 3 or frames.shape[1:] != (33, 2) or len(frames) < 2
+            or not np.isfinite(frames).all() or not np.isfinite(fps) or fps <= 0):
+        return None
+    paso = -(-len(frames) // MAX_FRAMES_GUIA)          # techo de la división
+    frames = frames[::paso] * np.array([aspecto_guia(referencia), 1.0])
+    minimo = frames.min(axis=(0, 1))
+    maximo = frames.max(axis=(0, 1))
+    centro = (minimo + maximo) / 2.0
+    escala = 0.76 / max(float(maximo[0] - minimo[0]),
+                        float(maximo[1] - minimo[1]), 1e-6)
+    frames = (frames - centro) * escala + 0.5
+    return {"fps": round(fps / paso, 2),
+            "frames": [[[round(float(x), 4), round(float(y), 4), 1.0] for x, y in f]
+                       for f in frames]}
+
+
 def _angulos_de_medida(clave: str) -> List[str]:
     """Nombres de los ángulos de una medida (`Medida.clave()`): «angulo:x»,
     «min(x)@repeticion» o «asimetria(x,y)». Un ángulo bilateral («_medio»)
@@ -426,6 +462,8 @@ def catalogo_a_dict(catalogo: Mapping[str, Ejercicio],
             "minimo": minimo,
             "maximo": maximo,
             "guia": _referencia_estatica(ej.referencia),
+            # una repetición, para mover la figura al pasar el ratón
+            "guiaAnimada": _referencia_animada(ej.referencia),
         })
     return lista
 

@@ -298,7 +298,8 @@ export function GuiaAnimada({ puntos, ejercicioId, animar = true }: {
 
   useEffect(() => {
     if (!animar) {
-      setPuntosSuavizados(puntos)
+      // sin suavizado se dibuja `puntos` tal cual (ver `mostrados`): no hace
+      // falta otro render por cada postura
       actuales.current = puntos
       return
     }
@@ -335,7 +336,8 @@ export function GuiaAnimada({ puntos, ejercicioId, animar = true }: {
     }
   }, [animar, puntos])
 
-  const punto = (indice: number): Punto => puntosSuavizados[indice] ?? [0.5, 0.5, 0]
+  const mostrados = animar ? puntosSuavizados : puntos
+  const punto = (indice: number): Punto => mostrados[indice] ?? [0.5, 0.5, 0]
   const medio = (a: number, b: number): Punto => [
     (punto(a)[0] + punto(b)[0]) / 2,
     (punto(a)[1] + punto(b)[1]) / 2,

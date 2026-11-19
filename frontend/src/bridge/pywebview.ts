@@ -31,6 +31,8 @@ interface ApiPython {
   borrar_rutina_nombrada?(perfilId: string, rutinaId: string): Promise<ResultadoPerfil>
   // solo con la capacidad «elegirCamara»
   camaras?(): Promise<Camaras | null>
+  vista_camara?(): Promise<string | null>
+  cerrar_vista_camara?(): Promise<void>
   // solo con la capacidad «pasoAnterior»
   anterior?(): Promise<void>
   // solo con la capacidad «pausaManual»
@@ -87,6 +89,8 @@ export function bridgePywebview(api: ApiPython): Bridge {
     borrarRutinaNombrada: async (perfilId, rutinaId) =>
       (await api.borrar_rutina_nombrada?.(perfilId, rutinaId)) ?? SIN_PERFILES,
     camaras: async () => (await api.camaras?.()) ?? null,
+    vistaCamara: async () => (await api.vista_camara?.()) ?? null,
+    cerrarVistaCamara: async () => { await api.cerrar_vista_camara?.() },
     pausar: async () => { await api.pausar?.() },
     reanudar: async () => { await api.reanudar?.() },
   }

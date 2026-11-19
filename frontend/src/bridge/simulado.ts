@@ -37,6 +37,9 @@ const CATALOGO: EjercicioCatalogo[] = PASOS.map((p) => ({
   conteo: p.unidad === 'segundos' ? 'isometrico' : 'ciclo',
   minimo: p.unidad === 'segundos' ? 5 : 1,
   maximo: p.unidad === 'segundos' ? 180 : 50,
+  // una repetición del esqueleto sintético, para probar la figura en movimiento
+  guiaAnimada: p.unidad === 'segundos' ? null
+    : { fps: 12, frames: Array.from({ length: 24 }, (_, k) => esqueleto(p.skillId, k / 24)) },
 }))
 
 const VACIO: Progreso = {
@@ -174,6 +177,25 @@ const PAUSA = { desdeRep: 3, duracionS: 4 }
 // en estos segundos y a los COLOCACION_S empieza a contar (o con «Listo»)
 const COLOCACION = { persona: 0.4, orientacion: 1.2, cuerpoEntero: 2.0 }
 const COLOCACION_S = 3.5
+
+/** «Frame» de cámara dibujado en un lienzo: un punto que se mueve, para ver que la vista está viva. */
+function vistaSimulada(indice: number): string | null {
+  const c = document.createElement('canvas')
+  c.width = 320; c.height = 180
+  const ctx = c.getContext('2d')
+  if (!ctx) return null
+  ctx.fillStyle = indice === 0 ? '#2a2540' : '#1f3440'
+  ctx.fillRect(0, 0, c.width, c.height)
+  const t = performance.now() / 1000
+  ctx.fillStyle = '#a99dff'
+  ctx.beginPath()
+  ctx.arc(160 + 90 * Math.cos(t * 2), 90 + 40 * Math.sin(t * 2), 14, 0, 2 * Math.PI)
+  ctx.fill()
+  ctx.fillStyle = '#f7f4ff'
+  ctx.font = '600 14px system-ui, sans-serif'
+  ctx.fillText(`Cámara simulada ${indice + 1}`, 12, 24)
+  return c.toDataURL('image/jpeg', 0.7).split(',')[1] ?? null
+}
 
 // -- esqueleto sintético ------------------------------------------------------
 
@@ -536,6 +558,12 @@ export function bridgeSimulado(): Bridge {
       await new Promise((r) => setTimeout(r, 600))       // abrir cada cámara tarda
       return { lista: [{ indice: 0, nombre: 'FaceTime HD Camera' }, { indice: 1, nombre: 'Cámara de iPhone' }], elegida: camara }
     },
+    vistaCamara: async () => {
+      if (fase === 'sesion' || fase === 'preparando') return null
+      await new Promise((r) => setTimeout(r, 80))
+      return vistaSimulada(camara ?? 0)
+    },
+    cerrarVistaCamara: async () => {},
     historial: async () => {
       await new Promise((r) => setTimeout(r, 250))
       const perfil = perfiles.find((p) => p.id === activo)
