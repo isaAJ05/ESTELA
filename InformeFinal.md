@@ -157,7 +157,29 @@ Presenta los resultados obtenidos a partir del desarrollo y la validación del s
 
 ## 15. Trabajo futuro
 
-Identifica y describe posibles extensiones, mejoras o líneas de investigación que quedan abiertas a partir del proyecto. Puede incluir nuevas funcionalidades, optimizaciones, escalabilidad, integraciones con otros sistemas o estudios complementarios que permitan profundizar los resultados obtenidos.
+Las líneas que quedan abiertas se agrupan en validación, desempeño y extensión del sistema.
+
+### 15.1 Validación con personas y calibración de umbrales
+
+Los umbrales de los ejercicios son provisionales: provienen de la revisión con la licenciada en educación física y de vídeos públicos, y los seis skills permanecen en estado `candidato`. El paso siguiente es grabar y anotar sesiones con participantes (protocolo V-01), con lo que se podrán medir la precisión, el recobrado y la sobrecorrección del feedback, que hoy están pendientes, y calibrar el factor `k` de los umbrales relativos a la referencia (EXP-005). Hasta entonces, los umbrales relativos y el alineamiento con DTW están implementados pero desactivados por defecto.
+
+### 15.2 Latencia de la voz
+
+En las mediciones preliminares del segundo informe, el tiempo entre la detección de un error y el inicio de la voz (p95 de 3,66 s) no cumple el objetivo de 1 s. La línea de trabajo prevista es sintetizar por adelantado las frases de las plantillas, de modo que durante la sesión solo se reproduzcan, y repetir la medición en el equipo final.
+
+### 15.3 Incorporación de nuevos ejercicios
+
+El sistema define cada ejercicio de forma externa: un archivo de skill con sus reglas, una referencia grabada y sus frases, sin modificar el motor de decisión. Solo se requiere programar cuando un ejercicio necesita una medida geométrica que aún no se calcula. Lo que falta es un procedimiento que indique cuándo un ejercicio está listo. Se dejó propuesto, sin adoptar, un protocolo de alta con seis pasos (filtro de observabilidad con una cámara, grabación de calibración, skill y referencia, revisión con el visor, revisión de la licenciada y puerta de adopción), documentado en `experimentos/PROTOCOLO-ALTA-EJERCICIO.md` del repositorio de documentación.
+
+### 15.4 Modo entrenador
+
+La arquitectura separa una fase de autoría, en la que se crean y ajustan los ejercicios, de la sesión en tiempo real. La sesión cuenta con interfaz; la autoría se hace hoy con herramientas de consola. Como primer paso se desarrolló un visor de calibración (`backend/scripts/visor_calibracion.py`, rama `feature/visor-calibracion`) que, a partir de un vídeo, grafica lo que mide cada regla, su umbral, los instantes en que detecta un error y aquellos en que el sistema lo dice en voz alta.
+
+Queda como trabajo futuro llevar esa herramienta a la interfaz, en una vista para quien da de alta los ejercicios: primero un vídeo anotado que resalte sobre el esqueleto el segmento con error, luego una pantalla de consulta con el vídeo y las curvas sincronizados y, por último, la edición de umbrales desde la propia pantalla. El detalle, las etapas y las decisiones abiertas están en `TRABAJO-FUTURO-modo-entrenador.md` del repositorio de documentación.
+
+### 15.5 Verbalización y reconocimiento
+
+El uso de un modelo de lenguaje local como verbalizador en vivo no se adoptó; queda sujeto al experimento EXP-001 con criterios acordados de antemano, manteniendo las plantillas deterministas como respaldo. El reconocimiento del ejercicio que se está realizando está integrado como función opcional y desactivada por defecto; sus tasas de acierto se midieron con un conjunto pequeño de vídeos anterior a la incorporación de la zancada, por lo que deben volver a medirse.
 
 ## 16. Referencias
 
