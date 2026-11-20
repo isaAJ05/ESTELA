@@ -99,7 +99,8 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                           f"(defecto: {config.LLM_TIMEOUT_MS})")
     ent = p.add_argument_group(
         "entrenadora (opcional)",
-        "Resumen hablado entre ejercicios y al final, nunca durante el movimiento. "
+        "Resumen hablado al final (y entre ejercicios con --entrenadora-entre si), "
+        "nunca durante el movimiento. "
         "Propone una acción de una lista cerrada (repetir, descansar, seguir, terminar); "
         "no la ejecuta. Dolor o lesión: respuesta fija, sin modelo.")
     ent.add_argument("--entrenadora", choices=("no", "plantilla", "llm"),
@@ -112,6 +113,9 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                      help="tiempo límite de la respuesta; pasado, se dice la plantilla "
                           f"(defecto: {config.ENTRENADORA_TIMEOUT_S:g})")
     ent.add_argument("--entrenadora-url", help="defecto: Ollama local")
+    ent.add_argument("--entrenadora-entre", choices=("si", "no"), default="no",
+                     help="si: también resume y propone entre ejercicios (retiene la "
+                          "colocación). Defecto no: pasa al siguiente ejercicio sin hablar")
     ent.add_argument("--entrenadora-historial", type=Path,
                      help="archivo JSONL de historial (p. ej. el de "
                           "scripts/historial_ejemplo.py) cuando no hay perfiles")
@@ -426,7 +430,8 @@ def _crear_entrenadora(args: argparse.Namespace, catalogo, voz, progreso=None):
         def progreso():
             return resumir(Historial(args.entrenadora_historial).leer(), date.today())
     nombres = {sid: ej.skill.nombre for sid, ej in catalogo.items()}
-    en_vivo = EntrenadoraEnVivo(Entrenadora(generador, nombres), voz, progreso)
+    en_vivo = EntrenadoraEnVivo(Entrenadora(generador, nombres), voz, progreso,
+                                entre_ejercicios=getattr(args, "entrenadora_entre", "no") == "si")
     return en_vivo, int((limite_s + MARGEN_VOZ_ENTRENADORA_S) * 1000)
 
 

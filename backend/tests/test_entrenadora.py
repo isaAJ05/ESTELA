@@ -340,7 +340,7 @@ class VozConEspera(VozFalsa):
 def test_en_vivo_habla_entre_ejercicios_y_suelta(catalogo):
     s, voz, _, reloj = _dos_planchas(catalogo)
     voz = s.voz = VozConEspera()
-    vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), voz)
+    vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), voz, entre_ejercicios=True)
     vivo.conectar(s, 60_000)
     reloj.hasta(lambda e: len(vivo.registro) == 1)
     vivo.esperar(5.0)
@@ -364,7 +364,7 @@ def test_en_vivo_descarta_la_respuesta_que_llega_con_el_ejercicio_en_marcha(cata
     def lento(sistema, datos, permitidas):
         puerta.wait(5.0)
         return {"resumen": "Hiciste 2 segundos.", "accion": "seguir"}
-    vivo = EntrenadoraEnVivo(en.Entrenadora(lento, {"plancha": "Plancha"}), voz)
+    vivo = EntrenadoraEnVivo(en.Entrenadora(lento, {"plancha": "Plancha"}), voz, entre_ejercicios=True)
     vivo.conectar(s, 60_000)
     reloj.hasta(lambda e: len(vivo.registro) == 1)
     s.terminar_colocacion()                            # la usuaria no espera
@@ -378,12 +378,27 @@ def test_en_vivo_descarta_la_respuesta_que_llega_con_el_ejercicio_en_marcha(cata
 def test_en_vivo_sin_colocacion_solo_habla_al_final(catalogo):
     s, voz, _, reloj = _dos_planchas(catalogo, colocacion=False)
     voz = s.voz = VozConEspera()
-    vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), voz)
+    vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), voz, entre_ejercicios=True)
     vivo.conectar(s, 60_000)
     reloj.hasta(lambda e: s.terminada)
     vivo.esperar(5.0)
     assert [(r["momento"], r["motivo"], r["dicha"]) for r in vivo.registro] == [
         ("entre", SIN_COLOCACION, False), ("final", "", True)]
+
+
+def test_en_vivo_por_defecto_no_habla_entre_ejercicios_ni_retiene(catalogo):
+    """Paula, 2026-11-20: entre ejercicios se pasa al siguiente sin resumen."""
+    from estela.adaptadores.llm.entrenadora_en_vivo import APAGADA_ENTRE
+    s, voz, _, reloj = _dos_planchas(catalogo)
+    voz = s.voz = VozConEspera()
+    vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), voz)
+    vivo.conectar(s, 60_000)
+    assert s.retencion_max_ms == 0
+    reloj.hasta(lambda e: s.terminada)
+    vivo.esperar(5.0)
+    assert [(r["momento"], r["motivo"], r["dicha"]) for r in vivo.registro] == [
+        ("entre", APAGADA_ENTRE, False), ("final", "", True)]
+    assert not any(en.FRASE_ACCION[en.SEGUIR] in t for t, _ in voz.dichas)
 
 
 # ---------------------------------------------------------------------------
@@ -416,7 +431,7 @@ def test_con_la_cola_real_la_entrenadora_suena_entera_y_antes_del_anuncio(catalo
     cola = ColaVoz(motor)
     try:
         s = Sesion(rutina, catalogo, EstimadorPlanchaEnImagen(), cola, colocacion=True)
-        vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), cola)
+        vivo = EntrenadoraEnVivo(en.Entrenadora(None, {"plancha": "Plancha"}), cola, entre_ejercicios=True)
         vivo.conectar(s, 10 * 60_000)             # tope lejano: aquí manda la entrenadora
         t = 0
         limite = time.monotonic() + 20.0

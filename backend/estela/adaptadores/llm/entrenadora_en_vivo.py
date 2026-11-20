@@ -10,6 +10,11 @@ Nunca durante el movimiento: antes de hablar se comprueba
 terminó). Si la respuesta llega tarde, se descarta y se cuenta. Entre
 ejercicios solo actúa si la sesión tiene fase de colocación, que es donde se
 retiene; al final de la rutina actúa siempre.
+
+`entre_ejercicios=False` (defecto desde el 2026-11-20, pedido de Paula: «no
+quiero que esté dando retroalimentación entre los ejercicios sino que siga al
+siguiente»): entre ejercicios no habla ni retiene la colocación; solo el
+resumen final y «¿cómo voy?».
 """
 
 from __future__ import annotations
@@ -27,13 +32,16 @@ log = logging.getLogger(__name__)
 #: respuesta que no llegó a decirse y por qué
 TARDE = "tarde"                          # el ejercicio ya había empezado
 SIN_COLOCACION = "sin_colocacion"        # no hay fase donde retener
+APAGADA_ENTRE = "apagada_entre"          # entre ejercicios no habla (`entre_ejercicios`)
 
 
 class EntrenadoraEnVivo:
     def __init__(self, entrenadora: Entrenadora, voz: Voz,
                  progreso: Optional[Callable[[], Optional[Mapping[str, Any]]]] = None,
-                 espera_voz_s: float = 20.0) -> None:
+                 espera_voz_s: float = 20.0, entre_ejercicios: bool = False) -> None:
         self.entrenadora = entrenadora
+        #: ¿habla también entre ejercicios? (si no, solo al final y en «¿cómo voy?»)
+        self.entre_ejercicios = entre_ejercicios
         self.voz = voz
         #: función que da `historial.progreso()` del perfil activo, o None
         self.progreso = progreso
@@ -47,15 +55,17 @@ class EntrenadoraEnVivo:
     def conectar(self, sesion: Any, retencion_max_ms: int) -> None:
         """Engancha la entrenadora a `sesion` (una `Sesion` recién creada)."""
         self._sesion = sesion
-        sesion.retencion_max_ms = retencion_max_ms
+        # sin resumen entre ejercicios no hay nada que esperar: el siguiente sigue ya
+        sesion.retencion_max_ms = retencion_max_ms if self.entre_ejercicios else 0
         sesion.al_cerrar_paso = self._al_cerrar_paso
 
     # -- hilo de la sesión: no debe bloquear ---------------------------------
     def _al_cerrar_paso(self, evento: Dict[str, Any]) -> None:
         sesion = self._sesion
-        if not evento["final"] and not evento["retenida"]:
+        if not evento["final"] and (not self.entre_ejercicios or not evento["retenida"]):
             self.registro.append({"momento": "entre", "dicha": False,
-                                  "motivo": SIN_COLOCACION, "respuesta": None})
+                                  "motivo": SIN_COLOCACION if self.entre_ejercicios
+                                  else APAGADA_ENTRE, "respuesta": None})
             return
         h = threading.Thread(target=self._trabaja, args=(sesion, evento),
                              name="estela-entrenadora", daemon=True)
