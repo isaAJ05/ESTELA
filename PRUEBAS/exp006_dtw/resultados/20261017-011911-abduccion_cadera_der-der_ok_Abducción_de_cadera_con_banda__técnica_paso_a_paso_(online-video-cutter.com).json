@@ -1,0 +1,216 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:19:00",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com).mp4",
+  "ejercicio": "abduccion_cadera_der",
+  "modelo_pose": "full",
+  "fps_video": 18.0,
+  "frames": 563,
+  "pose_ms": {
+    "n": 563,
+    "p50": 23.9793,
+    "p95": 31.4128,
+    "max": 51.147
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 563,
+        "p50": 0.2976,
+        "p95": 0.4835,
+        "max": 2.8388
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_der_sube"
+        ],
+        [
+          6,
+          "cadera_der_sube"
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 563,
+        "p50": 16.2848,
+        "p95": 33.565,
+        "max": 67.3612
+      },
+      "sesion_sin_pose_ms": {
+        "n": 563,
+        "p50": 16.646,
+        "p95": 33.9672,
+        "max": 67.9393
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_der_sube"
+        ],
+        [
+          6,
+          "cadera_der_sube"
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 563,
+        "p50": 0.0735,
+        "p95": 0.1483,
+        "max": 0.5191
+      },
+      "sesion_sin_pose_ms": {
+        "n": 563,
+        "p50": 0.3587,
+        "p95": 0.5955,
+        "max": 1.1027
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_der_sube"
+        ],
+        [
+          6,
+          "cadera_der_sube"
+        ]
+      ],
+      "motivos_dtw": {
+        "sin_repeticion": 9,
+        "alineado": 554
+      },
+      "calidad": {
+        "frames_alineados": 554,
+        "retrocesos": 7,
+        "retroceso_max_frames_ref": 2,
+        "progreso_esperado_al_cerrar": 0.481
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.47,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.67,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.76,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.47,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.75,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 1.6,
+          "coste_dtw": 0.86,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.52,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.56,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "duracion_s": 0.8,
+          "coste_dtw": 2.32,
+          "progreso_dtw": 0.37
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.4,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 11,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.71,
+          "progreso_dtw": 0.5
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 11,
+        "p50": 0.67,
+        "p95": 1.59,
+        "max": 2.32
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "abduccion_cadera_der": {
+          "n": 554,
+          "p10": -0.42,
+          "p50": 2.9,
+          "p90": 20.0
+        },
+        "inclinacion_lateral_tronco": {
+          "n": 554,
+          "p10": 19.71,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "inclinacion_pelvis": {
+          "n": 554,
+          "p10": 19.55,
+          "p50": 20.0,
+          "p90": 20.0
+        }
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

@@ -1,0 +1,70 @@
+{
+  "rutina": "jumping_jacks",
+  "terminada": true,
+  "frames": 222,
+  "frames_sin_persona": 13,
+  "latencias": {
+    "pose": {
+      "n": 222,
+      "p50_ms": 32.405,
+      "p95_ms": 52.185
+    },
+    "geometria": {
+      "n": 209,
+      "p50_ms": 0.374,
+      "p95_ms": 0.693
+    },
+    "segmentacion": {
+      "n": 209,
+      "p50_ms": 0.039,
+      "p95_ms": 0.076
+    },
+    "dtw": {
+      "n": 209,
+      "p50_ms": 11.948,
+      "p95_ms": 33.14
+    },
+    "motor": {
+      "n": 209,
+      "p50_ms": 0.056,
+      "p95_ms": 0.149
+    },
+    "total": {
+      "n": 209,
+      "p50_ms": 50.593,
+      "p95_ms": 86.415
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "jumping_jacks",
+      "objetivo": 10,
+      "unidad": "repeticiones",
+      "completadas": 10,
+      "incompletas": 0,
+      "duracion_s": 9.2,
+      "pausas_sesion": 0,
+      "pausa_s": 0.0,
+      "mensajes": [
+        {
+          "t_ms": 2335,
+          "texto": "Estira más los codos, sin llegar a bloquearlos.",
+          "error_id": "codos_flexionados",
+          "segmento": "codo",
+          "lado": "bilateral",
+          "severidad": "moderada",
+          "repeticion": 3
+        }
+      ],
+      "abstenciones": {
+        "evidencia_insuficiente": 14,
+        "sin_error": 137,
+        "periodo_refractario": 57
+      }
+    }
+  ],
+  "voz": {
+    "motor": "texto",
+    "descartadas": 1
+  }
+}

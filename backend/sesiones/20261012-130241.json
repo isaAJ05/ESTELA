@@ -1,0 +1,91 @@
+{
+  "rutina": "jumping_jacks",
+  "terminada": true,
+  "frames": 1175,
+  "frames_sin_persona": 250,
+  "latencias": {
+    "pose": {
+      "n": 1175,
+      "p50_ms": 49.02,
+      "p95_ms": 69.066
+    },
+    "geometria": {
+      "n": 925,
+      "p50_ms": 0.456,
+      "p95_ms": 1.006
+    },
+    "segmentacion": {
+      "n": 925,
+      "p50_ms": 0.045,
+      "p95_ms": 0.098
+    },
+    "dtw": {
+      "n": 925,
+      "p50_ms": 21.046,
+      "p95_ms": 94.754
+    },
+    "motor": {
+      "n": 912,
+      "p50_ms": 0.069,
+      "p95_ms": 0.193
+    },
+    "total": {
+      "n": 912,
+      "p50_ms": 81.859,
+      "p95_ms": 148.118
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "jumping_jacks",
+      "objetivo": 24,
+      "unidad": "repeticiones",
+      "completadas": 24,
+      "incompletas": 10,
+      "duracion_s": 94.4,
+      "pausas_sesion": 1,
+      "pausa_s": 2.5,
+      "mensajes": [
+        {
+          "t_ms": 44664,
+          "texto": "Intenta subir bastante más los brazos, sin forzar.",
+          "error_id": "brazos_no_llegan_arriba",
+          "segmento": "brazo",
+          "lado": "bilateral",
+          "severidad": "alta",
+          "repeticion": 6
+        },
+        {
+          "t_ms": 61295,
+          "texto": "Intenta subir bastante más los brazos, sin forzar.",
+          "error_id": "brazos_no_llegan_arriba",
+          "segmento": "brazo",
+          "lado": "bilateral",
+          "severidad": "alta",
+          "repeticion": 19
+        },
+        {
+          "t_ms": 84134,
+          "texto": "Intenta subir bastante más los brazos, sin forzar.",
+          "error_id": "brazos_no_llegan_arriba",
+          "segmento": "brazo",
+          "lado": "bilateral",
+          "severidad": "alta",
+          "repeticion": 27
+        }
+      ],
+      "abstenciones": {
+        "sin_error": 785,
+        "confianza_baja": 22,
+        "plano_no_observable": 2,
+        "evidencia_insuficiente": 23,
+        "periodo_refractario": 68,
+        "desvanecimiento": 27
+      }
+    }
+  ],
+  "voz": {
+    "motor": "piper",
+    "descartadas": 1
+  }
+}

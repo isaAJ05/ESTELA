@@ -1,0 +1,314 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:19:53",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "5 hombre.mp4",
+  "ejercicio": "marcha_rodillas",
+  "modelo_pose": "full",
+  "fps_video": 29.97002997002997,
+  "frames": 339,
+  "pose_ms": {
+    "n": 339,
+    "p50": 24.5205,
+    "p95": 32.5249,
+    "max": 44.0118
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 339,
+        "p50": 0.3192,
+        "p95": 0.3882,
+        "max": 0.5497
+      },
+      "completadas": 28,
+      "incompletas": 1,
+      "mensajes": [],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 339,
+        "p50": 0.7982,
+        "p95": 1.5573,
+        "max": 2.2489
+      },
+      "sesion_sin_pose_ms": {
+        "n": 339,
+        "p50": 1.094,
+        "p95": 1.9144,
+        "max": 3.0562
+      },
+      "completadas": 28,
+      "incompletas": 1,
+      "mensajes": [],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 339,
+        "p50": 0.0498,
+        "p95": 0.0916,
+        "max": 0.2147
+      },
+      "sesion_sin_pose_ms": {
+        "n": 339,
+        "p50": 0.3137,
+        "p95": 0.5243,
+        "max": 0.7731
+      },
+      "completadas": 28,
+      "incompletas": 1,
+      "mensajes": [],
+      "motivos_dtw": {
+        "alineado": 339
+      },
+      "calidad": {
+        "frames_alineados": 339,
+        "retrocesos": 11,
+        "retroceso_max_frames_ref": 1,
+        "progreso_esperado_al_cerrar": null
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "no_cuenta",
+          "duracion_s": 0.1,
+          "coste_dtw": 4.99,
+          "progreso_dtw": 0.0
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.34,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.56,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.42,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.48,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.24,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.36,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.31,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.37,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.33,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 11,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.48,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 12,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.19,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 13,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.4,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 14,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.55,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 15,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.12,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 16,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.6,
+          "progreso_dtw": 0.8
+        },
+        {
+          "rep": 17,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.68,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 18,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.51,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 19,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.61,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 20,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.38,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 21,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.98,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 22,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.51,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 23,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.29,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 24,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.46,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 25,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.95,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 26,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 14.52,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 27,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.51,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 28,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 15.76,
+          "progreso_dtw": 0.9
+        },
+        {
+          "rep": 29,
+          "resultado": "cuenta",
+          "duracion_s": 0.3,
+          "coste_dtw": 13.5,
+          "progreso_dtw": 0.9
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 28,
+        "p50": 14.335,
+        "p95": 15.551,
+        "max": 15.76
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "cadera_izq": {
+          "n": 339,
+          "p10": 12.56,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "cadera_der": {
+          "n": 339,
+          "p10": 16.65,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "tronco_inclinacion": {
+          "n": 339,
+          "p10": 17.25,
+          "p50": 20.0,
+          "p90": 20.0
+        }
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

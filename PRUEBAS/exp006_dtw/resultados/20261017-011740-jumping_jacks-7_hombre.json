@@ -1,0 +1,379 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:16:39",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "7 hombre.mp4",
+  "ejercicio": "jumping_jacks",
+  "modelo_pose": "full",
+  "fps_video": 59.94005994005994,
+  "frames": 2176,
+  "pose_ms": {
+    "n": 2176,
+    "p50": 32.0248,
+    "p95": 53.7082,
+    "max": 191.9845
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 2176,
+        "p50": 0.6745,
+        "p95": 1.1525,
+        "max": 3.6541
+      },
+      "completadas": 35,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ],
+        [
+          21,
+          null
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 2176,
+        "p50": 24.4582,
+        "p95": 57.2741,
+        "max": 278.067
+      },
+      "sesion_sin_pose_ms": {
+        "n": 2176,
+        "p50": 24.9443,
+        "p95": 57.7487,
+        "max": 278.6244
+      },
+      "completadas": 35,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ],
+        [
+          21,
+          null
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 2176,
+        "p50": 0.0761,
+        "p95": 0.1419,
+        "max": 2.6519
+      },
+      "sesion_sin_pose_ms": {
+        "n": 2176,
+        "p50": 0.3533,
+        "p95": 0.5939,
+        "max": 115.521
+      },
+      "completadas": 35,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ],
+        [
+          21,
+          null
+        ]
+      ],
+      "motivos_dtw": {
+        "sin_repeticion": 15,
+        "alineado": 2161
+      },
+      "calidad": {
+        "frames_alineados": 2161,
+        "retrocesos": 15,
+        "retroceso_max_frames_ref": 2,
+        "progreso_esperado_al_cerrar": 0.623
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 0.9,
+          "coste_dtw": 3.17,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 1.69,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.42,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.63,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 2.77,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.16,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.36,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 1.02,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.43,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.09,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 11,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.78,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 12,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 0.77,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 13,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.39,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 14,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.28,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 15,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.27,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 16,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.6,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 17,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.16,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 18,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.64,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 19,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 1.71,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 20,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.39,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 21,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.59,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 22,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 2.75,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 23,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.2,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 24,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.34,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 25,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 0.96,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 26,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.3,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 27,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.23,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 28,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.45,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 29,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 0.7,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 30,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.32,
+          "progreso_dtw": 0.66
+        },
+        {
+          "rep": 31,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.41,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 32,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.26,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 33,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.61,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 34,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.18,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 35,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 1.5,
+          "progreso_dtw": 0.64
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 35,
+        "p50": 1.39,
+        "p95": 2.756,
+        "max": 3.17
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "hombro_medio": {
+          "n": 2161,
+          "p10": -1.39,
+          "p50": 2.58,
+          "p90": 20.0
+        },
+        "codo_medio": {
+          "n": 2161,
+          "p10": 9.34,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "separacion_pies": "solo distancias: no se desplaza en grados"
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

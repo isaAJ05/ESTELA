@@ -1,0 +1,12 @@
+﻿ejercicio;rep;resultado;t_s;duracion_s;frases;rodilla_media_min;rodilla_media_max;rodilla_izq_min;rodilla_izq_max;rodilla_der_min;rodilla_der_max;tronco_inclinacion_min;tronco_inclinacion_max;longitud_paso_min;longitud_paso_max;coste_dtw;progreso_dtw
+zancada_atras_der;1;cuenta;1,7;1,1;;97,04;150,99;76,4;147,1;107,53;157,33;2,61;27,16;0,25;0,83;;
+zancada_atras_der;2;cuenta;4,0;1,2;;98,99;151,79;78,75;153,54;117,73;156,18;2,18;9,99;0,12;0,89;;
+zancada_atras_der;3;cuenta;6,2;1,0;;100,57;151,87;83,93;147,28;116,49;156,46;4,57;11,1;0,45;0,92;;
+zancada_atras_der;4;cuenta;8,8;1,0;;94,03;148,97;76,62;141,06;106,97;156,89;7,9;10,24;0,0;1,07;;
+zancada_atras_der;5;cuenta;11,3;1,4;;97,58;153,74;79,6;152,55;113,66;154,92;8,08;16,27;0,05;1,18;;
+zancada_atras_der;6;cuenta;13,7;1,4;;111,12;149,43;93,21;159,27;128,87;148,47;11,22;19,75;0,22;1,25;;
+zancada_atras_der;7;cuenta;16,2;1,3;;106,18;151,81;94,4;145,14;117,95;159,93;7,59;17,69;0,31;1,24;;
+zancada_atras_der;8;cuenta;18,8;1,3;;106,21;157,21;85,44;155,59;124,58;161,22;5,46;15,73;0,07;1,32;;
+zancada_atras_der;9;cuenta;21,2;1,2;;110,01;148,54;102,62;148,37;116,42;152,54;11,69;15,98;0,5;1,4;;
+zancada_atras_der;10;cuenta;23,6;0,8;;109,87;148,85;84,03;136,0;135,7;161,71;19,87;26,24;0,81;1,16;;
+zancada_atras_der;11;cuenta;26,7;1,0;;101,44;149,04;98,49;140,78;94,24;161,11;8,3;20,48;0,47;1,36;;

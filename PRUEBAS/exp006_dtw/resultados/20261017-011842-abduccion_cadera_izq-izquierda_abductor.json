@@ -1,0 +1,119 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:18:22",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "izquierda abductor.mp4",
+  "ejercicio": "abduccion_cadera_izq",
+  "modelo_pose": "full",
+  "fps_video": 24.0,
+  "frames": 240,
+  "pose_ms": {
+    "n": 240,
+    "p50": 30.2891,
+    "p95": 46.1973,
+    "max": 57.0582
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 199,
+        "p50": 0.4518,
+        "p95": 0.8104,
+        "max": 1.0048
+      },
+      "completadas": 1,
+      "incompletas": 0,
+      "mensajes": [],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 234,
+        "p50": 85.027,
+        "p95": 146.995,
+        "max": 181.7756
+      },
+      "sesion_sin_pose_ms": {
+        "n": 199,
+        "p50": 79.0433,
+        "p95": 117.5258,
+        "max": 143.5506
+      },
+      "completadas": 1,
+      "incompletas": 0,
+      "mensajes": [],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 234,
+        "p50": 0.0822,
+        "p95": 0.2081,
+        "max": 0.3494
+      },
+      "sesion_sin_pose_ms": {
+        "n": 199,
+        "p50": 0.3567,
+        "p95": 0.7935,
+        "max": 0.9435
+      },
+      "completadas": 1,
+      "incompletas": 0,
+      "mensajes": [],
+      "motivos_dtw": {
+        "sin_repeticion": 2,
+        "alineado": 232
+      },
+      "calidad": {
+        "frames_alineados": 232,
+        "retrocesos": 8,
+        "retroceso_max_frames_ref": 1,
+        "progreso_esperado_al_cerrar": 0.481
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 7.85,
+          "progreso_dtw": 0.0
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 1,
+        "p50": 7.85,
+        "p95": 7.85,
+        "max": 7.85
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "abduccion_cadera_izq": {
+          "n": 231,
+          "p10": 0.39,
+          "p50": 1.48,
+          "p90": 3.57
+        },
+        "inclinacion_lateral_tronco": {
+          "n": 232,
+          "p10": 19.74,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "inclinacion_pelvis": {
+          "n": 232,
+          "p10": 18.86,
+          "p50": 19.27,
+          "p90": 20.0
+        }
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

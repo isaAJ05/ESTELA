@@ -1,0 +1,3555 @@
+{
+ "detector": "dtw_multi+rel",
+ "videos": {
+  "abduccion_01.mp4": {
+   "duracion_s": 20.5,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     20.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_02.mp4": {
+   "duracion_s": 22.0,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     22.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       5.2,
+       "abduccion"
+      ],
+      [
+       13.23,
+       "abduccion"
+      ],
+      [
+       21.23,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         5.2,
+         "abduccion"
+        ],
+        [
+         13.23,
+         "abduccion"
+        ],
+        [
+         21.23,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_03.mp4": {
+   "duracion_s": 22.0,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     22.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_04.mp4": {
+   "duracion_s": 20.0,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     20.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_05.mp4": {
+   "duracion_s": 23.0,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     23.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_06.mp4": {
+   "duracion_s": 20.0,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     20.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_07.mp4": {
+   "duracion_s": 16.5,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     16.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_08.mp4": {
+   "duracion_s": 18.8,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     18.766666666666666
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       8.03,
+       "abduccion"
+      ],
+      [
+       16.03,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         8.03,
+         "abduccion"
+        ],
+        [
+         16.03,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_09.mp4": {
+   "duracion_s": 17.7,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     17.7
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       6.97,
+       "abduccion"
+      ],
+      [
+       14.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         6.97,
+         "abduccion"
+        ],
+        [
+         14.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_10.mp4": {
+   "duracion_s": 27.6,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     27.633333333333333
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_11.mp4": {
+   "duracion_s": 18.1,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     18.133333333333333
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_12.mp4": {
+   "duracion_s": 14.5,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     14.466666666666667
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       7.27,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         7.27,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "abduccion_13.mp4": {
+   "duracion_s": 19.8,
+   "tramos": [
+    [
+     "abduccion",
+     "",
+     0.0,
+     19.8
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       9.9,
+       "abduccion"
+      ],
+      [
+       17.93,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         9.9,
+         "abduccion"
+        ],
+        [
+         17.93,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "abduccion",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_01.mp4": {
+   "duracion_s": 19.0,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     18.966666666666665
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       5.87,
+       "jumping_jacks"
+      ],
+      [
+       13.87,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         5.87,
+         "jumping_jacks"
+        ],
+        [
+         13.87,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_02.mp4": {
+   "duracion_s": 21.5,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     21.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ],
+      [
+       21.0,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ],
+        [
+         21.0,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ],
+      [
+       21.0,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ],
+        [
+         21.0,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ],
+      [
+       21.0,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ],
+        [
+         21.0,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_03.mp4": {
+   "duracion_s": 26.5,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     26.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ],
+      [
+       21.0,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ],
+        [
+         21.0,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ],
+      [
+       21.0,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ],
+        [
+         21.0,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ],
+      [
+       21.0,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ],
+        [
+         21.0,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_04.mp4": {
+   "duracion_s": 11.5,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     11.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       5.83,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         5.83,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_05.mp4": {
+   "duracion_s": 21.0,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     21.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_06.mp4": {
+   "duracion_s": 20.5,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     20.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ],
+      [
+       12.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ],
+        [
+         12.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "jumping_jacks_07.mp4": {
+   "duracion_s": 10.0,
+   "tramos": [
+    [
+     "jumping_jacks",
+     "",
+     0.0,
+     10.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "jumping_jacks"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "jumping_jacks",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "jumping_jacks"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "plancha_01.mp4": {
+   "duracion_s": 14.5,
+   "tramos": [
+    [
+     "plancha",
+     "",
+     0.0,
+     14.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "plancha"
+      ],
+      [
+       12.97,
+       "plancha"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "plancha",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "plancha"
+        ],
+        [
+         12.97,
+         "plancha"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       4.97,
+       "plancha"
+      ],
+      [
+       12.97,
+       "plancha"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "plancha",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "plancha"
+        ],
+        [
+         12.97,
+         "plancha"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "plancha"
+      ],
+      [
+       12.97,
+       "plancha"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "plancha",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "plancha"
+        ],
+        [
+         12.97,
+         "plancha"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "plancha",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    }
+   }
+  },
+  "zancada_01.mp4": {
+   "duracion_s": 20.4,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     20.433333333333334
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       18.37,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         18.37,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_02.mp4": {
+   "duracion_s": 18.3,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     18.3
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "zancada"
+      ],
+      [
+       14.57,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "zancada"
+        ],
+        [
+         14.57,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "zancada"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "zancada"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_03.mp4": {
+   "duracion_s": 29.2,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     29.2
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       13.87,
+       "zancada"
+      ],
+      [
+       21.87,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         13.87,
+         "zancada"
+        ],
+        [
+         21.87,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_04.mp4": {
+   "duracion_s": 18.3,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     18.333333333333332
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "zancada"
+      ],
+      [
+       12.97,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "zancada"
+        ],
+        [
+         12.97,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "zancada"
+      ],
+      [
+       12.97,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "zancada"
+        ],
+        [
+         12.97,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_05.mp4": {
+   "duracion_s": 15.0,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     15.0
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "zancada"
+      ],
+      [
+       12.97,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "zancada"
+        ],
+        [
+         12.97,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [
+      [
+       9.37,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         9.37,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "zancada"
+      ],
+      [
+       12.97,
+       "zancada"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": true,
+       "avisos": [
+        [
+         4.97,
+         "zancada"
+        ],
+        [
+         12.97,
+         "zancada"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_06.mp4": {
+   "duracion_s": 12.7,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     12.666666666666666
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       8.93,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         8.93,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": true,
+       "avisos": []
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_07.mp4": {
+   "duracion_s": 8.0,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     7.966666666666667
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_08.mp4": {
+   "duracion_s": 21.5,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     21.5
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  },
+  "zancada_09.mp4": {
+   "duracion_s": 40.6,
+   "tramos": [
+    [
+     "zancada",
+     "",
+     0.0,
+     40.63333333333333
+    ]
+   ],
+   "tiempos_estimados": true,
+   "elegidos": {
+    "jumping_jacks": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ],
+      [
+       34.5,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ],
+        [
+         34.5,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "abduccion": {
+     "avisos": [],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": false,
+       "nombre_ok": false,
+       "avisos": []
+      }
+     ]
+    },
+    "zancada": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       18.87,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "correcto",
+       "ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         18.87,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    },
+    "plancha": {
+     "avisos": [
+      [
+       4.97,
+       "abduccion"
+      ],
+      [
+       12.97,
+       "abduccion"
+      ],
+      [
+       21.0,
+       "abduccion"
+      ],
+      [
+       29.0,
+       "abduccion"
+      ],
+      [
+       37.0,
+       "abduccion"
+      ]
+     ],
+     "juicio": [
+      {
+       "tramo": 0,
+       "clase": "zancada",
+       "tipo": "equivocado",
+       "ok": true,
+       "nombre_ok": false,
+       "avisos": [
+        [
+         4.97,
+         "abduccion"
+        ],
+        [
+         12.97,
+         "abduccion"
+        ],
+        [
+         21.0,
+         "abduccion"
+        ],
+        [
+         29.0,
+         "abduccion"
+        ],
+        [
+         37.0,
+         "abduccion"
+        ]
+       ]
+      }
+     ]
+    }
+   }
+  }
+ }
+}
