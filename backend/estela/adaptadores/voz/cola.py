@@ -11,7 +11,9 @@ aviso; la sesión no evalúa la técnica mientras tanto.
 Silenciada (ajuste de la interfaz), descarta todo lo que se le pide.
 `interrumpir` corta lo que suena y tira lo pendiente: lo usan las órdenes de la
 usuaria (pausa, siguiente, anterior, terminar…), que mandan sobre lo que ESTELA
-estuviera diciendo.
+estuviera diciendo. `ceder` le da el turno a la usuaria: tras oír «Estela»,
+ESTELA no empieza frases nuevas mientras espera la orden (las correcciones que
+lleguen se descartan; los avisos esperan) y lo urgente sigue sonando.
 
 `registro` guarda, por frase, cuándo se encoló, cuándo empezó a sonar y si
 se descartó y por qué (`DESCARTE_*`; marcas de `time.perf_counter()`, en
@@ -27,7 +29,7 @@ import time
 from dataclasses import dataclass
 from typing import Any, Dict, Iterable, List, Optional
 
-from ...aplicacion.puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK
+from ...aplicacion.puertos import PRIORIDAD_AVISO, PRIORIDAD_FEEDBACK, PRIORIDAD_URGENTE
 
 from .motores import MotorVoz
 
@@ -41,6 +43,7 @@ DESCARTE_AVISO = "aviso"                # el hueco lo tenía un aviso
 DESCARTE_CADUCADA = "caducada"          # esperó más de MAX_ESPERA_FEEDBACK_S
 DESCARTE_SILENCIADA = "silenciada"      # la interfaz silenció la voz
 DESCARTE_INTERRUMPIDA = "interrumpida"  # una orden de la usuaria la cortó
+DESCARTE_USUARIA = "turno_usuaria"      # la usuaria tenía el turno (`ceder`)
 
 @dataclass(frozen=True)
 class Locucion:
@@ -65,6 +68,8 @@ class ColaVoz:
         self.interrumpidas = 0
         self._cerrada = False
         self._silenciada = False
+        #: hasta cuándo (monotonic) ESTELA cede el turno a la usuaria (`ceder`)
+        self._cede_hasta = 0.0
         self.descartadas = 0
         #: lo último que sonó y se puede repetir («repite eso»); no cuenta lo que
         #: la escucha dice por su cuenta (confirmaciones de órdenes)
@@ -94,6 +99,9 @@ class ColaVoz:
                        "t_inicio_audio": None, "t_fin": None,
                        "descartada": False, "motivo_descarte": None}
             self.registro.append(entrada)
+            if prioridad == PRIORIDAD_FEEDBACK and self._cediendo():
+                self._descarta(len(self.registro) - 1, DESCARTE_USUARIA)
+                return False
             p = self._pendiente
             if p is not None and p.prioridad > prioridad:
                 self._descarta(len(self.registro) - 1, DESCARTE_AVISO)
@@ -136,6 +144,34 @@ class ColaVoz:
             except Exception:                     # noqa: BLE001
                 log.exception("no se pudo cortar la voz")
 
+    def ceder(self, segundos: float) -> None:
+        """Turno de la usuaria durante `segundos` (0 lo devuelve): no empieza
+        ninguna frase salvo las urgentes; la corrección pendiente se tira y las
+        que lleguen también (llegarían tarde); un aviso pendiente espera. No
+        corta lo que ya suena: para eso, `interrumpir`."""
+        with self._cv:
+            self._cede_hasta = time.monotonic() + segundos if segundos > 0 else 0.0
+            p = self._pendiente
+            if segundos > 0 and p is not None and p.prioridad == PRIORIDAD_FEEDBACK:
+                self._descarta(p.indice, DESCARTE_USUARIA)
+                self._pendiente = None
+            self._cv.notify()
+
+    @property
+    def cediendo(self) -> bool:
+        """¿Tiene la usuaria el turno (`ceder`)?"""
+        with self._cv:
+            return self._cediendo()
+
+    def _cediendo(self) -> bool:
+        """Con `_cv` tomado."""
+        return time.monotonic() < self._cede_hasta
+
+    def _retenida(self) -> bool:
+        """Con `_cv` tomado: hay frase pendiente pero espera al turno de la usuaria."""
+        p = self._pendiente
+        return p is not None and p.prioridad < PRIORIDAD_URGENTE and self._cediendo()
+
     @property
     def texto_hablando(self) -> Optional[str]:
         """La frase que suena ahora, o None."""
@@ -176,7 +212,8 @@ class ColaVoz:
     @property
     def ocupada(self) -> bool:
         with self._cv:
-            return self._hablando or self._pendiente is not None
+            # una frase retenida por `ceder` no suena: el micrófono puede escuchar
+            return self._hablando or (self._pendiente is not None and not self._retenida())
 
     def esperar_vacia(self, timeout: float = 10.0) -> None:
         fin = time.monotonic() + timeout
@@ -186,8 +223,11 @@ class ColaVoz:
     def _bucle(self) -> None:
         while True:
             with self._cv:
-                while self._pendiente is None and not self._cerrada:
-                    self._cv.wait()
+                while not self._cerrada and (self._pendiente is None or self._retenida()):
+                    if self._pendiente is None:
+                        self._cv.wait()
+                    else:                         # espera a que la usuaria acabe
+                        self._cv.wait(max(0.01, self._cede_hasta - time.monotonic()))
                 if self._cerrada and self._pendiente is None:
                     return
                 loc, self._pendiente = self._pendiente, None
@@ -238,4 +278,4 @@ class ColaVoz:
 
 __all__ = ["ColaVoz", "PRIORIDAD_FEEDBACK", "PRIORIDAD_AVISO", "MAX_ESPERA_FEEDBACK_S",
            "DESCARTE_SUSTITUIDA", "DESCARTE_AVISO", "DESCARTE_CADUCADA",
-           "DESCARTE_SILENCIADA", "DESCARTE_INTERRUMPIDA"]
+           "DESCARTE_SILENCIADA", "DESCARTE_INTERRUMPIDA", "DESCARTE_USUARIA"]

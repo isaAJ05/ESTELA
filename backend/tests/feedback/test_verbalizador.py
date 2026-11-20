@@ -352,8 +352,9 @@ class TestDefectosSegunElEquipo(unittest.TestCase):
     def test_en_el_mac_va_encendido_lo_que_aprovecha_el_equipo(self):
         from estela import config
         a = self._args(en_mac=True)
-        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.voz_entrada),
-                         ("heavy", "gpu", "llm", "llm", "si"))
+        self.assertEqual((a.modelo, a.delegado, a.verbalizador, a.entrenadora, a.voz_entrada,
+                          a.voz_entrada_interrumpir),
+                         ("heavy", "gpu", "llm", "llm", "si", "si"))
         self.assertEqual((a.llm_modelo, a.llm_timeout_ms),
                          (config.LLM_MODELO, config.LLM_TIMEOUT_MS))
         self.assertEqual((a.entrenadora_modelo, a.entrenadora_timeout_s),
@@ -372,7 +373,7 @@ class TestDefectosSegunElEquipo(unittest.TestCase):
         for en_mac in (False, True):
             d = config.defectos(en_mac)
             self.assertEqual(sorted(d), ["delegado", "entrenadora", "modelo", "verbalizador",
-                                         "voz_entrada", "voz_entrada_modo"])
+                                         "voz_entrada", "voz_entrada_interrumpir", "voz_entrada_modo"])
             argv = [x for k, v in d.items() for x in (f"--{k.replace('_', '-')}", v)]
             a = self._args(argv, en_mac=not en_mac)
             self.assertEqual({k: getattr(a, k) for k in d}, d)

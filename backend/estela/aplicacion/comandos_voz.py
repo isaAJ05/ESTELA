@@ -235,8 +235,9 @@ def separar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
     return False, " ".join(palabras)
 
 
-#: Órdenes que se aceptan mientras ESTELA habla (modo «interrumpir»): las que
-#: mandan sobre lo que dice. «Reiniciar sesión» no (pide confirmación) ni «¿cómo voy?».
+#: Órdenes que cortaban a ESTELA en la primera versión del modo «interrumpir»
+#: (2026-11-17). Desde el 2026-11-20 «Estela» la calla siempre y vale cualquier
+#: orden (`EscuchaVoz.atender_hablando`); se conserva para los scripts de medición.
 ORDENES_QUE_INTERRUMPEN: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, ANTERIOR, TERMINAR,
                                             REINICIAR_EJERCICIO, VOZ_NO)
 

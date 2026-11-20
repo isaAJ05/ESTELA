@@ -269,12 +269,80 @@ def test_mientras_habla_estela_pausa_corta_y_se_ejecuta():
     assert e.registro[-1]["durante_voz"]
 
 
-def test_mientras_habla_lo_que_no_interrumpe_se_ignora_callado():
-    for dicho in ("Estela, ¿cómo voy?", "Estela, reiniciar todo", "Estela, blablá",
-                  "te propongo seguir"):
-        e, hechas, voz = _escucha_hablando(dicho)
-        assert e.atender_hablando(np.zeros(160, np.float32)) is None
-        assert hechas == [] and voz.dichas == [] and e.registro == []
+class VozHablandoQueCede(VozHablando):
+    def __init__(self):
+        super().__init__()
+        self.cortes, self.cedido = 0, []
+
+    def interrumpir(self):
+        self.cortes += 1
+
+    def ceder(self, segundos):
+        self.cedido.append(segundos)
+
+
+def test_mientras_habla_estela_la_usuaria_manda_y_cualquier_orden_vale():
+    """Paula, 2026-11-20: lo que dice la usuaria va antes que lo que ESTELA tenía que decir."""
+    e, hechas, voz = _escucha_hablando("con el siguiente Estela, reiniciar todo", VozHablandoQueCede())
+    i = e.atender_hablando(np.zeros(160, np.float32))
+    assert i.comando == cv.REINICIAR_SESION
+    assert voz.cortes == 1 and voz.cedido == [cv.VENTANA_LLAMADA_S, 0]
+    assert (cv.PREGUNTA_REINICIAR, PRIORIDAD_AVISO) in voz.dichas   # pide confirmar, ya callada
+
+
+def test_mientras_habla_estela_a_secas_la_calla_y_espera_la_orden():
+    for dicho in ("Estela", "Estela, blablá", "jumping jacks Estela"):
+        e, hechas, voz = _escucha_hablando(dicho, VozHablandoQueCede())
+        i = e.atender_hablando(np.zeros(160, np.float32))
+        assert i.motivo == cv.SOLO_LLAMADA and hechas == [] and voz.dichas == []
+        assert voz.cortes == 1 and voz.cedido == [cv.VENTANA_LLAMADA_S]   # turno de la usuaria
+        assert e._ventana_hasta > time.monotonic()                        # atenta a la orden
+
+
+def test_mientras_habla_sin_estela_se_ignora_callado():
+    e, hechas, voz = _escucha_hablando("te propongo seguir", VozHablandoQueCede())
+    assert e.atender_hablando(np.zeros(160, np.float32)) is None
+    assert hechas == [] and voz.dichas == [] and e.registro == [] and voz.cortes == 0
+
+
+def test_ceder_tira_correcciones_retiene_avisos_y_deja_pasar_lo_urgente():
+    from estela.adaptadores.voz.cola import DESCARTE_USUARIA
+    from estela.aplicacion.puertos import PRIORIDAD_URGENTE
+    motor = MotorQueEspera()
+    cola = ColaVoz(motor)
+    try:
+        cola.ceder(5.0)
+        assert not cola.decir("Baja la cadera.", PRIORIDAD_FEEDBACK)
+        assert cola.registro[0]["motivo_descarte"] == DESCARTE_USUARIA
+        cola.decir("Ahora, plancha.", PRIORIDAD_AVISO)
+        time.sleep(0.1)
+        assert motor.empezadas == [] and not cola.ocupada        # retenida: el micrófono escucha
+        cola.ceder(0)                                            # llegó la orden
+        assert _esperar(lambda: motor.empezadas == ["Ahora, plancha."])
+        motor.detener()
+        cola.ceder(5.0)
+        cola.decir("Para y descansa.", PRIORIDAD_URGENTE)
+        assert _esperar(lambda: motor.empezadas[-1] == "Para y descansa.")
+    finally:
+        motor.detener()
+        cola.cerrar(esperar=False)
+
+
+def test_tras_oir_estela_a_secas_cede_y_la_orden_lo_devuelve():
+    voz = VozHablandoQueCede()
+    voz.ocupada = False
+    textos = iter(["Estela", "pausa"])
+
+    class Rec:
+        def transcribir(self, audio):
+            return next(textos)
+    hechas = []
+    e = EscuchaVoz(object(), Rec(), voz, {"pausar": lambda: hechas.append("pausar")}, llamada=True)
+    e._sesion = SesionFalsa()
+    e.atender(np.zeros(160, np.float32))
+    assert voz.cedido == [cv.VENTANA_LLAMADA_S]
+    e.atender(np.zeros(160, np.float32))
+    assert voz.cedido[-1] == 0 and hechas == ["pausar"]
 
 
 def test_si_lo_que_suena_dice_estela_no_se_toma_por_orden():

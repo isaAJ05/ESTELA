@@ -120,9 +120,9 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                         "reiniciar ejercicio o sesión, reconocer y ángulos activado o "
                         "desactivado, terminar, ¿cómo voy?). Defecto: si en el Mac, no en los "
                         "demás equipos")
-    p.add_argument("--voz-entrada-interrumpir", choices=("si", "no"), default="no",
+    p.add_argument("--voz-entrada-interrumpir", choices=("si", "no"),
                    help="modo llamada: escuchar también mientras ESTELA habla, para cortarla "
-                        "con «Estela, pausa» (defecto no: sin medir con micrófono real)")
+                        "con «Estela, pausa». Defecto: si en el Mac, no en los demás equipos")
     p.add_argument("--voz-entrada-modo", choices=("llamada", "pausa"),
                    help="llamada: se escucha también durante el ejercicio, pero solo cuenta lo "
                         "que empieza por «Estela» u «Oye Estela». pausa: solo en pausa y entre "

@@ -59,7 +59,8 @@ def defectos(en_mac: Optional[bool] = None) -> Dict[str, str]:
     En el Mac va encendido todo lo que aprovecha ese equipo: pose heavy en la
     GPU (p95 6 ms en benchmark; en CPU son 58 ms y no cabe), las frases
     redactadas por el LLM, la entrenadora con LLM y las órdenes de voz (en modo
-    «llamada»: «Estela» y la orden, también durante el ejercicio). En los demás equipos todo
+    «llamada»: «Estela» y la orden, también durante el ejercicio y mientras ESTELA
+    habla, para cortarla: modo «interrumpir», pedido por Paula el 2026-11-20). En los demás equipos todo
     queda como antes. Si en el Mac falta algo (GPU, Ollama o un modelo), el
     arranque cae a lo de antes y lo avisa (`__main__`). Lo mismo si no hay
     micrófono o falta el modelo de voz: la sesión sigue sin órdenes de voz.
@@ -67,7 +68,7 @@ def defectos(en_mac: Optional[bool] = None) -> Dict[str, str]:
     if EN_MAC if en_mac is None else en_mac:
         return {"modelo": "heavy", "delegado": "gpu",
                 "verbalizador": "llm", "entrenadora": "llm", "voz_entrada": "si",
-                "voz_entrada_modo": "llamada"}
+                "voz_entrada_modo": "llamada", "voz_entrada_interrumpir": "si"}
     return {"modelo": "lite", "delegado": "cpu",
             "verbalizador": "plantillas", "entrenadora": "no", "voz_entrada": "no",
-            "voz_entrada_modo": "pausa"}
+            "voz_entrada_modo": "pausa", "voz_entrada_interrumpir": "no"}

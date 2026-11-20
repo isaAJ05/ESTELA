@@ -21,10 +21,16 @@ Modo «interrumpir» (`interrumpir_hablando=True`, solo con `llamada`): también
 escucha mientras ESTELA habla, para cortarla con «Estela, pausa». Su voz entra
 en el micrófono, así que en ese rato no se corta por frases (su voz también
 cuenta como voz): cada segundo se reconocen los últimos 2,5 s (`escuchar_ventana`)
-y se busca «Estela» en cualquier punto. Solo valen las órdenes que mandan sobre
-lo que dice (`ORDENES_QUE_INTERRUMPEN`) y el dolor; lo demás se ignora callada.
-`[?]` Sin medir con micrófono real: el eco de su propia voz y cuánto se entiende
-la orden por encima de ella.
+y se busca «Estela» en cualquier punto. Lo que dice la usuaria manda sobre lo
+que ESTELA tenía que decir (pedido de Paula, 2026-11-20): al oír «Estela», ESTELA
+se calla al momento y le cede el turno (`ColaVoz.ceder`); si venía una orden
+(cualquiera) se ejecuta, y si no, queda atenta unos segundos a la orden, como
+tras decir «Estela» a secas. `[?]` Sin medir con micrófono real: el eco de su
+propia voz y cuánto se entiende la orden por encima de ella.
+
+Turno de la usuaria (`_ceder`): tras oír «Estela» (hablando ESTELA o no),
+ESTELA no empieza frases nuevas hasta que llega la orden o pasa la ventana de
+`VENTANA_LLAMADA_S`; las correcciones de ese rato se tiran.
 
 La orden no toca la sesión desde este hilo: llama a `acciones`, que son las
 mismas funciones de los botones (en la interfaz, la cola del orquestador).
@@ -314,9 +320,17 @@ class EscuchaVoz:
         """¿Toca el modo de ventanas? Solo con «interrumpir» y mientras ESTELA habla."""
         return self.interrumpir_hablando and bool(getattr(self.voz, "ocupada", False))
 
+    def _ceder(self, segundos: float) -> None:
+        """Da (o devuelve, con 0) el turno a la usuaria en la cola de voz."""
+        ceder = getattr(self.voz, "ceder", None)
+        if ceder is not None:
+            ceder(segundos)
+
     def atender_hablando(self, audio: Any) -> Optional[cv.Interpretacion]:
-        """Una ventana oída mientras ESTELA habla: solo «Estela» + una orden que
-        mande sobre lo que dice, o el dolor. Lo demás no se contesta ni se guarda."""
+        """Una ventana oída mientras ESTELA habla. Si trae «Estela» (y no es su
+        propia voz), ESTELA se calla y cede el turno: con orden, se ejecuta;
+        sin orden o sin entenderla, queda atenta a la orden siguiente. Sin
+        «Estela», no se contesta ni se guarda."""
         t0 = time.perf_counter()
         texto = (self.reconocedor.transcribir(audio) or "").strip()
         ms = (time.perf_counter() - t0) * 1000.0
@@ -328,19 +342,31 @@ class EscuchaVoz:
         if actual and any(p in cv.LLAMADAS for p in cv._limpiar(actual).split()):
             return None                              # puede ser su propia voz diciendo «Estela»
         self.ventanas_con_llamada += 1
+        # la usuaria manda: ESTELA se calla ya y le deja el turno
+        self._ceder(cv.VENTANA_LLAMADA_S)
+        cortar = getattr(self.voz, "interrumpir", None)
+        if cortar is not None:
+            cortar()
         i = cv.interpretar(resto)
         dolor = menciona_dolor(resto)
-        if not dolor and i.comando not in cv.ORDENES_QUE_INTERRUMPEN:
-            return None
+        self._enfriar_hasta = time.monotonic() + ENFRIAR_S
+        olvidar = getattr(self.microfono, "olvidar_ventana", None)
+        if olvidar is not None:
+            olvidar()
+        if not dolor and i.comando is None:
+            # «Estela» sin orden clara (o tapada por su voz): atenta a la siguiente frase
+            self._ventana_hasta = time.monotonic() + cv.VENTANA_LLAMADA_S
+            self.registro.append({"texto": texto, "comando": None, "motivo": cv.SOLO_LLAMADA,
+                                  "reconocer_ms": round(ms), "durante_voz": True})
+            self._anota(texto, None, False)
+            log.info("Voz (mientras hablaba): «%s» → «Estela»: se calla y escucha (%.0f ms)", texto, ms)
+            return cv.Interpretacion(None, cv.SOLO_LLAMADA, "")
         self.registro.append({"texto": texto, "comando": i.comando,
                               "motivo": "dolor" if dolor else i.motivo,
                               "reconocer_ms": round(ms), "durante_voz": True})
         log.info("Voz (mientras hablaba): «%s» → %s (%.0f ms)", texto,
                  "dolor" if dolor else i.comando, ms)
-        self._enfriar_hasta = time.monotonic() + ENFRIAR_S
-        olvidar = getattr(self.microfono, "olvidar_ventana", None)
-        if olvidar is not None:
-            olvidar()
+        self._ceder(0)
         if dolor:
             self._responder_dolor(texto)
         else:
@@ -380,6 +406,7 @@ class EscuchaVoz:
             if isinstance(ya, cv.Interpretacion):
                 return ya
             orden = ya
+            self._ceder(0)                            # llegó la orden: ESTELA ya puede contestar
         i = cv.interpretar(orden)
         dolor = menciona_dolor(orden)
         self.registro.append({"texto": texto, "comando": i.comando,
@@ -421,6 +448,7 @@ class EscuchaVoz:
         self._ventana_hasta = 0.0
         if llamado and not resto:
             self._ventana_hasta = ahora + cv.VENTANA_LLAMADA_S
+            self._ceder(cv.VENTANA_LLAMADA_S)          # turno de la usuaria: ESTELA espera la orden
             self.registro.append({"texto": texto, "comando": None, "motivo": cv.SOLO_LLAMADA,
                                   "reconocer_ms": round(ms)})
             self._anota(texto, None, False)
