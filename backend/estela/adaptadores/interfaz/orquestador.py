@@ -385,21 +385,34 @@ class Orquestador:
             self._hilo.start()
         return True
 
+    def _callar(self) -> None:
+        """Una orden de la usuaria manda sobre lo que ESTELA estuviera diciendo
+        (una corrección, un anuncio): se corta y se tira lo pendiente. Pedido de
+        Paula (2026-11-17): al saltar o pausar las frases se enredaban."""
+        interrumpir = getattr(self._voz, "interrumpir", None)
+        if interrumpir is not None:
+            interrumpir()
+
     def siguiente(self) -> None:
+        self._callar()
         self._comandos.put("siguiente")
 
     def anterior(self) -> None:
+        self._callar()
         self._comandos.put("anterior")
 
     def reiniciar(self) -> None:
+        self._callar()
         self._comandos.put("reiniciar")
 
     def listo(self) -> None:
         """Termina la fase de colocación del ejercicio actual (botón «Listo»)."""
+        self._callar()
         self._comandos.put("listo")
 
     def pausar(self) -> None:
         """Pausa pedida por la usuaria (botón o espacio); no se quita sola."""
+        self._callar()
         self._comandos.put("pausar")
 
     def reanudar(self) -> None:
@@ -407,6 +420,7 @@ class Orquestador:
 
     def terminar(self) -> None:
         """Termina la sesión en curso y pasa al resumen."""
+        self._callar()
         self._comandos.put("terminar")
 
     def configurar(self, voz: Optional[bool] = None,
