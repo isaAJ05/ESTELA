@@ -56,7 +56,9 @@ FRASE_ACCION: Dict[str, str] = {
     SEGUIR: "Te propongo seguir con el siguiente ejercicio.",
     TERMINAR: "Te propongo terminar por hoy.",
 }
-FRASE_FINAL = "Rutina terminada."
+#: cierre del resumen final. No repite «Rutina terminada»: la sesión ya lo dijo
+#: justo antes («Rutina terminada. Buen trabajo.»); antes sonaba dos veces.
+FRASE_FINAL = "¡Hasta la próxima!"
 
 #: Tope de palabras del resumen que redacta el modelo. Aprobado por Paula el
 #: 2026-11-16 para la rama feature/mac-flujo. Es una guarda técnica, sin
@@ -91,8 +93,9 @@ _JUICIO_TECNICA = re.compile(
 ORIGEN_LLM, ORIGEN_PLANTILLA, ORIGEN_DOLOR = "llm", "plantilla", "fija_dolor"
 
 SISTEMA = (
-    "Eres la entrenadora de una aplicación de calentamiento. Hablas en español, "
-    "en segunda persona, con frases cortas y tono amable.\n"
+    "Eres Estela, la entrenadora de una aplicación de calentamiento. Le hablas "
+    "en voz alta a la persona, en español, tuteándola, con frases cortas, "
+    "cálidas y naturales, como una entrenadora en persona.\n"
     "Recibes datos ya medidos de un ejercicio o de la rutina. Con ellos:\n"
     "1. Escribe un resumen de una o dos frases, como máximo "
     f"{MAX_PALABRAS_RESUMEN} palabras, solo con los datos que se te dan.\n"
@@ -103,7 +106,12 @@ SISTEMA = (
     "5. No nombres partes del cuerpo que no aparezcan en los datos.\n"
     "6. No propongas qué hacer en el resumen: elige la acción en el campo "
     "\"accion\", que debe ser una de las permitidas.\n"
-    "7. Responde en JSON con la forma {\"resumen\": \"...\", \"accion\": \"...\"}."
+    "7. Habla como persona, no como informe: di «hiciste 8 de 8 repeticiones», "
+    "nunca «Se completó», «Estuvo», «Jumping jacks: 8 de 8» ni listas de datos. "
+    "A los avisos llámalos «correcciones» o «indicaciones». No nombres los "
+    "campos de los datos ni el momento, y no digas «rutina terminada» (la "
+    "aplicación ya lo dijo).\n"
+    "8. Responde en JSON con la forma {\"resumen\": \"...\", \"accion\": \"...\"}."
 )
 
 #: (mensaje de sistema, mensaje de usuario, acciones permitidas) → dict con
@@ -290,7 +298,7 @@ def resumen_plantilla(momento: str, paso: Optional[Mapping[str, Any]], nombre: s
         avisos = sum(v for p in pasos for v, _ in _indicaciones(p))
         return (f"Llevas {len(pasos)} {'ejercicio' if len(pasos) == 1 else 'ejercicios'}, "
                 f"{completos} con el objetivo cumplido, y {avisos} "
-                f"{'aviso' if avisos == 1 else 'avisos'}.")
+                f"{'corrección' if avisos == 1 else 'correcciones'}.")
     if momento == FINAL:
         completos = sum(1 for p in pasos if int(p["completadas"]) >= int(p["objetivo"]))
         return f"Cumpliste el objetivo en {completos} de {len(pasos)} ejercicios."
@@ -300,7 +308,7 @@ def resumen_plantilla(momento: str, paso: Optional[Mapping[str, Any]], nombre: s
     avisos = _indicaciones(paso)
     if avisos:
         veces, frase = avisos[0]
-        texto += (f" El aviso más repetido, {veces} "
+        texto += (f" La corrección que más te di, {veces} "
                   f"{'vez' if veces == 1 else 'veces'}: «{frase}»")
     return texto
 

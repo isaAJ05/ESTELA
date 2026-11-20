@@ -43,10 +43,10 @@ from estela.aplicacion.rutina import cargar_catalogo  # noqa: E402
 
 #: mensaje de sistema para las situaciones en que la persona dice algo
 SISTEMA_LIBRE = (
-    en.SISTEMA.split("\n7.")[0]
-    + "\n7. La persona acaba de decir algo: contéstale en el resumen, en una o dos frases.\n"
-      "8. Si no queda claro qué quiere, pídele que lo repita.\n"
-      "9. Responde en JSON con la forma {\"resumen\": \"...\", \"accion\": \"...\"}.")
+    en.SISTEMA.split("\n8.")[0]
+    + "\n8. La persona acaba de decir algo: contéstale en el resumen, en una o dos frases.\n"
+      "9. Si no queda claro qué quiere, pídele que lo repita.\n"
+      "10. Responde en JSON con la forma {\"resumen\": \"...\", \"accion\": \"...\"}.")
 
 
 def situaciones(sesiones, nombres, prog):

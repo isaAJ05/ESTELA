@@ -119,7 +119,7 @@ def test_como_voy_resume_lo_hecho_y_no_propone_nada():
     # sin modelo: plantilla con las cuentas
     r = en.Entrenadora(None, NOMBRES).como_voy(pasos)
     assert (r.origen, r.accion) == (en.ORIGEN_PLANTILLA, en.SEGUIR)
-    assert r.texto == "Llevas 2 ejercicios, 1 con el objetivo cumplido, y 3 avisos."
+    assert r.texto == "Llevas 2 ejercicios, 1 con el objetivo cumplido, y 3 correcciones."
     # con modelo: solo el resumen, sin la frase «Te propongo…»
     g = generador("Llevas 2 ejercicios y recibiste 3 avisos.")
     r = en.Entrenadora(g, NOMBRES).como_voy(pasos)
