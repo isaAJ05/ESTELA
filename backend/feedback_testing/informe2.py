@@ -86,11 +86,15 @@ RAICES_VIDEO = (
     PROYECTO / "PRUEBAS" / "Prueba red neuronal (dataset-pose-deteccion-conteo)" / "DATASET" / "videos",
     PROYECTO.parent / "docs_estela" / "investigacion" / "fuentes" / "datasets" / "videos",
 )
-#: carpeta → ejercicio. La abducción se decide por el prefijo del archivo.
+#: carpeta → ejercicio. En los ejercicios por pierna (abducción y zancada) el
+#: lado se decide por el nombre del archivo (ver `_lado_de`).
 CARPETAS = {
     "jumping_jack": "jumping_jacks", "Jumping Jacks": "jumping_jacks",
     "Plancha": "plancha", "Abdución de caderas pies": "abduccion",
+    "Zancada atrás estática por pierna": "zancada",
 }
+#: ejercicio por pierna → prefijo del skill_id (se le añade «_izq» o «_der»)
+POR_PIERNA = {"abduccion": "abduccion_cadera", "zancada": "zancada_atras"}
 MODELOS_POSE = ("lite", "full", "heavy")
 URL_LLM = "http://127.0.0.1:8080"
 #: objetivo «infinito» para que la sesión no termine a mitad de vídeo
@@ -223,21 +227,37 @@ class Video:
                 "es_referencia": self.es_referencia}
 
 
+def _lado_de(nombre_archivo: str) -> Optional[str]:
+    """«izq» o «der» según el nombre: prefijo («izq …», «der …») o, si no hay,
+    la última palabra antes de la extensión («… IZQUIERDA.mp4», «… DERECHA.mp4»)."""
+    nombre = nombre_archivo.lower()
+    if nombre.startswith(("izq", "izquierda")):
+        return "izq"
+    if nombre.startswith(("der", "derecha")):
+        return "der"
+    palabras = Path(nombre).stem.replace("_", " ").replace("-", " ").split()
+    ultima = palabras[-1] if palabras else ""
+    if ultima in ("izq", "izquierda"):
+        return "izq"
+    if ultima in ("der", "derecha"):
+        return "der"
+    return None
+
+
 def _ejercicio_de(ruta: Path) -> Tuple[Optional[str], str]:
     """(ejercicio_id, motivo de exclusión)."""
     carpeta = CARPETAS.get(ruta.parent.name)
     if carpeta is None:
         return None, f"carpeta '{ruta.parent.name}' fuera de los 4 ejercicios (ADR-005/007)"
-    if carpeta != "abduccion":
+    if carpeta not in POR_PIERNA:
         return carpeta, ""
     nombre = ruta.name.lower()
-    if "aducci" in nombre and "abducci" not in nombre:
+    if carpeta == "abduccion" and "aducci" in nombre and "abducci" not in nombre:
         return None, "aducción, no abducción"
-    if nombre.startswith(("izq", "izquierda")):
-        return "abduccion_cadera_izq", ""
-    if nombre.startswith("der"):
-        return "abduccion_cadera_der", ""
-    return None, "abducción sin lado en el nombre (izq/der)"
+    lado = _lado_de(ruta.name)
+    if lado is None:
+        return None, f"{carpeta} sin lado en el nombre (izq/der)"
+    return f"{POR_PIERNA[carpeta]}_{lado}", ""
 
 
 def _sha1(ruta: Path) -> str:
@@ -1539,8 +1559,9 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
     if P:
         for k, v in P.items():
             L.append(f"- **{k}**: {v}")
-    L += ["- **hardware final**: todas las cifras de tiempo hay que repetirlas en la Mac Studio M2 Ultra.",
-          "- **sesiones reales**: las 5 participantes aún no han grabado la rutina; ninguna cifra de esta "
+    if not en_mac:
+        L.append("- **hardware final**: todas las cifras de tiempo hay que repetirlas en la Mac Studio M2 Ultra.")
+    L += ["- **sesiones reales**: las 5 participantes aún no han grabado la rutina; ninguna cifra de esta "
           "página procede de ellas.", ""]
     return "\n".join(x for x in L if x is not None)
 
