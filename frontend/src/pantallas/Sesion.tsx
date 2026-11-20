@@ -6,7 +6,7 @@ import { Aviso, Boton, Marca, plural } from '../componentes/basicos'
 import { Figura, textoVista } from '../componentes/Figura'
 import { Constelacion, Progreso } from '../componentes/progreso'
 import { GuiaAnimada, VistaCamara } from '../componentes/VistaCamara'
-import { cambiarAjustes, cambiarVozDeSesion, leerVoz, restaurarVoz } from '../estado/ajustes'
+import { cambiarAjustes, cambiarVozDeSesion, leerVoz, restaurarVoz, useAjustes } from '../estado/ajustes'
 import { useCapacidad, useEstado } from '../estado/almacen'
 
 const MENSAJE_VISIBLE_MS = 4500
@@ -254,11 +254,20 @@ const AYUDA_AVISO: Partial<Record<TipoAviso, string>> = {
   movimiento: 'Mira la figura guía: ese es el movimiento que toca.',
 }
 
+/** ¿Se oye a ESTELA? Entonces lo que dice no se repite en pantalla (Paula,
+ *  2026-11-20: «que lo que dice Estela no salga en pantalla porque ya lo está
+ *  escuchando»). Con la voz silenciada el texto vuelve: es el único aviso. */
+function useSeOye(): boolean {
+  const { voz } = useAjustes()
+  return useCapacidad('silenciarVoz') && voz
+}
+
 function AvisoSesion() {
+  const seOye = useSeOye()
   const aviso = useSesion('aviso')
   const tipo = useSesion('avisoTipo')
   const colocando = useSesion('colocacion') != null
-  if (!aviso || tipo === 'pausa' || colocando) return null   // la pausa y la colocación tienen su propia capa
+  if (seOye || !aviso || tipo === 'pausa' || colocando) return null   // la pausa y la colocación tienen su propia capa
   const icono = tipo === 'orientacion' ? <RotateCw />
     : tipo === 'encuadre' ? <ScanLine /> : tipo === 'sin_persona' ? <UserX />
     : tipo === 'movimiento' ? <Footprints /> : <Info />
@@ -284,6 +293,7 @@ function parteDelCuerpo(fb: Feedback): string | null {
 
 /** La última indicación hablada, mientras suena y un poco después. */
 function BandaMensaje() {
+  const seOye = useSeOye()
   const n = useSesion('mensajesEmitidos') ?? 0
   const texto = useSesion('ultimoMensaje')
   const feedback = useSesion('feedback')
@@ -299,7 +309,7 @@ function BandaMensaje() {
   }, [n])
   // una indicación del ejercicio anterior no se queda en pantalla en el siguiente
   useEffect(() => { setVisible(false) }, [paso])
-  if (!texto) return null
+  if (seOye || !texto) return null
   const refuerzo = feedback?.tipo === 'refuerzo'
   const parte = feedback ? parteDelCuerpo(feedback) : null
   const clases = ['banda-mensaje', visible && 'visible', refuerzo && 'refuerzo',
@@ -317,6 +327,7 @@ function BandaMensaje() {
 
 /** Al empezar cada ejercicio: cuál es, cómo colocarse y el objetivo. */
 function Transicion() {
+  const seOye = useSeOye()
   const paso = useSesion('paso') ?? 0
   const info = useEstado((s) => s.plan?.pasos[paso - 1] ?? null)
   const [visible, setVisible] = useState(true)
@@ -325,7 +336,7 @@ function Transicion() {
     const t = setTimeout(() => setVisible(false), TRANSICION_VISIBLE_MS)
     return () => clearTimeout(t)
   }, [paso])
-  if (!info) return null
+  if (seOye || !info) return null
   return (
     <div className={`transicion ${visible ? 'visible' : ''}`} aria-hidden={!visible}>
       {info.guia
@@ -505,8 +516,11 @@ function EscuchaVoz() {
   const e = recibida && micApagado ? { ...recibida, activa: false } : recibida
   // oyó «Estela» y espera la orden: la señal sale aunque no haya nada más que mostrar
   const atenta = useEstado((s) => s.estado?.sesion?.microfono?.atenta ?? false)
-  const entendido = e?.comando ? ORDEN_DICHA[e.comando] ?? e.comando : null
-  if (atenta && !entendido && !e?.noEntendi) {
+  // con la voz encendida, lo entendido y «no te entendí» ya se oyen: solo queda «Te escucho»
+  const seOye = useSeOye()
+  const entendido = !seOye && e?.comando ? ORDEN_DICHA[e.comando] ?? e.comando : null
+  const noEntendi = !seOye && !!e?.noEntendi
+  if (atenta && !entendido && !noEntendi) {
     return (
       <div className="escucha-voz escucha-activa escucha-atenta" role="status" aria-live="polite">
         <Mic aria-hidden="true" />
@@ -515,14 +529,14 @@ function EscuchaVoz() {
     )
   }
   // solo cambió la pantalla (ángulos) y no hay nada que decir: no se pinta el aviso
-  if (!e || (!e.activa && !e.texto && !e.comando && !e.noEntendi)) return null
+  if (!e || (!e.activa && (seOye || (!e.texto && !e.comando && !noEntendi)))) return null
   return (
-    <div className={`escucha-voz${e.activa ? ' escucha-activa' : ''}${e.noEntendi ? ' escucha-duda' : ''}`}
+    <div className={`escucha-voz${e.activa ? ' escucha-activa' : ''}${noEntendi ? ' escucha-duda' : ''}`}
          role="status" aria-live="polite">
       <Mic aria-hidden="true" />
       <span>
         {entendido ? <>Entendí: <b>{entendido}</b></>
-          : e.noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
+          : noEntendi ? <>No te entendí{e.texto ? <>: «{e.texto}»</> : null}. Repite, por favor.</>
           : e.activa && e.llamada
             ? <>Te escucho · di «Estela» y la orden</>
           : e.activa ? <>Te escucho. Di: pausa, seguir, siguiente, terminar o ¿cómo voy?</>
