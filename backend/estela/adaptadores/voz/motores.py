@@ -100,6 +100,93 @@ def _reproductor_wav() -> Optional[List[str]]:
     return None
 
 
+class ReproductorContinuo:
+    """Una sola salida de audio abierta toda la sesión (Paula, 2026-11-20: «se
+    repite lo último que dice, "pausasasa", y al interrumpirse se traba»).
+
+    Antes cada frase abría y cerraba su flujo (`sd.play`) y cortar era
+    `sd.stop()` desde otro hilo (la escucha, el orquestador). Las órdenes por voz
+    cortan dos o tres veces seguidas desde hilos distintos, y PortAudio no es
+    seguro entre hilos: `[F]` en el Mac, 120 cortes al azar dieron 240 errores de
+    CoreAudio (`PaMacCore (AUHAL) err=-50`). Un flujo que se detiene o arranca mal
+    deja al dispositivo repitiendo su último búfer: eso suena como «pausasasa».
+
+    Aquí el flujo se abre una vez; el callback copia la frase actual y, si no
+    hay, entrega silencio. Hablar es poner la frase y esperar a que se agote;
+    cortar es quitarla (bajo un cerrojo), sin ninguna llamada a PortAudio desde
+    otro hilo. Si el flujo muere (dispositivo desconectado), la espera tiene
+    tope y se vuelve a abrir.
+    """
+
+    def __init__(self, sd, fs: int) -> None:
+        self._sd = sd
+        self.fs = fs
+        self._cerrojo = threading.Lock()
+        self._datos = None
+        self._pos = 0
+        self._fin = threading.Event()
+        self._fin.set()
+        #: `time.perf_counter()` del primer bloque de la frase actual
+        self.inicio_audio: Optional[float] = None
+        self._flujo = None
+        self._abrir()
+
+    def _abrir(self) -> None:
+        self._flujo = self._sd.OutputStream(samplerate=self.fs, channels=1, dtype="int16",
+                                            callback=self._al_pedir)
+        self._flujo.start()
+
+    def _al_pedir(self, salida, frames, tiempo, estado) -> None:      # hilo de audio
+        with self._cerrojo:
+            d = self._datos
+            if d is None:
+                salida.fill(0)
+                return
+            if self._pos == 0:
+                self.inicio_audio = time.perf_counter()
+            n = min(frames, len(d) - self._pos)
+            salida[:n, 0] = d[self._pos:self._pos + n]
+            salida[n:] = 0
+            self._pos += n
+            if self._pos >= len(d):
+                self._datos = None
+                self._fin.set()
+
+    def reproducir(self, datos) -> None:
+        """Bloquea hasta que suena entera o la cortan (`detener`)."""
+        with self._cerrojo:
+            self._datos, self._pos = datos, 0
+            self.inicio_audio = None
+            self._fin.clear()
+        tope = len(datos) / self.fs + 2.0
+        if not self._fin.wait(tope):                     # el flujo dejó de pedir audio
+            log.warning("La salida de audio no respondió en %.1f s: se vuelve a abrir", tope)
+            self.detener()
+            try:
+                self._flujo.abort()
+                self._flujo.close()
+            except Exception:                            # noqa: BLE001
+                pass
+            try:
+                self._abrir()
+            except Exception:                            # noqa: BLE001
+                log.exception("No se pudo volver a abrir la salida de audio")
+
+    def detener(self) -> None:
+        """Corta la frase actual. Seguro desde cualquier hilo."""
+        with self._cerrojo:
+            self._datos = None
+            self._fin.set()
+
+    def cerrar(self) -> None:
+        self.detener()
+        try:
+            self._flujo.stop()
+            self._flujo.close()
+        except Exception:                                # noqa: BLE001
+            pass
+
+
 class VozPiper(MotorVoz):
     """Piper (piper-tts ≥ 1.3) con caché de audio por texto.
 
@@ -123,6 +210,8 @@ class VozPiper(MotorVoz):
         self._lock = threading.Lock()       # precalentado y habla en hilos distintos
         self._dir = Path(tempfile.mkdtemp(prefix="estela_voz_"))
         self._sd = None
+        #: salida de audio continua (se abre con la primera frase: su frecuencia)
+        self._salida: Optional[ReproductorContinuo] = None
         try:
             import sounddevice as sd
             sd.query_devices(kind="output")
@@ -159,8 +248,14 @@ class VozPiper(MotorVoz):
             import numpy as np
             with wave.open(io.BytesIO(wav)) as r:
                 datos = np.frombuffer(r.readframes(r.getnframes()), dtype=np.int16)
-                self._sd.play(datos, r.getframerate())
-            self._sd.wait()
+                fs = r.getframerate()
+            if self._salida is None or self._salida.fs != fs:
+                if self._salida is not None:
+                    self._salida.cerrar()
+                self._salida = ReproductorContinuo(self._sd, fs)
+            self._salida.reproducir(datos)
+            if self._salida.inicio_audio is not None:
+                self.ultimo_inicio_audio = self._salida.inicio_audio
             return
         ruta = self._dir / f"{abs(hash(texto))}.wav"
         if not ruta.exists():
@@ -169,11 +264,14 @@ class VozPiper(MotorVoz):
 
     def detener(self) -> None:
         if self._sd is not None:
-            self._sd.stop()                  # `wait()` del hilo de la voz vuelve
+            if self._salida is not None:
+                self._salida.detener()       # sin llamar a PortAudio desde otro hilo
         else:
             _matar(self)
 
     def cerrar(self) -> None:
+        if self._salida is not None:
+            self._salida.cerrar()
         shutil.rmtree(self._dir, ignore_errors=True)
 
 
