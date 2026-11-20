@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
+import { AlertTriangle, ArrowRight, ExternalLink, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
@@ -18,6 +18,20 @@ import {
   alternar, cargarGuardada, estimarSegundos, fijarObjetivo, guardar, iguales, leerSeleccion, mover, planDe,
   problemas, seleccionDe, type Seleccion,
 } from '../estado/rutina'
+
+/** Página pública del proyecto («About us»). */
+const SOBRE_NOSOTROS = 'https://estela-trainer.vercel.app/'
+
+/** Enlace a la página del proyecto: se abre en el navegador del sistema
+ *  (pywebview abre fuera los enlaces con target="_blank"). */
+function SobreNosotros() {
+  return (
+    <a className="navegacion-enlace" href={SOBRE_NOSOTROS} target="_blank" rel="noopener noreferrer"
+       title="Abre la página de ESTELA en el navegador">
+      Sobre nosotros<ExternalLink aria-hidden="true" />
+    </a>
+  )
+}
 
 /** «Mi rutina» de quien entrena sin perfil: solo mientras la aplicación está abierta. */
 let rutinaSinPerfil: Seleccion | null = null
@@ -226,7 +240,10 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
           {/* si ya había perfil y se está cambiando, el logo cancela el cambio */}
           <Marca alInicio={perfiles?.elegido && cambiando
             ? () => { setCambiando(false); setSeccion('bienvenida') } : undefined} />
-          <div className="cabecera-derecha"><ControlesCabecera bridge={bridge} /></div>
+          <div className="cabecera-derecha">
+            <nav className="navegacion" aria-label="Secciones"><SobreNosotros /></nav>
+            <ControlesCabecera bridge={bridge} />
+          </div>
         </header>
         {perfiles && (
           <SelectorPerfil bridge={bridge} estado={perfiles}
@@ -240,8 +257,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     <main className="pantalla pantalla-inicio">
       <header className="cabecera">
         <Marca alInicio={() => setSeccion('bienvenida')} />
-        {(personalizable || conProgreso) && (
-          <nav className="navegacion" aria-label="Secciones">
+        <nav className="navegacion" aria-label="Secciones">
             <button className={seccion === 'bienvenida' ? 'activa' : undefined}
                     aria-current={seccion === 'bienvenida' ? 'page' : undefined}
                     onClick={() => setSeccion('bienvenida')}>Inicio</button>
@@ -259,8 +275,8 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
                 Mi progreso
               </button>
             )}
+            <SobreNosotros />
           </nav>
-        )}
         <div className="cabecera-derecha">
           {conPerfiles && perfiles?.elegido && (
             <ChipPerfil perfil={activo} activa={seccion === 'perfil'} onClick={() => setSeccion('perfil')} />

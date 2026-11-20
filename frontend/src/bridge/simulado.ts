@@ -8,6 +8,7 @@
 //                       ?escena=progreso-vacio  «Mi progreso» sin sesiones
 //                       ?escena=sin-perfiles    primera vez: aún no hay perfiles
 //                       ?escena=saturada-colocacion|saturada-pausa|saturada-ejercicio
+//                       ?microfono=no y ?fuente=video  micrófono apagado / sin cámara
 //                                               sesión con todas las capas a la vez (aviso,
 //                                               gesto, «Te escucho», indicación, tarjeta)
 
@@ -320,7 +321,8 @@ export function bridgeSimulado(): Bridge {
   let colocadoEn: number | null = null   // reloj al terminar la colocación
   let camara: number | null = null
   // micrófono de mentira: para ver la sección de ajustes sin Python
-  const microfono = { encendido: true, elegido: null as number | null, probandoHasta: 0, pruebas: 0 }
+  // ?microfono=no: empieza apagado (ver el icono tachado)
+  const microfono = { encendido: url.get('microfono') !== 'no', elegido: null as number | null, probandoHasta: 0, pruebas: 0 }
   let pausaUsuaria = false     // la usuaria pulsó «Pausar»: el reloj se detiene
   let i = 0                    // paso actual
   let mensajesEmitidos = 0
@@ -560,7 +562,7 @@ export function bridgeSimulado(): Bridge {
     catalogo: CATALOGO,
     conexiones: CONEXIONES,
     espejo: true,
-    fuente: 'camara',
+    fuente: url.get('fuente') === 'video' ? 'video' : 'camara',   // ?fuente=video: sin cámara
   }
 
   return {

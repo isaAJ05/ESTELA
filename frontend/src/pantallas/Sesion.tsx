@@ -1,4 +1,4 @@
-import { Camera, Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Mic, MicOff, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Camera, CameraOff, Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Mic, MicOff, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
@@ -462,28 +462,32 @@ const ORDEN_DICHA: Record<string, string> = {
 }
 
 /** Puntos pequeños: si ESTELA tiene la cámara y el micrófono en uso, y cómo está el
- *  micrófono (apagado, escuchando, callado mientras habla ESTELA, o atenta tras «Estela»). */
+ *  micrófono (apagado, escuchando, callado mientras habla ESTELA, o atenta tras «Estela»).
+ *  Los dos se ven siempre; si no están encendidos, el icono va tachado (Paula, 2026-11-20). */
 function EnUso() {
   const conCamara = useEstado((s) => (s.info?.fuente ?? 'camara') === 'camara')
   const mic = useEstado((s) => s.estado?.sesion?.microfono ?? null,
     (a, b) => a?.encendido === b?.encendido && a?.escuchando === b?.escuchando && a?.atenta === b?.atenta)
-  const estadoMic = !mic ? null
+  const estadoMic = !mic ? { clase: 'apagado', texto: 'Micrófono apagado: las órdenes de voz no están activas' }
     : !mic.encendido ? { clase: 'apagado', texto: 'Micrófono apagado' }
     : mic.atenta ? { clase: 'atenta', texto: 'Te escucho: di la orden' }
     : mic.escuchando ? { clase: 'en-uso', texto: 'Micrófono en uso: di «Estela» y una orden' }
     : { clase: 'en-espera', texto: 'Micrófono en uso; no escucho mientras hablo' }
   return (
     <div className="indicadores-uso" aria-label="Cámara y micrófono">
-      {conCamara && (
+      {conCamara ? (
         <span className="en-uso-item en-uso" title="Cámara en uso" role="img" aria-label="Cámara en uso">
           <Camera aria-hidden="true" /><i />
         </span>
-      )}
-      {estadoMic && (
-        <span className={`en-uso-item ${estadoMic.clase}`} title={estadoMic.texto} role="img" aria-label={estadoMic.texto}>
-          {mic?.encendido ? <Mic aria-hidden="true" /> : <MicOff aria-hidden="true" />}<i />
+      ) : (
+        <span className="en-uso-item apagado" title="Cámara apagada: se analiza un vídeo"
+              role="img" aria-label="Cámara apagada">
+          <CameraOff aria-hidden="true" /><i />
         </span>
       )}
+      <span className={`en-uso-item ${estadoMic.clase}`} title={estadoMic.texto} role="img" aria-label={estadoMic.texto}>
+        {mic?.encendido ? <Mic aria-hidden="true" /> : <MicOff aria-hidden="true" />}<i />
+      </span>
     </div>
   )
 }
