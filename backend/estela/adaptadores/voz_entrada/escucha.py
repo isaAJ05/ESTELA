@@ -57,6 +57,10 @@ REPETIR_CADA_S = 6.0
 #: modo «interrumpir»: audio que se reconoce de una vez y cada cuánto, y pausa
 #: tras actuar para no ejecutar dos veces la misma orden (ventanas solapadas)
 VENTANA_S, PASO_S, ENFRIAR_S = 2.5, 1.0, 2.0
+#: si la ventana que oyó «Estela» no traía la orden, segundos más que se escuchan
+#: (ESTELA ya callada) y se reconocen junto con ella: la orden suele quedar
+#: partida entre dos ventanas (Paula, 2026-11-20: «se calla pero no sigue la orden»)
+CONTINUAR_S = 1.5
 
 
 class EscuchaVoz:
@@ -349,6 +353,8 @@ class EscuchaVoz:
             cortar()
         i = cv.interpretar(resto)
         dolor = menciona_dolor(resto)
+        if not dolor and i.comando is None:
+            texto, i, dolor, ms = self._continuar(audio, texto, i, ms)
         self._enfriar_hasta = time.monotonic() + ENFRIAR_S
         olvidar = getattr(self.microfono, "olvidar_ventana", None)
         if olvidar is not None:
@@ -360,6 +366,8 @@ class EscuchaVoz:
                                   "reconocer_ms": round(ms), "durante_voz": True})
             self._anota(texto, None, False)
             log.info("Voz (mientras hablaba): «%s» → «Estela»: se calla y escucha (%.0f ms)", texto, ms)
+            # urgente: pasa aunque la usuaria tenga el turno, que sigue abierto
+            self.voz.decir(cv.DIME, PRIORIDAD_URGENTE)
             return cv.Interpretacion(None, cv.SOLO_LLAMADA, "")
         self.registro.append({"texto": texto, "comando": i.comando,
                               "motivo": "dolor" if dolor else i.motivo,
@@ -373,6 +381,35 @@ class EscuchaVoz:
             self._anota(texto, i.comando, False)
             self._ejecutar(i.comando)
         return i
+
+    def _continuar(self, audio: Any, texto: str, i: cv.Interpretacion,
+                   ms: float) -> tuple:
+        """«Estela» sin orden en la ventana: con ESTELA ya callada, se escucha
+        `CONTINUAR_S` más y se reconoce todo junto. Devuelve (texto, interpretación,
+        dolor, ms) de lo que haya que usar."""
+        seguir = getattr(self.microfono, "escuchar_continuacion", None)
+        if seguir is None:
+            return texto, i, False, ms
+        try:
+            import numpy as np
+            extra = seguir(CONTINUAR_S, cancelar=lambda: self._parar.is_set() or self._hay_cambios.is_set())
+            if extra is None:
+                return texto, i, False, ms
+            t0 = time.perf_counter()
+            texto2 = (self.reconocedor.transcribir(np.concatenate([audio, extra])) or "").strip()
+            ms2 = (time.perf_counter() - t0) * 1000.0
+        except Exception:                                 # noqa: BLE001
+            log.exception("fallo al escuchar la continuación de la orden")
+            return texto, i, False, ms
+        llamado2, resto2 = cv.buscar_llamada(texto2)
+        if not llamado2:
+            return texto, i, False, ms
+        i2 = cv.interpretar(resto2)
+        dolor2 = menciona_dolor(resto2)
+        if i2.comando is None and not dolor2:
+            return texto, i, False, ms
+        log.info("Voz (continuación tras «Estela»): «%s» → %s", texto2, "dolor" if dolor2 else i2.comando)
+        return texto2, i2, dolor2, ms + ms2
 
     def _responder_dolor(self, texto: str) -> None:
         self._anota(texto, None, False)

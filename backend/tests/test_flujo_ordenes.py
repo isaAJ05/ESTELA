@@ -294,7 +294,8 @@ def test_mientras_habla_estela_a_secas_la_calla_y_espera_la_orden():
     for dicho in ("Estela", "Estela, blablá", "jumping jacks Estela"):
         e, hechas, voz = _escucha_hablando(dicho, VozHablandoQueCede())
         i = e.atender_hablando(np.zeros(160, np.float32))
-        assert i.motivo == cv.SOLO_LLAMADA and hechas == [] and voz.dichas == []
+        assert i.motivo == cv.SOLO_LLAMADA and hechas == []
+        assert [t for t, _ in voz.dichas] == [cv.DIME]                    # pide la orden
         assert voz.cortes == 1 and voz.cedido == [cv.VENTANA_LLAMADA_S]   # turno de la usuaria
         assert e._ventana_hasta > time.monotonic()                        # atenta a la orden
 
@@ -435,3 +436,34 @@ def test_al_completar_la_rutina_espera_a_que_termine_de_hablar(catalogo):
     f = Fuente(voz)
     o._esperar_voz_final(f)
     assert f.leidas == 0
+
+
+def test_estela_al_final_de_la_ventana_y_la_orden_en_la_continuacion():
+    """Paula, 2026-11-20: «se calla pero no sigue la orden». La ventana trae
+    «Estela» y la orden queda en el audio siguiente: se reconoce todo junto."""
+    textos = iter(["te propongo seguir con Estela", "te propongo seguir con Estela, pausa"])
+
+    class Rec:
+        def transcribir(self, audio):
+            return next(textos)
+
+    class Mic:
+        def __init__(self):
+            self.pedido = None
+
+        def escuchar_continuacion(self, segundos, cancelar):
+            self.pedido = segundos
+            return np.zeros(160, np.float32)
+
+        def olvidar_ventana(self):
+            pass
+
+    hechas = []
+    voz = VozHablandoQueCede()
+    mic = Mic()
+    e = EscuchaVoz(mic, Rec(), voz, {"pausar": lambda: hechas.append("pausar")},
+                   llamada=True, interrumpir_hablando=True)
+    e._sesion = SesionFalsa()
+    i = e.atender_hablando(np.zeros(160, np.float32))
+    assert i.comando == cv.PAUSA and hechas == ["pausar"]
+    assert voz.cortes == 1 and mic.pedido > 0                # se calló antes de seguir oyendo

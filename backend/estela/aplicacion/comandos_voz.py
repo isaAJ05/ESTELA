@@ -150,12 +150,15 @@ def frases_propias() -> Tuple[str, ...]:
     """Lo que la escucha dice por su cuenta; «repite eso» no lo repite."""
     return tuple(t for t in (*CONFIRMACION.values(), NO_ENTENDI, PREGUNTA_REINICIAR,
                              CONFIRMA_REINICIAR, NO_HAY_QUE_REPETIR, ES_EL_ULTIMO,
-                             ES_EL_PRIMERO) if t)
+                             ES_EL_PRIMERO, DIME) if t)
 #: reiniciar toda la sesión borra el avance: se pide confirmación (texto fijo)
 #: Sin «Estela» en el texto: si se escucha mientras ESTELA habla, oírse a sí misma
 #: diciendo «Estela, sí» confirmaría sola el reinicio. Basta un «sí» sin «Estela».
 PREGUNTA_REINICIAR = "¿Reinicio toda la sesión? Responde sí o no."
 CONFIRMA_REINICIAR = "Reiniciamos la sesión."
+#: se calló al oír «Estela» mientras hablaba, pero no entendió la orden: pide
+#: repetirla (sin esto parecía que «se calla pero no sigue la orden»)
+DIME = "¿Sí?"
 #: lo que se dice cuando hubo palabras pero ninguna orden clara (texto fijo)
 NO_ENTENDI = "No te entendí. Repite, por favor."
 

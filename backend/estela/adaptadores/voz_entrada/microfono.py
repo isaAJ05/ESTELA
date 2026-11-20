@@ -124,6 +124,23 @@ class Microfono:
         self._detector.reiniciar()          # al volver al corte por frases, empieza limpio
         return np.concatenate(list(self._ventana)) if self._ventana else None
 
+    def escuchar_continuacion(self, segundos: float,
+                              cancelar: Callable[[], bool]) -> Optional[np.ndarray]:
+        """El audio de los próximos `segundos` (ESTELA ya callada): lo que la usuaria
+        siga diciendo tras «Estela». None si se cancela o no llega nada."""
+        import time
+        fin = time.monotonic() + segundos
+        bloques: List[np.ndarray] = []
+        while time.monotonic() < fin:
+            if cancelar():
+                return None
+            try:
+                bloques.append(self._cola.get(timeout=0.1))
+            except queue.Empty:
+                continue
+        self._detector.reiniciar()
+        return np.concatenate(bloques) if bloques else None
+
     def olvidar_ventana(self) -> None:
         """Tras actuar sobre una ventana, que la siguiente no vuelva a oír lo mismo."""
         if hasattr(self, "_ventana"):
