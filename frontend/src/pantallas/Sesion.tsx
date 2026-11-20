@@ -496,9 +496,12 @@ function EnUso() {
  *  «Te escucho» solo sale en pausa, en la colocación o tras decir «Estela» (durante el
  *  ejercicio no estorba); sin ese modo, solo en pausa o entre ejercicios. */
 function EscuchaVoz() {
-  const e = useEstado((s) => s.estado?.sesion?.escucha ?? null,
+  const recibida = useEstado((s) => s.estado?.sesion?.escucha ?? null,
     (a, b) => a?.activa === b?.activa && a?.texto === b?.texto
       && a?.comando === b?.comando && a?.noEntendi === b?.noEntendi && a?.llamada === b?.llamada)
+  // con el micrófono apagado nunca se dice «Te escucho» (aunque llegue un estado viejo)
+  const micApagado = useEstado((s) => s.estado?.sesion?.microfono?.encendido === false)
+  const e = recibida && micApagado ? { ...recibida, activa: false } : recibida
   // oyó «Estela» y espera la orden: la señal sale aunque no haya nada más que mostrar
   const atenta = useEstado((s) => s.estado?.sesion?.microfono?.atenta ?? false)
   const entendido = e?.comando ? ORDEN_DICHA[e.comando] ?? e.comando : null

@@ -288,8 +288,9 @@ interface PasoHecho {
 
 /** Escenas «saturadas»: todas las capas de la sesión a la vez, para revisar que no se pisen. */
 function saturar(s: EstadoSesion, escena: string): EstadoSesion {
+  const conMic = s.microfono?.encendido !== false     // como el backend: apagado, no escucha
   const comun: Partial<EstadoSesion> = {
-    escucha: { activa: true, llamada: true, texto: null, comando: null, noEntendi: false },
+    escucha: { activa: conMic, llamada: true, texto: null, comando: null, noEntendi: false },
     gesto: { progreso: 0.6, accion: escena === 'saturada-pausa' ? 'reanudar' : 'pausar' },
     ultimoMensaje: 'Sube los brazos hasta arriba.', mensajesEmitidos: 1,
     feedback: { texto: 'Sube los brazos hasta arriba.', tipo: 'correccion', errorId: 'brazos', segmento: 'hombro',
