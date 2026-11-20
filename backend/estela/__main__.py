@@ -132,6 +132,9 @@ def _argumentos(argv=None, en_mac: Optional[bool] = None) -> argparse.Namespace:
                         "que empieza por «Estela» u «Oye Estela». pausa: solo en pausa y entre "
                         "ejercicios, y se interpreta todo. Defecto: llamada en el Mac, pausa en "
                         "los demás equipos")
+    p.add_argument("--voz-entrada-sonido", choices=("si", "no"), default="si",
+                   help="modo llamada: dos notas cortas al oír «Estela» (aviso de «te "
+                        "escucho»), también a media frase. Defecto: si")
     p.add_argument("--guarda-eco", type=float, default=config.GUARDA_ECO_S, metavar="SEGUNDOS",
                    help="tras callar ESTELA, segundos que la voz de entrada sigue sin escuchar, "
                         f"para no captar su eco (defecto: {config.GUARDA_ECO_S:g}, sin calibrar)")
@@ -192,10 +195,15 @@ def _crear_escucha(args: argparse.Namespace, voz, acciones, como_voy):
                              daemon=True).start()
             # el micrófono lo abre el hilo de la escucha: así se puede apagar, volver a
             # encender y cambiar por otro desde los ajustes
+            sonido = None
+            if llamada and getattr(args, "voz_entrada_sonido", "si") == "si":
+                from .adaptadores.voz.sonido import SonidoLlamada
+                sonido = SonidoLlamada().sonar
             escucha = EscuchaVoz(None, reconocedor, voz, acciones, como_voy,
                                  llamada=llamada, guarda_eco_s=args.guarda_eco,
                                  abrir_microfono=Microfono,
-                                 interrumpir_hablando=getattr(args, "voz_entrada_interrumpir", "no") == "si")
+                                 interrumpir_hablando=getattr(args, "voz_entrada_interrumpir", "no") == "si",
+                                 sonido=sonido)
             log.info("Órdenes de voz: activas (%s); %s", ruta.name,
                      ("también durante el ejercicio, di «Estela» y la orden"
                       + (", y también mientras ESTELA habla"

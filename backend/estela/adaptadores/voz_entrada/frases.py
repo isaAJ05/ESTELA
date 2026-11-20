@@ -38,16 +38,59 @@ class DetectorDeFrase:
         self.fs, self.bloque = fs, bloque
         self.reiniciar()
 
-    def reiniciar(self) -> None:
-        self._ruido: Optional[float] = None
-        self._previo: Deque[np.ndarray] = deque(maxlen=max(1, int(PREVIO_S * self.fs / self.bloque)))
+    def reiniciar(self, conservar_ruido: bool = False) -> None:
+        """Empieza limpio. `conservar_ruido`: mantiene el ruido de fondo estimado
+        (al volver de escuchar mientras hablaba ESTELA, la sala es la misma)."""
+        if not conservar_ruido or not hasattr(self, "_ruido"):
+            self._ruido: Optional[float] = None
+        self._previo: Deque[np.ndarray] = self._previo_normal()
         self._frase: List[np.ndarray] = []
         self._voz = 0                 # bloques con voz en la frase en curso
         self._silencio = 0            # bloques de silencio seguidos tras la voz
 
+    def _previo_normal(self) -> Deque[np.ndarray]:
+        return deque(maxlen=max(1, int(PREVIO_S * self.fs / self.bloque)))
+
+    def cebar(self, bloques: List[np.ndarray]) -> None:
+        """Audio ya oído que se antepone a la próxima frase si empieza enseguida.
+        Al callarse ESTELA, la usuaria puede estar a media palabra («Este-»): sin
+        esto la frase empezaría en «-la, pausa» y no se oiría la llamada."""
+        if self._frase or not bloques:
+            return
+        self._previo = deque(bloques, maxlen=max(len(bloques), self._previo.maxlen or 1))
+
     @property
     def en_frase(self) -> bool:
         return bool(self._frase)
+
+    @property
+    def segundos_en_frase(self) -> float:
+        return len(self._frase) * self.bloque / self.fs
+
+    def ultimos(self, segundos: float) -> Optional[np.ndarray]:
+        """Los últimos `segundos` de la frase en curso (None si no hay frase)."""
+        if not self._frase:
+            return None
+        n = max(1, int(segundos * self.fs / self.bloque))
+        return np.concatenate(self._frase[-n:])
+
+    def entregar(self) -> Optional[np.ndarray]:
+        """Da ya la frase en curso (sin esperar el silencio) y empieza otra."""
+        if not self._frase:
+            return None
+        frase = np.concatenate(self._frase)
+        self._frase, self._voz, self._silencio = [], 0, 0
+        self._previo = self._previo_normal()
+        return frase
+
+    def recortar(self, segundos: float) -> None:
+        """Deja en la frase en curso solo sus últimos `segundos`. Al oír «Estela» a
+        media frase, lo de antes era ruido o charla: así el tope de `MAX_FRASE_S`
+        vuelve a contar desde ahí y no corta la orden que viene."""
+        n = max(1, int(segundos * self.fs / self.bloque))
+        if len(self._frase) > n:
+            self._frase = self._frase[-n:]
+            self._voz = min(self._voz, n)
 
     def _umbral(self) -> float:
         return max(RMS_MINIMO, FACTOR_RUIDO * (self._ruido or 0.0))
@@ -82,7 +125,7 @@ class DetectorDeFrase:
             return None
         frase, voz = np.concatenate(self._frase), self._voz
         self._frase, self._voz, self._silencio = [], 0, 0
-        self._previo.clear()
+        self._previo = self._previo_normal()
         return frase if voz * por_bloque >= MIN_VOZ_S else None
 
 

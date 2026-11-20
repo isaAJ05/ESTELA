@@ -245,6 +245,45 @@ def separar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
     return False, " ".join(palabras)
 
 
+#: palabras que puede haber antes de «Estela» en `hallar_llamada` (muletillas, o
+#: lo que Whisper escribe al oír respiración o pasos: «Uf», «Ah», «¡Vamos!»)
+MAX_ANTES_DE_LLAMAR = 3
+
+
+def hallar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
+    """Como `separar_llamada`, pero sin exigir que «Estela» sea la primera palabra
+    (Paula, 2026-11-20: «no me está captando bien»). Durante el ejercicio el corte
+    por energía junta su voz con la respiración y los pasos, y Whisper escribe algo
+    antes («Uf, Estela, pausa»): con `separar_llamada` eso se ignoraba en silencio.
+    Vale si hay como mucho `MAX_ANTES_DE_LLAMAR` palabras antes, o si detrás viene
+    una orden, o si «Estela» es lo último que se oyó (la orden vendrá después).
+    Devuelve (¿hay llamada?, lo que sigue a la primera que vale)."""
+    palabras = _limpiar(texto).split()
+    for i, p in enumerate(palabras):
+        if p not in LLAMADAS:
+            continue
+        resto = " ".join(palabras[i + 1:])
+        if i <= MAX_ANTES_DE_LLAMAR or not resto or interpretar(resto).comando is not None:
+            return True, resto
+    return False, " ".join(palabras)
+
+
+def puede_seguir(texto: Optional[str], comando: str) -> bool:
+    """¿Lo dicho acaba en el comienzo de una forma de otra orden? «Estela,
+    reinicia» es el ejercicio, pero puede seguir «…todo» (la sesión). Con la frase
+    aún en curso, en ese caso se espera a que termine."""
+    relleno = f" {_limpiar(texto)} "
+    for otra in COMANDOS:
+        if otra == comando:
+            continue
+        for forma in LEXICO[otra]:
+            palabras = forma.split()
+            for k in range(1, len(palabras)):
+                if relleno.endswith(f" {' '.join(palabras[:k])} "):
+                    return True
+    return False
+
+
 #: Órdenes que cortaban a ESTELA en la primera versión del modo «interrumpir»
 #: (2026-11-17). Desde el 2026-11-20 «Estela» la calla siempre y vale cualquier
 #: orden (`EscuchaVoz.atender_hablando`); se conserva para los scripts de medición.
@@ -294,4 +333,4 @@ __all__ = ["COMANDOS", "PAUSA", "SEGUIR", "SIGUIENTE", "TERMINAR", "COMO_VOY",
            "LEXICO", "CONFIRMACION", "PREGUNTA_REINICIAR", "CONFIRMA_REINICIAR",
            "NO_ENTENDI", "ENTENDIDO", "VACIO", "SIN_COMANDO", "AMBIGUO", "SIN_LLAMADA", "SOLO_LLAMADA",
            "LLAMADAS", "VENTANA_LLAMADA_S", "VENTANA_CONFIRMACION_S", "Interpretacion",
-           "interpretar", "separar_llamada", "buscar_llamada", "ORDENES_QUE_INTERRUMPEN", "respuesta_de_confirmacion", "puede_escuchar"]
+           "interpretar", "separar_llamada", "buscar_llamada", "hallar_llamada", "MAX_ANTES_DE_LLAMAR", "puede_seguir", "ORDENES_QUE_INTERRUMPEN", "respuesta_de_confirmacion", "puede_escuchar"]

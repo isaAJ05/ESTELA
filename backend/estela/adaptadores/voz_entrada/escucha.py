@@ -28,6 +28,18 @@ se calla al momento y le cede el turno (`ColaVoz.ceder`); si venía una orden
 tras decir «Estela» a secas. `[?]` Sin medir con micrófono real: el eco de su
 propia voz y cuánto se entiende la orden por encima de ella.
 
+Aviso temprano (Paula, 2026-11-20: «apenas digo "Estela" quiero que me indique
+que me está escuchando, y que lo capte en cualquier momento»): con la frase aún
+en curso, cada 0,3 s se reconocen sus últimos 2 s (`Microfono.escuchar_frase(
+al_avanzar=…)`). Al oír «Estela» suena el aviso (`sonido`), el punto pasa a
+«Te escucho» y ESTELA cede el turno, sin esperar a que la usuaria calle. La
+orden se decide con la frase entera, o antes si dos trozos seguidos dan la misma
+orden y esta no puede seguir en otra (`cv.puede_seguir`): un trozo solo puede
+traer una palabra a medias. Así, con el ruido del ejercicio (que no deja
+silencio para cerrar la frase), la orden no espera al tope de 5 s. «Estela»
+vale aunque no sea la primera palabra (`hallar_llamada`), y el audio de cuando
+ESTELA empieza o acaba de hablar ya no se tira.
+
 Turno de la usuaria (`_ceder`): tras oír «Estela» (hablando ESTELA o no),
 ESTELA no empieza frases nuevas hasta que llega la orden o pasa la ventana de
 `VENTANA_LLAMADA_S`; las correcciones de ese rato se tiran.
@@ -56,7 +68,7 @@ MOSTRAR_S = 4.0
 REPETIR_CADA_S = 6.0
 #: modo «interrumpir»: audio que se reconoce de una vez y cada cuánto, y pausa
 #: tras actuar para no ejecutar dos veces la misma orden (ventanas solapadas)
-VENTANA_S, PASO_S, ENFRIAR_S = 2.5, 1.0, 2.0
+VENTANA_S, PASO_S, ENFRIAR_S = 2.5, 0.5, 2.0
 #: si la ventana que oyó «Estela» no traía la orden, segundos más que se escuchan
 #: (ESTELA ya callada) y se reconocen junto con ella: la orden suele quedar
 #: partida entre dos ventanas (Paula, 2026-11-20: «se calla pero no sigue la orden»)
@@ -69,7 +81,8 @@ class EscuchaVoz:
                  como_voy: Optional[Callable[[Any], Optional[str]]] = None,
                  llamada: bool = False, guarda_eco_s: float = 0.0,
                  abrir_microfono: Optional[Callable[[Optional[int]], Any]] = None,
-                 interrumpir_hablando: bool = False) -> None:
+                 interrumpir_hablando: bool = False,
+                 sonido: Optional[Callable[[], None]] = None) -> None:
         """`microfono`: `escuchar_frase(cancelar, espera_s)` y `descartar()`; None si
         se abrirá después con `abrir_microfono(dispositivo)`. Con esa fábrica el
         micrófono se puede apagar de verdad (se cierra), encender y cambiar por otro.
@@ -77,7 +90,8 @@ class EscuchaVoz:
         «pausar», «reanudar», «listo», «siguiente», «anterior», «reiniciar» y
         «terminar»; con `llamada` también «reiniciar_sesion», «reconocer_si»,
         «reconocer_no», «voz_si» y «voz_no». `como_voy`: recibe la sesión y da el texto de respuesta a
-        «¿cómo voy?» (puede tardar: corre en este hilo, no en el de la sesión)."""
+        «¿cómo voy?» (puede tardar: corre en este hilo, no en el de la sesión).
+        `sonido`: lo que suena al oír «Estela» (no bloquea); None, nada."""
         self.microfono, self.reconocedor, self.voz = microfono, reconocedor, voz
         self.acciones, self.como_voy = acciones, como_voy
         self._abrir = abrir_microfono
@@ -118,6 +132,11 @@ class EscuchaVoz:
         #: `angulos`, `reconocer` y `voz`: solo el ajuste pedido en esa orden lleva valor
         self._pantalla: Dict[str, Any] = {"angulos": None, "reconocer": None, "voz": None, "n": 0}
         self.ignoradas = 0
+        self.sonido = sonido
+        #: «Estela» oída antes de acabar la frase (en la frase en curso), y cuántas veces
+        self._temprana = False
+        self._orden_vista: Optional[str] = None
+        self.avisos_tempranos = 0
         marcar = getattr(voz, "no_repetibles", None)
         if marcar is not None:
             marcar(cv.frases_propias())            # «repite eso» no repite las confirmaciones
@@ -297,19 +316,25 @@ class EscuchaVoz:
                 try:
                     audio = mic.escuchar_ventana(
                         cancelar=lambda: (self._parar.is_set() or self._hay_cambios.is_set()
-                                          or not self._se_puede() or not self._hablando_ahora()),
-                        ventana_s=VENTANA_S, paso_s=PASO_S)
+                                          or not self._se_puede()),
+                        ventana_s=VENTANA_S, paso_s=PASO_S,
+                        hasta=lambda: not self._hablando_ahora())
                     if audio is not None and time.monotonic() >= self._enfriar_hasta:
                         self.atender_hablando(audio)
                 except Exception:                         # noqa: BLE001
                     log.exception("fallo en la escucha mientras habla ESTELA")
                     time.sleep(0.5)
                 continue
+            temprano = {}
+            if self.llamada and not probando and getattr(mic, "avisa_temprano", False):
+                temprano = {"al_avanzar": self._oir_temprano}
+            self._temprana, self._orden_vista = False, None
             try:
                 audio = mic.escuchar_frase(
                     cancelar=lambda: (self._parar.is_set() or self._hay_cambios.is_set()
                                       or not (self._probando() or self._se_puede())
-                                      or (not self._probando() and self._hablando_ahora())))
+                                      or (not self._probando() and self._hablando_ahora())),
+                    **temprano)
                 if audio is None:
                     continue
                 if self._probando():
@@ -323,6 +348,58 @@ class EscuchaVoz:
     def _hablando_ahora(self) -> bool:
         """¿Toca el modo de ventanas? Solo con «interrumpir» y mientras ESTELA habla."""
         return self.interrumpir_hablando and bool(getattr(self.voz, "ocupada", False))
+
+    def _oir_temprano(self, audio: Any) -> Optional[str]:
+        """Trozo de la frase en curso. Antes de oír «Estela»: si ya la dijo, avisa
+        al momento ("oida"). Después (o si ya estaba atenta por un «Estela» a
+        secas): "lista" si dos trozos seguidos traen la misma orden y no puede
+        seguir en otra; si no, None (se sigue escuchando)."""
+        if not self._se_puede():
+            return None
+        t0 = time.perf_counter()
+        texto = (self.reconocedor.transcribir(audio) or "").strip()
+        ms = (time.perf_counter() - t0) * 1000.0
+        llamado, resto = cv.hallar_llamada(texto)
+        if self._temprana:
+            orden = self._orden_segura(resto) if llamado else None
+        elif llamado:
+            self._temprana = True
+            self.avisos_tempranos += 1
+            log.info("Voz: «Estela» oída a media frase (%.0f ms): te escucho", ms)
+            self._llamada_oida()
+            self._orden_vista = self._orden_segura(resto)
+            return "oida"
+        elif time.monotonic() < self._ventana_hasta:
+            # ya dijo «Estela» en la frase anterior: esta es la orden, sin «Estela»
+            orden = self._orden_segura(cv._limpiar(texto))
+        else:
+            return None
+        if orden is not None and orden == self._orden_vista:
+            log.info("Voz: orden clara a media frase: %s (%.0f ms)", orden, ms)
+            return "lista"
+        self._orden_vista = orden
+        return None
+
+    @staticmethod
+    def _orden_segura(resto: str) -> Optional[str]:
+        """La orden de un trozo, si se puede dar por dicha: una sola, sin dolor de
+        por medio y sin poder seguir en otra («reinicia» → «reinicia todo»)."""
+        c = cv.interpretar(resto).comando
+        if c is None or menciona_dolor(resto) or cv.puede_seguir(resto, c):
+            return None
+        return c
+
+    def _llamada_oida(self, ceder: bool = True) -> None:
+        """Oyó «Estela»: suena el aviso, la pantalla dice «Te escucho» y ESTELA
+        espera la orden (no empieza frases nuevas) durante `VENTANA_LLAMADA_S`."""
+        self._ventana_hasta = max(self._ventana_hasta, time.monotonic() + cv.VENTANA_LLAMADA_S)
+        if ceder:
+            self._ceder(cv.VENTANA_LLAMADA_S)
+        if self.sonido is not None:
+            try:
+                self.sonido()
+            except Exception:                             # noqa: BLE001 — sin sonido se sigue
+                log.exception("fallo al sonar el aviso de «Estela»")
 
     def _ceder(self, segundos: float) -> None:
         """Da (o devuelve, con 0) el turno a la usuaria en la cola de voz."""
@@ -344,6 +421,9 @@ class EscuchaVoz:
             return None
         actual = getattr(self.voz, "texto_hablando", None)
         if actual and any(p in cv.LLAMADAS for p in cv._limpiar(actual).split()):
+            olvidar = getattr(self.microfono, "olvidar_ventana", None)
+            if olvidar is not None:                  # que la frase siguiente tampoco la oiga
+                olvidar()
             return None                              # puede ser su propia voz diciendo «Estela»
         self.ventanas_con_llamada += 1
         # la usuaria manda: ESTELA se calla ya y le deja el turno
@@ -354,6 +434,7 @@ class EscuchaVoz:
         i = cv.interpretar(resto)
         dolor = menciona_dolor(resto)
         if not dolor and i.comando is None:
+            self._llamada_oida(ceder=False)          # suena el aviso (el turno ya se cedió)
             texto, i, dolor, ms = self._continuar(audio, texto, i, ms)
         self._enfriar_hasta = time.monotonic() + ENFRIAR_S
         olvidar = getattr(self.microfono, "olvidar_ventana", None)
@@ -374,6 +455,7 @@ class EscuchaVoz:
                               "reconocer_ms": round(ms), "durante_voz": True})
         log.info("Voz (mientras hablaba): «%s» → %s (%.0f ms)", texto,
                  "dolor" if dolor else i.comando, ms)
+        self._ventana_hasta = 0.0                    # la orden llegó: la frase siguiente necesita «Estela»
         self._ceder(0)
         if dolor:
             self._responder_dolor(texto)
@@ -425,7 +507,7 @@ class EscuchaVoz:
         """Prueba desde los ajustes: qué se oyó y qué se entendería. No actúa ni
         lo guarda en el registro de la sesión."""
         texto = (self.reconocedor.transcribir(audio) or "").strip()
-        llamado, orden = cv.separar_llamada(texto) if self.llamada else (True, texto)
+        llamado, orden = cv.hallar_llamada(texto) if self.llamada else (True, texto)
         comando = cv.interpretar(orden).comando if llamado else None
         with self._cerrojo:
             n = (self._prueba or {}).get("n", 0) + 1
@@ -469,7 +551,8 @@ class EscuchaVoz:
         o, si la frase ya quedó resuelta (ignorada, solo «Estela», un sí o un
         no), la `Interpretacion` con la que `atender` termina."""
         ahora = time.monotonic()
-        llamado, resto = cv.separar_llamada(texto)
+        llamado, resto = cv.hallar_llamada(texto)
+        temprana, self._temprana = self._temprana, False
         esperando_si = self._pendiente is not None and ahora < self._pendiente_hasta
         if self._pendiente is not None and not esperando_si:
             self._pendiente = None
@@ -480,12 +563,19 @@ class EscuchaVoz:
             if not llamado:
                 return self._ignorar(texto, ms)       # ruido mientras espera el sí
             self._pendiente = None                    # le habló de otra cosa: se cancela
+        if temprana and not llamado:
+            # un trozo oyó «Estela» pero la frase entera no la trae: de esta frase no
+            # se ejecuta nada (podría ser ruido); queda atenta a la siguiente
+            llamado, resto = True, ""
         if not llamado and ahora >= self._ventana_hasta:
             return self._ignorar(texto, ms)
         self._ventana_hasta = 0.0
         if llamado and not resto:
-            self._ventana_hasta = ahora + cv.VENTANA_LLAMADA_S
-            self._ceder(cv.VENTANA_LLAMADA_S)          # turno de la usuaria: ESTELA espera la orden
+            if temprana:                               # ya sonó el aviso a media frase
+                self._ventana_hasta = ahora + cv.VENTANA_LLAMADA_S
+                self._ceder(cv.VENTANA_LLAMADA_S)
+            else:
+                self._llamada_oida()                   # suena el aviso; atenta a la orden
             self.registro.append({"texto": texto, "comando": None, "motivo": cv.SOLO_LLAMADA,
                                   "reconocer_ms": round(ms)})
             self._anota(texto, None, False)
