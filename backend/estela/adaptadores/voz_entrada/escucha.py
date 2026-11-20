@@ -491,6 +491,12 @@ class EscuchaVoz:
             self._pendiente_hasta = time.monotonic() + cv.VENTANA_CONFIRMACION_S
             self.voz.decir(cv.PREGUNTA_REINICIAR, PRIORIDAD_AVISO)
             return
+        if comando == cv.CALLAR:                  # solo la frase de ahora; la voz sigue
+            self._ceder(0)
+            cortar = getattr(self.voz, "interrumpir", None)
+            if cortar is not None:
+                cortar()
+            return
         if comando == cv.REPITE_ESO:
             self.voz.decir(getattr(self.voz, "ultima_repetible", None) or cv.NO_HAY_QUE_REPETIR,
                            PRIORIDAD_AVISO)

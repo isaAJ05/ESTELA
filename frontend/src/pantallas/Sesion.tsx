@@ -459,6 +459,7 @@ const ORDEN_DICHA: Record<string, string> = {
   reconocer_si: 'Reconocer activado', reconocer_no: 'Reconocer desactivado',
   repite_eso: 'Repite eso', voz_si: 'Voz activada', voz_no: 'Voz desactivada',
   angulos_si: 'Ángulos activados', angulos_no: 'Ángulos desactivados',
+  callar: 'Callar (solo esta frase)',
 }
 
 /** Puntos pequeños: si ESTELA tiene la cámara y el micrófono en uso, y cómo está el

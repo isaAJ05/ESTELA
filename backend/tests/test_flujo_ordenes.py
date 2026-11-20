@@ -387,3 +387,51 @@ def test_la_sesion_avisa_al_estimador_de_los_momentos_sin_evaluacion(catalogo):
     for i in range(5, 10):
         s.procesar(0.0, i * 100)                  # en marcha y sin aviso sonando
     assert est.libres == antes
+
+
+def test_calla_corta_solo_la_frase_y_silencio_toda_la_sesion():
+    """Paula, 2026-11-20: interrumpir lo que dice, no callarla toda la sesión."""
+    assert cv.interpretar("calla").comando == cv.CALLAR
+    assert cv.interpretar("ya basta").comando == cv.CALLAR
+    assert cv.interpretar("silencio").comando == cv.VOZ_NO
+    e, hechas, voz = _escucha_hablando("Estela, cállate", VozHablandoQueCede())
+    i = e.atender_hablando(np.zeros(160, np.float32))
+    assert i.comando == cv.CALLAR and hechas == [] and voz.dichas == []
+    assert voz.cortes >= 1 and voz.cedido[-1] == 0          # cortó y devolvió el turno
+
+
+def test_al_completar_la_rutina_espera_a_que_termine_de_hablar(catalogo):
+    """Paula, 2026-11-20: si el último ejercicio acaba mientras ESTELA habla,
+    termina de hablar antes de pasar a la pantalla de resumen."""
+    class VozQueAcaba(VozFalsa):
+        def __init__(self):
+            super().__init__()
+            self.quedan = 5
+
+        @property
+        def ocupada(self):
+            return self.quedan > 0
+
+        def interrumpir(self):
+            self.quedan = 0
+
+    class Fuente:
+        def __init__(self, voz):
+            self.voz, self.leidas = voz, 0
+
+        def leer(self):
+            self.leidas += 1
+            self.voz.quedan -= 1
+            return (np.zeros((4, 4, 3), np.uint8), self.leidas)
+
+    voz = VozQueAcaba()
+    o = Orquestador(rutina_de_un_ejercicio("plancha", 5, catalogo), catalogo,
+                    lambda: None, lambda: None, voz, espejo=False)
+    f = Fuente(voz)
+    o._esperar_voz_final(f)
+    assert not voz.ocupada and f.leidas == 5               # siguió mostrando la imagen
+    voz.quedan = 100
+    o.terminar()                                           # «Terminar» corta y no espera
+    f = Fuente(voz)
+    o._esperar_voz_final(f)
+    assert f.leidas == 0

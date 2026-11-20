@@ -52,6 +52,10 @@ INICIO, PREPARANDO, SESION, RESUMEN, ERROR = (
 
 #: ancho del frame que se envía a la ventana (solo para verlo)
 ANCHO_VIDEO = 640
+#: Al completar la rutina, segundos como máximo que se espera a que ESTELA
+#: termine lo que está diciendo antes de pasar a la pantalla de resumen
+#: (Paula, 2026-11-20: «que termine de hablar antes de pasar a terminado»).
+ESPERA_VOZ_FINAL_S = 15.0
 CALIDAD_JPEG = 70
 #: vista previa de la cámara en los ajustes: más pequeña, y se cierra sola
 #: si la interfaz deja de pedirla (p. ej. se cerró el panel sin avisar)
@@ -565,6 +569,8 @@ class Orquestador:
                 if sesion.terminada:
                     motivo = contrato.FIN_COMPLETADA
                     break
+            if motivo == contrato.FIN_COMPLETADA:
+                self._esperar_voz_final(fuente)
         except Exception:
             log.exception("Error en la sesión")
             motivo = contrato.FIN_ERROR
@@ -583,6 +589,20 @@ class Orquestador:
         self._publicar(fase=RESUMEN, estado=None, frame=None,
                        resumen=contrato.resumen_a_dict(resumen, self.catalogo, motivo,
                                                        guardada))
+
+    def _esperar_voz_final(self, fuente: Any) -> None:
+        """La rutina se completó: deja que ESTELA termine de hablar («Rutina
+        terminada. Buen trabajo.», la última corrección…) antes del resumen.
+        La imagen sigue en pantalla. «Terminar» corta la voz (`_callar`), así que
+        no espera; cerrar la ventana tampoco."""
+        fin = time.monotonic() + ESPERA_VOZ_FINAL_S
+        while (getattr(self._voz, "ocupada", False) and time.monotonic() < fin
+               and not self._parar.is_set()):
+            leido = fuente.leer()
+            if leido is not None:
+                self._publicar(frame=leido[0])
+            else:
+                time.sleep(0.05)
 
     def _guardar(self, resumen: Dict[str, Any], motivo: str) -> Optional[bool]:
         """Añade la sesión al historial. False si no había nada que guardar

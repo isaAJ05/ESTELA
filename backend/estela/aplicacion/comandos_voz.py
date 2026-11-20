@@ -34,11 +34,13 @@ ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION = (
 RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO = (
     "reconocer_si", "reconocer_no", "angulos_si", "angulos_no")
 REPITE_ESO, VOZ_SI, VOZ_NO = "repite_eso", "voz_si", "voz_no"
+#: corta solo lo que ESTELA está diciendo; la voz sigue encendida (Paula, 2026-11-20)
+CALLAR = "callar"
 #: lista cerrada de órdenes
 COMANDOS: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, TERMINAR, COMO_VOY,
                              ANTERIOR, REINICIAR_EJERCICIO, REINICIAR_SESION,
                              RECONOCER_SI, RECONOCER_NO, ANGULOS_SI, ANGULOS_NO,
-                             REPITE_ESO, VOZ_SI, VOZ_NO)
+                             REPITE_ESO, VOZ_SI, VOZ_NO, CALLAR)
 #: Órdenes que cambian un ajuste de la pantalla, no el curso de la rutina: (ajuste, valor).
 #: La escucha las publica en `pantalla` para que los botones de la interfaz las sigan.
 AJUSTES_DE_PANTALLA: Dict[str, Tuple[str, bool]] = {
@@ -106,9 +108,13 @@ LEXICO: Dict[str, Tuple[str, ...]] = {
     VOZ_SI: ("voz activada", "activa la voz", "activar la voz", "enciende la voz",
              "hablame", "habla", "vuelve a hablar", "puedes hablar", "quita el silencio",
              "con voz"),
+    # toda la sesión callada (hasta «Estela, háblame»)
     VOZ_NO: ("voz desactivada", "desactiva la voz", "desactivar la voz", "apaga la voz",
-             "silencia la voz", "silencio", "callate", "calla", "no hables", "sin voz",
-             "silenciate"),
+             "silencia la voz", "silencio", "no hables", "sin voz", "silenciate",
+             "no hables mas", "callate el resto"),
+    # solo la frase que suena ahora (2026-11-20: antes «calla» callaba toda la sesión)
+    CALLAR: ("calla", "callate", "basta", "ya basta", "shh", "shhh", "deja de hablar",
+             "para de hablar", "suficiente", "ya esta bien", "ya entendi", "corta"),
 }
 
 #: Lo que ESTELA dice al confirmar cada orden (texto fijo). Vacío donde la sesión
@@ -131,6 +137,7 @@ CONFIRMACION: Dict[str, str] = {
     REPITE_ESO: "",                     # repite lo último que se dijo
     VOZ_SI: "Voz activada.",
     VOZ_NO: "",                         # silenciada: no puede decir nada
+    CALLAR: "",                         # se calla, nada más
 }
 #: si no se ha dicho nada que repetir
 NO_HAY_QUE_REPETIR = "No tengo nada que repetir."
@@ -239,7 +246,7 @@ def separar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
 #: (2026-11-17). Desde el 2026-11-20 «Estela» la calla siempre y vale cualquier
 #: orden (`EscuchaVoz.atender_hablando`); se conserva para los scripts de medición.
 ORDENES_QUE_INTERRUMPEN: Tuple[str, ...] = (PAUSA, SEGUIR, SIGUIENTE, ANTERIOR, TERMINAR,
-                                            REINICIAR_EJERCICIO, VOZ_NO)
+                                            REINICIAR_EJERCICIO, VOZ_NO, CALLAR)
 
 
 def buscar_llamada(texto: Optional[str]) -> Tuple[bool, str]:
