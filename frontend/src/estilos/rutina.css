@@ -75,6 +75,9 @@
   background: linear-gradient(160deg, var(--color-superficie-elevada), var(--color-superficie));
   transition: border-color var(--duracion-corta), box-shadow var(--duracion-corta), transform var(--duracion-corta);
 }
+/* toda la tarjeta es clicable */
+.tarjeta-ejercicio, .tarjeta-mi-rutina { cursor: pointer; }
+.tarjeta-ejercicio-pie { cursor: default; }
 .tarjeta-ejercicio:hover { border-color: rgba(169, 157, 255, 0.45); box-shadow: var(--sombra-suave); transform: translateY(-2px); }
 .tarjeta-ejercicio:focus-within { border-color: rgba(169, 157, 255, 0.6); }
 .tarjeta-ejercicio.elegida {
@@ -112,16 +115,6 @@
 .tarjeta-ejercicio-info { display: flex; flex-direction: column; gap: var(--espacio-2); min-width: 0; padding: var(--espacio-4); }
 .tarjeta-ejercicio-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--espacio-3); }
 .tarjeta-ejercicio-cabeza h3 { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; }
-.tarjeta-ejercicio-marca {
-  flex: 0 0 auto; display: inline-flex; align-items: center; justify-content: center; gap: 0.125rem;
-  min-width: 1.75rem; height: 1.75rem; padding: 0 0.4375rem;
-  border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
-  background: var(--color-relleno); color: var(--color-texto-suave); font-size: 0.8125rem; font-weight: 800;
-  transition: background var(--duracion-corta), color var(--duracion-corta), border-color var(--duracion-corta);
-}
-.tarjeta-ejercicio-marca svg { width: 0.875rem; height: 0.875rem; }
-.tarjeta-ejercicio:hover .tarjeta-ejercicio-marca { border-color: var(--color-violeta); color: var(--color-violeta-suave); }
-.tarjeta-ejercicio.elegida .tarjeta-ejercicio-marca { border-color: transparent; background: var(--color-violeta-suave); color: var(--color-sobre-violeta); }
 .tarjeta-ejercicio-descripcion { color: var(--color-texto-suave); font-size: 0.875rem; line-height: 1.5; }
 
 .tarjeta-ejercicio-pie { margin-top: auto; padding-top: var(--espacio-3); border-top: 1px solid var(--color-linea); }
@@ -292,10 +285,6 @@
 .tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini:nth-child(2) { transition-delay: 40ms; }
 .tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini:nth-child(3) { transition-delay: 80ms; }
 .tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini:nth-child(4) { transition-delay: 120ms; }
-.tarjeta-mi-rutina-mas {
-  display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%;
-  background: var(--color-relleno); color: var(--color-texto-suave); font-size: 0.8125rem; font-weight: 800;
-}
 /* píldora con ejercicios y duración, como la de la vista en las tarjetas de ejercicio */
 .tarjeta-mi-rutina-cifras {
   position: absolute; bottom: var(--espacio-3); left: 50%; transform: translateX(-50%);
@@ -321,7 +310,6 @@
   background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, #e7e0ff, #d9cfff);
 }
 [data-tema="claro"] .tarjeta-mi-rutina-mini { background: rgba(255, 255, 255, 0.7); box-shadow: 0 0 0 1px rgba(106, 85, 232, 0.14); }
-[data-tema="claro"] .tarjeta-mi-rutina-mas { background: rgba(255, 255, 255, 0.7); }
 
 /* nombre, ejercicios y botones */
 .tarjeta-mi-rutina-info { display: flex; flex: 1; flex-direction: column; gap: var(--espacio-2); min-width: 0; padding: var(--espacio-4); }
@@ -342,13 +330,8 @@
   margin: 0 0 var(--espacio-2); padding: 0; list-style: none;
 }
 .tarjeta-mi-rutina-pasos li {
-  display: grid; grid-template-columns: 1.375rem minmax(0, 1fr) auto; align-items: center; gap: var(--espacio-2);
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--espacio-2);
   padding: 0.3125rem 0.5rem; border-radius: var(--radio-sm); background: var(--color-hundido);
-}
-.tarjeta-mi-rutina-numero {
-  display: grid; place-items: center; width: 1.375rem; height: 1.375rem; border-radius: 50%;
-  background: rgba(128, 107, 255, 0.16); color: var(--color-violeta-suave);
-  font-family: var(--fuente-mono); font-size: 0.6875rem; font-weight: 700;
 }
 /* nombres largos en hasta dos líneas; el completo queda en el title del elemento */
 .tarjeta-mi-rutina-nombre {

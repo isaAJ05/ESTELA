@@ -12,7 +12,7 @@
 .progreso-cabeza h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); letter-spacing: -0.05em; line-height: 1; }
 .progreso-cabeza h1 em { color: var(--color-violeta-suave); font-style: normal; }
 .progreso-privacidad {
-  display: flex; align-items: flex-start; gap: var(--espacio-2); max-width: 46rem;
+  display: flex; align-items: flex-start; gap: var(--espacio-2);
   color: var(--color-texto-suave); font-size: 0.9375rem;
 }
 .progreso-privacidad svg { flex: none; width: 1.125rem; height: 1.125rem; margin-top: 0.15rem; color: var(--color-violeta-suave); }
@@ -173,7 +173,8 @@ button.calendario-celda:hover:not(:disabled) { border-color: var(--color-violeta
 .tarjeta-progreso header { display: flex; align-items: center; gap: var(--espacio-3); }
 .tarjeta-progreso header strong { display: block; color: var(--color-texto); }
 .tarjeta-progreso header span { color: var(--color-texto-sutil); font-size: 0.875rem; }
-.progreso-marcas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espacio-2); margin: 0; }
+/* columnas a la medida de su etiqueta: «Objetivo alcanzado» cabe en una línea */
+.progreso-marcas { display: grid; grid-template-columns: repeat(3, auto); justify-content: space-between; gap: var(--espacio-3); margin: 0; }
 /* tres columnas a lo ancho de la tarjeta: la primera a la izquierda, la del medio centrada y la última al borde derecho */
 .progreso-marcas div:nth-child(2) { justify-items: center; text-align: center; }
 .progreso-marcas div:nth-child(3) { justify-items: end; text-align: right; }
@@ -237,9 +238,28 @@ button.calendario-celda:hover:not(:disabled) { border-color: var(--color-violeta
 .progreso-historial .enlace-editar { margin-top: var(--espacio-2); }
 .girada { transform: rotate(180deg); }
 
+/* -- textos en una sola línea ---------------------------------------------------------
+   Etiquetas, cifras y datos cortos no se parten: si no caben se cortan con «…» y el
+   texto completo queda en el title. Las frases (indicaciones, avisos) sí pueden partirse. */
+.cifra-etiqueta > span, .cifra-extra, .cifra-detalle,
+.tarjeta-progreso header span,
+.progreso-indicaciones li span, .fila-sesion-principal span,
+.comparacion-delta, .calendario-detalle > p, .calendario-cabeza .progreso-sub {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cifra-extra { display: block; min-width: 0; }
+/* el nombre sí puede ir en dos líneas: al final dice la pierna, que distingue las tarjetas.
+   Columna interna minmax(0, 1fr): ningún texto ensancha la tarjeta más allá de su borde */
+.tarjeta-progreso { grid-template-columns: minmax(0, 1fr); }
+.tarjeta-progreso > *, .tarjeta-progreso header > div { min-width: 0; }
+.progreso-marcas dt, .progreso-marcas dd { white-space: nowrap; }
+.comparacion-semana { flex-wrap: nowrap; min-width: 0; }
+.comparacion-actual { flex: none; white-space: nowrap; }
+.comparacion-delta { min-width: 0; }
+
 /* -- borrar historial ------------------------------------------------------------- */
 .progreso-pie { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--espacio-4) var(--espacio-6); }
-.progreso-pie .descargo { flex: 1 1 24rem; max-width: 48rem; }
+.progreso-pie .descargo { flex: 1 1 24rem; max-width: none; }
 .progreso-borrar { display: grid; gap: var(--espacio-2); justify-items: start; }
 .dialogo-borrar { text-align: left; }
 .dialogo-borrar h2 { font-size: 1.625rem; }
