@@ -54,3 +54,14 @@ def test_un_animo_sin_la_correccion_cae_a_plantilla():
     v = LLMFalso(["Cadera, así, muy bien."])
     m = v.verbalizar(_error(0))
     assert m.fallback and m.motivo_rechazo == "sin_correccion"
+
+
+def test_otra_direccion_compatible_vale_y_el_tronco_se_describe_hacia_un_lado():
+    from estela.adaptadores.llm.llm_local import _descripcion_variada
+    v = LLMFalso(["Vamos, eleva la cadera."])
+    assert not v.verbalizar(_error(0)).fallback
+    e = ErrorTipificado(error_id="tronco_inclinado_der", segmento="tronco", lado=Lado.DERECHO,
+                        severidad=Severidad.LEVE, fase="", repeticion=0,
+                        ejercicio_id="abduccion_cadera_izq")
+    d = _descripcion_variada(e, "No inclines el tronco hacia la derecha.", (), 0)
+    assert "hacia la derecha" in d and "tronco derecho" not in d

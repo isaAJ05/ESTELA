@@ -56,8 +56,12 @@ temperatura 0,3, así que el modelo devolvía casi siempre la misma frase. Ahora
     alta, con ejemplos de giros variados;
   - temperatura 0,7. El validador sigue igual: lo que cambie la parte del
     cuerpo, el lado o la dirección cae a plantilla. Y además, solo aquí, si el
-    error trae dirección y la frase no la pide (un ánimo sin corrección, como
-    «Codo izquierdo, muy bien, ahora.»), cae a plantilla (`sin_correccion`).
+    error trae dirección y la frase no pide ninguna (un ánimo sin corrección,
+    como «Hombro, así, muy bien.»), cae a plantilla (`sin_correccion`). Pedir
+    otra dirección compatible vale («baja más la rodilla» por «flexiona»); la
+    contraria ya la rechaza el validador.
+  - Si la parte es el tronco y trae lado, se le describe como «se inclina
+    hacia la derecha» (con «tronco derecho» el modelo lo confundía con «recto»).
 `variar=False` reproduce el comportamiento anterior (para comparar).
 """
 
@@ -183,7 +187,13 @@ def _descripcion_variada(error: ErrorTipificado, referencia: str,
                          dichas: Tuple[str, ...], veces: int) -> str:
     """`_descripcion_error` más la frase de referencia (la plantilla: fija el
     sentido), cuántas veces se corrigió ya y lo ya dicho, para no repetirlo."""
-    lineas = [_descripcion_error(error),
+    base = _descripcion_error(error)
+    if error.segmento == "tronco" and error.lado in (Lado.IZQUIERDO, Lado.DERECHO):
+        hacia = "derecha" if error.lado == Lado.DERECHO else "izquierda"
+        base = "\n".join(f"parte del cuerpo: tronco (se inclina hacia la {hacia}; "
+                         f"di «hacia la {hacia}»)" if ln.startswith("parte del cuerpo:") else ln
+                         for ln in base.split("\n"))
+    lineas = [base,
               f"frase de referencia (mismo sentido, otras palabras): «{referencia}»",
               f"veces que ya se corrigió esto en este ejercicio: {veces}"]
     if dichas:
@@ -230,6 +240,8 @@ class VerbalizadorLLMLocal(Verbalizador):
         self.caidas: Dict[str, int] = {}
         #: veces que hubo que volver a cargar el modelo tras un fallo del servidor
         self.recargas = 0
+        #: última frase del modelo que no pasó la revisión (para medir)
+        self.ultimo_rechazado: Optional[str] = None
         self._recargando = threading.Lock()
         self._ult_recarga = float("-inf")
 
@@ -381,10 +393,11 @@ class VerbalizadorLLMLocal(Verbalizador):
         if self.restringido:
             res = validar(texto, error)
             if (res.valido and self.variar and error.direccion is not None
-                    and error.direccion not in direcciones_pedidas(texto)):
+                    and not direcciones_pedidas(texto)):
                 res = type(res)(False, "sin_correccion")
             if not res.valido:
                 motivo = res.motivo
+                self.ultimo_rechazado = texto
                 self._anota_caida(motivo)
                 msg = self.fallback.verbalizar(error)
                 return MensajeFeedback(

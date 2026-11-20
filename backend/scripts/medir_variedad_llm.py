@@ -61,6 +61,7 @@ def correr(variar, modelo, url, veces, catalogo):
                                 ejercicio_id=sid, mensaje_id=regla.mensaje_id or regla.error_id,
                                 direccion=direccion)
             t0 = time.perf_counter()
+            v.ultimo_rechazado = None
             m = v.verbalizar(e)
             ms = (time.perf_counter() - t0) * 1000.0
             if not m.fallback:
@@ -68,6 +69,7 @@ def correr(variar, modelo, url, veces, catalogo):
             else:
                 caidas[m.motivo_rechazo.split(":")[0]] += 1
             textos.append({"texto": m.texto, "plantilla": m.fallback,
+                           "rechazada": v.ultimo_rechazado if m.fallback else None,
                            "motivo": m.motivo_rechazo, "ms": round(ms)})
         distintas = len({t["texto"].lower().strip(" .") for t in textos})
         filas.append({"ejercicio": sid, "error": regla.error_id, "distintas": distintas,
