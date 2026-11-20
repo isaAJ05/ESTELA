@@ -1,4 +1,4 @@
-import { Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
+import { Camera, CameraOff, Check, Circle, DraftingCompass, Footprints, Hand, Info, Loader2, Pause, Play, RotateCcw, RotateCw, ScanLine, SkipBack, SkipForward, Sparkles, Square, UserX, Volume2 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import type { Bridge, Colocacion as ColocacionEstado, EstadoSesion, Feedback, MotivoPausa, PasoRutina, TipoAviso } from '../bridge/tipos'
 import { BotonReconocer, BotonVoz } from '../componentes/ajustes'
@@ -23,6 +23,8 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
   const hayDatos = useEstado((s) => s.estado?.sesion != null)
   const pausaManual = useCapacidad('pausaManual')
   const pausada = useSesion('motivoPausa') === 'usuaria'
+  const enPausa = useSesion('pausada') === true          // por cualquier motivo
+  const colocando = useSesion('colocacion') != null
   const silenciable = useCapacidad('silenciarVoz')
   const conColocacion = useCapacidad('colocacion')
   const { hayAnterior, haySiguiente } = useNavegacion()
@@ -62,13 +64,22 @@ export function Sesion({ bridge }: { bridge: Bridge }) {
         <div className="escenario-zona">
         <section className="escenario">
           <VistaCamara mostrarAngulos={angulos} />
-          {hayDatos ? <>
-            <AvisoSesion />
-            <BandaMensaje />
-            {conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
-            <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
-            <GestoPausa />
-          </> : (
+          {hayDatos ? (
+            /* Tres zonas que no se pisan (Paula, 2026-11-17: las tarjetas se sobreponían):
+               arriba los avisos cortos, en el centro una sola tarjeta (la pausa manda
+               sobre la colocación) y abajo la última indicación. */
+            <div className={`escenario-capas${enPausa ? ' velo-fuerte' : colocando && conColocacion ? ' velo' : ''}`}>
+              <div className="zona-arriba">
+                <AvisoSesion />
+                <GestoPausa />
+              </div>
+              <div className="zona-centro">
+                {enPausa ? <Pausa bridge={bridge} alTerminar={() => setConfirmar(true)} />
+                  : conColocacion ? <Colocacion bridge={bridge} /> : <Transicion />}
+              </div>
+              <div className="zona-abajo"><BandaMensaje /></div>
+            </div>
+          ) : (
             <div className="escenario-cargando"><Loader2 className="girando" />Buscándote en la cámara…</div>
           )}
           {depurar && <Depuracion />}
@@ -103,6 +114,7 @@ function BarraSuperior({ bridge, alTerminar, angulos, alternarAngulos }: {
         <Constelacion paso={paso} total={total} />
         <span className="etiqueta">Ejercicio {paso} de {total}</span>
       </div>
+      <EnUso />
       <nav className="acciones-sesion" aria-label="Controles de la sesión">
         {pausaManual && (
           <Boton variante="suave" onClick={() => void (pausada ? bridge.reanudar() : bridge.pausar())}
@@ -480,4 +492,24 @@ function useFpsInterfaz(): number {
     return () => cancelAnimationFrame(raf)
   }, [])
   return fps
+}
+
+/** Punto pequeño de la cabecera: la cámara en uso, o tachada si se analiza un vídeo
+ *  (de feature/mac-flujo, sin el indicador del micrófono). */
+function EnUso() {
+  const conCamara = useEstado((s) => (s.info?.fuente ?? 'camara') === 'camara')
+  return (
+    <div className="indicadores-uso" aria-label="Cámara">
+      {conCamara ? (
+        <span className="en-uso-item en-uso" title="Cámara en uso" role="img" aria-label="Cámara en uso">
+          <Camera aria-hidden="true" /><i />
+        </span>
+      ) : (
+        <span className="en-uso-item apagado" title="Cámara apagada: se analiza un vídeo"
+              role="img" aria-label="Cámara apagada">
+          <CameraOff aria-hidden="true" /><i />
+        </span>
+      )}
+    </div>
+  )
 }

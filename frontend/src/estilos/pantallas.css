@@ -333,3 +333,62 @@ button.fila-resumen-cabeza:not(:disabled):hover { background: var(--color-rellen
   .sesion-cuerpo { grid-template-columns: 1fr; grid-template-rows: minmax(20rem, 1fr) auto; }
   .panel-guia { display: none; }
 }
+
+/* Indicador de la cabecera de la sesión: cámara en uso, o tachada si se analiza un vídeo
+   (traído de feature/mac-flujo sin la parte del micrófono) */
+.indicadores-uso { display: flex; align-items: center; gap: var(--espacio-3); }
+.en-uso-item { position: relative; display: inline-flex; align-items: center; color: var(--color-texto-sutil); }
+.en-uso-item svg { width: 1.125rem; height: 1.125rem; }
+.en-uso-item i { display: block; width: 0.5rem; height: 0.5rem; margin-left: 0.3rem; border-radius: 50%; background: var(--color-texto-sutil); }
+.en-uso-item.en-uso i { background: var(--color-exito); box-shadow: 0 0 0.375rem var(--color-exito); }
+.en-uso-item.apagado { opacity: 0.55; }
+
+/* Capas de la sesión en tres zonas que no se pisan (Paula, 2026-11-17; traído de
+   feature/mac-flujo): arriba los avisos cortos (aviso y gesto), en el centro una sola
+   tarjeta (pausa, colocación o transición) y abajo la última indicación. Dentro de las
+   zonas nada se coloca por su cuenta: el orden lo da la rejilla. */
+.escenario-capas {
+  position: absolute; inset: 0; z-index: 1;
+  display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--espacio-3);
+  padding: var(--espacio-4); pointer-events: none;
+  transition: background var(--duracion-media);
+}
+.escenario-capas.velo { background: rgba(14, 13, 22, 0.55); }
+.escenario-capas.velo-fuerte { background: rgba(14, 13, 22, 0.72); backdrop-filter: blur(0.375rem); }
+.zona-arriba { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--espacio-2); min-width: 0; }
+.zona-centro { display: grid; place-items: center; min-height: 0; overflow: auto; }
+.zona-abajo { display: flex; justify-content: center; min-width: 0; }
+.zona-centro .tarjeta, .zona-centro button { pointer-events: auto; }
+.escenario-capas .escenario-arriba, .escenario-capas .gesto-pausa,
+.escenario-capas .banda-mensaje, .escenario-capas .transicion,
+.escenario-capas .capa-colocacion, .escenario-capas .capa-pausa {
+  position: static; inset: auto; left: auto; top: auto; bottom: auto; z-index: auto;
+}
+.escenario-capas .escenario-arriba { width: min(47.5rem, 100%); transform: none; flex-basis: 100%; display: flex; justify-content: center; }
+.escenario-capas .gesto-pausa { transform: none; max-width: min(100%, 44rem); font-size: clamp(1rem, 1.25vw, 1.25rem); padding: var(--espacio-2) var(--espacio-4); }
+.escenario-capas .capa-colocacion, .escenario-capas .capa-pausa {
+  width: 100%; padding: 0; background: none; backdrop-filter: none;
+}
+.escenario-capas .transicion { transform: translateY(0.75rem) scale(0.98); }
+.escenario-capas .transicion.visible { transform: none; }
+.escenario-capas .banda-mensaje { transform: translateY(1rem); max-width: 100%; }
+.escenario-capas .banda-mensaje.visible { transform: none; }
+/* la indicación de técnica no compite con una tarjeta: en pausa o colocándose no hay movimiento que corregir */
+.escenario-capas.velo .banda-mensaje, .escenario-capas.velo-fuerte .banda-mensaje { display: none; }
+/* tarjetas más bajas: el escenario puede ser corto (vídeo apaisado en una pantalla ancha) */
+.escenario-capas .tarjeta-pausa { padding: var(--espacio-5) var(--espacio-6); }
+.escenario-capas .icono-pausa { display: none; }
+.escenario-capas .tarjeta-pausa h2 { margin: 0.25rem 0 0.5rem; }
+.escenario-capas .tarjeta-pausa .acciones { margin-top: var(--espacio-4); }
+/* escenario bajo (pantallas pequeñas): la figura ya está en el panel lateral, así que
+   la tarjeta de colocación la quita y se compacta para que «Listo» siempre quepa */
+.escenario-capas { container-type: size; container-name: capas; }
+@container capas (max-height: 30rem) {
+  .tarjeta-colocacion .figura, .tarjeta-colocacion .guia-animada { display: none; }
+  .tarjeta-colocacion { padding: var(--espacio-4) var(--espacio-5); }
+  .tarjeta-colocacion h2 { margin: 0.125rem 0 0.25rem; font-size: 1.5rem; }
+  .tarjeta-colocacion p { margin-bottom: var(--espacio-2); font-size: 1rem; }
+  .comprobaciones { gap: 0.125rem; margin-bottom: var(--espacio-3); }
+  .comprobaciones li { font-size: 1rem; }
+  .tarjeta-pausa .pausa-gesto { display: none; }
+}

@@ -36,6 +36,8 @@ export interface Capacidades {
   elegirCamara?: boolean
   /** la usuaria puede activar el aviso «ese movimiento no es el de ahora» (`configurar`) */
   reconocerEjercicio?: boolean
+  /** hay órdenes de voz: sección «Micrófono» de los ajustes (`microfono`, `probarMicrofono`, `configurar`) */
+  vozEntrada?: boolean
   /** las sesiones se guardan en este equipo y hay panel «Mi progreso» (ADR-008) */
   historial?: boolean
   /** varias personas en el equipo, cada una con su historial (ADR-009) */
