@@ -149,7 +149,7 @@ CAPACIDADES: Dict[str, bool] = {
     #: «Micrófono» de los ajustes (`microfono`, `probar_microfono`, `configurar`)
     "vozEntrada": False,
     "pasoAnterior": True,
-    "gestoPausa": True,
+    "gestoPausa": False,          # apagado el 2026-11-20 (Sesion.gesto_pausa)
     #: la pone el orquestador según tenga o no historial (ADR-008)
     "historial": False,
     "perfiles": False,

@@ -111,7 +111,7 @@ def test_info_describe_la_rutina(catalogo, rutina):
     assert [k for k, v in d["capacidades"].items() if v] == [
         "correctasConError", "guia", "motivoSilencio", "pausaManual", "colocacion",
         "rutinaPersonalizada", "silenciarVoz", "elegirCamara", "reconocerEjercicio",
-        "pasoAnterior", "gestoPausa"]
+        "pasoAnterior"]                     # gestoPausa: apagado el 2026-11-20
     json.dumps(d)
 
 

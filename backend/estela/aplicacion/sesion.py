@@ -261,7 +261,8 @@ class _Paso:
     fin_ms: Optional[int] = None
     seg: Optional[EstadoSegmento] = None
     mensajes: List[Dict[str, Any]] = field(default_factory=list)
-    pausa: DetectorPausa = field(default_factory=DetectorPausa)
+    # sin pausa por inactividad (Paula, 2026-11-20): solo voz, botón y salir del encuadre
+    pausa: DetectorPausa = field(default_factory=lambda: DetectorPausa(inactividad_s=None))
     alineador: Optional[Comparador] = None
     registro: Optional[RegistroRepeticiones] = None
     guia: Optional[np.ndarray] = None
@@ -333,6 +334,10 @@ class Sesion:
         self._ult_aviso_encuadre_ms: Optional[int] = None
         self._t_ms = 0
         self._gesto = DetectorGesto()
+        #: brazo derecho arriba 3 s para pausar o seguir. Apagado desde el
+        #: 2026-11-20 (Paula: «quita lo del brazo arriba; deja solo la de voz y la
+        #: manual»); se puede volver a encender poniéndolo en True.
+        self.gesto_pausa = False
         #: Entrenadora (entre ejercicios y al final, nunca durante el
         #: movimiento). `al_cerrar_paso` recibe un dict al cerrar cada paso
         #: hacia delante: `turno`, `paso` (su resumen), `siguiente` (skill_id o
@@ -653,7 +658,7 @@ class Sesion:
         # En la colocación no pausa: aún no se cuenta nada, y colocarse (o
         # estirarse) con el brazo arriba la pausaba sin querer (vídeo de zancada
         # derecha, 2026-11-20). Sí reanuda si ya estaba en pausa.
-        if p.colocando and not p.pausa.pausada:
+        if not self.gesto_pausa or (p.colocando and not p.pausa.pausada):
             self._gesto.reiniciar()
         elif self._gesto.actualizar(t_ms, res.imagen if res.muestra is not None else None):
             self._anuncia_pausa(p, p.pausa.reanudar_gesto(t_ms) if p.pausa.pausada

@@ -115,6 +115,7 @@ class Reloj:
 def test_el_gesto_pausa_y_luego_reanuda(catalogo):
     voz, est = VozFalsa(), EstimadorBrazo()
     s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est, voz)
+    s.gesto_pausa = True                  # apagado por defecto desde el 2026-11-20
     r = Reloj(s)
     r.correr(1)
     est.arriba = True
@@ -136,6 +137,7 @@ def test_el_gesto_pausa_y_luego_reanuda(catalogo):
 def test_el_gesto_reanuda_la_pausa_del_boton(catalogo):
     est = EstimadorBrazo()
     s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est, VozFalsa())
+    s.gesto_pausa = True                  # apagado por defecto desde el 2026-11-20
     r = Reloj(s)
     r.correr(1)
     s.pausar()
@@ -149,12 +151,28 @@ def test_en_la_colocacion_el_brazo_arriba_no_pausa_pero_si_reanuda(catalogo):
     est = EstimadorBrazo()
     s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est,
                VozFalsa(), colocacion=True)
+    s.gesto_pausa = True                  # apagado por defecto desde el 2026-11-20
     r = Reloj(s)
     est.arriba = True
     estados = r.correr(4)
     assert all(e.gesto is None for e in estados) and not estados[-1].pausada
     s.pausar()
     assert r.correr(3.5)[-1].pausada is False                # en pausa, el gesto sí reanuda
+
+
+def test_por_defecto_ni_el_brazo_arriba_ni_quedarse_quieta_pausan(catalogo):
+    """Paula, 2026-11-20: la pausa solo por voz y a mano (y si sale del encuadre)."""
+    est = EstimadorBrazo()
+    s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est, VozFalsa())
+    r = Reloj(s)
+    r.correr(1)
+    est.arriba = True
+    estados = r.correr(15)                                   # brazo arriba y sin progreso 15 s
+    assert all(e.gesto is None for e in estados) and not estados[-1].pausada
+    s.pausar()
+    assert r.correr(1)[-1].pausada                           # a mano sí
+    s.reanudar()
+    assert not r.correr(1)[-1].pausada
 
 
 # ---------------------------------------------------------------------------

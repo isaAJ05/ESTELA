@@ -38,6 +38,10 @@ aislado; la sesión decide qué decir con los eventos que devuelve.
 
 `[?]` Los dos umbrales son provisionales: se fijaron por criterio, no
 medidos con usuarias (EXP-008).
+
+`inactividad_s=None` apaga la pausa por inactividad. La sesión la crea así desde
+el 2026-11-20 (Paula: «quita la que se activa y desactiva dependiendo de si uno
+se mueve o no; deja solo la de voz y la manual»).
 """
 
 from __future__ import annotations
@@ -74,9 +78,10 @@ class DetectorPausa:
     """
 
     def __init__(self, sin_persona_s: float = PAUSA_SIN_PERSONA_S,
-                 inactividad_s: float = PAUSA_INACTIVIDAD_S) -> None:
+                 inactividad_s: Optional[float] = PAUSA_INACTIVIDAD_S) -> None:
         self.sin_persona_ms = sin_persona_s * 1000.0
-        self.inactividad_ms = inactividad_s * 1000.0
+        #: None: sin pausa por inactividad
+        self.inactividad_ms = None if inactividad_s is None else inactividad_s * 1000.0
         self.motivo: Optional[str] = None
         self.veces = 0
         self._pausado_ms = 0
@@ -134,7 +139,7 @@ class DetectorPausa:
         if otro_ejercicio or progreso is None or progreso != self._progreso:
             self._progreso, self._ult_progreso_ms = progreso, t_ms
             return None
-        if t_ms - self._ult_progreso_ms >= self.inactividad_ms:
+        if self.inactividad_ms is not None and t_ms - self._ult_progreso_ms >= self.inactividad_ms:
             return self._pausar(t_ms, INACTIVIDAD)
         return None
 
