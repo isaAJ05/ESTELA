@@ -649,8 +649,13 @@ class Sesion:
         self.latencias.anota("pose", res.latencia_ms)
         lat = {"pose": res.latencia_ms}
 
-        # brazo derecho arriba 3 s: pausa o reanuda (también la pausa a mano)
-        if self._gesto.actualizar(t_ms, res.imagen if res.muestra is not None else None):
+        # brazo derecho arriba 3 s: pausa o reanuda (también la pausa a mano).
+        # En la colocación no pausa: aún no se cuenta nada, y colocarse (o
+        # estirarse) con el brazo arriba la pausaba sin querer (vídeo de zancada
+        # derecha, 2026-11-20). Sí reanuda si ya estaba en pausa.
+        if p.colocando and not p.pausa.pausada:
+            self._gesto.reiniciar()
+        elif self._gesto.actualizar(t_ms, res.imagen if res.muestra is not None else None):
             self._anuncia_pausa(p, p.pausa.reanudar_gesto(t_ms) if p.pausa.pausada
                                 else p.pausa.pausar_usuaria(t_ms))
 

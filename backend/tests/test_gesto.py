@@ -143,6 +143,20 @@ def test_el_gesto_reanuda_la_pausa_del_boton(catalogo):
     est.arriba = True
     assert not r.correr(3.5)[-1].pausada
 
+def test_en_la_colocacion_el_brazo_arriba_no_pausa_pero_si_reanuda(catalogo):
+    """Vídeo de zancada derecha (2026-11-20): colocándose con el brazo arriba se
+    pausaba sola y nunca empezaba a contar."""
+    est = EstimadorBrazo()
+    s = Sesion(rutina_de_un_ejercicio("zancada_atras_izq", 5, catalogo), catalogo, est,
+               VozFalsa(), colocacion=True)
+    r = Reloj(s)
+    est.arriba = True
+    estados = r.correr(4)
+    assert all(e.gesto is None for e in estados) and not estados[-1].pausada
+    s.pausar()
+    assert r.correr(3.5)[-1].pausada is False                # en pausa, el gesto sí reanuda
+
+
 # ---------------------------------------------------------------------------
 # Anterior / siguiente
 # ---------------------------------------------------------------------------
