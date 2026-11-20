@@ -43,23 +43,40 @@ Modo Ollama (`backend="ollama"`, plan del Mac Studio, 2026-11-16):
     espera del socket) actúa de tiempo límite de la llamada.
   - `precalentar()` carga el modelo antes de la sesión: la primera llamada
     tras cargar tarda segundos y caería siempre a plantilla.
+
+Variedad y naturalidad (`variar=True`, pedido de Paula el 2026-11-20: «sigue
+repitiendo las mismas cosas en lugar de hacer la misma corrección con palabras
+diferentes»). Antes cada llamada mandaba exactamente el mismo mensaje con
+temperatura 0,3, así que el modelo devolvía casi siempre la misma frase. Ahora:
+  - se le da la plantilla como «lo que hay que pedir» (ancla el sentido: evita
+    frases que lo cambian, como «Eleva la pierna» para `sin_salto`);
+  - recuerda, por error y lado, las últimas frases dichas y cuántas veces se ha
+    corregido, y le pide no repetirlas ni empezar igual;
+  - el mensaje de sistema describe el tono de una entrenadora que habla en voz
+    alta, con ejemplos de giros variados;
+  - temperatura 0,7. El validador sigue igual: lo que cambie la parte del
+    cuerpo, el lado o la dirección cae a plantilla. Y además, solo aquí, si el
+    error trae dirección y la frase no la pide (un ánimo sin corrección, como
+    «Codo izquierdo, muy bien, ahora.»), cae a plantilla (`sin_correccion`).
+`variar=False` reproduce el comportamiento anterior (para comparar).
 """
 
 from __future__ import annotations
 
 import json
 import threading
+from collections import deque
 import time
 import urllib.error
 import urllib.request
-from typing import Any, Dict, Optional
+from typing import Any, Deque, Dict, Optional, Tuple
 
 from ...dominio.feedback.contrato import ErrorTipificado, Lado, MensajeFeedback
 from ...dominio.feedback.verbalizador.base import Verbalizador
 from ...dominio.feedback.verbalizador.plantillas import (
     DIRECCION_ES, LADO_ES, SEGMENTO_ES, VerbalizadorPlantillas,
 )
-from ...dominio.feedback.verbalizador.validador import validar
+from ...dominio.feedback.verbalizador.validador import direcciones_pedidas, validar
 
 ESQUEMA_SALIDA: Dict = {
     "type": "object",
@@ -88,7 +105,10 @@ RECARGA_CADA_S = 5.0
 #: unos cientos de tokens.
 NUM_CTX = 2048
 
-SISTEMA = (
+#: frases dichas que se recuerdan por error y lado (para no repetirlas)
+RECORDAR = 3
+
+SISTEMA_ANTERIOR = (
     "Eres la voz de un asistente de entrenamiento. Recibes un error ya "
     "detectado por un sistema de medición y solo lo pones en palabras.\n"
     "Reglas estrictas:\n"
@@ -100,6 +120,37 @@ SISTEMA = (
     "5. Si se te indica la corrección pedida, pídela en ese sentido y nunca en "
     "el contrario. Si no se indica, no inventes hacia dónde corregir.\n"
     "6. Responde en JSON con la forma {\"mensaje\": \"...\"}."
+)
+
+SISTEMA = (
+    "Eres Estela, una entrenadora personal cercana que corrige en voz alta a "
+    "una persona mientras hace ejercicio. Un sistema de medición ya detectó el "
+    "error; tú solo lo dices como lo diría una buena entrenadora en persona: "
+    "claro, cálido y en español neutro.\n"
+    "Reglas estrictas:\n"
+    "1. Pide exactamente lo mismo que la frase de referencia, con otras "
+    "palabras. No cambies el sentido ni añadas otra corrección.\n"
+    "2. Menciona únicamente la parte del cuerpo indicada (o ninguna). Nunca otra.\n"
+    "3. Si se indica un lado, nómbralo siempre y exactamente así. Si no, no "
+    "menciones lados ni la palabra «derecho» o «derecha». Si la parte es el "
+    "tronco, el lado es hacia dónde se inclina: dilo «hacia la derecha» o «hacia "
+    "la izquierda», nunca «tronco derecho» (se confunde con «recto»).\n"
+    "4. Si se indica la corrección pedida, pídela en ese sentido, nunca en el contrario.\n"
+    "5. No diagnostiques ni hables de lesiones, dolor ni riesgo.\n"
+    "6. Una sola frase de 4 a 12 palabras, tuteando a la persona, con el "
+    "verbo en imperativo bien escrito («baja», «abre», «sube», «estira»; nunca "
+    "«bajas», «abré» ni «bajar»). Háblale a ella, nunca a la parte del cuerpo "
+    "(«pierna, salta» está mal). La frase siempre debe pedir la corrección: "
+    "un ánimo solo («Codo izquierdo, muy bien») no sirve.\n"
+    "7. Nada de metáforas ni comparaciones («como si…», «como una…»).\n"
+    "8. No repitas las frases ya dichas ni empieces igual que ellas: cambia el "
+    "verbo por un sinónimo, el orden o el remate. Puedes abrir con un ánimo "
+    "breve («Vamos,», «Casi,», «Eso es,», «Muy bien, ahora») o cerrar con uno "
+    "(«¡tú puedes!», «así, muy bien»), pero no siempre.\n"
+    "9. Si ya se corrigió varias veces, sé más breve y alentadora, sin regañar.\n"
+    "Ejemplos de tono para «Sube la cadera.»: «Vamos, un poco más arriba esa "
+    "cadera.», «Eleva la cadera, así, muy bien.», «Casi, sube la cadera.».\n"
+    "10. Responde en JSON con la forma {\"mensaje\": \"...\"}."
 )
 
 
@@ -117,7 +168,7 @@ def _descripcion_error(error: ErrorTipificado) -> str:
     if error.lado in LADO_ES:
         lado = " " + LADO_ES[error.lado][info["genero"]]
     lineas = [
-        f"ejercicio: {error.ejercicio_id}",
+        f"ejercicio: {error.ejercicio_id.replace('_', ' ')}",
         f"parte del cuerpo: {info['sg']}{lado}",
         f"error detectado: {error.error_id}",
         f"severidad: {error.severidad.value}",
@@ -125,6 +176,19 @@ def _descripcion_error(error: ErrorTipificado) -> str:
     ]
     if error.direccion is not None:
         lineas.append(f"corrección pedida: {DIRECCION_ES[error.direccion]}")
+    return "\n".join(lineas)
+
+
+def _descripcion_variada(error: ErrorTipificado, referencia: str,
+                         dichas: Tuple[str, ...], veces: int) -> str:
+    """`_descripcion_error` más la frase de referencia (la plantilla: fija el
+    sentido), cuántas veces se corrigió ya y lo ya dicho, para no repetirlo."""
+    lineas = [_descripcion_error(error),
+              f"frase de referencia (mismo sentido, otras palabras): «{referencia}»",
+              f"veces que ya se corrigió esto en este ejercicio: {veces}"]
+    if dichas:
+        lineas.append("frases ya dichas (no las repitas ni empieces igual): "
+                      + "; ".join(f"«{d}»" for d in dichas))
     return "\n".join(lineas)
 
 
@@ -137,10 +201,11 @@ class VerbalizadorLLMLocal(Verbalizador):
                  modelo: str = "local",
                  restringido: bool = True,
                  timeout_ms: int = 700,
-                 temperatura: float = 0.3,
+                 temperatura: Optional[float] = None,
                  fallback: Optional[VerbalizadorPlantillas] = None,
                  backend: str = BACKEND_LLAMA,
-                 pensar: Optional[bool] = False) -> None:
+                 pensar: Optional[bool] = False,
+                 variar: bool = True) -> None:
         if backend not in BACKENDS:
             raise ValueError(f"backend desconocido: {backend!r} (use {BACKENDS})")
         self.backend = backend
@@ -148,7 +213,12 @@ class VerbalizadorLLMLocal(Verbalizador):
         self.modelo = modelo
         self.restringido = restringido
         self.timeout_ms = timeout_ms
-        self.temperatura = temperatura
+        #: con `variar`, más alta: la misma petición debe dar frases distintas
+        self.variar = variar
+        self.temperatura = temperatura if temperatura is not None else (0.7 if variar else 0.3)
+        #: por (clase de mensaje, ejercicio, lado): últimas frases dichas y cuántas veces
+        self._dichas: Dict[Tuple[str, str, str], Deque[str]] = {}
+        self._veces: Dict[Tuple[str, str, str], int] = {}
         #: solo Ollama: valor de `think` (None = no enviarlo)
         self.pensar = pensar
         self.fallback = fallback or VerbalizadorPlantillas()
@@ -163,9 +233,26 @@ class VerbalizadorLLMLocal(Verbalizador):
         self._recargando = threading.Lock()
         self._ult_recarga = float("-inf")
 
+    @staticmethod
+    def _clave(error: ErrorTipificado) -> Tuple[str, str, str]:
+        return (error.mensaje_id or error.error_id, error.ejercicio_id, str(error.lado.value))
+
     def _mensajes(self, error: ErrorTipificado) -> list:
+        if not self.variar:
+            return [{"role": "system", "content": SISTEMA_ANTERIOR},
+                    {"role": "user", "content": _descripcion_error(error)}]
+        clave = self._clave(error)
+        referencia = self.fallback.verbalizar(error).texto
         return [{"role": "system", "content": SISTEMA},
-                {"role": "user", "content": _descripcion_error(error)}]
+                {"role": "user", "content": _descripcion_variada(
+                    error, referencia, tuple(self._dichas.get(clave, ())),
+                    self._veces.get(clave, 0))}]
+
+    def _recordar(self, error: ErrorTipificado, texto: str) -> None:
+        """Apunta lo que se va a decir (también si cayó a plantilla)."""
+        clave = self._clave(error)
+        self._dichas.setdefault(clave, deque(maxlen=RECORDAR)).append(texto)
+        self._veces[clave] = self._veces.get(clave, 0) + 1
 
     def _cuerpo_ollama(self, error: ErrorTipificado) -> Dict:
         cuerpo: Dict[str, Any] = {
@@ -187,10 +274,7 @@ class VerbalizadorLLMLocal(Verbalizador):
             return self._cuerpo_ollama(error)
         cuerpo: Dict = {
             "model": self.modelo,
-            "messages": [
-                {"role": "system", "content": SISTEMA},
-                {"role": "user", "content": _descripcion_error(error)},
-            ],
+            "messages": self._mensajes(error),
             "temperature": self.temperatura,
             "max_tokens": MAX_TOKENS,
         }
@@ -272,6 +356,12 @@ class VerbalizadorLLMLocal(Verbalizador):
         self.caidas[clave] = self.caidas.get(clave, 0) + 1
 
     def verbalizar(self, error: ErrorTipificado) -> MensajeFeedback:
+        msg = self._verbalizar(error)
+        if self.variar:
+            self._recordar(error, msg.texto)
+        return msg
+
+    def _verbalizar(self, error: ErrorTipificado) -> MensajeFeedback:
         t0 = time.perf_counter()
         self.llamadas += 1
         try:
@@ -290,6 +380,9 @@ class VerbalizadorLLMLocal(Verbalizador):
         motivo = ""
         if self.restringido:
             res = validar(texto, error)
+            if (res.valido and self.variar and error.direccion is not None
+                    and error.direccion not in direcciones_pedidas(texto)):
+                res = type(res)(False, "sin_correccion")
             if not res.valido:
                 motivo = res.motivo
                 self._anota_caida(motivo)
@@ -305,5 +398,5 @@ class VerbalizadorLLMLocal(Verbalizador):
             fallback=False, motivo_rechazo=motivo)
 
 
-__all__ = ["VerbalizadorLLMLocal", "ESQUEMA_SALIDA", "SISTEMA",
+__all__ = ["VerbalizadorLLMLocal", "ESQUEMA_SALIDA", "SISTEMA", "SISTEMA_ANTERIOR",
            "BACKEND_LLAMA", "BACKEND_OLLAMA", "BACKENDS", "URL_LLAMA", "URL_OLLAMA"]
