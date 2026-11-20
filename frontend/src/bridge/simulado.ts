@@ -7,6 +7,9 @@
 //                       ?escena=resumen|error empieza en esa fase
 //                       ?escena=progreso-vacio  «Mi progreso» sin sesiones
 //                       ?escena=sin-perfiles    primera vez: aún no hay perfiles
+//                       ?escena=saturada-colocacion|saturada-pausa|saturada-ejercicio
+//                                               sesión con todas las capas a la vez (aviso,
+//                                               gesto, indicación, tarjeta)
 
 import type {
   Bridge, DatosPerfil, DatosRutina, EjercicioCatalogo, Estado, EstadoSesion, Feedback, Info, Lado, MensajeResumen, OpcionesInicio,
@@ -282,6 +285,24 @@ interface PasoHecho {
   mensajes: MensajeResumen[]
 }
 
+/** Escenas «saturadas»: todas las capas de la sesión a la vez, para revisar que no se pisen. */
+function saturar(s: EstadoSesion, escena: string): EstadoSesion {
+  const comun: Partial<EstadoSesion> = {
+    gesto: { progreso: 0.6, accion: escena === 'saturada-pausa' ? 'reanudar' : 'pausar' },
+    ultimoMensaje: 'Sube los brazos hasta arriba.', mensajesEmitidos: 1,
+    feedback: { texto: 'Sube los brazos hasta arriba.', tipo: 'correccion', errorId: 'brazos', segmento: 'hombro',
+                lado: 'derecho', severidad: 'moderada', puntos: [], angulos: [], magnitud: null, direccion: null },
+  }
+  if (escena === 'saturada-pausa') {
+    return { ...s, ...comun, pausada: true, motivoPausa: 'usuaria', aviso: 'En pausa.', avisoTipo: 'pausa' }
+  }
+  if (escena === 'saturada-ejercicio') {
+    return { ...s, ...comun, colocacion: null, pausada: false, motivoPausa: null,
+             aviso: 'Colócate de frente a la cámara.', avisoTipo: 'orientacion' }
+  }
+  return { ...s, ...comun }
+}
+
 export function bridgeSimulado(): Bridge {
   const url = new URLSearchParams(location.search)
   const velocidad = Number(url.get('velocidad')) || 1
@@ -460,6 +481,7 @@ export function bridgeSimulado(): Bridge {
       const ahora = performance.now()
       tic(Math.min(0.1, (ahora - t) / 1000) * velocidad)   // sin saltos si el navegador frena los timers
       t = ahora
+      if (escena?.startsWith('saturada') && sesion) sesion = saturar(sesion, escena)
       publicar()
     }, 33)
     return true
@@ -513,6 +535,7 @@ export function bridgeSimulado(): Bridge {
     return { ok: true, perfil }
   }
 
+  if (escena?.startsWith('saturada')) void iniciar()
   if (escena === 'error') {
     fase = 'error'
     error = { tipo: 'fuente', mensaje: 'no se pudo abrir la cámara 0' }
