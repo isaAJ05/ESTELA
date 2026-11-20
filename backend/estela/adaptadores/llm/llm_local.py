@@ -111,6 +111,12 @@ NUM_CTX = 2048
 
 #: frases dichas que se recuerdan por error y lado (para no repetirlas)
 RECORDAR = 3
+#: Cómo empezar cada corrección, en rotación (el modelo solo elegía «Vamos,»:
+#: medido el 2026-11-20). «directo» = empezar por el verbo. Lo decide el
+#: código, no el modelo, para que la variedad no dependa del azar.
+APERTURAS: Tuple[str, ...] = ("directo", "Casi,", "Eso es, ahora", "directo",
+                              "Un poco más:", "Bien,", "directo", "Vamos,",
+                              "Muy bien, ahora", "Atención:")
 
 SISTEMA_ANTERIOR = (
     "Eres la voz de un asistente de entrenamiento. Recibes un error ya "
@@ -148,12 +154,12 @@ SISTEMA = (
     "un ánimo solo («Codo izquierdo, muy bien») no sirve.\n"
     "7. Nada de metáforas ni comparaciones («como si…», «como una…»).\n"
     "8. No repitas las frases ya dichas ni empieces igual que ellas: cambia el "
-    "verbo por un sinónimo, el orden o el remate. Puedes abrir con un ánimo "
-    "breve («Vamos,», «Casi,», «Eso es,», «Muy bien, ahora») o cerrar con uno "
-    "(«¡tú puedes!», «así, muy bien»), pero no siempre.\n"
+    "verbo por un sinónimo, el orden o el remate. Empieza como diga «cómo "
+    "empezar»; si dice «directo», empieza por el verbo.\n"
     "9. Si ya se corrigió varias veces, sé más breve y alentadora, sin regañar.\n"
-    "Ejemplos de tono para «Sube la cadera.»: «Vamos, un poco más arriba esa "
-    "cadera.», «Eleva la cadera, así, muy bien.», «Casi, sube la cadera.».\n"
+    "Ejemplos de tono para «Sube la cadera.»: «Eleva la cadera, así, muy "
+    "bien.», «Casi, sube un poco más la cadera.», «Eso es, ahora la cadera "
+    "arriba.».\n"
     "10. Responde en JSON con la forma {\"mensaje\": \"...\"}."
 )
 
@@ -184,7 +190,8 @@ def _descripcion_error(error: ErrorTipificado) -> str:
 
 
 def _descripcion_variada(error: ErrorTipificado, referencia: str,
-                         dichas: Tuple[str, ...], veces: int) -> str:
+                         dichas: Tuple[str, ...], veces: int,
+                         apertura: str = "directo") -> str:
     """`_descripcion_error` más la frase de referencia (la plantilla: fija el
     sentido), cuántas veces se corrigió ya y lo ya dicho, para no repetirlo."""
     base = _descripcion_error(error)
@@ -195,7 +202,8 @@ def _descripcion_variada(error: ErrorTipificado, referencia: str,
                          for ln in base.split("\n"))
     lineas = [base,
               f"frase de referencia (mismo sentido, otras palabras): «{referencia}»",
-              f"veces que ya se corrigió esto en este ejercicio: {veces}"]
+              f"veces que ya se corrigió esto en este ejercicio: {veces}",
+              f"cómo empezar: {apertura}"]
     if dichas:
         lineas.append("frases ya dichas (no las repitas ni empieces igual): "
                       + "; ".join(f"«{d}»" for d in dichas))
@@ -229,6 +237,8 @@ class VerbalizadorLLMLocal(Verbalizador):
         #: por (clase de mensaje, ejercicio, lado): últimas frases dichas y cuántas veces
         self._dichas: Dict[Tuple[str, str, str], Deque[str]] = {}
         self._veces: Dict[Tuple[str, str, str], int] = {}
+        #: correcciones pedidas en la sesión (elige la apertura en rotación)
+        self._pedidas = 0
         #: solo Ollama: valor de `think` (None = no enviarlo)
         self.pensar = pensar
         self.fallback = fallback or VerbalizadorPlantillas()
@@ -255,14 +265,16 @@ class VerbalizadorLLMLocal(Verbalizador):
                     {"role": "user", "content": _descripcion_error(error)}]
         clave = self._clave(error)
         referencia = self.fallback.verbalizar(error).texto
+        apertura = APERTURAS[self._pedidas % len(APERTURAS)]
         return [{"role": "system", "content": SISTEMA},
                 {"role": "user", "content": _descripcion_variada(
                     error, referencia, tuple(self._dichas.get(clave, ())),
-                    self._veces.get(clave, 0))}]
+                    self._veces.get(clave, 0), apertura)}]
 
     def _recordar(self, error: ErrorTipificado, texto: str) -> None:
         """Apunta lo que se va a decir (también si cayó a plantilla)."""
         clave = self._clave(error)
+        self._pedidas += 1
         self._dichas.setdefault(clave, deque(maxlen=RECORDAR)).append(texto)
         self._veces[clave] = self._veces.get(clave, 0) + 1
 

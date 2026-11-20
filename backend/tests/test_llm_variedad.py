@@ -65,3 +65,12 @@ def test_otra_direccion_compatible_vale_y_el_tronco_se_describe_hacia_un_lado():
                         ejercicio_id="abduccion_cadera_izq")
     d = _descripcion_variada(e, "No inclines el tronco hacia la derecha.", (), 0)
     assert "hacia la derecha" in d and "tronco derecho" not in d
+
+
+def test_la_apertura_rota_y_la_decide_el_codigo():
+    from estela.adaptadores.llm.llm_local import APERTURAS
+    v = LLMFalso(["Sube la cadera."] * 3)
+    for i in range(3):
+        v.verbalizar(_error(i))
+    pedidas = [c["messages"][1]["content"].split("cómo empezar: ")[1].split("\n")[0] for c in v.cuerpos]
+    assert pedidas == list(APERTURAS[:3])
