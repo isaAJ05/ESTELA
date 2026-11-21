@@ -357,7 +357,9 @@ def test_flujo_inicio_sesion_resumen(catalogo, rutina):
 
 
 def test_estado_en_sesion_y_long_polling(catalogo, rutina):
-    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(50),
+    # Una sola zancada (la rutina pide 2): el paso no puede avanzar a la plancha
+    # antes de que el test lea el primer estado, por rápido que sea el equipo.
+    orq, _, _ = nuevo_orquestador(catalogo, rutina, secuencia_zancadas(1),
                                   bloquear=True)
     orq.iniciar()
     e = esperar_fase(orq, SESION)

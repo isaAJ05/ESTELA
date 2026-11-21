@@ -152,9 +152,9 @@
   },
 
   "salto_insuficiente": {
-    "leve": ["Salta un poco más, despega los {segmento_pl} del suelo."],
-    "moderada": ["Salta en cada repetición, despega los {segmento_pl} del suelo."],
-    "alta": ["Estás abriendo sin saltar, despega los {segmento_pl} del suelo."]
+    "leve": ["Salta un poco más, despega {art_pl} {segmento_pl} del suelo."],
+    "moderada": ["Salta en cada repetición, despega {art_pl} {segmento_pl} del suelo."],
+    "alta": ["Estás abriendo sin saltar, despega {art_pl} {segmento_pl} del suelo."]
   },
 
   "hombros_retrasados": {

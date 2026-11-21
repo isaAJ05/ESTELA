@@ -401,10 +401,11 @@ class Sesion:
         return None
 
     def siguiente(self) -> None:
-        """Salta al siguiente ejercicio (tecla de la interfaz). En el último
-        no hace nada: para acabar está «Terminar»."""
+        """Salta al siguiente ejercicio (tecla o botón). En el último no hace
+        nada: para acabar está «Terminar». Es un salto, no un ejercicio
+        terminado: no dice «Muy bien, terminaste…» (Paula, 2026-11-17)."""
         if self._i < len(self.rutina.pasos) - 1:
-            self._avanzar()
+            self._ir_a(self._i + 1, felicitar=False)
 
     def anterior(self) -> None:
         """Vuelve al ejercicio anterior y lo empieza desde cero. En el primero
