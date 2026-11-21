@@ -1,10 +1,10 @@
 # Instalación y despliegue
 
-Guía para instalar y ejecutar ESTELA desde el código fuente. La rama `main` contiene la documentación del proyecto; el código está en dos ramas:
+Guía para instalar y ejecutar ESTELA desde el código fuente. El código está en dos ramas:
 
 | Rama | Versión | Para qué equipo | Qué incluye |
 |---|---|---|---|
-| `feature/mac-flujo` | **Completa** (la que describe el Informe Final) | Mac con Apple Silicon, probada en un Mac Studio M2 Ultra | Todo lo de `test`, más pose *heavy* en GPU, frases redactadas por un modelo de lenguaje local (Ollama), entrenadora con resumen hablado y órdenes de voz (Whisper) |
+| `main` | **Completa** (la que describe el Informe Final) | Mac con Apple Silicon, probada en un Mac Studio M2 Ultra | Todo lo de `test`, más pose *heavy* en GPU, frases redactadas por un modelo de lenguaje local (Ollama), entrenadora con resumen hablado y órdenes de voz (Whisper) |
 | `test` | **Básica**, multiplataforma | Cualquier computador con Windows, Linux o macOS, incluso uno modesto (p. ej. un portátil con Intel i5 de 10.ª generación y 8 GB de RAM) | Pose *lite* en CPU, retroalimentación con plantillas y voz Piper. No usa modelo de lenguaje ni micrófono |
 
 La versión completa también arranca en Windows o Linux: si no está en un Mac con Apple Silicon, se comporta como la básica (sección 3.1.5).
@@ -22,8 +22,8 @@ La versión completa también arranca en Windows o Linux: si no está en un Mac 
 | Interfaz de escritorio | React + TypeScript (Vite) dentro de una ventana pywebview: WebView2 en Windows, WKWebView en macOS, WebKitGTK o Qt en Linux | ambas |
 | Retroalimentación | Motor de decisión determinista y plantillas en español (solo biblioteca estándar) | ambas |
 | Voz de salida | Piper (`piper-tts`), con respaldo en la voz del sistema o solo texto | ambas |
-| Modelo de lenguaje local | Ollama con `qwen3:4b-instruct-2507-q4_K_M` (redacta las correcciones) y `qwen3:14b` (entrenadora) | `mac-flujo` |
-| Órdenes de voz | whisper.cpp mediante `pywhispercpp` (modelo `small`), micrófono con `sounddevice` | `mac-flujo` |
+| Modelo de lenguaje local | Ollama con `qwen3:4b-instruct-2507-q4_K_M` (redacta las correcciones) y `qwen3:14b` (entrenadora) | `main` |
+| Órdenes de voz | whisper.cpp mediante `pywhispercpp` (modelo `small`), micrófono con `sounddevice` | `main` |
 
 ### 1.2 Componentes de la solución
 
@@ -31,8 +31,8 @@ La versión completa también arranca en Windows o Linux: si no está en un Mac 
 Cámara (hilo) → último frame → Pose Landmarker → geometría → conteo de repeticiones
   → DTW contra la referencia → motor de decisión determinista → verbalizador → cola de voz → Piper
                                                                   │                        └→ interfaz (pywebview)
-                                     (mac-flujo) LLM local por Ollama, con respaldo en plantillas
-(mac-flujo) Micrófono → whisper.cpp → órdenes de voz («Estela, pausa») → sesión
+                                     (main) LLM local por Ollama, con respaldo en plantillas
+(main) Micrófono → whisper.cpp → órdenes de voz («Estela, pausa») → sesión
 ```
 
 - `backend/` contiene todo el Python, organizado en tres capas: `estela/dominio/` (feedback y conteo, sin dependencias externas), `estela/aplicacion/` (sesión, DTW, pausas, métricas) y `estela/adaptadores/` (cámara, pose, voz, LLM, ventana). Detalle en `backend/README.md`.
@@ -55,7 +55,7 @@ El motor determinista siempre decide qué error hubo y si se dice algo. El model
 - Conexión a internet **solo** para instalar dependencias y descargar modelos. Las sesiones funcionan sin red.
 - Node.js ≥ 20, **solo** para modificar la interfaz.
 
-**Además, para la versión completa (`feature/mac-flujo`):**
+**Además, para la versión completa (`main`):**
 
 - Mac con Apple Silicon (M1 o posterior).
 - [Ollama](https://ollama.com/download) instalado.
@@ -76,14 +76,14 @@ Elegir la rama según el equipo (ver la tabla del inicio):
 
 ```bash
 # Versión completa (Mac con Apple Silicon)
-git clone -b feature/mac-flujo https://github.com/isaAJ05/ESTELA.git
+git clone https://github.com/isaAJ05/ESTELA.git          # main, la rama por defecto
 # Versión básica (cualquier equipo)
 git clone -b test https://github.com/isaAJ05/ESTELA.git
 
 cd ESTELA
 ```
 
-Si ya se clonó el repositorio, se cambia de rama con `git checkout feature/mac-flujo` o `git checkout test`.
+Si ya se clonó el repositorio, se cambia de rama con `git checkout main` o `git checkout test`.
 
 #### 3.1.2 Instalar dependencias
 
@@ -120,7 +120,7 @@ pip install -e ".[voz,voz-entrada,interfaz,dev]"
 | `voz` | Piper y sounddevice (voz de salida) | ambas |
 | `interfaz` | pywebview (ventana de escritorio) | ambas |
 | `dev` | pytest | ambas |
-| `voz-entrada` | pywhispercpp y sounddevice (órdenes de voz) | `mac-flujo` |
+| `voz-entrada` | pywhispercpp y sounddevice (órdenes de voz) | `main` |
 
 #### 3.1.3 Configurar variables de entorno
 
@@ -134,7 +134,7 @@ No aplica (ver 2.2).
 python scripts/descargar_modelos.py
 ```
 
-Descarga los modelos de pose *lite* y *full* y la voz Piper `es_MX-claude-high` en `backend/modelos/`, que git ignora. En un Mac con Apple Silicon, el script de `feature/mac-flujo` también descarga la pose *heavy* y el modelo de Whisper para las órdenes de voz. En otro equipo se pueden pedir con `--heavy` y `--voz-entrada`.
+Descarga los modelos de pose *lite* y *full* y la voz Piper `es_MX-claude-high` en `backend/modelos/`, que git ignora. En un Mac con Apple Silicon, el script de `main` también descarga la pose *heavy* y el modelo de Whisper para las órdenes de voz. En otro equipo se pueden pedir con `--heavy` y `--voz-entrada`.
 
 **Solo versión completa.** Instalar Ollama, comprobar que está corriendo (la aplicación de Ollama lo deja activo en segundo plano; si no, `ollama serve`) y descargar los dos modelos de lenguaje:
 
@@ -158,7 +158,7 @@ Se abre la ventana de escritorio en la pantalla de inicio. La aplicación pregun
 
 Qué se enciende por defecto depende del equipo (`estela.config.defectos`):
 
-| Opción | Mac con Apple Silicon (`mac-flujo`) | Otros equipos, o rama `test` |
+| Opción | Mac con Apple Silicon (`main`) | Otros equipos, o rama `test` |
 |---|---|---|
 | Modelo de pose | *heavy* en GPU (Metal) | *lite* en CPU |
 | Correcciones | redactadas por el LLM, con respaldo en plantillas | plantillas |
@@ -181,7 +181,7 @@ python -m estela --video ruta.mp4 --voz texto --sin-ventana --guardar-metricas  
 python -m estela --help                                           # todas las opciones
 ```
 
-Solo en `feature/mac-flujo`:
+Solo en `main`:
 
 ```bash
 python -m estela --verbalizador plantillas --entrenadora no   # apaga el LLM y la entrenadora
@@ -241,7 +241,7 @@ Desde la carpeta del repositorio:
 git pull
 cd backend
 source .venv/bin/activate              # Windows: .\.venv\Scripts\Activate.ps1
-pip install -e ".[voz,interfaz,dev]"   # en mac-flujo, añadir voz-entrada
+pip install -e ".[voz,interfaz,dev]"   # en main, añadir voz-entrada
 python scripts/descargar_modelos.py    # solo baja lo que falte
 ```
 
@@ -328,7 +328,7 @@ No aplica.
    pytest -m "not video"       # omite la prueba que necesita el modelo de pose
    ```
 
-   En `feature/mac-flujo`, cuatro pruebas se omiten fuera del Mac. Las mediciones lentas del Informe 2 se ejecutan aparte con `pytest -m metricas -s`.
+   En `main`, cuatro pruebas se omiten fuera del Mac. Las mediciones lentas del Informe 2 se ejecutan aparte con `pytest -m metricas -s`.
 
    Interfaz, desde `frontend/` (requiere Node.js): `npm run typecheck` y `npm test`.
 
@@ -359,16 +359,16 @@ No aplica.
 | El contador no avanza | Orientación distinta a la del ejercicio, o el cuerpo no se ve entero | Seguir el aviso en pantalla («de perfil» / «de frente») y encuadrar el cuerpo completo |
 | La sesión dice «Pausa» | 5 s fuera del encuadre, u 8 s sin avanzar en un ejercicio ya empezado | Volver al encuadre o seguir el ejercicio; se reanuda solo y conserva las repeticiones |
 | FPS bajos | Modelo de pose demasiado pesado para la CPU | `--modelo lite` |
-| `falta el modelo … en Ollama` (mac-flujo) | No se descargó el modelo | `ollama pull <modelo>` (sección 3.1.4) |
-| Las correcciones siempre suenan igual (mac-flujo) | Ollama no está corriendo o no responde en 400 ms, y se usa la plantilla | Abrir Ollama o ejecutar `ollama serve`; revisar los avisos de la consola |
-| Las órdenes de voz no responden (mac-flujo) | Falta el extra `voz-entrada`, el modelo de Whisper o el permiso del micrófono | `pip install -e ".[voz-entrada]"`, `python scripts/descargar_modelos.py --voz-entrada` y revisar el micrófono en los ajustes |
+| `falta el modelo … en Ollama` (main) | No se descargó el modelo | `ollama pull <modelo>` (sección 3.1.4) |
+| Las correcciones siempre suenan igual (main) | Ollama no está corriendo o no responde en 400 ms, y se usa la plantilla | Abrir Ollama o ejecutar `ollama serve`; revisar los avisos de la consola |
+| Las órdenes de voz no responden (main) | Falta el extra `voz-entrada`, el modelo de Whisper o el permiso del micrófono | `pip install -e ".[voz-entrada]"`, `python scripts/descargar_modelos.py --voz-entrada` y revisar el micrófono en los ajustes |
 | `mp.solutions` no existe | Scripts antiguos de `PRUEBAS/` | Usan la API anterior de MediaPipe, que ya no existe en la versión 1.x |
 
 ## 7. Mantenimiento y actualización
 
 - **Añadir un ejercicio:** crear `backend/estela/dominio/feedback/skills/<id>.json` con sus reglas y su sección `segmentacion` (ver `skills/ESQUEMA.md`) y añadirlo a una rutina. No se modifica código. La referencia para el DTW se genera desde un video con `python scripts/crear_referencia.py`.
 - **Cambiar la rutina:** editar o crear un JSON en `backend/rutinas/` y pasarlo con `--rutina`. El objetivo de cada paso es `"repeticiones"`, salvo en los ejercicios isométricos (plancha), que usan `"duracion_s"`. Desde la interfaz, cada perfil también puede armar su rutina en **Mi rutina**.
-- **Cambiar los modelos de lenguaje (mac-flujo):** con `--llm-modelo` y `--entrenadora-modelo`, o cambiando `LLM_MODELO` y `ENTRENADORA_MODELO` en `backend/estela/config.py`. El nombre es el que muestra `ollama list`.
+- **Cambiar los modelos de lenguaje (main):** con `--llm-modelo` y `--entrenadora-modelo`, o cambiando `LLM_MODELO` y `ENTRENADORA_MODELO` en `backend/estela/config.py`. El nombre es el que muestra `ollama list`.
 - **Actualizar dependencias:** las versiones mínimas están en `backend/pyproject.toml`. Después de actualizar, ejecutar `pytest`.
 
 ## 8. Referencias relacionadas
