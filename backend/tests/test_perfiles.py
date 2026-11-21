@@ -36,11 +36,38 @@ def test_crear_listar_editar(perfiles):
     assert perfiles.editar(ana["id"], {"nombre": "ana maría"})["nombre"] == "ana maría"   # el mismo
 
 
+def test_icono_opcional_se_elige_se_cambia_y_se_quita(perfiles):
+    ana = perfiles.crear({"nombre": "Ana"})
+    assert ana["icono"] is None                                   # sin icono: iniciales
+    assert perfiles.editar(ana["id"], {"icono": "cohete"})["icono"] == "cohete"
+    # editar otra cosa no borra el icono; None vuelve a las iniciales
+    assert perfiles.editar(ana["id"], {"color": "azul"})["icono"] == "cohete"
+    assert perfiles.editar(ana["id"], {"icono": None})["icono"] is None
+    # un icono guardado que ya no existe no rompe nada: se muestran las iniciales
+    p = {"id": "pabc", "nombre": "Ana", "color": "rosa", "icono": "retirado"}
+    assert contrato.perfil_a_dict(p)["icono"] is None
+    assert contrato.datos_de_perfil({"icono": "luna"}) == {"icono": "luna"}
+
+
+def test_sin_color_solo_con_avatar(perfiles):
+    with pytest.raises(PerfilInvalido, match="elige un color"):
+        perfiles.crear({"nombre": "Ana", "color": "ninguno"})            # iniciales sin fondo: no
+    ana = perfiles.crear({"nombre": "Ana", "color": "ninguno", "icono": "luna"})
+    assert ana["color"] == "ninguno"
+    assert [p["nombre"] for p in perfiles.listar()] == ["Ana"]         # se vuelve a leer del archivo
+    # quitar el avatar dejándolo sin color no se puede: hay que elegir un color
+    with pytest.raises(PerfilInvalido, match="elige un color"):
+        perfiles.editar(ana["id"], {"icono": None})
+    assert perfiles.editar(ana["id"], {"icono": None, "color": "rosa"})["icono"] is None
+    assert contrato.perfiles_a_dict([], None, False)["sinColor"] == "ninguno"
+
+
 @pytest.mark.parametrize("datos, mensaje", [
     ({"nombre": "   "}, "nombre"),
     ({"nombre": "x" * 31}, "30 caracteres"),
     ({"nombre": "LUIS"}, "Ya hay un perfil"),
     ({"nombre": "Eva", "color": "#ff0000"}, "colores"),
+    ({"nombre": "Eva", "icono": "dragon"}, "iconos"),
     ({"nombre": "Eva", "meta_semanal": 0}, "entre 1 y 7"),
     ({"nombre": "Eva", "meta_semanal": 8}, "entre 1 y 7"),
     ({"nombre": "Eva", "meta_semanal": True}, "entre 1 y 7"),
@@ -105,11 +132,11 @@ def test_contrato_de_perfiles():
     p = {"id": "pabc", "nombre": "Ana", "color": "rosa", "meta_semanal": 3, "creado": "2026-11-06T09:00:00"}
     d = contrato.perfiles_a_dict([p], "pabc", True)
     json.dumps(d)
-    assert d["perfiles"][0] == {"id": "pabc", "nombre": "Ana", "color": "rosa", "rutina": None,
+    assert d["perfiles"][0] == {"id": "pabc", "nombre": "Ana", "color": "rosa", "icono": None, "rutina": None,
                                 "rutinas": [], "metaSemanal": 3, "creado": "2026-11-06T09:00:00"}
     assert d["maxRutinas"] == MAX_RUTINAS
     assert d["activo"] == "pabc" and d["elegido"] is True and d["maxPerfiles"] == MAX_PERFILES
-    assert "rosa" in d["colores"] and d["meta"] == [1, 7]
+    assert "rosa" in d["colores"] and d["meta"] == [1, 7] and "cohete" in d["iconos"]
     # solo pasan las claves que llegan, y nada más
     assert contrato.datos_de_perfil({"metaSemanal": None, "otra": 1}) == {"meta_semanal": None}
     assert contrato.datos_de_perfil(None) == {}

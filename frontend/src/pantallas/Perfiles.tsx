@@ -47,7 +47,7 @@ export function SelectorPerfil({ bridge, estado, alElegir }: {
           {estado.perfiles.map((p) => (
             <li key={p.id}>
               <button className={`tarjeta tarjeta-perfil ${p.id === estado.activo ? 'actual' : ''}`} onClick={() => void elegir(p.id)}>
-                <Avatar nombre={p.nombre} color={p.color} tam="xl" />
+                <Avatar nombre={p.nombre} color={p.color} icono={p.icono} tam="xl" />
                 <strong>{p.nombre}</strong>
                 <span>{textoMeta(p.metaSemanal)}</span>
               </button>
@@ -58,7 +58,7 @@ export function SelectorPerfil({ bridge, estado, alElegir }: {
               <button className="tarjeta tarjeta-perfil tarjeta-perfil-nuevo" onClick={() => setCreando(true)}>
                 <span className="avatar avatar-xl avatar-vacio" aria-hidden="true"><Plus /></span>
                 <strong>Nuevo perfil</strong>
-                <span>Nombre, color y meta</span>
+                <span>Nombre, avatar y meta</span>
               </button>
             </li>
           )}
@@ -90,7 +90,8 @@ export function PanelPerfil({ bridge, estado, alVolver, alCambiar, alProgreso }:
   // lo que se está editando y aún no se guardó: la cabecera lo enseña al momento
   const [borrador, setBorrador] = useState<BorradorPerfil | null>(null)
   const visto = perfil && borrador
-    ? { nombre: borrador.nombre.trim() || perfil.nombre, color: borrador.color, metaSemanal: borrador.metaSemanal }
+    ? { nombre: borrador.nombre.trim() || perfil.nombre, color: borrador.color, icono: borrador.icono,
+        metaSemanal: borrador.metaSemanal }
     : perfil
 
   return (
@@ -100,7 +101,7 @@ export function PanelPerfil({ bridge, estado, alVolver, alCambiar, alProgreso }:
         <span className="etiqueta etiqueta-marca">Mi perfil</span>
         {perfil && visto ? (
           <div className="perfil-titulo">
-            <Avatar nombre={visto.nombre} color={visto.color} tam="lg" />
+            <Avatar nombre={visto.nombre} color={visto.color} icono={visto.icono} tam="lg" />
             <div>
               <h1>{visto.nombre}</h1>
               {borrador
