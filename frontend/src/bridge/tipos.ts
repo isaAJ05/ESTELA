@@ -346,6 +346,8 @@ export interface Perfil {
   nombre: string
   /** una de `EstadoPerfiles.colores`; la interfaz la traduce a su paleta */
   color: string
+  /** uno de `EstadoPerfiles.iconos` en lugar de las iniciales; null o ausente: iniciales */
+  icono?: string | null
   /** días por semana; null sin meta */
   metaSemanal: number | null
   creado: string | null
@@ -375,6 +377,10 @@ export interface EstadoPerfiles {
   /** ya se eligió en esta ejecución (un perfil o «sin perfil»); si no, se pregunta */
   elegido: boolean
   colores: string[]
+  /** iconos del avatar (temática del universo); ausente si Python no los ofrece */
+  iconos?: string[]
+  /** valor de `color` para «sin color», solo con un avatar ilustrado; ausente si Python no lo ofrece */
+  sinColor?: string
   maxPerfiles: number
   maxNombre: number
   /** [mínimo, máximo] de la meta semanal */
@@ -387,6 +393,8 @@ export interface EstadoPerfiles {
 export interface DatosPerfil {
   nombre?: string
   color?: string
+  /** null: volver a las iniciales */
+  icono?: string | null
   metaSemanal?: number | null
 }
 

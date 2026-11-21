@@ -1,0 +1,104 @@
+/* «Ayuda»: un recorrido de una tarjeta a la vez y, debajo, lo que solo se consulta. */
+
+.ayuda-cuerpo {
+  flex: 1;
+  display: grid; gap: var(--espacio-5); align-content: start;
+  width: min(56rem, 100%); margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3.5rem) var(--espacio-7);
+}
+.ayuda-cabeza { display: grid; gap: var(--espacio-3); }
+.ayuda-cabeza h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); letter-spacing: -0.05em; line-height: 1; }
+.ayuda-cabeza h1 em { color: var(--color-violeta-suave); font-style: normal; }
+
+/* -- el recorrido -------------------------------------------------------------- */
+.ayuda-tour {
+  display: grid; grid-template-columns: 11rem minmax(0, 1fr); gap: var(--espacio-5) var(--espacio-6);
+  align-items: center; min-height: 20rem; padding: var(--espacio-6);
+}
+.ayuda-tour-figura { display: grid; place-items: center; }
+.ayuda-tour-figura .estrella-imagen { width: 9rem; height: 9rem; }
+.ayuda-tour-texto { display: grid; gap: var(--espacio-3); align-content: center; }
+.ayuda-tour-texto h2 { font-size: clamp(1.75rem, 3vw, 2.25rem); letter-spacing: -0.04em; }
+.ayuda-tour-texto p { color: var(--color-texto-suave); font-size: 1.125rem; line-height: 1.5; }
+.ayuda-tour-consejos { display: grid; gap: var(--espacio-2); margin: var(--espacio-1) 0 0; padding: 0; list-style: none; }
+.ayuda-tour-consejos li { display: flex; align-items: center; gap: var(--espacio-3); color: var(--color-texto); font-size: 1rem; font-weight: 600; }
+.ayuda-tour-consejos li > span {
+  display: grid; place-items: center; flex: none; width: 2rem; height: 2rem; border-radius: var(--radio-sm);
+  background: rgba(128, 107, 255, 0.12); color: var(--color-violeta-suave);
+}
+.ayuda-tour-consejos svg { width: 1.0625rem; height: 1.0625rem; }
+
+.ayuda-tour-pie {
+  grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-4);
+  padding-top: var(--espacio-4); border-top: 1px solid var(--color-linea);
+}
+.ayuda-tour-puntos { display: flex; gap: var(--espacio-2); }
+.ayuda-tour-puntos button {
+  width: 0.625rem; height: 0.625rem; padding: 0; border: 0; border-radius: var(--radio-pildora);
+  background: var(--color-relleno-fuerte); cursor: pointer; transition: width var(--duracion-corta), background var(--duracion-corta);
+}
+.ayuda-tour-puntos button.activo { width: 1.75rem; background: var(--color-violeta-suave); }
+.ayuda-tour-botones { display: flex; gap: var(--espacio-2); }
+
+/* -- lo que solo se consulta ------------------------------------------------------ */
+.ayuda-extra { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--espacio-4); align-items: start; }
+.ayuda-desplegable { padding: 0; }
+.ayuda-desplegable summary {
+  display: flex; align-items: center; gap: var(--espacio-3); padding: var(--espacio-4);
+  cursor: pointer; list-style: none;
+}
+.ayuda-desplegable summary::-webkit-details-marker { display: none; }
+.ayuda-desplegable summary::after { content: '+'; margin-left: auto; color: var(--color-violeta-suave); font-size: 1.375rem; line-height: 1; }
+.ayuda-desplegable[open] summary::after { content: '−'; }
+.ayuda-desplegable summary strong { display: block; color: var(--color-texto); }
+.ayuda-desplegable summary small { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.ayuda-desplegable-cuerpo { padding: 0 var(--espacio-4) var(--espacio-4); }
+
+.ayuda-icono {
+  display: grid; place-items: center; flex: none; width: 2.5rem; height: 2.5rem; border-radius: var(--radio-md);
+  background: rgba(128, 107, 255, 0.12); color: var(--color-violeta-suave);
+}
+.ayuda-icono svg { width: 1.25rem; height: 1.25rem; }
+
+.ayuda-atajos { display: grid; gap: var(--espacio-2); margin: 0; padding: 0; list-style: none; }
+.ayuda-atajos li { display: flex; align-items: center; gap: var(--espacio-3); color: var(--color-texto-suave); font-size: 0.9375rem; }
+kbd {
+  display: inline-block; min-width: 3.5rem; padding: 0.125rem 0.5rem;
+  border: 1px solid var(--color-borde); border-bottom-width: 2px; border-radius: var(--radio-sm);
+  background: var(--color-relleno); color: var(--color-texto); font-family: var(--fuente-mono); font-size: 0.8125rem; text-align: center;
+}
+
+.ayuda-problemas { display: grid; gap: var(--espacio-3); margin: 0; }
+.ayuda-problemas dt { color: var(--color-texto); font-weight: 650; }
+.ayuda-problemas dd { margin: 0.125rem 0 0; color: var(--color-texto-suave); font-size: 0.9375rem; line-height: 1.5; }
+
+.ayuda-descargo { max-width: none; }
+
+/* enlace «¿Primera vez?» del inicio: discreto, bajo los botones */
+.enlace-ayuda { width: fit-content; margin-top: 0; }
+.enlace-ayuda:hover svg:first-child { transform: none; }
+
+
+/* -- apartado «Acerca de» ---------------------------------------------------------- */
+.acerca-presentacion { display: flex; align-items: center; gap: var(--espacio-5); padding: var(--espacio-5) var(--espacio-6); }
+.acerca-presentacion .estrella-imagen { width: 6.5rem; height: 6.5rem; }
+.acerca-presentacion p { color: var(--color-texto); font-size: 1.1875rem; line-height: 1.5; }
+.acerca-rasgos { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--espacio-4); }
+.acerca-rasgo { display: grid; gap: var(--espacio-2); align-content: start; }
+.acerca-rasgo h3 { margin-top: var(--espacio-1); font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.01em; }
+.acerca-rasgo p { color: var(--color-texto-suave); font-size: 0.9375rem; line-height: 1.5; }
+.acerca-equipo { display: grid; gap: var(--espacio-4); justify-items: start; padding: var(--espacio-5) var(--espacio-6); }
+.acerca-equipo h3 { margin-top: var(--espacio-1); font-size: 1.5rem; letter-spacing: -0.03em; }
+.acerca-equipo p { margin-top: var(--espacio-1); color: var(--color-texto-suave); }
+.acerca-personas { display: flex; flex-wrap: wrap; gap: var(--espacio-5); margin: 0; padding: 0; list-style: none; }
+.acerca-personas li { display: flex; align-items: center; gap: var(--espacio-3); color: var(--color-texto); font-weight: 650; }
+.acerca-enlace { text-decoration: none; }
+
+@media (max-width: 44rem) {
+  .acerca-rasgos { grid-template-columns: 1fr; }
+  .acerca-presentacion { flex-direction: column; text-align: center; }
+  .ayuda-tour { grid-template-columns: 1fr; text-align: center; }
+  .ayuda-tour-consejos li { justify-content: center; }
+  .ayuda-tour-pie { flex-direction: column; }
+  .ayuda-extra { grid-template-columns: 1fr; }
+}

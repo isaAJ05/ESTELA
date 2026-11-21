@@ -1,15 +1,16 @@
 import {
-  Camera, Loader2, Mic, MicOff, Monitor, Moon, RefreshCw, ScanEye, Settings, Sun, Video, VideoOff, Volume2, VolumeX, X,
+  Camera, Loader2, LogOut, Mic, MicOff, Monitor, Moon, RefreshCw, ScanEye, Settings, Sun, Video, VideoOff, Volume2, VolumeX, X,
 } from 'lucide-react'
 import { useEffect, useId, useState, type ReactNode } from 'react'
 import type { Bridge, Camaras, Microfonos } from '../bridge/tipos'
 import { useCapacidad, useEstado } from '../estado/almacen'
 import { cambiarAjustes, temaVisible, useAjustes, type TamanoTexto, type Tema } from '../estado/ajustes'
+import { guardarRutinaYa } from '../estado/perfiles'
 import { Boton } from './basicos'
 
 const oscuroDelSistema = () => typeof matchMedia === 'function' && matchMedia('(prefers-color-scheme: dark)').matches
 
-/** Iconos de la cabecera: cambiar entre claro y oscuro, y abrir los ajustes. */
+/** Iconos de la cabecera: cambiar entre claro y oscuro, abrir los ajustes y salir de la aplicación. */
 export function ControlesCabecera({ bridge }: { bridge: Bridge }) {
   const [abierto, setAbierto] = useState(false)
   return (
@@ -18,6 +19,11 @@ export function ControlesCabecera({ bridge }: { bridge: Bridge }) {
       <button className="boton-icono" onClick={() => setAbierto(true)} title="Ajustes" aria-label="Ajustes"
               aria-haspopup="dialog">
         <Settings />
+      </button>
+      {/* la rutina que se esté guardando con retraso no se pierde al cerrar */}
+      <button className="boton-icono" onClick={() => { guardarRutinaYa(); void bridge.salir() }}
+              title="Salir de ESTELA" aria-label="Salir de ESTELA">
+        <LogOut />
       </button>
       {abierto && <PanelAjustes bridge={bridge} alCerrar={() => setAbierto(false)} />}
     </div>

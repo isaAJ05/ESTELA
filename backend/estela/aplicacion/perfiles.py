@@ -3,6 +3,7 @@ historial (ADR-009, sobre ADR-008).
 
 Un perfil es solo lo necesario para reconocerse y fijarse una meta: nombre o
 apodo, un color para el avatar (las iniciales se dibujan en la interfaz),
+un avatar ilustrado opcional que las sustituye (temática del universo),
 si se quiere, cuántos días por semana moverse, la última rutina que armó
 en «Mi rutina» (ejercicios en orden y su objetivo) y sus rutinas guardadas
 con nombre, para elegirlas directamente desde el inicio. **No** guarda edad, peso,
@@ -35,6 +36,11 @@ log = logging.getLogger(__name__)
 
 #: colores del avatar (la interfaz los traduce a su paleta)
 COLORES = ("violeta", "naranja", "turquesa", "rosa", "azul", "mostaza")
+#: sin aro de color: solo con un avatar ilustrado (las iniciales necesitan un fondo)
+SIN_COLOR = "ninguno"
+#: avatares ilustrados en lugar de las iniciales (la interfaz los dibuja); None: iniciales
+ICONOS = ("estrella", "planeta", "luna", "sol", "cohete", "astronauta", "cometa", "galaxia",
+          "constelacion", "ovni")
 MAX_PERFILES = 8
 MAX_NOMBRE = 30
 META_MIN, META_MAX = 1, 7
@@ -53,7 +59,7 @@ class PerfilInvalido(ValueError):
 
 def _limpiar(datos: Mapping[str, Any], otros: List[Dict[str, Any]],
              actual: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-    """Valida nombre, color y meta. `actual`: el perfil que se edita (los
+    """Valida nombre, color, icono y meta. `actual`: el perfil que se edita (los
     campos que no vienen se conservan)."""
     base = actual or {}
     nombre = datos.get("nombre", base.get("nombre"))
@@ -64,14 +70,20 @@ def _limpiar(datos: Mapping[str, Any], otros: List[Dict[str, Any]],
         raise PerfilInvalido(f"El nombre puede tener hasta {MAX_NOMBRE} caracteres.")
     if any(p["nombre"].casefold() == nombre.casefold() for p in otros):
         raise PerfilInvalido("Ya hay un perfil con ese nombre.")
+    icono = datos.get("icono", base.get("icono"))
+    if icono is not None and icono not in ICONOS:
+        raise PerfilInvalido("Elige uno de los iconos disponibles.")
     color = datos.get("color", base.get("color", COLORES[0]))
-    if color not in COLORES:
+    if color == SIN_COLOR:
+        if icono is None:
+            raise PerfilInvalido("Sin avatar, elige un color para tus iniciales.")
+    elif color not in COLORES:
         raise PerfilInvalido("Elige uno de los colores disponibles.")
     meta = datos.get("meta_semanal", base.get("meta_semanal"))
     if meta is not None:
         if isinstance(meta, bool) or not isinstance(meta, int) or not META_MIN <= meta <= META_MAX:
             raise PerfilInvalido(f"La meta debe estar entre {META_MIN} y {META_MAX} días por semana.")
-    return {"nombre": nombre, "color": color, "meta_semanal": meta}
+    return {"nombre": nombre, "color": color, "icono": icono, "meta_semanal": meta}
 
 
 def rutina_de(perfil: Mapping[str, Any]) -> Optional[List[Dict[str, Any]]]:
@@ -113,7 +125,7 @@ def _pasos_limpios(pasos: List[Mapping[str, Any]]) -> List[Dict[str, Any]]:
 
 def _valido(p: Any) -> bool:
     return (isinstance(p, dict) and isinstance(p.get("id"), str)
-            and isinstance(p.get("nombre"), str) and p.get("color") in COLORES)
+            and isinstance(p.get("nombre"), str) and (p.get("color") in COLORES or p.get("color") == SIN_COLOR))
 
 
 class Perfiles:
@@ -259,5 +271,5 @@ class Perfiles:
             log.info("historial anterior asignado al perfil %s", perfil_id)
 
 
-__all__ = ["COLORES", "MAX_NOMBRE", "MAX_NOMBRE_RUTINA", "MAX_PASOS_RUTINA", "MAX_PERFILES", "MAX_RUTINAS",
+__all__ = ["COLORES", "ICONOS", "SIN_COLOR", "MAX_NOMBRE", "MAX_NOMBRE_RUTINA", "MAX_PASOS_RUTINA", "MAX_PERFILES", "MAX_RUTINAS",
            "META_MAX", "META_MIN", "PerfilInvalido", "Perfiles", "rutina_de", "rutinas_de"]
