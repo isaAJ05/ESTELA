@@ -1,0 +1,246 @@
+ejercicio,error_id,severidad,direccion,parte,lado,plantilla_actual,variante,decision,notas,palabras,modelo
+jumping_jacks,brazos_no_llegan_arriba,leve,subir,brazo,bilateral,"Sube un poco más los brazos, hasta donde te resulte cómodo.",Sube los brazos,ok,,3,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,leve,subir,brazo,bilateral,"Sube un poco más los brazos, hasta donde te resulte cómodo.",Levanta los brazos más arriba,ok,,5,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,leve,subir,brazo,bilateral,"Sube un poco más los brazos, hasta donde te resulte cómodo.",Alza los brazos,ok,,3,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,moderada,subir,brazo,bilateral,"Sube más los brazos, hasta donde te resulte cómodo.",Sube los brazos,ok,,3,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,moderada,subir,brazo,bilateral,"Sube más los brazos, hasta donde te resulte cómodo.",Levanta el brazo,descartar,singular: el error es de los dos brazos,3,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,moderada,subir,brazo,bilateral,"Sube más los brazos, hasta donde te resulte cómodo.",Sube el brazo más arriba,descartar,singular: el error es de los dos brazos,5,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,alta,subir,brazo,bilateral,"Intenta subir bastante más los brazos, sin forzar.",Sube los brazos más arriba,ok,,5,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,alta,subir,brazo,bilateral,"Intenta subir bastante más los brazos, sin forzar.",Lleva los brazos hacia arriba,ok,,5,llama3.3:70b
+jumping_jacks,brazos_no_llegan_arriba,alta,subir,brazo,bilateral,"Intenta subir bastante más los brazos, sin forzar.",Sube más el brazo,descartar,singular: el error es de los dos brazos,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,leve,abrir,pie,bilateral,"Abre un poco más los pies, con control.",Abre los pies un poco más,ok,,6,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,leve,abrir,pie,bilateral,"Abre un poco más los pies, con control.",Separa más los pies,ok,,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,leve,abrir,pie,bilateral,"Abre un poco más los pies, con control.",Abre bien los pies,ok,,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,moderada,abrir,pie,bilateral,"Abre más los pies en cada salto, sin perder el control.",Abre bien los pies,ok,,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,moderada,abrir,pie,bilateral,"Abre más los pies en cada salto, sin perder el control.",Separa los pies más,ok,,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,moderada,abrir,pie,bilateral,"Abre más los pies en cada salto, sin perder el control.",Abre los pies completamente,descartar,"pide el máximo, no «un poco más»",4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,alta,abrir,pie,bilateral,"Separa bastante más los pies, manteniendo el control.",Abre más los pies,ok,,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,alta,abrir,pie,bilateral,"Separa bastante más los pies, manteniendo el control.",Separa los pies más,ok,,4,llama3.3:70b
+jumping_jacks,apertura_pies_insuficiente,alta,abrir,pie,bilateral,"Separa bastante más los pies, manteniendo el control.",Abre bien los pies,ok,,4,llama3.3:70b
+jumping_jacks,sin_salto,leve,,pierna,bilateral,"Salta un poco más, despega los piernas del suelo.",Despega las piernas,ok,,3,llama3.3:70b
+jumping_jacks,sin_salto,leve,,pierna,bilateral,"Salta un poco más, despega los piernas del suelo.",Levanta las piernas,descartar,no pide saltar,3,llama3.3:70b
+jumping_jacks,sin_salto,leve,,pierna,bilateral,"Salta un poco más, despega los piernas del suelo.",Salta con las piernas,descartar,suena raro,4,llama3.3:70b
+jumping_jacks,sin_salto,moderada,,pierna,bilateral,"Salta en cada repetición, despega los piernas del suelo.",Despega las piernas del suelo,ok,,5,llama3.3:70b
+jumping_jacks,sin_salto,moderada,,pierna,bilateral,"Salta en cada repetición, despega los piernas del suelo.",Levanta las piernas en cada salto,ok,,6,llama3.3:70b
+jumping_jacks,sin_salto,moderada,,pierna,bilateral,"Salta en cada repetición, despega los piernas del suelo.",Impulsa las piernas hacia arriba,descartar,no pide saltar con claridad,5,llama3.3:70b
+jumping_jacks,sin_salto,alta,,pierna,bilateral,"Estás abriendo sin saltar, despega los piernas del suelo.",Despega las piernas,ok,,3,llama3.3:70b
+jumping_jacks,sin_salto,alta,,pierna,bilateral,"Estás abriendo sin saltar, despega los piernas del suelo.",Impulsa las piernas hacia arriba,descartar,no pide saltar con claridad,5,llama3.3:70b
+jumping_jacks,sin_salto,alta,,pierna,bilateral,"Estás abriendo sin saltar, despega los piernas del suelo.",Levanta las piernas del suelo,descartar,no pide saltar con claridad,5,llama3.3:70b
+jumping_jacks,codos_flexionados,leve,menos_flexion,codo,bilateral,"Estira un poco más los codos, sin bloquearlos.",Estira más los codos,ok,,4,llama3.3:70b
+jumping_jacks,codos_flexionados,leve,menos_flexion,codo,bilateral,"Estira un poco más los codos, sin bloquearlos.",Estira los codos un poco más,ok,,6,llama3.3:70b
+jumping_jacks,codos_flexionados,leve,menos_flexion,codo,bilateral,"Estira un poco más los codos, sin bloquearlos.",Estira completamente los codos,descartar,contradice «sin bloquearlos»,4,llama3.3:70b
+jumping_jacks,codos_flexionados,moderada,menos_flexion,codo,bilateral,"Extiende los codos, sin bloquearlos.",Estira los codos un poco más,ok,,6,llama3.3:70b
+jumping_jacks,codos_flexionados,moderada,menos_flexion,codo,bilateral,"Extiende los codos, sin bloquearlos.",Mantén los codos estirados,ok,,4,llama3.3:70b
+jumping_jacks,codos_flexionados,moderada,menos_flexion,codo,bilateral,"Extiende los codos, sin bloquearlos.",Estira más los codos,ok,,4,llama3.3:70b
+jumping_jacks,codos_flexionados,alta,menos_flexion,codo,bilateral,"Estira bastante más los codos, sin bloquearlos.",Estira los codos un poco más,descartar,pide «un poco» para un error de gravedad alta,6,llama3.3:70b
+jumping_jacks,codos_flexionados,alta,menos_flexion,codo,bilateral,"Estira bastante más los codos, sin bloquearlos.",Estira más los codos,ok,,4,llama3.3:70b
+jumping_jacks,codos_flexionados,alta,menos_flexion,codo,bilateral,"Estira bastante más los codos, sin bloquearlos.",Estira bien los codos,ok,,4,llama3.3:70b
+abduccion_cadera_izq,tronco_inclinado_der,leve,,tronco,derecho,"Endereza un poco el tronco, se va hacia la derecha.",Corrige el tronco derecho,descartar,«tronco derecho» se entiende como «recto»,4,llama3.3:70b
+abduccion_cadera_izq,tronco_inclinado_der,moderada,,tronco,derecho,No inclines el tronco hacia la derecha.,Mantén el tronco derecho,descartar,«tronco derecho» se entiende como «recto»,4,llama3.3:70b
+abduccion_cadera_izq,tronco_inclinado_der,moderada,,tronco,derecho,No inclines el tronco hacia la derecha.,No te inclines a la derecha,ok,,6,llama3.3:70b
+abduccion_cadera_izq,tronco_inclinado_der,moderada,,tronco,derecho,No inclines el tronco hacia la derecha.,Endereza el tronco derecho,descartar,«tronco derecho» se entiende como «recto»,4,llama3.3:70b
+abduccion_cadera_izq,tronco_inclinado_der,alta,,tronco,derecho,"Endereza el tronco, te estás inclinando hacia la derecha.",No te inclines a la derecha,ok,,6,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,leve,bajar,cadera,izquierdo,Mantén la cadera izquierda un poco más baja.,Baja un poco la cadera izquierda,ok,,6,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,leve,bajar,cadera,izquierdo,Mantén la cadera izquierda un poco más baja.,La cadera izquierda baja,descartar,no es una orden,4,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,leve,bajar,cadera,izquierdo,Mantén la cadera izquierda un poco más baja.,Baja la cadera izquierda,ok,,4,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,moderada,bajar,cadera,izquierdo,"No subas la cadera izquierda, mantenla nivelada.",Baja la cadera izquierda,ok,,4,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,moderada,bajar,cadera,izquierdo,"No subas la cadera izquierda, mantenla nivelada.",Mantén baja la cadera izquierda,ok,,5,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,moderada,bajar,cadera,izquierdo,"No subas la cadera izquierda, mantenla nivelada.",No levantes la cadera izquierda,ok,,5,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,alta,bajar,cadera,izquierdo,"Baja la cadera izquierda, la estás subiendo mucho.",Baja un poco la cadera izquierda,descartar,pide «un poco» para un error de gravedad alta,6,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,alta,bajar,cadera,izquierdo,"Baja la cadera izquierda, la estás subiendo mucho.",La cadera izquierda baja,descartar,no es una orden,4,llama3.3:70b
+abduccion_cadera_izq,cadera_izq_sube,alta,bajar,cadera,izquierdo,"Baja la cadera izquierda, la estás subiendo mucho.",Baja la cadera izquierda ahora,ok,,5,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,leve,abrir,pierna,izquierdo,"Lleva la pierna izquierda un poco más hacia el lado, con control.",Abre la pierna izquierda un poco más,ok,,7,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,leve,abrir,pierna,izquierdo,"Lleva la pierna izquierda un poco más hacia el lado, con control.",Desplaza la pierna izquierda hacia afuera,descartar,suena rebuscado,6,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,leve,abrir,pierna,izquierdo,"Lleva la pierna izquierda un poco más hacia el lado, con control.",Amplía la apertura de la pierna izquierda,descartar,suena rebuscado,7,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,moderada,abrir,pierna,izquierdo,"Abre más la pierna izquierda hacia el lado, sin perder estabilidad.",Abre más la pierna izquierda,ok,,5,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,moderada,abrir,pierna,izquierdo,"Abre más la pierna izquierda hacia el lado, sin perder estabilidad.",Separa la pierna izquierda,ok,,4,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,moderada,abrir,pierna,izquierdo,"Abre más la pierna izquierda hacia el lado, sin perder estabilidad.",Abre hacia afuera la pierna izquierda,ok,,6,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,alta,abrir,pierna,izquierdo,"Separa bastante más la pierna izquierda, solo si te mantienes estable.",Abre más la pierna izquierda,ok,,5,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,alta,abrir,pierna,izquierdo,"Separa bastante más la pierna izquierda, solo si te mantienes estable.",Separa la pierna izquierda aún más,ok,,6,llama3.3:70b
+abduccion_cadera_izq,abduccion_insuficiente_izq,alta,abrir,pierna,izquierdo,"Separa bastante más la pierna izquierda, solo si te mantienes estable.",Amplia la separación de la pierna izquierda,descartar,suena rebuscado y sin tilde,7,llama3.3:70b
+abduccion_cadera_der,tronco_inclinado_izq,leve,,tronco,izquierdo,"Endereza un poco el tronco, se va hacia la izquierda.",Endereza el tronco izquierdo,descartar,«tronco izquierdo» no tiene sentido,4,llama3.3:70b
+abduccion_cadera_der,tronco_inclinado_izq,leve,,tronco,izquierdo,"Endereza un poco el tronco, se va hacia la izquierda.",Corrige el tronco izquierdo,descartar,«tronco izquierdo» no tiene sentido,4,llama3.3:70b
+abduccion_cadera_der,tronco_inclinado_izq,moderada,,tronco,izquierdo,No inclines el tronco hacia la izquierda.,No inclines hacia la izquierda,descartar,le falta qué no inclinar,5,llama3.3:70b
+abduccion_cadera_der,tronco_inclinado_izq,moderada,,tronco,izquierdo,No inclines el tronco hacia la izquierda.,Endereza el tronco izquierdo,descartar,«tronco izquierdo» no tiene sentido,4,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,leve,bajar,cadera,derecho,Mantén la cadera derecha un poco más baja.,Baja un poco la cadera derecha,ok,,6,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,leve,bajar,cadera,derecho,Mantén la cadera derecha un poco más baja.,Mantén baja la cadera derecha,ok,,5,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,leve,bajar,cadera,derecho,Mantén la cadera derecha un poco más baja.,La cadera derecha debe estar más baja,descartar,no es una orden,7,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,moderada,bajar,cadera,derecho,"No subas la cadera derecha, mantenla nivelada.",Baja la cadera derecha,ok,,4,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,moderada,bajar,cadera,derecho,"No subas la cadera derecha, mantenla nivelada.",Mantén baja la cadera derecha,ok,,5,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,moderada,bajar,cadera,derecho,"No subas la cadera derecha, mantenla nivelada.",No levantes la cadera derecha,ok,,5,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,alta,bajar,cadera,derecho,"Baja la cadera derecha, la estás subiendo mucho.",Baja un poco la cadera derecha,descartar,pide «un poco» para un error de gravedad alta,6,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,alta,bajar,cadera,derecho,"Baja la cadera derecha, la estás subiendo mucho.",La cadera derecha la bajas,descartar,no es una orden,5,llama3.3:70b
+abduccion_cadera_der,cadera_der_sube,alta,bajar,cadera,derecho,"Baja la cadera derecha, la estás subiendo mucho.",Baja la cadera derecha ahora,ok,,5,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,leve,abrir,pierna,derecho,"Lleva la pierna derecha un poco más hacia el lado, con control.",Abre la pierna derecha un poco más,ok,,7,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,leve,abrir,pierna,derecho,"Lleva la pierna derecha un poco más hacia el lado, con control.",Mueve la pierna derecha hacia afuera,ok,,6,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,leve,abrir,pierna,derecho,"Lleva la pierna derecha un poco más hacia el lado, con control.",Extiende la pierna derecha hacia el lado,ok,,7,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,moderada,abrir,pierna,derecho,"Abre más la pierna derecha hacia el lado, sin perder estabilidad.",Abre la pierna derecha más hacia afuera,ok,,7,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,moderada,abrir,pierna,derecho,"Abre más la pierna derecha hacia el lado, sin perder estabilidad.",Abre más hacia fuera con la pierna derecha,descartar,suena raro,8,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,moderada,abrir,pierna,derecho,"Abre más la pierna derecha hacia el lado, sin perder estabilidad.",Abre la pierna derecha hacia afuera,ok,,6,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,alta,abrir,pierna,derecho,"Separa bastante más la pierna derecha, solo si te mantienes estable.",Abre más la pierna derecha,ok,,5,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,alta,abrir,pierna,derecho,"Separa bastante más la pierna derecha, solo si te mantienes estable.",Separa bien la pierna derecha,ok,,5,llama3.3:70b
+abduccion_cadera_der,abduccion_insuficiente_der,alta,abrir,pierna,derecho,"Separa bastante más la pierna derecha, solo si te mantienes estable.",Abre bien la pierna derecha,ok,,5,llama3.3:70b
+plancha,cadera_hundida,leve,subir,cadera,bilateral,Sube un poco las caderas.,Sube ligeramente la cadera,ok,,4,llama3.3:70b
+plancha,cadera_hundida,leve,subir,cadera,bilateral,Sube un poco las caderas.,Eleva la cadera un poco,ok,,5,llama3.3:70b
+plancha,cadera_hundida,leve,subir,cadera,bilateral,Sube un poco las caderas.,Levanta un poco la cadera,ok,,5,llama3.3:70b
+plancha,cadera_hundida,moderada,subir,cadera,bilateral,"Sube las caderas, no las dejes caer.",Sube la cadera,ok,,3,llama3.3:70b
+plancha,cadera_hundida,moderada,subir,cadera,bilateral,"Sube las caderas, no las dejes caer.",Levanta la cadera,ok,,3,llama3.3:70b
+plancha,cadera_hundida,moderada,subir,cadera,bilateral,"Sube las caderas, no las dejes caer.",Eleva la cadera,ok,,3,llama3.3:70b
+plancha,cadera_hundida,alta,subir,cadera,bilateral,"Sube bien las caderas, se están hundiendo.",Sube la cadera,ok,,3,llama3.3:70b
+plancha,cadera_hundida,alta,subir,cadera,bilateral,"Sube bien las caderas, se están hundiendo.",Levanta la cadera,ok,,3,llama3.3:70b
+plancha,cadera_hundida,alta,subir,cadera,bilateral,"Sube bien las caderas, se están hundiendo.",Sube tu cadera,ok,,3,llama3.3:70b
+plancha,cadera_elevada,leve,bajar,cadera,bilateral,Baja un poco las caderas.,Baja la cadera,ok,,3,llama3.3:70b
+plancha,cadera_elevada,leve,bajar,cadera,bilateral,Baja un poco las caderas.,Inclina la cadera hacia abajo,descartar,«inclinar» no es lo pedido,5,llama3.3:70b
+plancha,cadera_elevada,leve,bajar,cadera,bilateral,Baja un poco las caderas.,Desciende la cadera,descartar,suena rebuscado,3,llama3.3:70b
+plancha,cadera_elevada,moderada,bajar,cadera,bilateral,"Baja las caderas, alinea el cuerpo.",Baja un poco las caderas,ok,,5,llama3.3:70b
+plancha,cadera_elevada,moderada,bajar,cadera,bilateral,"Baja las caderas, alinea el cuerpo.",Mantén las caderas más bajas,ok,,5,llama3.3:70b
+plancha,cadera_elevada,moderada,bajar,cadera,bilateral,"Baja las caderas, alinea el cuerpo.",Baja la cadera inmediatamente,descartar,tono brusco,4,llama3.3:70b
+plancha,cadera_elevada,alta,bajar,cadera,bilateral,"Baja bien las caderas, las tienes muy altas.",Baja un poco la cadera,descartar,pide «un poco» para un error de gravedad alta,5,llama3.3:70b
+plancha,cadera_elevada,alta,bajar,cadera,bilateral,"Baja bien las caderas, las tienes muy altas.",Mantén baja la cadera,ok,,4,llama3.3:70b
+plancha,cadera_elevada,alta,bajar,cadera,bilateral,"Baja bien las caderas, las tienes muy altas.",Baja la cadera ahora,ok,,4,llama3.3:70b
+plancha,cabeza_desalineada,leve,,cabeza,na,Alinea un poco la cabeza con el cuerpo.,Ajusta la cabeza alineándola,descartar,suena raro,4,llama3.3:70b
+plancha,cabeza_desalineada,leve,,cabeza,na,Alinea un poco la cabeza con el cuerpo.,Mantén la cabeza recta,ok,,4,llama3.3:70b
+plancha,cabeza_desalineada,leve,,cabeza,na,Alinea un poco la cabeza con el cuerpo.,Alinea la cabeza con el cuerpo,ok,,6,llama3.3:70b
+plancha,cabeza_desalineada,moderada,,cabeza,na,Mantén la cabeza en línea con el cuerpo.,Alinea la cabeza con el cuerpo,ok,,6,llama3.3:70b
+plancha,cabeza_desalineada,moderada,,cabeza,na,Mantén la cabeza en línea con el cuerpo.,Mantén la cabeza recta,ok,,4,llama3.3:70b
+plancha,cabeza_desalineada,moderada,,cabeza,na,Mantén la cabeza en línea con el cuerpo.,Coloca la cabeza alineada,descartar,suena raro,4,llama3.3:70b
+plancha,cabeza_desalineada,alta,,cabeza,na,"Coloca la cabeza en línea, ni caída ni levantada.",Alinea la cabeza,ok,,3,llama3.3:70b
+plancha,cabeza_desalineada,alta,,cabeza,na,"Coloca la cabeza en línea, ni caída ni levantada.",Mantén la cabeza recta,ok,,4,llama3.3:70b
+plancha,cabeza_desalineada,alta,,cabeza,na,"Coloca la cabeza en línea, ni caída ni levantada.",Corrige la posición de la cabeza,ok,,6,llama3.3:70b
+plancha,hombros_adelantados,leve,atras,hombro,na,"Lleva los hombros un poco hacia atrás, en vertical sobre el punto de apoyo.",Atrás con los hombros,ok,,4,llama3.3:70b
+plancha,hombros_adelantados,leve,atras,hombro,na,"Lleva los hombros un poco hacia atrás, en vertical sobre el punto de apoyo.",Tira los hombros hacia atrás,ok,,5,llama3.3:70b
+plancha,hombros_adelantados,leve,atras,hombro,na,"Lleva los hombros un poco hacia atrás, en vertical sobre el punto de apoyo.",Lleva hacia atrás los hombros,ok,,5,llama3.3:70b
+plancha,hombros_adelantados,moderada,atras,hombro,na,"Lleva los hombros hacia atrás, en vertical sobre el punto de apoyo.",Lleva tus hombros hacia atrás,ok,,5,llama3.3:70b
+plancha,hombros_adelantados,moderada,atras,hombro,na,"Lleva los hombros hacia atrás, en vertical sobre el punto de apoyo.",Atrás con los hombros,ok,,4,llama3.3:70b
+plancha,hombros_adelantados,moderada,atras,hombro,na,"Lleva los hombros hacia atrás, en vertical sobre el punto de apoyo.",Coloca los hombros hacia atrás,ok,,5,llama3.3:70b
+plancha,hombros_adelantados,alta,atras,hombro,na,"Lleva bien los hombros hacia atrás, en vertical sobre el punto de apoyo.",Atrás con los hombros,ok,,4,llama3.3:70b
+plancha,hombros_adelantados,alta,atras,hombro,na,"Lleva bien los hombros hacia atrás, en vertical sobre el punto de apoyo.",Lleva los hombros hacia atrás,ok,,5,llama3.3:70b
+plancha,hombros_adelantados,alta,atras,hombro,na,"Lleva bien los hombros hacia atrás, en vertical sobre el punto de apoyo.",Mantén los hombros atrás,ok,,4,llama3.3:70b
+plancha,hombros_retrasados,leve,adelante,hombro,na,Lleva los hombros un poco hacia delante.,Mueve los hombros hacia delante,ok,,5,llama3.3:70b
+plancha,hombros_retrasados,leve,adelante,hombro,na,Lleva los hombros un poco hacia delante.,Lleva hacia delante los hombros,ok,,5,llama3.3:70b
+plancha,hombros_retrasados,leve,adelante,hombro,na,Lleva los hombros un poco hacia delante.,Avanza con los hombros,descartar,suena raro,4,llama3.3:70b
+plancha,hombros_retrasados,moderada,adelante,hombro,na,"Adelanta los hombros, justo sobre el apoyo.",Mueve los hombros hacia adelante,ok,,5,llama3.3:70b
+plancha,hombros_retrasados,moderada,adelante,hombro,na,"Adelanta los hombros, justo sobre el apoyo.",Tira los hombros hacia delante,ok,,5,llama3.3:70b
+plancha,hombros_retrasados,moderada,adelante,hombro,na,"Adelanta los hombros, justo sobre el apoyo.",Lleva los hombros hacia adelante,ok,,5,llama3.3:70b
+plancha,hombros_retrasados,alta,adelante,hombro,na,"Lleva bien los hombros hacia delante, sobre el apoyo.",Mueve el hombro hacia delante,descartar,singular: el error es de los dos hombros,5,llama3.3:70b
+plancha,hombros_retrasados,alta,adelante,hombro,na,"Lleva bien los hombros hacia delante, sobre el apoyo.",Lleva el hombro hacia adelante,descartar,singular: el error es de los dos hombros,5,llama3.3:70b
+plancha,hombros_retrasados,alta,adelante,hombro,na,"Lleva bien los hombros hacia delante, sobre el apoyo.",Tira el hombro hacia delante,descartar,singular: el error es de los dos hombros,5,llama3.3:70b
+plancha,codo_izq_fuera_de_90,leve,,codo,izquierdo,Ajusta el codo izquierdo a noventa grados.,Mantén el codo izquierdo en ángulo recto,ok,,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,leve,,codo,izquierdo,Ajusta el codo izquierdo a noventa grados.,Coloca el codo izquierdo a noventa grados,ok,,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,leve,,codo,izquierdo,Ajusta el codo izquierdo a noventa grados.,Endereza el codo izquierdo a noventa grados,descartar,«enderezar» contradice 90°,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,moderada,,codo,izquierdo,Pon el codo izquierdo a noventa grados.,Mantén el codo izquierdo en ángulo recto,ok,,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,moderada,,codo,izquierdo,Pon el codo izquierdo a noventa grados.,Alinea el codo izquierdo a 90 grados,ok,,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,moderada,,codo,izquierdo,Pon el codo izquierdo a noventa grados.,Coloca el codo izquierdo en posición recta,descartar,«recta» contradice 90°,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,alta,,codo,izquierdo,"Coloca bien el codo izquierdo, a noventa grados exactos.",Mantén el codo izquierdo en ángulo recto,ok,,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,alta,,codo,izquierdo,"Coloca bien el codo izquierdo, a noventa grados exactos.",Ajusta el codo izquierdo a noventa grados,ok,,7,llama3.3:70b
+plancha,codo_izq_fuera_de_90,alta,,codo,izquierdo,"Coloca bien el codo izquierdo, a noventa grados exactos.",Corrige el codo izquierdo a posición de 90 grados,descartar,suena raro,9,llama3.3:70b
+plancha,codo_der_fuera_de_90,leve,,codo,derecho,Ajusta el codo derecho a noventa grados.,Mantén el codo derecho en ángulo recto,ok,,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,leve,,codo,derecho,Ajusta el codo derecho a noventa grados.,Rectifica el codo derecho a 90 grados,descartar,suena rebuscado,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,leve,,codo,derecho,Ajusta el codo derecho a noventa grados.,Alinea el codo derecho a noventa,descartar,suena raro,6,llama3.3:70b
+plancha,codo_der_fuera_de_90,moderada,,codo,derecho,Pon el codo derecho a noventa grados.,Mantén el codo derecho en ángulo recto,ok,,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,moderada,,codo,derecho,Pon el codo derecho a noventa grados.,Ajusta el codo derecho a 90 grados,ok,,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,moderada,,codo,derecho,Pon el codo derecho a noventa grados.,Coloca el codo derecho en posición recta,descartar,«recta» contradice 90°,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,alta,,codo,derecho,"Coloca bien el codo derecho, a noventa grados exactos.",Mantén el codo derecho en ángulo recto,ok,,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,alta,,codo,derecho,"Coloca bien el codo derecho, a noventa grados exactos.",Corrige el codo derecho a noventa grados,ok,,7,llama3.3:70b
+plancha,codo_der_fuera_de_90,alta,,codo,derecho,"Coloca bien el codo derecho, a noventa grados exactos.",Ajusta el codo derecho a posición correcta,descartar,vago: no dice 90°,7,llama3.3:70b
+plancha,rodilla_izq_flexionada,leve,menos_flexion,rodilla,izquierdo,Estira un poco más la rodilla izquierda.,Estira más la rodilla izquierda,ok,,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,leve,menos_flexion,rodilla,izquierdo,Estira un poco más la rodilla izquierda.,Extiende bien la rodilla izquierda,ok,,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,leve,menos_flexion,rodilla,izquierdo,Estira un poco más la rodilla izquierda.,Alarga la rodilla izquierda más,descartar,la rodilla no se alarga,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,moderada,menos_flexion,rodilla,izquierdo,"Estira la rodilla izquierda, cuerpo en línea recta.",Estira más la rodilla izquierda,ok,,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,moderada,menos_flexion,rodilla,izquierdo,"Estira la rodilla izquierda, cuerpo en línea recta.",Rodilla izquierda estirada,descartar,no es una orden,3,llama3.3:70b
+plancha,rodilla_izq_flexionada,moderada,menos_flexion,rodilla,izquierdo,"Estira la rodilla izquierda, cuerpo en línea recta.",Estira bien la rodilla izquierda,ok,,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,alta,menos_flexion,rodilla,izquierdo,"Estira bien la rodilla izquierda, la tienes muy doblada.",Estira más la rodilla izquierda,ok,,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,alta,menos_flexion,rodilla,izquierdo,"Estira bien la rodilla izquierda, la tienes muy doblada.","Rodilla izquierda estirada, sin flexión",descartar,no es una orden,5,llama3.3:70b
+plancha,rodilla_izq_flexionada,alta,menos_flexion,rodilla,izquierdo,"Estira bien la rodilla izquierda, la tienes muy doblada.",Estira bien la rodilla izquierda,ok,,5,llama3.3:70b
+plancha,rodilla_der_flexionada,leve,menos_flexion,rodilla,derecho,Estira un poco más la rodilla derecha.,Estira más la rodilla derecha,ok,,5,llama3.3:70b
+plancha,rodilla_der_flexionada,leve,menos_flexion,rodilla,derecho,Estira un poco más la rodilla derecha.,Rodilla derecha estirada más,descartar,no es una orden y suena raro,4,llama3.3:70b
+plancha,rodilla_der_flexionada,leve,menos_flexion,rodilla,derecho,Estira un poco más la rodilla derecha.,Estira la rodilla derecha más,ok,,5,llama3.3:70b
+plancha,rodilla_der_flexionada,moderada,menos_flexion,rodilla,derecho,"Estira la rodilla derecha, cuerpo en línea recta.",Estira más la rodilla derecha,ok,,5,llama3.3:70b
+plancha,rodilla_der_flexionada,moderada,menos_flexion,rodilla,derecho,"Estira la rodilla derecha, cuerpo en línea recta.",Rodilla derecha estirada por completo,descartar,no es una orden,5,llama3.3:70b
+plancha,rodilla_der_flexionada,moderada,menos_flexion,rodilla,derecho,"Estira la rodilla derecha, cuerpo en línea recta.",Estira bien la rodilla derecha,ok,,5,llama3.3:70b
+plancha,rodilla_der_flexionada,alta,menos_flexion,rodilla,derecho,"Estira bien la rodilla derecha, la tienes muy doblada.",Estira más la rodilla derecha,ok,,5,llama3.3:70b
+plancha,rodilla_der_flexionada,alta,menos_flexion,rodilla,derecho,"Estira bien la rodilla derecha, la tienes muy doblada.","La rodilla derecha está demasiado flexionada, estírala",descartar,larga; describe el error,7,llama3.3:70b
+plancha,rodilla_der_flexionada,alta,menos_flexion,rodilla,derecho,"Estira bien la rodilla derecha, la tienes muy doblada.",Estira la rodilla derecha completamente,ok,,5,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,leve,,tronco,na,Endereza un poco el tronco.,Ajusta el tronco,descartar,vago,3,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,leve,,tronco,na,Endereza un poco el tronco.,Enderezalo ligeramente tronco,descartar,mal escrita,3,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,leve,,tronco,na,Endereza un poco el tronco.,Rectifica el tronco,descartar,suena rebuscado,3,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,moderada,,tronco,na,"Endereza el tronco, pecho arriba.",Endereza tu tronco,ok,,3,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,moderada,,tronco,na,"Endereza el tronco, pecho arriba.",Corrige la inclinación del tronco,ok,,5,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,moderada,,tronco,na,"Endereza el tronco, pecho arriba.",Rectifica el tronco,descartar,suena rebuscado,3,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,alta,,tronco,na,"Endereza bien el tronco, sin irte hacia delante ni hacia atrás.",Mantén el tronco recto,ok,,4,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,alta,,tronco,na,"Endereza bien el tronco, sin irte hacia delante ni hacia atrás.",No inclines el tronco,ok,,4,llama3.3:70b
+zancada_atras_izq,tronco_muy_inclinado,alta,,tronco,na,"Endereza bien el tronco, sin irte hacia delante ni hacia atrás.",Endereza el tronco,ok,,3,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,leve,mas_flexion,rodilla,izquierdo,"Baja un poco más, flexionando la rodilla izquierda, si mantienes el equilibrio.",Aumenta la flexión de la rodilla izquierda,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,leve,mas_flexion,rodilla,izquierdo,"Baja un poco más, flexionando la rodilla izquierda, si mantienes el equilibrio.",Flexiona más la rodilla izquierda,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,leve,mas_flexion,rodilla,izquierdo,"Baja un poco más, flexionando la rodilla izquierda, si mantienes el equilibrio.",Profundiza más con la rodilla izquierda,descartar,suena raro,6,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,moderada,mas_flexion,rodilla,izquierdo,"Flexiona más la rodilla izquierda al bajar, sin perder el equilibrio.",Flexiona más la rodilla izquierda,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,moderada,mas_flexion,rodilla,izquierdo,"Flexiona más la rodilla izquierda al bajar, sin perder el equilibrio.","Rodilla izquierda, flexiona más",descartar,le habla a la rodilla,4,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,moderada,mas_flexion,rodilla,izquierdo,"Flexiona más la rodilla izquierda al bajar, sin perder el equilibrio.",Flexiona la rodilla izquierda más,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,alta,mas_flexion,rodilla,izquierdo,"Intenta bajar bastante más, flexionando la rodilla izquierda, con control.",Aumenta la flexión de la rodilla izquierda,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,alta,mas_flexion,rodilla,izquierdo,"Intenta bajar bastante más, flexionando la rodilla izquierda, con control.",Baja más la rodilla izquierda flexionándola,ok,,6,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_izq,alta,mas_flexion,rodilla,izquierdo,"Intenta bajar bastante más, flexionando la rodilla izquierda, con control.",Flexiona más la rodilla izquierda,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,leve,mas_flexion,rodilla,derecho,"Baja un poco más, flexionando la rodilla derecha, si mantienes el equilibrio.",Flexiona más la rodilla derecha,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,leve,mas_flexion,rodilla,derecho,"Baja un poco más, flexionando la rodilla derecha, si mantienes el equilibrio.","Rodilla derecha, flexiona un poco más",descartar,le habla a la rodilla,6,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,leve,mas_flexion,rodilla,derecho,"Baja un poco más, flexionando la rodilla derecha, si mantienes el equilibrio.",Aumenta la flexión de la rodilla derecha,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,moderada,mas_flexion,rodilla,derecho,"Flexiona más la rodilla derecha al bajar, sin perder el equilibrio.",Flexiona más tu rodilla derecha,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,moderada,mas_flexion,rodilla,derecho,"Flexiona más la rodilla derecha al bajar, sin perder el equilibrio.",Baja más con la rodilla derecha,ok,,6,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,moderada,mas_flexion,rodilla,derecho,"Flexiona más la rodilla derecha al bajar, sin perder el equilibrio.",Profundiza con la rodilla derecha,descartar,suena raro,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,alta,mas_flexion,rodilla,derecho,"Intenta bajar bastante más, flexionando la rodilla derecha, con control.",Baja la rodilla derecha más,descartar,suena raro,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,alta,mas_flexion,rodilla,derecho,"Intenta bajar bastante más, flexionando la rodilla derecha, con control.",Flexiona más la rodilla derecha,ok,,5,llama3.3:70b
+zancada_atras_izq,profundidad_insuficiente_der,alta,mas_flexion,rodilla,derecho,"Intenta bajar bastante más, flexionando la rodilla derecha, con control.",Aumenta la flexión de la rodilla derecha,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_izq,paso_corto,leve,alargar,pierna,na,"Alarga un poco el paso, para bajar con control.",Alarga la pierna,descartar,lo que se alarga es el paso,3,llama3.3:70b
+zancada_atras_izq,paso_corto,leve,alargar,pierna,na,"Alarga un poco el paso, para bajar con control.",Pierna más larga,descartar,lo que se alarga es el paso,3,llama3.3:70b
+zancada_atras_izq,paso_corto,leve,alargar,pierna,na,"Alarga un poco el paso, para bajar con control.",Alarga tu pierna,descartar,lo que se alarga es el paso,3,llama3.3:70b
+zancada_atras_izq,paso_corto,moderada,alargar,pierna,na,Alarga el paso para bajar y subir con control.,Alarga la pierna para una zancada más larga,descartar,lo que se alarga es el paso,8,llama3.3:70b
+zancada_atras_izq,paso_corto,alta,alargar,pierna,na,Alarga bastante el paso para bajar y subir con control.,Extiende más tu pierna,descartar,lo que se alarga es el paso,4,llama3.3:70b
+zancada_atras_izq,paso_largo,leve,acortar,pierna,na,"Acorta un poco el paso, para bajar con control.",Acorta la pierna en el paso,descartar,lo que se acorta es el paso,6,llama3.3:70b
+zancada_atras_izq,paso_largo,leve,acortar,pierna,na,"Acorta un poco el paso, para bajar con control.",Acorta un poco la zancada,ok,,5,llama3.3:70b
+zancada_atras_izq,paso_largo,leve,acortar,pierna,na,"Acorta un poco el paso, para bajar con control.",Acorta tu pierna al dar el paso,descartar,lo que se acorta es el paso,7,llama3.3:70b
+zancada_atras_izq,paso_largo,moderada,acortar,pierna,na,Acorta el paso para bajar y subir con control.,Acorta tu pierna,descartar,lo que se acorta es el paso,3,llama3.3:70b
+zancada_atras_izq,paso_largo,moderada,acortar,pierna,na,Acorta el paso para bajar y subir con control.,Reduce la longitud de tu pierna,descartar,lo que se acorta es el paso,6,llama3.3:70b
+zancada_atras_izq,paso_largo,alta,acortar,pierna,na,Acorta bastante el paso para bajar y subir con control.,Acorta un poco la pierna,descartar,lo que se acorta es el paso,5,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,leve,,tronco,na,Endereza un poco el tronco.,Ajusta el tronco,descartar,vago,3,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,leve,,tronco,na,Endereza un poco el tronco.,Endereza el tronco,ok,,3,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,leve,,tronco,na,Endereza un poco el tronco.,Rectifica el tronco,descartar,suena rebuscado,3,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,moderada,,tronco,na,"Endereza el tronco, pecho arriba.",Mantén el tronco recto,ok,,4,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,moderada,,tronco,na,"Endereza el tronco, pecho arriba.",Tronco más erguido,ok,,3,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,moderada,,tronco,na,"Endereza el tronco, pecho arriba.",Endereza tu tronco,ok,,3,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,alta,,tronco,na,"Endereza bien el tronco, sin irte hacia delante ni hacia atrás.",Mantén el tronco más erguido,ok,,5,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,alta,,tronco,na,"Endereza bien el tronco, sin irte hacia delante ni hacia atrás.",Endereza el tronco completamente,descartar,pide el máximo,4,llama3.3:70b
+zancada_atras_der,tronco_muy_inclinado,alta,,tronco,na,"Endereza bien el tronco, sin irte hacia delante ni hacia atrás.",Ajusta el tronco para que esté recto,descartar,vaga,7,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,leve,mas_flexion,rodilla,izquierdo,"Baja un poco más, flexionando la rodilla izquierda, si mantienes el equilibrio.",Aumenta la flexión de la rodilla izquierda,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,leve,mas_flexion,rodilla,izquierdo,"Baja un poco más, flexionando la rodilla izquierda, si mantienes el equilibrio.",Flexiona más la rodilla izquierda,ok,,5,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,leve,mas_flexion,rodilla,izquierdo,"Baja un poco más, flexionando la rodilla izquierda, si mantienes el equilibrio.",Profundiza más con la rodilla izquierda,descartar,suena raro,6,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,moderada,mas_flexion,rodilla,izquierdo,"Flexiona más la rodilla izquierda al bajar, sin perder el equilibrio.",Aumenta la flexión de la rodilla izquierda,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,moderada,mas_flexion,rodilla,izquierdo,"Flexiona más la rodilla izquierda al bajar, sin perder el equilibrio.",Flexiona más fuerte la rodilla izquierda,descartar,«fuerte» no es lo pedido,6,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,moderada,mas_flexion,rodilla,izquierdo,"Flexiona más la rodilla izquierda al bajar, sin perder el equilibrio.",Baja más con la rodilla izquierda flexionada,ok,,7,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,alta,mas_flexion,rodilla,izquierdo,"Intenta bajar bastante más, flexionando la rodilla izquierda, con control.",Flexiona más la rodilla izquierda,ok,,5,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,alta,mas_flexion,rodilla,izquierdo,"Intenta bajar bastante más, flexionando la rodilla izquierda, con control.",Baja más con la rodilla izquierda,ok,,6,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_izq,alta,mas_flexion,rodilla,izquierdo,"Intenta bajar bastante más, flexionando la rodilla izquierda, con control.",Profundiza con la rodilla izquierda,descartar,suena raro,5,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,leve,mas_flexion,rodilla,derecho,"Baja un poco más, flexionando la rodilla derecha, si mantienes el equilibrio.",Flexiona más la rodilla derecha,ok,,5,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,leve,mas_flexion,rodilla,derecho,"Baja un poco más, flexionando la rodilla derecha, si mantienes el equilibrio.",Profundiza más con la rodilla derecha,descartar,suena raro,6,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,leve,mas_flexion,rodilla,derecho,"Baja un poco más, flexionando la rodilla derecha, si mantienes el equilibrio.",Flexiona la rodilla derecha más abajo,descartar,suena raro,6,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,moderada,mas_flexion,rodilla,derecho,"Flexiona más la rodilla derecha al bajar, sin perder el equilibrio.",Aumenta la flexión de la rodilla derecha,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,moderada,mas_flexion,rodilla,derecho,"Flexiona más la rodilla derecha al bajar, sin perder el equilibrio.",Flexiona más profundamente la rodilla derecha,ok,,6,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,moderada,mas_flexion,rodilla,derecho,"Flexiona más la rodilla derecha al bajar, sin perder el equilibrio.",Profundiza más en la flexión de la rodilla derecha,descartar,larga y técnica,9,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,alta,mas_flexion,rodilla,derecho,"Intenta bajar bastante más, flexionando la rodilla derecha, con control.",Aumenta la flexión de la rodilla derecha,descartar,suena técnico,7,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,alta,mas_flexion,rodilla,derecho,"Intenta bajar bastante más, flexionando la rodilla derecha, con control.",Flexiona más la rodilla derecha,ok,,5,llama3.3:70b
+zancada_atras_der,profundidad_insuficiente_der,alta,mas_flexion,rodilla,derecho,"Intenta bajar bastante más, flexionando la rodilla derecha, con control.",Baja más con la rodilla derecha,ok,,6,llama3.3:70b
+zancada_atras_der,paso_corto,leve,alargar,pierna,na,"Alarga un poco el paso, para bajar con control.",Alarga la pierna en la zancada,descartar,lo que se alarga es el paso,6,llama3.3:70b
+zancada_atras_der,paso_corto,leve,alargar,pierna,na,"Alarga un poco el paso, para bajar con control.",Extiende más la pierna,descartar,lo que se alarga es el paso,4,llama3.3:70b
+zancada_atras_der,paso_corto,leve,alargar,pierna,na,"Alarga un poco el paso, para bajar con control.",Alarga un poco la pierna,descartar,lo que se alarga es el paso,5,llama3.3:70b
+zancada_atras_der,paso_corto,moderada,alargar,pierna,na,Alarga el paso para bajar y subir con control.,Alarga tu pierna,descartar,lo que se alarga es el paso,3,llama3.3:70b
+zancada_atras_der,paso_corto,moderada,alargar,pierna,na,Alarga el paso para bajar y subir con control.,Estira la pierna,descartar,lo que se alarga es el paso,3,llama3.3:70b
+zancada_atras_der,paso_corto,moderada,alargar,pierna,na,Alarga el paso para bajar y subir con control.,Alarga más la pierna,descartar,lo que se alarga es el paso,4,llama3.3:70b
+zancada_atras_der,paso_corto,alta,alargar,pierna,na,Alarga bastante el paso para bajar y subir con control.,Alarga la pierna en la zancada,descartar,lo que se alarga es el paso,6,llama3.3:70b
+zancada_atras_der,paso_corto,alta,alargar,pierna,na,Alarga bastante el paso para bajar y subir con control.,Extiende más la pierna,descartar,lo que se alarga es el paso,4,llama3.3:70b
+zancada_atras_der,paso_corto,alta,alargar,pierna,na,Alarga bastante el paso para bajar y subir con control.,Alarga tu pierna en cada paso,descartar,lo que se alarga es el paso,6,llama3.3:70b
+zancada_atras_der,paso_largo,leve,acortar,pierna,na,"Acorta un poco el paso, para bajar con control.",Acorta tu zancada,ok,,3,llama3.3:70b
+zancada_atras_der,paso_largo,leve,acortar,pierna,na,"Acorta un poco el paso, para bajar con control.",Reduce la longitud de tu pierna,descartar,lo que se acorta es el paso,6,llama3.3:70b
+zancada_atras_der,paso_largo,leve,acortar,pierna,na,"Acorta un poco el paso, para bajar con control.",Acorta la pierna en el paso,descartar,lo que se acorta es el paso,6,llama3.3:70b
+zancada_atras_der,paso_largo,moderada,acortar,pierna,na,Acorta el paso para bajar y subir con control.,Acorta la zancada con tu pierna,descartar,suena raro,6,llama3.3:70b
+zancada_atras_der,paso_largo,moderada,acortar,pierna,na,Acorta el paso para bajar y subir con control.,"Pierna, acorta el paso",descartar,le habla a la pierna,4,llama3.3:70b
+zancada_atras_der,paso_largo,moderada,acortar,pierna,na,Acorta el paso para bajar y subir con control.,Acorta con la pierna,descartar,suena raro,4,llama3.3:70b
+zancada_atras_der,paso_largo,alta,acortar,pierna,na,Acorta bastante el paso para bajar y subir con control.,Acorta la pierna en cada zancada,descartar,lo que se acorta es el paso,6,llama3.3:70b
+zancada_atras_der,paso_largo,alta,acortar,pierna,na,Acorta bastante el paso para bajar y subir con control.,Acorta un poco la pierna,descartar,lo que se acorta es el paso,5,llama3.3:70b
+zancada_atras_der,paso_largo,alta,acortar,pierna,na,Acorta bastante el paso para bajar y subir con control.,Acorta tu pierna,descartar,lo que se acorta es el paso,3,llama3.3:70b

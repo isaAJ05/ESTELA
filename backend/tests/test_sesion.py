@@ -184,7 +184,7 @@ def test_plancha_cadera_hundida_se_corrige_tras_dos_bloques(catalogo):
     assert {m["error_id"] for m in msgs} == {"cadera_hundida"}
     # bloques de 5 s y repeticiones_evidencia = 2: nunca en el primer bloque
     assert all(m["repeticion"] >= 2 for m in msgs)
-    assert any("caderas" in t.lower() for t in voz.correcciones)
+    assert any("cadera" in t.lower() for t in voz.correcciones)   # «cadera» o «caderas» (variantes del 70B)
 
 
 class EstimadorPlanchaConHuecos(EstimadorPlancha):
