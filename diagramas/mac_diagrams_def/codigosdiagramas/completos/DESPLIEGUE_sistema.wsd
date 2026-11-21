@@ -1,0 +1,92 @@
+@startuml DESPLIEGUE_sistema
+' Diagrama de despliegue de ESTELA — rama feature/mac-flujo (commit 8248abb,
+' 2026-11-20): la versión final con modelo de lenguaje, para Mac.
+' Dónde se ejecuta cada componente y por qué conexión se comunican. No describe
+' los módulos internos del código (eso lo hace INTERACCION_modulos.wsd).
+' Frente a la rama test (diagramas/definitivos/), verificado en el código:
+'   - Ollama como proceso local aparte, HTTP 127.0.0.1:11434 (llm_local.py,
+'     entrenadora_ollama.py); al arrancar se pregunta por /api/tags si está
+'     y tiene el modelo (adaptadores/llm/ollama.py); si no, plantillas;
+'   - micrófono con sounddevice y Whisper (pywhispercpp, extra «voz-entrada»),
+'     modelo ggml-small.bin en modelos/voz_entrada/;
+'   - la GPU del Mac (Metal) la usan la pose heavy, Whisper y Ollama;
+'   - descargas de instalación: Whisper desde Hugging Face
+'     (descargar_modelos.py --voz-entrada) y modelos de Ollama (ollama pull);
+'   - scripts offline que llaman a Ollama (generar_variantes.py, hoja_ab.py);
+'   - sin banco de pruebas ni llama-server: aquí el LLM corre en la app
+'     (llama-server queda como alternativa con --llm-backend llama-server).
+' RAM: medida por el equipo en la Mac Studio (2026-11-20). El mínimo de 24 GB
+' es una estimación, no una medición.
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de despliegue
+
+left to right direction
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 30
+skinparam ranksep 90
+
+node "Cámara web\n«dispositivo»\n(integrada o USB)" as CAMD
+node "Micrófono\n«dispositivo»" as MICD
+node "Salida de audio\n«dispositivo»\n(altavoces o audífonos)" as AUD
+
+node "Mac de la usuaria «dispositivo»\nmacOS, Apple Silicon (memoria unificada)" as MAC {
+  node "Python 3.10+ en entorno virtual\n«entorno de ejecución»" as PY {
+    artifact "estela\n(backend/, python -m estela)" as EST
+    artifact "MediaPipe, OpenCV, NumPy, Pillow,\nPiper, sounddevice, pywebview,\npywhispercpp (whisper.cpp)" as LIBS
+    artifact "scripts offline\n(variantes de frases, hoja A/B;\nsolo equipo de desarrollo)" as SCR
+  }
+  node "WKWebView\n«entorno de ejecución»" as WEB {
+    artifact "frontend/dist\n(interfaz React compilada)" as DIST
+  }
+  node "Ollama\n«proceso local»" as OLL {
+    artifact "qwen3:4b-instruct (q4_K_M)\ncorrecciones" as M4
+    artifact "qwen3:14b\nentrenadora" as M14
+  }
+  node "Voz del sistema\n«proceso de respaldo»\nsay" as SIS
+  node "GPU del Mac (Metal)\n«dispositivo»" as GPU
+  folder "Archivos locales" as FS {
+    artifact "modelos/\npose_landmarker_heavy.task\nvoces/*.onnx\nvoz_entrada/ggml-small.bin" as MOD
+    artifact "skills, referencias, rutinas\ny plantillas con variantes (JSON)" as CONF
+    artifact "historial/\nperfiles.json y <perfil>.jsonl\n(sin video ni ángulos)" as HIS
+    artifact "sesiones/\nmétricas JSON y CSV\n(con --guardar-metricas)" as SES
+  }
+}
+
+node "Internet «solo durante la instalación»" as NET {
+  artifact "Repositorio GitHub y\ndependencias de Python (pip)" as REPO
+  artifact "Modelos de pose de MediaPipe,\nvoces de Piper y Whisper\n(Hugging Face)" as DESC
+  artifact "Modelos de Ollama\n(ollama pull)" as OREG
+}
+
+CAMD --> EST : fotogramas\n(OpenCV)
+MICD --> EST : audio\n(sounddevice)
+AUD <-- EST : voz y «te escucho»\n(sounddevice o afplay)
+EST <--> WEB : HTTP 127.0.0.1 (archivos de la interfaz)\n+ puente JavaScript de pywebview
+EST --> OLL : HTTP 127.0.0.1:11434\n(4B: 400 ms; 14B: 5 s;\nsi falla: plantilla)
+EST ..> SIS : frase\n(si no hay Piper)
+EST --> GPU : pose heavy\ny Whisper
+OLL --> GPU : inferencia
+EST --> MOD : lee
+EST --> CONF : lee
+EST --> HIS : lee y escribe
+EST --> SES : escribe
+SCR ..> OLL : HTTP 127.0.0.1:11434
+SCR ..> CONF : variantes\nrevisadas
+
+MAC ..> REPO : instala
+MAC ..> DESC : descarga una vez\n(scripts/descargar_modelos.py)
+OLL ..> OREG : descarga una vez
+
+legend bottom left
+  Versión final para Mac con Apple Silicon. Probada en una Mac Studio M2 Ultra (128 GB):
+  pose p95 21 ms y 25 fps. Memoria medida en uso: Ollama 12,6 GB (14B 9,0 GB; 4B 2,9 GB)
+  y la app 1,8 GB, ≈14,4 GB sin contar macOS. Mínimo estimado, no medido: 24 GB
+  (16 GB queda justo; sin la entrenadora 14B serían ≈4,7 GB).
+  Sin contenedores ni servidores en la nube: Ollama escucha solo en 127.0.0.1
+  y durante la sesión ningún dato sale del equipo.
+endlegend
+@enduml

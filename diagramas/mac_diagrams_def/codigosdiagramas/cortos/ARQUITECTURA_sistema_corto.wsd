@@ -1,0 +1,55 @@
+@startuml ARQUITECTURA_sistema_corto
+' Versión corta de ARQUITECTURA_sistema.wsd para diapositivas — rama
+' feature/mac-flujo (commit 8248abb). Frente a la de test añade el micrófono
+' con Whisper (órdenes de voz) y Ollama (correcciones y entrenadora).
+
+title ESTELA — Arquitectura
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam ArrowFontSize 14
+skinparam nodesep 40
+skinparam ranksep 120
+skinparam rectangle {
+  BorderStyle dashed
+}
+
+actor "Usuaria" as USU
+
+rectangle "Mac de la usuaria — todo se ejecuta en local" as EQ {
+  node "Altavoces" as ALT
+  node "Cámara web" as CAM
+  node "Micrófono" as MIC
+  component "Interfaz de escritorio" as UI
+  component "Núcleo de análisis\n(Python)" as NUC
+  component "MediaPipe\n(pose)" as MP
+  component "Piper\n(voz)" as PIP
+  component "Whisper\n(órdenes de voz)" as WHI
+  component "Ollama\n(frases y entrenadora)" as OLL
+  folder "Ejercicios\n(skills y referencias)" as CONF
+  folder "Historial\n(perfiles y progreso)" as HIS
+}
+
+component "Preparación offline\nde referencias" as OFF
+
+USU <-- ALT : correcciones\ny resumen
+USU --> CAM : hace el\nejercicio
+USU --> MIC : «Estela,\npausa»
+USU --> UI : elige perfil\ny rutina
+
+ALT <-- NUC : voz
+CAM --> NUC : fotogramas
+MIC --> NUC : audio
+UI <--> NUC : comandos /\nestado
+NUC --> MP
+NUC --> PIP
+NUC --> WHI
+NUC --> OLL : error ya\ndecidido
+NUC --> CONF : lee
+NUC --> HIS : guarda
+
+OFF --> CONF : genera
+@enduml

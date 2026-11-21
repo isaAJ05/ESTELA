@@ -1,0 +1,153 @@
+@startuml SECUENCIA_flujo_por_fotograma
+' Flujo de un fotograma en la fase en vivo — rama feature/mac-flujo (commit
+' 8248abb, 2026-11-20): la versión final con modelo de lenguaje, para Mac.
+' Sigue Sesion.procesar(), Orquestador._correr(), VerbalizacionAparte y EscuchaVoz.
+' Cambios frente a test (diagramas/definitivos/), verificados en el código:
+'   - la corrección la redacta el LLM (qwen3:4b por Ollama) en un hilo aparte
+'     (verbalizacion_aparte.py): el bucle no lo espera. Si falla, tarda más de
+'     400 ms o la frase no pasa el validador, se usa la plantilla. Al volver,
+'     solo se dice si sigue el mismo ejercicio y no está en pausa ni
+'     colocándose; si no, se descarta (redactadas_tarde). Los refuerzos (sin
+'     error) siguen saliendo de la plantilla en el momento;
+'   - órdenes de voz en otro hilo: entran por la misma cola que los botones;
+'   - pausa a mano: botón u orden de voz. El gesto del brazo está apagado por
+'     defecto (Sesion.gesto_pausa = False) y la pausa por inactividad también
+'     (DetectorPausa(inactividad_s=None)), ambos desde el 2026-11-20;
+'   - en las imágenes que no se evalúan (colocación, pausa o anuncio) el
+'     estimador renueva el detector de la GPU (momento_libre);
+'   - al completar el objetivo, la sesión avisa a la entrenadora; por defecto
+'     solo habla al final de la rutina (entre ejercicios está apagada).
+' Diagrama de secuencia: se ve el orden de las llamadas y qué hilo ejecuta cada parte.
+' No necesita Graphviz.
+
+title ESTELA — Flujo de un fotograma en la fase en vivo
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+participant "Escucha de voz\n(hilo propio)" as ESC
+participant "Cámara\n(hilo propio)" as CAM
+participant "Orquestador\n(hilo de sesión)" as ORQ
+participant "Sesión" as SES
+participant "Estimador de pose\n(heavy en GPU)" as EP
+participant "Geometría" as GEO
+participant "Segmentador" as SEG
+participant "Alineador\nDTW" as DTW
+participant "Reconocedor\nde ejercicio" as REC
+participant "Motor de\nfeedback" as MF
+participant "Verbalización\naparte\n(hilo propio)" as VAP
+participant "Verbalizador LLM\n(Ollama, qwen3:4b)" as LLM
+participant "Cola de voz\n(hilo propio)" as VOZ
+
+note over CAM
+  Guarda solo el último fotograma:
+  los que no se alcanzaron a leer
+  se descartan (RF-02).
+end note
+
+group En paralelo, hilo de la escucha (órdenes de voz)
+  ESC -> SES : ¿puede escuchar ahora?\n(modo «llamada»: también durante el ejercicio)
+  ESC -> ESC : Whisper: audio → texto;\nlista fija: texto → orden
+  opt oyó «Estela» y una orden válida
+    ESC -> ORQ : orden (pausar, seguir, siguiente, terminar…)\n(misma cola que los botones; las que cortan a ESTELA la callan)
+  end
+end
+
+loop mientras la sesión esté activa
+  ORQ -> ORQ : aplicar las órdenes en cola\n(de los botones o de la voz)
+  ORQ -> CAM : leer()
+  CAM --> ORQ : (fotograma, t_ms)
+  ORQ -> SES : procesar(fotograma, t_ms)
+  opt imagen que no se evalúa (colocación, pausa o anuncio)
+    SES -> EP : momento_libre()\n(renovar el detector de la GPU)
+  end
+  SES -> EP : estimar(fotograma, t_ms)
+  EP --> SES : ResultadoPose\n(puntos y latencia)
+
+  alt pausa pedida por la usuaria (botón o «Estela, pausa»)
+    SES --> ORQ : EstadoFrame\n(solo el esqueleto y «En pausa.»)
+  else no se detecta a la persona
+    SES -> SEG : interrumpir()
+    SES -> SES : vigilar la ausencia\n(pausa a los 5 s sin persona;\nen la colocación no se avisa)
+    opt empieza la pausa por ausencia
+      SES -> VOZ : decir(aviso de pausa, prioridad de aviso)
+    end
+    SES --> ORQ : EstadoFrame con aviso\n(sin persona o pausa)
+  else hay persona
+    SES -> GEO : observacion_desde_pose(puntos)
+    GEO --> SES : Observacion\n(ángulos, confianza, plano)
+
+    alt colocándose (al empezar cada ejercicio)
+      SES -> SES : ¿orientación correcta y cuerpo entero?
+      opt bien colocada durante 1,5 s seguidos
+        SES -> VOZ : decir(«Ya te veo bien. Empieza cuando quieras.»)
+      end
+      SES --> ORQ : EstadoFrame\n(comprobaciones y aviso de colocación)
+    else ejercicio en curso
+      SES -> SEG : actualizar(observación)
+      SEG --> SES : fase y repetición
+
+      opt DTW activo (sin --sin-dtw)
+        SES -> DTW : actualizar(observación)
+        DTW --> SES : ángulo de referencia,\nprogreso y coste
+      end
+
+      SES -> SES : registro por repetición (en memoria)
+
+      opt reconocimiento activado
+        SES -> REC : actualizar(observación)
+        REC --> SES : ¿lleva 3 s haciendo\notro ejercicio?
+      end
+
+      SES -> SES : vigilar la pausa (ausencia y orientación;\nsin pausa por inactividad)
+      opt empieza o termina una pausa
+        SES -> VOZ : decir(aviso de pausa o «Seguimos.», prioridad de aviso)
+      end
+
+      alt sesión en pausa
+        SES --> ORQ : EstadoFrame con aviso\n(orientación, encuadre o pausa)
+      else sesión activa
+        alt la voz está anunciando
+          SES -> SES : Silencio(anuncio)\n(no se llama al motor)
+        else
+          SES -> MF : procesar(observación)
+          MF -> MF : decisión determinista\n(abstención, reglas, política de silencio)
+          alt hay error
+            MF --> SES : MensajeFeedback con el error ya tipificado
+            SES ->> VAP : pedir(error)\n(no espera; si había uno esperando, lo sustituye)
+          else refuerzo (sin error)
+            MF --> SES : MensajeFeedback (plantilla)
+            SES -> VOZ : decir(texto, prioridad de corrección)
+          else se calla
+            MF --> SES : Silencio(motivo)
+          end
+        end
+        opt aviso de operación (orientación, encuadre,\nmovimiento equivocado u otro ejercicio)
+          SES -> VOZ : decir(aviso, prioridad de aviso)\n(p. ej. «Ese movimiento no es el de ahora. Toca …»)
+        end
+        opt completó las repeticiones del objetivo
+          SES -> SES : pasar al siguiente ejercicio\n(avisa a la entrenadora; por defecto\nsolo habla al final de la rutina)
+        end
+        SES --> ORQ : EstadoFrame\n(mensaje o motivo de silencio, latencias)
+      end
+    end
+  end
+
+  ORQ -> ORQ : publicar el estado y el fotograma\n(la interfaz lo recoge por sondeo largo)
+end
+
+group En paralelo, hilo de la verbalización aparte
+  VAP -> LLM : verbalizar(error)
+  LLM -> LLM : HTTP 127.0.0.1:11434 y validador\n(si falla, tarda más de 400 ms\no no pasa el validador: plantilla)
+  LLM --> VAP : MensajeFeedback (frase del LLM o plantilla)
+  VAP -> SES : al_redactar(frase)
+  alt mismo ejercicio, sin pausa ni colocación
+    SES -> VOZ : decir(frase, prioridad de corrección)
+  else ya no toca
+    SES -> SES : se descarta (redactadas_tarde)
+  end
+end
+
+@enduml

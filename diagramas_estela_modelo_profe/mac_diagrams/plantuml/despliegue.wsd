@@ -1,0 +1,49 @@
+@startuml
+title Diagrama de Despliegue - ESTELA
+
+actor Usuario
+
+node "Mac del Usuario (macOS, Apple Silicon)" as MAC {
+  node "Ventana de Escritorio (pywebview)" as WV {
+    [Interfaz React] as React
+  }
+  node "Proceso Python (python -m estela)" as PY {
+    [Núcleo ESTELA] as Core
+    [MediaPipe] as MP
+    [Piper] as Piper
+    [Whisper] as Whisper
+    [Skills y referencias (JSON)] as Skills
+    [Historial y perfiles (JSON)] as Hist
+  }
+  node "Ollama (proceso local)" as OLL {
+    [qwen3:4b-instruct] as M4
+    [qwen3:14b] as M14
+  }
+  node "Cámara web" as Cam
+  node "Micrófono" as Mic
+  node "Salida de audio" as Aud
+}
+
+node "Servicio Externo (solo instalación)" as NET {
+  [Repositorio GitHub y modelos] as Repo
+}
+
+Usuario --> React
+Usuario --> Cam
+Usuario --> Mic
+Aud --> Usuario
+React --> Core
+Core --> Cam
+Core --> Mic
+Core --> MP
+Core --> Piper
+Core --> Whisper
+Core --> OLL
+Core --> Skills
+Core --> Hist
+Piper --> Aud
+MAC ..> Repo
+' En mac-flujo el LLM corre en la app, como proceso aparte (Ollama) en el
+' mismo equipo: el núcleo le habla por HTTP a 127.0.0.1.
+' La descarga (pip, modelos, ollama pull) se hace en la instalación, no en la sesión.
+@enduml

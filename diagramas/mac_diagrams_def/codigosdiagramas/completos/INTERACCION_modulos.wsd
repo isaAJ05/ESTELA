@@ -1,0 +1,185 @@
+@startuml INTERACCION_modulos
+' Diagrama de interacción entre módulos de ESTELA — rama feature/mac-flujo
+' (commit 8248abb, 2026-11-20): la versión final con modelo de lenguaje, para Mac.
+' Mismo formato que la versión de test (diagramas/definitivos/), completado con
+' el código de mac-flujo. Cambios frente a test, verificados con los imports y
+' con el cableado de __main__.py:
+'   - Órdenes de voz: EscuchaVoz (adaptadores/voz_entrada/: micrófono, detector
+'     de frase y reconocedor Whisper con pywhispercpp) interpreta con
+'     aplicacion/comandos_voz.py (lista fija, sin LLM) y manda la orden al
+'     orquestador por el mismo camino que los botones; se engancha a la sesión
+'     como «oyente» y le pregunta si puede escuchar. Sonido «te escucho» en voz/.
+'   - Verbalización aparte (aplicacion/verbalizacion_aparte.py): la sesión pide
+'     la frase a un hilo propio y no espera; el verbalizador con LLM
+'     (llm/llm_local.py) habla con Ollama. Si falla o tarda: plantilla.
+'   - Entrenadora (aplicacion/entrenadora.py): resumen final y «¿cómo voy?»;
+'     el modelo entra como la función Generador (llm/entrenadora_ollama.py) y
+'     EntrenadoraEnVivo (llm/entrenadora_en_vivo.py) se engancha a la sesión al
+'     cerrar cada ejercicio. Dolor o lesión: respuesta fija, sin modelo.
+'   - Plantillas con las variantes revisadas (plantillas_es.json).
+'   - Sin visor de calibración (no existe en mac-flujo).
+' Se omiten, para no cargar el dibujo: Orquestador --( Estimador (solo pasa la
+' función que lo crea), comandos_voz --> validador (solo usa normalizar) y la
+' función de progreso que el orquestador le pasa a la entrenadora.
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de interacción entre módulos\n(un solo proceso de Python; Ollama es un proceso aparte)
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 35
+skinparam ranksep 55
+
+package "Tecnologías externas" as EXT {
+  component "Interfaz React\n«en la ventana pywebview»" as REACT
+  component "OpenCV\n«biblioteca»" as OCVLIB
+  component "Piper\n«biblioteca»" as PIPER
+  component "MediaPipe\n«biblioteca»" as MPLIB
+  component "whisper.cpp (pywhispercpp)\ny sounddevice\n«bibliotecas»" as WHILIB
+  component "Ollama\n«proceso externo, local»" as OLL
+}
+node "Cámara física" as HWCAM
+node "Micrófono físico" as HWMIC
+
+component "Arranque\n(<U+005F><U+005F>main<U+005F><U+005F>.py)" as MAIN
+
+package "Adaptadores" as AD {
+  component "Orquestador y ventana\n(interfaz/)" as ORQ
+  component "Fuente de cámara y video\n(captura/)" as CAM
+  component "Cola de voz, motores\ny sonido «te escucho»\n(voz/)" as VOZ
+  component "Estimador de pose\n(pose/)" as EP
+  component "Escucha de órdenes de voz\n(voz_entrada/: micrófono,\ndetector de frase, Whisper)" as ESC
+  component "Verbalizador con LLM\n(llm/llm_local.py; 4B, 400 ms)" as LLM
+  component "Generador con Ollama\n(llm/entrenadora_ollama.py; 14B, 5 s)" as GENO
+  component "Entrenadora en vivo\n(llm/entrenadora_en_vivo.py)" as ENV
+}
+
+package "Aplicación" as AP {
+  interface "Fuente" as IFUENTE
+  interface "Voz" as IVOZ
+  interface "Estimador" as IEST
+  interface "Generador" as IGEN
+  component "Sesión y pausas" as SES
+  component "Verbalización aparte\n(hilo propio)" as VAP
+  component "Comandos de voz\n(lista fija de órdenes)" as CMD
+  component "Entrenadora\n(resumen final, «¿cómo voy?»;\ndolor: respuesta fija)" as ENT
+  component "Gesto de pausa\n(brazo derecho arriba)" as GES
+  component "Reconocedor de ejercicio" as REC
+  component "Rutina y catálogo" as RUT
+  component "Umbrales relativos" as UMB
+  component "Alineador DTW" as DTW
+  component "Registro por repetición" as REG
+  component "Latencias y métricas" as MET
+  component "Perfiles" as PER
+  component "Historial de sesiones" as HIS
+}
+
+package "Dominio" as DO {
+  artifact "referencias/*.json\n(por ejercicio y\nde reconocimiento)" as REFS
+  artifact "skills/*.json" as SKILL
+  artifact "plantillas_es.json\n(con variantes revisadas)" as PLA
+  component "Motor de feedback\n(MotorFeedback)" as MF
+  component "Geometría" as GEO
+  component "Segmentador" as SEG
+  component "Motor de decisión" as MOT
+  interface " " as IVERB
+  component "Verbalizador por plantillas\ny validador" as VER
+}
+
+artifact "historial/\n(perfiles.json y\n<perfil>.jsonl)" as HISF
+
+component "Creadores de referencias\n(scripts/crear_referencia*.py)\n«offline»; reutilizan el estimador,\nla geometría, el segmentador y el catálogo" as CR
+component "Variantes de frases y hoja A/B\n(scripts/generar_variantes.py,\nhoja_ab.py) «offline»" as VARS
+artifact "Video de referencia\n(fuera del repositorio)" as VIDEO
+
+' Aristas en orden de izquierda a derecha, fila por fila.
+' -------------------------------------------------------------- arranque
+MAIN ..> AD : «crea, inyecta y engancha\na cada sesión nueva»
+MAIN ..> SES : «usa sin ventana\n(--interfaz opencv)»
+
+' --------------------------------------------------------------- externos
+REACT <.. ORQ : «JSON»
+HWCAM <.. OCVLIB
+OCVLIB <.. CAM
+MPLIB <.. EP
+PIPER <.. VOZ
+HWMIC <.. WHILIB
+WHILIB <.. ESC
+OLL <.. LLM : «HTTP local»
+OLL <.. GENO : «HTTP local»
+
+' --------------------------------------------------------------- puertos
+ORQ ..> SES
+ORQ -down-( IFUENTE
+CAM -down-() IFUENTE
+EP -down-() IEST
+VOZ -down-() IVOZ
+SES -up-( IEST
+SES -up-( IVOZ
+ESC -down-( IVOZ
+ENV -down-( IVOZ
+GENO -down-() IGEN
+ENT -up-( IGEN
+
+' ------------------------------------------------------ órdenes de voz
+ESC ..> ORQ : «orden (mismo camino\nque los botones)»
+ESC ..> CMD : «interpretar»
+ESC ..> SES : «oyente: ¿puede\nescuchar ahora?»
+ESC ..> ENT : «¿cómo voy?»\ny dolor
+SES ..> CMD : puede_escuchar
+
+' ---------------------------------------------------------- entrenadora
+ENV ..> SES : «al cerrar cada\nejercicio y al final»
+ENV ..> ENT
+ENT ..> VER : «valida el texto»
+
+' ------------------------------------------------- dependencias entre capas
+SES ..> GES
+SES ..> REC
+SES ..> RUT
+SES ..> MF
+SES ..> GEO
+SES ..> SEG
+SES ..> DTW
+SES ..> REG
+SES ..> MET
+SES ..> VAP : «error ya tipificado»
+REC ..> REFS : «lee»
+RUT ..> REFS : «lee»
+RUT ..> SKILL : «lee»
+RUT .right.> UMB
+MF ..> MOT
+MF --( IVERB : Verbalizador
+VAP --( IVERB
+VER -left-() IVERB
+LLM -() IVERB
+VER ..> PLA : «lee»
+LLM ..> VER : «plantilla si falla,\nvalida la frase»
+
+' ------------------------------------------------ perfiles e historial
+ORQ ..> PER
+ORQ ..> HIS
+PER ..> HIS
+HIS ..> HISF : «lee y escribe\nal cerrar la sesión»
+
+' Acerca el orquestador al arranque, arriba de su columna (sin dibujar)
+MAIN -[hidden]-> ORQ
+
+' --------------------------------------------------------------- offline
+REFS <.. CR : «genera»
+CR .right.> VIDEO : «lee»
+VARS ..> OLL : «redacta y compara»
+PLA <.. VARS : «variantes revisadas\npor una persona»
+
+legend bottom left
+  Aplicación: biblioteca estándar y NumPy, sin red. Dominio: solo biblioteca estándar.
+  El modelo de lenguaje solo entra por las interfaces Verbalizador y Generador: recibe un error ya tipificado
+  o cifras ya derivadas, nunca imágenes ni ángulos, y nunca decide qué error hubo. Si Ollama falla o tarda: plantilla.
+  Flecha punteada: dependencia (el origen usa al destino). Círculo: interfaz que el componente ofrece;
+  semicírculo: interfaz que requiere. Se omite Orquestador --( Estimador (solo pasa la función que lo crea).
+endlegend
+@enduml

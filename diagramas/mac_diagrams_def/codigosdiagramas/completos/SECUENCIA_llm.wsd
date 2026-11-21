@@ -1,0 +1,105 @@
+@startuml SECUENCIA_llm
+' Uso del modelo de lenguaje en la sesión — rama feature/mac-flujo (commit
+' 8248abb, 2026-11-20): la versión final con LLM, para Mac.
+' En test no hay versión completa de esta secuencia (el equipo la descartó en
+' v2 porque el LLM no corría en la app). En mac-flujo sí corre, con dos papeles:
+'   1. Corrección en vivo (rol C de ADR-004): VerbalizadorLLMLocal
+'      (adaptadores/llm/llm_local.py) con qwen3:4b-instruct por Ollama, en el
+'      hilo de VerbalizacionAparte; restringido (condición F: esquema JSON en
+'      `format` y validador) y con variación (recuerda las últimas frases).
+'      Tiempo límite 400 ms (config.LLM_TIMEOUT_MS).
+'   2. Entrenadora (rol B ampliado; pendiente de ADR): aplicacion/entrenadora.py
+'      con GeneradorOllama (qwen3:14b, 5 s): resumen final y «¿cómo voy?».
+' En los dos casos el modelo nunca decide el error ni si se habla: recibe un
+' error ya tipificado o cifras ya derivadas, y el código valida lo que devuelve.
+' Adoptar el LLM en vivo sigue dependiendo de EXP-001 (config.py, comentario [R]).
+' No necesita Graphviz.
+
+title ESTELA — Uso del modelo de lenguaje en la sesión
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 300
+
+participant "Sesión\n(hilo de sesión)" as SES
+participant "Motor de\nfeedback" as MF
+participant "Verbalización aparte\n(hilo propio)" as VAP
+participant "Verbalizador LLM\n(llm_local.py)" as LLM
+participant "Entrenadora\n(entrenadora.py)" as ENT
+participant "Generador Ollama\n(entrenadora_ollama.py)" as GEN
+participant "Ollama\n127.0.0.1:11434" as OLL
+participant "Validador" as VAL
+participant "Plantillas" as PLA
+participant "Cola de voz" as VOZ
+
+== 1. Corrección durante el ejercicio (qwen3:4b-instruct, 400 ms) ==
+SES -> MF : procesar(observación)
+MF -> MF : decisión determinista\n(qué error, prioridad, si se habla)
+alt se calla
+  MF --> SES : Silencio(motivo)
+else refuerzo (sin error)
+  MF -> PLA : verbalizar_refuerzo()
+  MF --> SES : MensajeFeedback (plantilla)
+  SES ->> VOZ : decir
+else error tipificado
+  MF --> SES : MensajeFeedback con el error
+  SES ->> VAP : pedir(error)\n(el bucle no espera; uno solo pendiente:\nel más reciente sustituye al anterior)
+  VAP -> LLM : verbalizar(error)
+  LLM -> PLA : frase de referencia para este error
+  LLM -> OLL : POST /api/chat (qwen3:4b, esquema JSON en «format»,\nthink: false, keep_alive)\nejercicio, parte del cuerpo, lado, error, severidad, dirección,\nfrase de referencia y últimas frases dichas; sin imágenes ni ángulos
+  alt responde antes de 400 ms
+    OLL --> LLM : JSON con la frase
+    LLM -> VAL : validar(frase, error)\n(longitud, vocabulario médico,\nparte del cuerpo, lado y dirección)
+    alt válida y distinta de las últimas
+      VAL --> LLM : válida
+      LLM --> VAP : MensajeFeedback (frase del LLM)
+    else rechazada
+      VAL --> LLM : motivo
+      LLM -> PLA : verbalizar(error)
+      LLM --> VAP : MensajeFeedback (plantilla; se cuenta la caída)
+    end
+  else tiempo agotado, sin conexión o JSON ilegible
+    LLM -> PLA : verbalizar(error)
+    LLM --> VAP : MensajeFeedback (plantilla; se cuenta la caída)
+    opt fue tiempo o conexión
+      LLM ->> OLL : volver a cargar el modelo en segundo plano
+    end
+  end
+  VAP -> SES : al_redactar(mensaje)
+  alt mismo ejercicio, sin pausa ni colocación
+    SES ->> VOZ : decir(frase, prioridad de corrección)
+  else ya no toca
+    SES -> SES : descartar (redactadas_tarde)
+  end
+end
+
+== 2. Entrenadora: resumen final o «¿cómo voy?» (qwen3:14b, 5 s) ==
+note over SES, ENT
+  Al final de la rutina la llama EntrenadoraEnVivo (en su propio hilo);
+  «¿cómo voy?» llega por la escucha de voz. Entre ejercicios está apagada por defecto.
+end note
+SES -> ENT : al_final(pasos) / como_voy(resumen ligero)\n+ progreso del perfil (historial)
+alt la usuaria menciona dolor o lesión
+  ENT --> SES : respuesta fija («Si te duele, no sigas…»), sin modelo
+else
+  ENT -> ENT : hechos: solo cifras ya derivadas\n(hechas, objetivo, avisos; constancia del historial)
+  ENT -> GEN : generar(sistema, hechos, acciones permitidas)
+  GEN -> OLL : POST /api/chat (qwen3:14b), máximo 5 s
+  alt responde a tiempo
+    OLL --> GEN : JSON {resumen, acción}
+    GEN --> ENT : resumen y acción propuesta
+    ENT -> ENT : validar_accion (lista cerrada, permitida en ese momento)\nvalidar_resumen (longitud, vocabulario médico, dolor,\ncalificar la técnica, cifras, partes o lados inventados)
+    alt pasa la validación
+      ENT -> ENT : resumen + frase fija de la acción\n(el texto y la acción no se contradicen)
+    else rechazado
+      ENT -> PLA : resumen de plantilla
+    end
+  else falla o tarda
+    ENT -> PLA : resumen de plantilla
+  end
+  ENT --> SES : Respuesta (texto, acción, origen LLM o plantilla)
+end
+SES ->> VOZ : decir(texto, prioridad de aviso)\n(solo si aún es su momento)
+@enduml
