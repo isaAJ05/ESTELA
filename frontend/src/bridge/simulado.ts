@@ -53,9 +53,12 @@ const VACIO: Progreso = {
 
 // Perfiles en memoria, con las mismas reglas que `backend/estela/aplicacion/perfiles.py`.
 const COLORES = ['violeta', 'naranja', 'turquesa', 'rosa', 'azul', 'mostaza']
+const SIN_COLOR = 'ninguno'
 const MAX_PERFILES = 8
 const MAX_NOMBRE = 30
 const MAX_RUTINAS = 10
+/** iconos del avatar: los mismos que `perfiles.ICONOS` en Python */
+const ICONOS = ['estrella', 'planeta', 'luna', 'sol', 'cohete', 'astronauta', 'cometa', 'galaxia', 'constelacion', 'ovni']
 const MAX_NOMBRE_RUTINA = 40
 
 function limpiarPerfil(d: DatosPerfil, otros: Perfil[], base?: Perfil): Omit<Perfil, 'id' | 'creado' | 'rutina' | 'rutinas'> | string {
@@ -63,11 +66,14 @@ function limpiarPerfil(d: DatosPerfil, otros: Perfil[], base?: Perfil): Omit<Per
   if (!nombre) return 'Escribe un nombre o apodo.'
   if (nombre.length > MAX_NOMBRE) return `El nombre puede tener hasta ${MAX_NOMBRE} caracteres.`
   if (otros.some((p) => p.nombre.toLowerCase() === nombre.toLowerCase())) return 'Ya hay un perfil con ese nombre.'
+  const icono = 'icono' in d ? d.icono ?? null : base?.icono ?? null
+  if (icono != null && !ICONOS.includes(icono)) return 'Elige uno de los iconos disponibles.'
   const color = d.color ?? base?.color ?? COLORES[0]
-  if (!COLORES.includes(color)) return 'Elige uno de los colores disponibles.'
+  if (color === SIN_COLOR) { if (icono == null) return 'Sin avatar, elige un color para tus iniciales.' }
+  else if (!COLORES.includes(color)) return 'Elige uno de los colores disponibles.'
   const metaSemanal = 'metaSemanal' in d ? d.metaSemanal ?? null : base?.metaSemanal ?? null
   if (metaSemanal != null && (metaSemanal < 1 || metaSemanal > 7)) return 'La meta debe estar entre 1 y 7 días por semana.'
-  return { nombre, color, metaSemanal }
+  return { nombre, color, icono, metaSemanal }
 }
 
 const iso = (d: Date) => {
@@ -488,7 +494,7 @@ export function bridgeSimulado(): Bridge {
   }
 
   let perfiles: Perfil[] = escena === 'sin-perfiles' ? [] : [
-    { id: 'pana', nombre: 'Ana', color: 'rosa', metaSemanal: 4, creado: '2026-09-19T07:15:00',
+    { id: 'pana', nombre: 'Ana', color: 'rosa', icono: 'cohete', metaSemanal: 4, creado: '2026-09-19T07:15:00',
       rutina: [{ skillId: 'plancha', objetivo: 30 }, { skillId: 'zancada_atras_izq', objetivo: 6 }],
       rutinas: [
         { id: 'rmananas', nombre: 'Mañanas rápidas', pasos: [{ skillId: 'jumping_jacks', objetivo: 15 }, { skillId: 'plancha', objetivo: 20 }] },
@@ -594,7 +600,7 @@ export function bridgeSimulado(): Bridge {
       return { ...(historiales.get(perfil.id) ?? VACIO), metaSemanal: perfil.metaSemanal }
     },
     borrarHistorial: async () => { if (!activo) return false; historiales.delete(activo); return true },
-    perfiles: async () => ({ perfiles, activo, elegido, colores: COLORES, maxPerfiles: MAX_PERFILES, maxNombre: MAX_NOMBRE, meta: [1, 7], maxRutinas: MAX_RUTINAS, maxNombreRutina: MAX_NOMBRE_RUTINA }),
+    perfiles: async () => ({ perfiles, activo, elegido, colores: COLORES, iconos: ICONOS, sinColor: SIN_COLOR, maxPerfiles: MAX_PERFILES, maxNombre: MAX_NOMBRE, meta: [1, 7], maxRutinas: MAX_RUTINAS, maxNombreRutina: MAX_NOMBRE_RUTINA }),
     elegirPerfil: async (id) => {
       if (id !== null && !perfiles.some((p) => p.id === id)) return false
       activo = id; elegido = true

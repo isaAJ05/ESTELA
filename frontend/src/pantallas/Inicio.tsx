@@ -1,4 +1,4 @@
-import { AlertTriangle, ArrowRight, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CircleHelp, Loader2, Play, RotateCcw, Ruler, ScanLine, SlidersHorizontal, Sun } from 'lucide-react'
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import type { Bridge, EjercicioCatalogo, Nivel, PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { ControlesCabecera } from '../componentes/ajustes'
@@ -9,6 +9,8 @@ import { GuardarRutina, VistaRutinas, type DatosTarjetaRutina } from '../compone
 import { FiguraEjercicio, ResumenRutina, TarjetaEjercicio, textoEstimado, textoObjetivo } from '../componentes/rutina'
 import { ChipPerfil } from '../componentes/perfil'
 import { PanelPerfil, SelectorPerfil } from './Perfiles'
+import { PanelAcerca } from './Acerca'
+import { PanelAyuda } from './Ayuda'
 import { PanelProgreso, ResumenSemana } from './Progreso'
 import { iniciarRutina, useCapacidad, useEstado } from '../estado/almacen'
 import {
@@ -22,7 +24,7 @@ import {
 /** «Mi rutina» de quien entrena sin perfil: solo mientras la aplicación está abierta. */
 let rutinaSinPerfil: Seleccion | null = null
 
-type Seccion = 'bienvenida' | 'rutina' | 'progreso' | 'perfil'
+type Seccion = 'bienvenida' | 'rutina' | 'progreso' | 'perfil' | 'ayuda' | 'acerca'
 
 /** Sección con la que abrir el inicio la próxima vez (p. ej. «Ver mi progreso» en el resumen). */
 let seccionPendiente: Seccion | null = null
@@ -240,8 +242,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
     <main className="pantalla pantalla-inicio">
       <header className="cabecera">
         <Marca alInicio={() => setSeccion('bienvenida')} />
-        {(personalizable || conProgreso) && (
-          <nav className="navegacion" aria-label="Secciones">
+        <nav className="navegacion" aria-label="Secciones">
             <button className={seccion === 'bienvenida' ? 'activa' : undefined}
                     aria-current={seccion === 'bienvenida' ? 'page' : undefined}
                     onClick={() => setSeccion('bienvenida')}>Inicio</button>
@@ -259,8 +260,17 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
                 Mi progreso
               </button>
             )}
+            <button className={seccion === 'ayuda' ? 'activa' : undefined}
+                    aria-current={seccion === 'ayuda' ? 'page' : undefined}
+                    onClick={() => setSeccion('ayuda')}>
+              Ayuda
+            </button>
+            <button className={seccion === 'acerca' ? 'activa' : undefined}
+                    aria-current={seccion === 'acerca' ? 'page' : undefined}
+                    onClick={() => setSeccion('acerca')}>
+              Acerca de
+            </button>
           </nav>
-        )}
         <div className="cabecera-derecha">
           {conPerfiles && perfiles?.elegido && (
             <ChipPerfil perfil={activo} activa={seccion === 'perfil'} onClick={() => setSeccion('perfil')} />
@@ -269,7 +279,11 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
         </div>
       </header>
 
-      {seccion === 'perfil' && conPerfiles && perfiles ? (
+      {seccion === 'acerca' ? (
+        <PanelAcerca alVolver={() => setSeccion('bienvenida')} />
+      ) : seccion === 'ayuda' ? (
+        <PanelAyuda alVolver={() => setSeccion('bienvenida')} />
+      ) : seccion === 'perfil' && conPerfiles && perfiles ? (
         <PanelPerfil bridge={bridge} estado={perfiles} alVolver={() => setSeccion('bienvenida')}
                      alCambiar={() => setCambiando(true)}
                      alProgreso={conProgreso ? () => setSeccion('progreso') : undefined} />
@@ -321,6 +335,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
           plan={plan} estimadoS={personalizable ? estimadoS : null}
           personalizable={personalizable} preparando={preparando} error={error} avisos={avisos}
           alPersonalizar={irARutinas} alComenzar={() => void comenzar()} conTarjetas={conTarjetas}
+          alAyuda={() => setSeccion('ayuda')}
           nivel={conNivel ? <SelectorNivel nivel={nivel} alCambiar={setNivel} /> : null}
           semana={conProgreso && activo
             ? <ResumenSemana key={activo.id} bridge={bridge} alVer={() => setSeccion('progreso')} />
@@ -331,7 +346,7 @@ export function Inicio({ bridge }: { bridge: Bridge }) {
 }
 
 function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable, preparando, error, avisos,
-                      alPersonalizar, alComenzar, conTarjetas, nivel, semana }: {
+                      alPersonalizar, alComenzar, alAyuda, conTarjetas, nivel, semana }: {
   nombre: string
   /** nombre del perfil que entrena (ADR-009) */
   saludo: string | null
@@ -343,6 +358,8 @@ function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable
   error: { titulo: string; ayuda: string } | null
   avisos: string[]
   alPersonalizar: () => void
+  /** abre la guía de uso («Ayuda») */
+  alAyuda: () => void
   alComenzar: () => void
   /** con perfil, «Personalizar» lleva a las tarjetas de «Mis rutinas» */
   conTarjetas: boolean
@@ -393,6 +410,9 @@ function Bienvenida({ nombre, saludo, sinPerfil, plan, estimadoS, personalizable
           </div>
         )}
         {sinPerfil && <p className="campo-ayuda">Entrenas sin perfil: esta sesión no se guardará.</p>}
+        <button className="enlace-editar enlace-ayuda" onClick={alAyuda}>
+          <CircleHelp aria-hidden="true" />¿Primera vez? Mira cómo funciona<ArrowRight aria-hidden="true" />
+        </button>
         <p className="descargo">
           ESTELA te da indicaciones sobre tu técnica; no reemplaza a un profesional ni hace diagnósticos.
         </p>

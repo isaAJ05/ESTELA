@@ -125,7 +125,7 @@ export function ResumenSemana({ bridge, alVer }: { bridge: Bridge; alVer: () => 
       <div className="resumen-semana-datos">
         {meta != null ? (
           <div>
-            <span className="cifra-etiqueta"><Target />Meta de esta semana</span>
+            <span className="cifra-etiqueta" title="Meta de esta semana"><Target /><span>Meta de esta semana</span></span>
             <strong>{dias} de {plural(meta, 'día', 'días')}{dias >= meta && <Check className="texto-exito" aria-label="cumplida" />}</strong>
             <span className="medidor" role="meter" aria-valuemin={0} aria-valuemax={meta} aria-valuenow={Math.min(dias, meta)}
                   aria-label={`${dias} de ${meta} días esta semana`}>
@@ -134,12 +134,12 @@ export function ResumenSemana({ bridge, alVer }: { bridge: Bridge; alVer: () => 
           </div>
         ) : (
           <div>
-            <span className="cifra-etiqueta"><CalendarDays />Días activos</span>
+            <span className="cifra-etiqueta" title="Días activos"><CalendarDays /><span>Días activos</span></span>
             <strong>{datos.diasActivos7} de 7</strong>
           </div>
         )}
         <div>
-          <span className="cifra-etiqueta"><Flame />Racha</span>
+          <span className="cifra-etiqueta" title="Racha"><Flame /><span>Racha</span></span>
           <strong>{racha.valor}</strong>
         </div>
       </div>
@@ -183,7 +183,7 @@ function CifraMeta({ dias, meta }: { dias: number; meta: number }) {
             aria-label={`${dias} de ${meta} días esta semana`}>
         <i style={{ width: `${Math.min(1, dias / meta) * 100}%` }} />
       </span>
-      <span className="cifra-extra">
+      <span className="cifra-extra" title={cumplida ? undefined : `Te ${meta - dias === 1 ? 'falta 1 día' : `faltan ${meta - dias} días`} · de lunes a domingo`}>
         {cumplida ? <><Check className="texto-exito" aria-hidden="true" /> ¡Meta cumplida!</> : `Te ${meta - dias === 1 ? 'falta 1 día' : `faltan ${meta - dias} días`} · de lunes a domingo`}
       </span>
     </div>
@@ -197,8 +197,8 @@ function Cifra({ icono, etiqueta, valor, extra, detalle, destacada = false }: {
     <div className={`tarjeta cifra ${destacada ? 'cifra-destacada' : ''}`}>
       <span className="cifra-etiqueta" title={etiqueta}>{icono}<span>{etiqueta}</span></span>
       <strong>{valor}</strong>
-      {extra && <span className="cifra-extra">{extra}</span>}
-      {detalle && <span className="cifra-detalle">{detalle}</span>}
+      {extra && <span className="cifra-extra" title={extra}>{extra}</span>}
+      {detalle && <span className="cifra-detalle" title={detalle}>{detalle}</span>}
     </div>
   )
 }
@@ -448,7 +448,7 @@ function TarjetaEjercicioProgreso({ e }: { e: EjercicioProgreso }) {
       <header>
         <span className="paso-figura"><FiguraEjercicio paso={{ skillId: e.skillId, guia }} /></span>
         <div>
-          <strong>{e.nombre}</strong>
+          <strong title={e.nombre}>{e.nombre}</strong>
           <span>{plural(e.veces, 'vez', 'veces')} · última {fechaRelativa(e.ultimaFecha)}</span>
         </div>
       </header>
@@ -467,7 +467,7 @@ function TarjetaEjercicioProgreso({ e }: { e: EjercicioProgreso }) {
             {frecuentes.map((f) => (
               <li key={f.errorId}>
                 <q>{f.texto}</q>
-                <span>{textoFrecuencia(f.sesiones, sesiones)}</span>
+                <span title={textoFrecuencia(f.sesiones, sesiones)}>{textoFrecuencia(f.sesiones, sesiones)}</span>
               </li>
             ))}
           </ul>
@@ -529,7 +529,7 @@ function FilaSesion({ s }: { s: SesionHistorial }) {
         <summary>
           <span className="fila-sesion-dia" aria-hidden="true"><b>{f.getDate()}</b><small>{fechaCorta(s.fecha).split(' ')[1]}</small></span>
           <span className="fila-sesion-principal">
-            <strong>{s.rutina}</strong>
+            <strong title={s.rutina}>{s.rutina}</strong>
             <span>{fechaLarga(s.fecha)} · {hora(s.fecha)}</span>
           </span>
           <span className={`estado-sesion ${estado.clave}`}>{estado.texto}</span>

@@ -15,6 +15,9 @@
 
 /* -- inicio --------------------------------------------------------------- */
 .pantalla-inicio { overflow-y: auto; }
+/* el resumen también baja con la rueda en pantallas pequeñas: el cuerpo crece con su contenido */
+.pantalla-resumen { overflow-y: auto; }
+.pantalla-resumen .resumen-cuerpo { flex: 1 0 auto; }
 .inicio-cuerpo {
   flex: 1;
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(22.5rem, 32.5rem); align-items: center;
@@ -331,10 +334,19 @@ button.fila-resumen-cabeza:not(:disabled):hover { background: var(--color-rellen
   .panel-guia { display: none; }
 }
 
-/* Capas de la sesión en tres zonas que no se pisan (Paula, 2026-11-17): arriba los
-   avisos cortos apilados (aviso, gesto, «Te escucho»), en el centro una sola tarjeta
-   (pausa, colocación o transición) y abajo la última indicación. Dentro de las zonas
-   nada se coloca por su cuenta: el orden lo da la rejilla. */
+/* Indicador de la cabecera de la sesión: cámara en uso, o tachada si se analiza un vídeo
+   (traído de feature/mac-flujo sin la parte del micrófono) */
+.indicadores-uso { display: flex; align-items: center; gap: var(--espacio-3); }
+.en-uso-item { position: relative; display: inline-flex; align-items: center; color: var(--color-texto-sutil); }
+.en-uso-item svg { width: 1.125rem; height: 1.125rem; }
+.en-uso-item i { display: block; width: 0.5rem; height: 0.5rem; margin-left: 0.3rem; border-radius: 50%; background: var(--color-texto-sutil); }
+.en-uso-item.en-uso i { background: var(--color-exito); box-shadow: 0 0 0.375rem var(--color-exito); }
+.en-uso-item.apagado { opacity: 0.55; }
+
+/* Capas de la sesión en tres zonas que no se pisan (Paula, 2026-11-17; traído de
+   feature/mac-flujo): arriba los avisos cortos (aviso y gesto), en el centro una sola
+   tarjeta (pausa, colocación o transición) y abajo la última indicación. Dentro de las
+   zonas nada se coloca por su cuenta: el orden lo da la rejilla. */
 .escenario-capas {
   position: absolute; inset: 0; z-index: 1;
   display: grid; grid-template-rows: auto minmax(0, 1fr) auto; gap: var(--espacio-3);
@@ -343,17 +355,17 @@ button.fila-resumen-cabeza:not(:disabled):hover { background: var(--color-rellen
 }
 .escenario-capas.velo { background: rgba(14, 13, 22, 0.55); }
 .escenario-capas.velo-fuerte { background: rgba(14, 13, 22, 0.72); backdrop-filter: blur(0.375rem); }
-.zona-arriba { display: flex; flex-direction: column; align-items: center; gap: var(--espacio-2); min-width: 0; }
+.zona-arriba { display: flex; flex-direction: row; flex-wrap: wrap; justify-content: center; align-items: center; gap: var(--espacio-2); min-width: 0; }
 .zona-centro { display: grid; place-items: center; min-height: 0; overflow: auto; }
 .zona-abajo { display: flex; justify-content: center; min-width: 0; }
 .zona-centro .tarjeta, .zona-centro button { pointer-events: auto; }
-.escenario-capas .escenario-arriba, .escenario-capas .gesto-pausa, .escenario-capas .escucha-voz,
+.escenario-capas .escenario-arriba, .escenario-capas .gesto-pausa,
 .escenario-capas .banda-mensaje, .escenario-capas .transicion,
 .escenario-capas .capa-colocacion, .escenario-capas .capa-pausa {
   position: static; inset: auto; left: auto; top: auto; bottom: auto; z-index: auto;
 }
-.escenario-capas .escenario-arriba { width: min(47.5rem, 100%); transform: none; }
-.escenario-capas .gesto-pausa, .escenario-capas .escucha-voz { transform: none; max-width: min(100%, 44rem); }
+.escenario-capas .escenario-arriba { width: min(47.5rem, 100%); transform: none; flex-basis: 100%; display: flex; justify-content: center; }
+.escenario-capas .gesto-pausa { transform: none; max-width: min(100%, 44rem); font-size: clamp(1rem, 1.25vw, 1.25rem); padding: var(--espacio-2) var(--espacio-4); }
 .escenario-capas .capa-colocacion, .escenario-capas .capa-pausa {
   width: 100%; padding: 0; background: none; backdrop-filter: none;
 }
@@ -363,12 +375,6 @@ button.fila-resumen-cabeza:not(:disabled):hover { background: var(--color-rellen
 .escenario-capas .banda-mensaje.visible { transform: none; }
 /* la indicación de técnica no compite con una tarjeta: en pausa o colocándose no hay movimiento que corregir */
 .escenario-capas.velo .banda-mensaje, .escenario-capas.velo-fuerte .banda-mensaje { display: none; }
-/* las fichas cortas (gesto, «Te escucho») van en una fila bajo el aviso y más pequeñas */
-.zona-arriba { flex-direction: row; flex-wrap: wrap; justify-content: center; }
-.escenario-capas .escenario-arriba { flex-basis: 100%; display: flex; justify-content: center; }
-.escenario-capas .gesto-pausa, .escenario-capas .escucha-voz {
-  font-size: clamp(1rem, 1.25vw, 1.25rem); padding: var(--espacio-2) var(--espacio-4);
-}
 /* tarjetas más bajas: el escenario puede ser corto (vídeo apaisado en una pantalla ancha) */
 .escenario-capas .tarjeta-pausa { padding: var(--espacio-5) var(--espacio-6); }
 .escenario-capas .icono-pausa { display: none; }

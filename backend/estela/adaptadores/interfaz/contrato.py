@@ -124,7 +124,7 @@ from ...dominio.feedback.contrato import (MOTIVO_CONFIANZA_BAJA, MOTIVO_PLANO_NO
 
 from ...dominio.feedback.motor.geometria import ANGULOS_MEDIOS, ANGULOS_TERNA
 from ..pose.landmarks import CONEXIONES, NOMBRES_MEDIAPIPE, puntos_de_segmento
-from ...aplicacion.perfiles import (COLORES, MAX_NOMBRE, MAX_NOMBRE_RUTINA, MAX_PERFILES, MAX_RUTINAS,
+from ...aplicacion.perfiles import (COLORES, ICONOS, SIN_COLOR, MAX_NOMBRE, MAX_NOMBRE_RUTINA, MAX_PERFILES, MAX_RUTINAS,
                                     META_MAX, META_MIN, rutina_de, rutinas_de)
 from ...aplicacion.rutina import Ejercicio, Rutina, RutinaInvalida, rutina_desde_dict
 from ...aplicacion.sesion import (AVISO_ENCUADRE, AVISO_PAUSA, AVISO_SIN_PERSONA,
@@ -566,6 +566,8 @@ def _nombre(sid: str, catalogo: Mapping[str, Ejercicio]) -> str:
 def perfil_a_dict(p: Mapping[str, Any]) -> Dict[str, Any]:
     rutina = rutina_de(p)
     return {"id": p["id"], "nombre": p["nombre"], "color": p["color"],
+            # un icono que ya no existe (o ninguno): la interfaz pone las iniciales
+            "icono": p.get("icono") if p.get("icono") in ICONOS else None,
             "metaSemanal": p.get("meta_semanal"), "creado": p.get("creado"),
             # última rutina armada en «Mi rutina»; la interfaz descarta lo que ya
             # no esté en el catálogo y ajusta el objetivo a sus límites
@@ -588,6 +590,9 @@ def perfiles_a_dict(perfiles: Sequence[Mapping[str, Any]], activo: Optional[str]
         "activo": activo,
         "elegido": elegido,
         "colores": list(COLORES),
+        "iconos": list(ICONOS),
+        # valor de `color` para «sin color» (solo con un avatar ilustrado)
+        "sinColor": SIN_COLOR,
         "maxPerfiles": MAX_PERFILES,
         "maxNombre": MAX_NOMBRE,
         "meta": [META_MIN, META_MAX],
@@ -601,7 +606,7 @@ def datos_de_perfil(d: Optional[Mapping[str, Any]]) -> Dict[str, Any]:
     pasan las claves que vienen: editar el color no borra la meta."""
     d = d or {}
     salida: Dict[str, Any] = {}
-    for clave, destino in (("nombre", "nombre"), ("color", "color"), ("metaSemanal", "meta_semanal")):
+    for clave, destino in (("nombre", "nombre"), ("color", "color"), ("icono", "icono"), ("metaSemanal", "meta_semanal")):
         if clave in d:
             salida[destino] = d[clave]
     return salida
