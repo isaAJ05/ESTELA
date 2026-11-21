@@ -22,7 +22,13 @@
 .avatar-vacio { background: var(--color-relleno-fuerte); color: var(--color-texto-suave); }
 .avatar-vacio svg { width: 45%; height: 45%; }
 /* en el tema claro el círculo se distingue poco del blanco: un borde fino */
-[data-tema="claro"] .avatar:not(.avatar-vacio) { box-shadow: inset 0 0 0 1px rgba(27, 21, 48, 0.18); }
+/* avatar ilustrado: la imagen llena el círculo y el color del perfil queda como aro */
+.avatar-imagen { overflow: hidden; background: transparent; box-shadow: 0 0 0 3px var(--avatar); }
+.avatar-imagen.avatar-sm { box-shadow: 0 0 0 2px var(--avatar); }
+/* «sin color»: solo el dibujo, sin aro */
+.avatar-imagen[data-color="ninguno"] { box-shadow: none; }
+.avatar-imagen .icono-universo { display: block; width: 100%; height: 100%; }
+[data-tema="claro"] .avatar:not(.avatar-vacio):not(.avatar-imagen) { box-shadow: inset 0 0 0 1px rgba(27, 21, 48, 0.18); }
 
 /* -- chip de la cabecera ------------------------------------------------------- */
 .chip-perfil {
@@ -150,3 +156,25 @@
   .chip-perfil-nombre { display: none; }
   .chip-perfil { padding-right: 0.25rem; }
 }
+
+/* -- elegir el avatar ------------------------------------------------------------- */
+.iconos-avatar { display: grid; grid-template-columns: repeat(6, 3.5rem); gap: var(--espacio-3); }
+@media (max-width: 30rem) { .iconos-avatar { grid-template-columns: repeat(4, 3.5rem); } }
+.icono-opcion {
+  display: grid; place-items: center; width: 3.5rem; height: 3.5rem; padding: 0; overflow: hidden;
+  border: 0; border-radius: 50%; background: var(--color-relleno); color: var(--color-texto-suave); cursor: pointer;
+  box-shadow: 0 0 0 2px transparent; opacity: 0.8;
+  transition: box-shadow var(--duracion-corta), transform var(--duracion-corta), opacity var(--duracion-corta);
+}
+.icono-opcion:hover { opacity: 1; transform: translateY(-2px); }
+.icono-opcion .icono-universo { display: block; width: 100%; height: 100%; }
+.icono-opcion-iniciales { font-size: 1rem; font-weight: 800; letter-spacing: -0.02em; }
+/* el elegido: entero, con el aro del color del perfil, como se verá */
+.icono-opcion[aria-checked="true"] { opacity: 1; box-shadow: 0 0 0 3px var(--avatar, var(--color-violeta-suave)), 0 0 0 5px var(--color-fondo), 0 0 0 6px var(--avatar, var(--color-violeta-suave)); }
+.icono-opcion[aria-checked="true"] .icono-opcion-iniciales { color: var(--color-texto); }
+.icono-opcion:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 6px; }
+
+/* muestra «sin color» (solo con avatar ilustrado), después de los colores */
+.muestra-sin-color { display: grid; place-items: center; background: var(--color-relleno); color: var(--color-texto-suave); }
+.muestra-sin-color svg { width: 1.125rem; height: 1.125rem; }
+.muestra-sin-color[aria-checked="true"] { color: var(--color-texto); }

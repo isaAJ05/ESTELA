@@ -1,7 +1,7 @@
 import {
-  AlertTriangle, Check, ChevronDown, ChevronUp, Clock, Dumbbell, Loader2, Minus, Play, Plus, Repeat2, RotateCcw, Timer, X,
+  AlertTriangle, ChevronDown, ChevronUp, Clock, Dumbbell, Loader2, Minus, Play, Plus, Repeat2, RotateCcw, Timer, X,
 } from 'lucide-react'
-import { useEffect, useId, useState, type ReactNode } from 'react'
+import { useEffect, useId, useState, type MouseEvent, type ReactNode } from 'react'
 import type { EjercicioCatalogo, GuiaMovimiento, PasoRutina, Punto } from '../bridge/tipos'
 import { Aviso, Boton, plural } from './basicos'
 import { Figura, textoVista } from './Figura'
@@ -123,7 +123,12 @@ export function TarjetaEjercicio({ ej, posicion, objetivo, alAlternar, alCambiar
   const [encima, setEncima] = useState(false)
   const movimiento = useMovimiento(ej.guiaAnimada, encima)
   return (
-    <article className={`tarjeta-ejercicio ${elegido ? 'elegida' : ''}`}>
+    // toda la tarjeta añade o quita, salvo sus controles y el pie (objetivo y «Quitar»)
+    <article className={`tarjeta-ejercicio ${elegido ? 'elegida' : ''}`}
+             onClick={(ev: MouseEvent<HTMLElement>) => {
+               if ((ev.target as HTMLElement).closest('button, input, label, .tarjeta-ejercicio-pie')) return
+               alAlternar()
+             }}>
       {/* la figura también añade o quita: es la zona grande de la tarjeta */}
       <button type="button" className="tarjeta-ejercicio-figura" onClick={alAlternar}
               aria-pressed={elegido} aria-label={`${elegido ? 'Quitar' : 'Añadir'} ${ej.nombre}`}
@@ -138,9 +143,6 @@ export function TarjetaEjercicio({ ej, posicion, objetivo, alAlternar, alCambiar
       <div className="tarjeta-ejercicio-info">
         <div className="tarjeta-ejercicio-cabeza">
           <h3>{ej.nombre}</h3>
-          <span className="tarjeta-ejercicio-marca" aria-hidden="true">
-            {elegido ? <><Check />{posicion}</> : <Plus />}
-          </span>
         </div>
         {ej.descripcion && <p className="tarjeta-ejercicio-descripcion">{ej.descripcion}</p>}
 

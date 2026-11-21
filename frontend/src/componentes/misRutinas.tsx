@@ -1,5 +1,5 @@
 import { Check, Loader2, Pencil, Play, Plus, Save, Trash2 } from 'lucide-react'
-import { useEffect, useId, useRef, useState, type FormEvent } from 'react'
+import { useEffect, useId, useRef, useState, type FormEvent, type MouseEvent } from 'react'
 import type { PasoRutina, RutinaGuardada } from '../bridge/tipos'
 import { problemaNombreRutina } from '../estado/perfiles'
 import { Boton, BotonVolver, plural } from './basicos'
@@ -20,7 +20,7 @@ export interface DatosTarjetaRutina {
 }
 
 const ETIQUETA = { recomendada: 'Recomendada', borrador: 'Sin guardar', guardada: 'Guardada' } as const
-/** figuras que caben en la zona de arriba; el resto se resume en «+n» */
+/** figuras que caben en la zona de arriba; el total se ve en la píldora de cifras */
 const MAX_FIGURAS = 4
 
 /**
@@ -127,7 +127,12 @@ function TarjetaRutina({ datos, preparando, alComenzar, alEditar, alBorrar }: {
   const visibles = plan.slice(0, MAX_FIGURAS)
 
   return (
-    <article className={`tarjeta-mi-rutina ${datos.enUso ? 'en-uso' : ''}`}>
+    // toda la tarjeta abre la rutina para editarla, salvo sus botones (Comenzar, Editar, Borrar)
+    <article className={`tarjeta-mi-rutina ${datos.enUso ? 'en-uso' : ''}`}
+             onClick={(ev: MouseEvent<HTMLElement>) => {
+               if (preparando || (ev.target as HTMLElement).closest('button')) return
+               alEditar()
+             }}>
       {/* zona grande con las figuras, como en «Personaliza tu rutina»: abre la rutina para editarla */}
       <button type="button" className="tarjeta-mi-rutina-figuras" onClick={alEditar} disabled={preparando}
               aria-label={`Editar ${nombre}`} title="Editar rutina">
@@ -135,7 +140,6 @@ function TarjetaRutina({ datos, preparando, alComenzar, alEditar, alBorrar }: {
           {visibles.map((p, i) => (
             <span key={`${p.skillId}-${i}`} className="tarjeta-mi-rutina-mini"><FiguraEjercicio paso={p} tam={56} /></span>
           ))}
-          {plan.length > MAX_FIGURAS && <span className="tarjeta-mi-rutina-mas">+{plan.length - MAX_FIGURAS}</span>}
         </span>
         <span className="tarjeta-mi-rutina-cifras">
           {plural(plan.length, 'ejercicio', 'ejercicios')}{plan.length > 0 && ` · ${textoEstimado(datos.estimadoS)}`}
@@ -158,7 +162,6 @@ function TarjetaRutina({ datos, preparando, alComenzar, alEditar, alBorrar }: {
         <ol className="tarjeta-mi-rutina-pasos" aria-label="Ejercicios">
           {plan.map((p, i) => (
             <li key={`${p.skillId}-${i}`} title={p.nombre}>
-              <span className="tarjeta-mi-rutina-numero">{i + 1}</span>
               <span className="tarjeta-mi-rutina-nombre">{p.nombre}</span>
               <span className="tarjeta-mi-rutina-objetivo">{textoObjetivo(p)}</span>
             </li>

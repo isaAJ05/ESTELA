@@ -5,6 +5,7 @@ import './estilos/pantallas.css'
 import './estilos/rutina.css'
 import './estilos/progreso.css'
 import './estilos/perfiles.css'
+import './estilos/ayuda.css'
 
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'

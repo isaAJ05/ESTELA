@@ -15,6 +15,9 @@
 
 /* -- inicio --------------------------------------------------------------- */
 .pantalla-inicio { overflow-y: auto; }
+/* el resumen también baja con la rueda en pantallas pequeñas: el cuerpo crece con su contenido */
+.pantalla-resumen { overflow-y: auto; }
+.pantalla-resumen .resumen-cuerpo { flex: 1 0 auto; }
 .inicio-cuerpo {
   flex: 1;
   display: grid; grid-template-columns: minmax(0, 1fr) minmax(22.5rem, 32.5rem); align-items: center;
