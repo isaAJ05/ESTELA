@@ -1,6 +1,6 @@
 # Manual de desarrollo
 
-> **Versión que describe este manual.** Rama `feature/mac-flujo`, *commit* `267bfd9` (20 de noviembre de 2026). Es la versión final de ESTELA y la que presenta el informe final. La rama `main`, donde está este archivo, guarda la documentación, los diagramas y la página de presentación, pero no el código de la aplicación (sección 3). Salvo que se indique otra cosa, las rutas son relativas a la raíz del repositorio en `feature/mac-flujo`.
+> **Versión que describe este manual.** Rama `main`, *commit* `4336bdf` (21 de noviembre de 2026). Es la versión final de ESTELA, la que presenta el informe final, y la rama también guarda la documentación, los diagramas y la página de presentación. La versión básica, para equipos que no son un Mac con Apple Silicon, está en la rama `test` (sección 3). Salvo que se indique otra cosa, las rutas son relativas a la raíz del repositorio.
 
 ## 1. Propósito del documento
 
@@ -71,21 +71,18 @@ Micrófono ─► whisper.cpp ─► «Estela, pausa» ─► mismo camino que l
 
 ## 3. Estructura del repositorio
 
-El código está en el repositorio de GitHub `isaAJ05/ESTELA`. Sus ramas principales no tienen el mismo contenido, y conviene conocerlas antes de empezar:
+El código está en el repositorio de GitHub `isaAJ05/ESTELA`. Tiene dos ramas principales, una por versión:
 
 | Rama | Contenido | Uso |
 |---|---|---|
-| `main` | Informes, este manual, diagramas, página de presentación y algunos resultados de medición. No contiene el código de la aplicación. | Rama por defecto del repositorio y origen de la publicación en Vercel. |
-| `feature/mac-flujo` | La aplicación completa: backend, interfaz, pruebas y scripts, con las funciones del Mac. | Versión final. Es la que describe este manual. |
-| `test` | La aplicación sin el modelo de lenguaje en vivo, la entrenadora ni las órdenes de voz, pensada para un computador básico. | Rama de integración de las *pull requests* durante el semestre. |
+| `main` | La aplicación completa (backend, interfaz, pruebas y scripts, con las funciones del Mac), los informes, este manual, los diagramas y la página de presentación. | Versión final y rama por defecto. Es la que describe este manual y el origen de la publicación en Vercel. |
+| `test` | La aplicación sin el modelo de lenguaje en vivo, la entrenadora ni las órdenes de voz, pensada para un computador básico. | Versión básica. Fue la rama de integración de las *pull requests* durante el semestre. |
 
-Como `main` es la rama por defecto, un `git clone` sin opciones no trae el código: hay que clonar con `-b feature/mac-flujo` o cambiar de rama después (sección 8.1). Además, `test` y `feature/mac-flujo` divergieron. `feature/mac-flujo` incorporó `test` mediante fusiones, pero al 20 de noviembre de 2026 `test` tiene ocho *commits* que no están en `feature/mac-flujo`: el visor de calibración (*pull request* #21), ajustes de la interfaz y una actualización de resultados de medición.
+Un `git clone` sin opciones trae `main`; para la versión básica se clona con `-b test` (sección 8.1). `main` incluye todos los cambios de `test`, pero las dos ramas evolucionan por separado: un cambio hecho en una no pasa solo a la otra (sección 8.4).
 
 Fuera de este repositorio está `docs_estela`, el repositorio de documentación del proyecto. Allí se guardan los registros de decisiones (`decisiones/`), los experimentos (`experimentos/`) y la investigación (`investigacion/`).
 
 ### 3.1 Árbol general del repositorio
-
-Rama `feature/mac-flujo`:
 
 ```text
 ESTELA/
@@ -109,7 +106,7 @@ ESTELA/
 │   ├── pyproject.toml                dependencias, extras y configuración de pytest
 │   ├── modelos/                      (ignorada por git) modelos descargados
 │   ├── historial/                    (ignorada por git) perfiles e historial
-│   └── sesiones/                     (ignorada por git) métricas de --guardar-metricas
+│   └── sesiones/                     métricas de --guardar-metricas (ignorada por git, salvo resúmenes de sesiones de prueba)
 ├── frontend/                         interfaz de escritorio
 │   ├── src/                          bridge/, estado/, pantallas/, componentes/, estilos/
 │   ├── pruebas/                      pruebas de la lógica de la interfaz
@@ -117,7 +114,13 @@ ESTELA/
 │   ├── dist/                         interfaz compilada (versionada)
 │   └── package.json
 ├── PRUEBAS/                          prototipos y arneses de experimentos
-├── diagramas/                        diagramas de una versión anterior
+├── diagramas/
+│   ├── mac_diagrams_def/             diagramas de la versión completa (vigentes)
+│   ├── definitivos/                  diagramas de la versión básica
+│   └── otros/                        diagramas de una versión anterior
+├── diagramas_estela_modelo_profe/    versiones simplificadas de los diagramas
+├── landing/                          página de presentación estática
+├── vercel.json                       publica landing/ en Vercel
 ├── design/ESTELA.pdf                 diseño visual
 ├── .githooks/commit-msg              exige el identificador de ClickUp
 ├── .gitmessage                       plantilla del mensaje de commit
@@ -127,22 +130,6 @@ ESTELA/
 └── Readme.md, Instalación.md, Desarrollo.md
 ```
 
-Rama `main`:
-
-```text
-ESTELA/
-├── InformeFinal.md, PrimerInforme.md, SegundoInforme.md
-├── Readme.md, Instalación.md, Desarrollo.md
-├── diagramas/
-│   ├── definitivos/                  diagramas de la rama test
-│   └── mac_diagrams_def/             diagramas de feature/mac-flujo
-├── diagramas_estela_modelo_profe/    versiones simplificadas de ambos
-├── landing/                          página de presentación estática
-├── vercel.json                       publica landing/ en Vercel
-├── backend/feedback_testing/resultados/   informes de medición por rama
-├── backend/sesiones/                 resúmenes de sesiones de prueba
-└── PRUEBAS/                          resultados de EXP-006, EXP-009 y EXP-010
-```
 
 ### 3.2 Descripción de directorios y archivos relevantes
 
@@ -166,7 +153,8 @@ ESTELA/
 | `.githooks/commit-msg` y `.gitmessage` | Regla del identificador de ClickUp y plantilla del mensaje de *commit* (sección 10.2). |
 | `.claude/skills/estela-card-writer/` | Instrucciones para que Claude Code redacte tarjetas de ClickUp con las convenciones del proyecto. |
 | `RESULTADOS-MAC-INFORME-FINAL.md` | Métricas del Mac Studio para el informe final, en estado de borrador. |
-| `diagramas/` | Diagramas de una versión anterior. Los vigentes de esta versión están en `main`, en `diagramas/mac_diagrams_def/`. |
+| `diagramas/` | Diagramas en PlantUML y en imagen: `mac_diagrams_def/` (versión completa, vigentes), `definitivos/` (versión básica) y `otros/` (versión anterior). |
+| `landing/` y `vercel.json` | Página de presentación estática y su publicación en Vercel. No forman parte de la aplicación. |
 
 Cada carpeta importante tiene su propio `README.md` con más detalle: `backend/README.md`, `frontend/README.md`, `backend/estela/dominio/feedback/README.md`, `backend/feedback_testing/README.md` y los de `PRUEBAS/`.
 
@@ -443,7 +431,7 @@ Si en el futuro se integrara un servicio que requiera credenciales, estas deber�
 Los pasos para empezar a desarrollar son los siguientes:
 
 ```bash
-git clone -b feature/mac-flujo https://github.com/isaAJ05/ESTELA.git   # main no contiene el código
+git clone https://github.com/isaAJ05/ESTELA.git   # versión básica: añadir -b test
 cd ESTELA
 git config core.hooksPath .githooks     # activa la regla del identificador de ClickUp
 git config commit.template .gitmessage  # plantilla del mensaje de commit
@@ -473,7 +461,7 @@ npm run dev          # interfaz en el navegador con backend simulado
 
 ### 8.2 Desarrollo de nuevas funcionalidades
 
-Cada cambio parte de una tarea en ClickUp, porque su identificador va en los mensajes de *commit*. La rama se crea desde la línea a la que pertenece el cambio: `feature/mac-flujo` para la versión final, o `test` para la versión básica. Los nombres usados en el proyecto son `feature/<tema>`, `refactor/<tema>` y los que genera ClickUp, con la forma `CU-<id>_<descripción>`.
+Cada cambio parte de una tarea en ClickUp, porque su identificador va en los mensajes de *commit*. La rama se crea desde la línea a la que pertenece el cambio: `main` para la versión final, o `test` para la versión básica. Los nombres usados en el proyecto son `feature/<tema>`, `refactor/<tema>` y los que genera ClickUp, con la forma `CU-<id>_<descripción>`.
 
 Antes de escribir código conviene decidir en qué capa va. Si el cambio usa una biblioteca nueva o un dispositivo, va en un adaptador; si necesita que la sesión lo use, la interfaz se declara en `aplicacion/puertos.py`. La lógica de los ejercicios va en el dominio y no puede importar nada fuera de la biblioteca estándar.
 
@@ -501,7 +489,7 @@ Cuando un cambio afecta la arquitectura, la tecnología, el alcance o la reprodu
 | Pruebas de la interfaz | `npm test` | Lógica de rutina, ajustes, progreso y perfiles. |
 | Compilación | `npm run build` | Genera `frontend/dist/`, que debe subirse junto con los cambios de `src/`. |
 
-Algunas pruebas se omiten solas cuando falta lo que necesitan. `test_voz_entrada_real.py` necesita `pywhispercpp`; `test_dtw_video.py` necesita un vídeo y el modelo de pose; y parte de `test_voz_y_landmarks.py` necesita la API de visión de MediaPipe. En el Mac Studio pasan 731 pruebas, sin fallos ni omisiones, en el *commit* `082c2e3` (`RESULTADOS-MAC-INFORME-FINAL.md`, paso 0). En un portátil con Windows, Python 3.13.5 y mediapipe 1.1.0, la ejecución del 20 de noviembre de 2026 sobre `267bfd9` dio 720 pruebas aprobadas, 4 omitidas y 12 excluidas por la marca `metricas`, en 39 s.
+Algunas pruebas se omiten solas cuando falta lo que necesitan. `test_voz_entrada_real.py` necesita `pywhispercpp`; `test_dtw_video.py` necesita un vídeo y el modelo de pose; y parte de `test_voz_y_landmarks.py` necesita la API de visión de MediaPipe. En el Mac Studio pasan 731 pruebas, sin fallos ni omisiones, en el *commit* `082c2e3` (`RESULTADOS-MAC-INFORME-FINAL.md`, paso 0). En un portátil con Windows, Python 3.13.5 y mediapipe 1.1.0, la ejecución del 21 de noviembre de 2026 sobre `4336bdf` dio 720 pruebas aprobadas, 5 omitidas y 12 excluidas por la marca `metricas`, en 32 s.
 
 Además de las pruebas automáticas, conviene una prueba de punta a punta sin cámara, que es reproducible:
 
@@ -513,7 +501,7 @@ El resumen final muestra las repeticiones completas e incompletas, las correccio
 
 ### 8.4 Integración de cambios
 
-Los cambios se integran con *pull requests* en GitHub. Durante el semestre, la rama de integración fue `test` (por ejemplo, las *pull requests* #16 a #19 y #21). La versión final se desarrolló en `feature/mac-flujo`, que incorporó `test` mediante fusiones, entre ellas la *pull request* #20. Cuando un cambio hecho en `test` deba estar también en la versión final, hay que llevarlo a `feature/mac-flujo` con una fusión o un *cherry-pick*, como se hizo con los cambios de interfaz del *commit* `c52fc04`.
+Los cambios se integran con *pull requests* en GitHub. Durante el semestre, la rama de integración fue `test` (por ejemplo, las *pull requests* #16 a #19 y #21). La versión final se desarrolló en `feature/mac-flujo`, que incorporó `test` mediante fusiones (entre ellas la *pull request* #20) y se integró en `main` con la *pull request* #24. Desde entonces, `main` es la versión final y `test` la básica. Cuando un cambio hecho en una de las dos deba estar también en la otra, hay que llevarlo con una fusión o un *cherry-pick*, sin pasar a `test` lo que depende del Mac.
 
 Antes de abrir una *pull request*, el cambio debería cumplir estos criterios mínimos:
 
@@ -552,7 +540,7 @@ La aplicación no requiere cuentas ni credenciales. Para trabajar en el proyecto
 - Acceso al espacio del proyecto en ClickUp, para crear tareas y obtener sus identificadores.
 - Acceso al proyecto de Vercel vinculado al repositorio, solo si se va a modificar la página de presentación.
 
-Para la configuración completa hace falta un Mac con Apple Silicon. Según la medición hecha por el equipo en el Mac Studio el 20 de noviembre de 2026, con todo encendido Ollama ocupa 12,6 GB (9,0 GB el modelo de 14B y 2,9 GB el de 4B) y la aplicación 1,8 GB, en total unos 14,4 GB sin contar macOS. El mínimo estimado, no medido, es de 24 GB de memoria unificada (leyenda de `diagramas/mac_diagrams_def/codigosdiagramas/completos/DESPLIEGUE_sistema.wsd`, en `main`).
+Para la configuración completa hace falta un Mac con Apple Silicon. Según la medición hecha por el equipo en el Mac Studio el 20 de noviembre de 2026, con todo encendido Ollama ocupa 12,6 GB (9,0 GB el modelo de 14B y 2,9 GB el de 4B) y la aplicación 1,8 GB, en total unos 14,4 GB sin contar macOS. El mínimo estimado, no medido, es de 24 GB de memoria unificada (leyenda de `diagramas/mac_diagrams_def/codigosdiagramas/completos/DESPLIEGUE_sistema.wsd`).
 
 ### 9.3 Consideraciones de desarrollo y pruebas
 
@@ -584,9 +572,9 @@ Estas herramientas tienen límites. La GPU, whisper.cpp con Metal y los modelos 
 
 ### 10.2 Convenciones de repositorio
 
-**Ramas.** `main` guarda la documentación y la página de presentación; `test` fue la rama de integración; y `feature/mac-flujo` contiene la versión final. Las ramas de trabajo usan los prefijos `feature/` y `refactor/`, o el nombre que genera ClickUp (`CU-<id>_<descripción>`).
+**Ramas.** `main` contiene la versión final, la documentación y la página de presentación; `test` contiene la versión básica y fue la rama de integración durante el semestre. Las ramas de trabajo usan los prefijos `feature/` y `refactor/`, o el nombre que genera ClickUp (`CU-<id>_<descripción>`).
 
-**Mensajes de *commit*.** La plantilla `.gitmessage` define el formato `<tipo>(<módulo>): <descripción>`, con los tipos `feat`, `fix`, `refactor`, `docs`, `test`, `perf` y `chore`. El identificador de la tarea de ClickUp es obligatorio y puede escribirse como `CU-abc123`, `#abc123` o `EST-123`. En `feature/mac-flujo` la forma más usada es `CU-1dfdp8dm54b - feat(voz): …`. Los mensajes se escriben en español y suelen explicar el porqué del cambio y, cuando existen, las cifras medidas que lo justifican.
+**Mensajes de *commit*.** La plantilla `.gitmessage` define el formato `<tipo>(<módulo>): <descripción>`, con los tipos `feat`, `fix`, `refactor`, `docs`, `test`, `perf` y `chore`. El identificador de la tarea de ClickUp es obligatorio y puede escribirse como `CU-abc123`, `#abc123` o `EST-123`. En los *commits* de la versión final, la forma más usada es `CU-1dfdp8dm54b - feat(voz): …`. Los mensajes se escriben en español y suelen explicar el porqué del cambio y, cuando existen, las cifras medidas que lo justifican.
 
 El *hook* `.githooks/commit-msg` rechaza los mensajes sin identificador, pero solo actúa si cada persona lo activa con `git config core.hooksPath .githooks`. Algunos *commits* del historial no llevan identificador, lo que indica que el *hook* no estuvo activo en todos los equipos.
 
@@ -598,7 +586,7 @@ La documentación se organiza en tres niveles. En la raíz del repositorio está
 
 Un ADR se registra cuando una decisión afecta la arquitectura, la tecnología, el alcance o la reproducibilidad, y no para detalles menores. Cada ADR indica su estado (propuesta, aceptada o enmendada). Los experimentos separan la pregunta, las alternativas, el método, las métricas, los resultados medidos, la interpretación y la conclusión, y fijan el criterio de decisión antes de medir. Los resultados medidos nunca se presentan como supuestos ni como hallazgos de la literatura, y se usan las mismas etiquetas de evidencia descritas en la sección 10.1.
 
-Los resultados de las mediciones se guardan en carpetas `resultados/` con la fecha y, cuando aplica, la rama en el nombre; por ejemplo, `INFORME2-metricas_mac-flujo_2026-11-20_1620.md` en `main`. Los diagramas se escriben en PlantUML (archivos `.wsd` en `codigosdiagramas/`) y se exportan a imagen. Los informes siguen `GUIA_REDACCION_INFORMES_ESTELA.md`.
+Los resultados de las mediciones se guardan en carpetas `resultados/` con la fecha y, cuando aplica, la rama en el nombre; por ejemplo, `INFORME2-metricas_mac-flujo_2026-11-20_1620.md`. Los diagramas se escriben en PlantUML (archivos `.wsd` en `codigosdiagramas/`) y se exportan a imagen. Los informes siguen `GUIA_REDACCION_INFORMES_ESTELA.md`.
 
 ## 11. Problemas frecuentes y recomendaciones
 
@@ -654,16 +642,15 @@ Los resultados de las mediciones se guardan en carpetas `resultados/` con la fec
 
 **Repositorio y documentación**
 
-- El código no está en `main`, que es la rama por defecto, y `test` tiene *commits* que no están en `feature/mac-flujo` (sección 3).
-- Varios documentos de `feature/mac-flujo` quedaron atrás de su propio código. `Instalación.md` de esa rama todavía menciona la marcha y no describe Ollama ni Whisper; la versión actualizada está en `main`. `Readme.md` también menciona la marcha (y, en `main`, cinco ejercicios). `backend/README.md` dice que el adaptador de modelo de lenguaje solo lo usa EXP-001. `frontend/README.md` presenta el gesto de pausa como activo. El docstring de `aplicacion/pausa.py` describe la pausa por inactividad como si siguiera encendida. La sección 11.2 del informe final indica 656 pruebas, cuando en el Mac pasan 731.
+- Algunos documentos quedaron atrás del código. `backend/README.md` dice que el adaptador de modelo de lenguaje solo lo usa EXP-001. `frontend/README.md` presenta el gesto de pausa como activo. El docstring de `aplicacion/pausa.py` describe la pausa por inactividad como si siguiera encendida. La sección 11.2 del informe final indica 656 pruebas, cuando en el Mac pasan 731.
 - El informe final cita ADR-008 y ADR-009, pero no existen como archivos en `docs_estela/decisiones/`. La configuración del Mac, la entrenadora y las órdenes de voz no tienen un ADR propio.
 - Algunas cifras del Mac solo constan en mensajes de *commit* o en un `ESTADO.md` que vive en el Mac, fuera de git.
 - La clave de la hoja A/B de la entrenadora está versionada en `PRUEBAS/ab_entrenadora_14b_70b/clave_NO_ABRIR/`, así que la hoja deja de ser a ciegas para quien la abra. Además, desde `3c7d229` la entrenadora no habla entre ejercicios, por lo que solo 7 de sus 20 situaciones reflejan el comportamiento actual.
 
 ### 11.3 Recomendaciones para continuidad
 
-1. **Unificar las ramas.** Llevar a `feature/mac-flujo` lo pendiente de `test` y hacer que la versión final quede en una rama que un `git clone` traiga por defecto.
-2. **Actualizar la documentación desactualizada** de la sección 11.2 antes de añadir funciones nuevas, y llevar a `feature/mac-flujo` los manuales actualizados en `main`.
+1. **Mantener alineadas las dos versiones.** Llevar a `test` los arreglos de `main` que no dependan del Mac, para que la versión básica no se quede atrás.
+2. **Actualizar la documentación desactualizada** de la sección 11.2 antes de añadir funciones nuevas.
 3. **Grabar el banco real** con consentimiento informado y anotarlo. Con él se puede calibrar `k` (EXP-005), decidir sobre las reglas relativas (EXP-006) y ejecutar la condición F de EXP-001.
 4. **Medir las órdenes de voz con micrófono real**, siguiendo la guía del paso 5 de `RESULTADOS-MAC-INFORME-FINAL.md`, y calibrar `GUARDA_ECO_S`.
 5. **Completar la medición de la detección a la voz** con el modelo de lenguaje encendido.
@@ -717,8 +704,8 @@ Las cifras de los modelos de lenguaje y de Whisper provienen de los comentarios 
 - `Instalación.md` y `Readme.md`: puesta en marcha y presentación del proyecto.
 - `backend/README.md`, `frontend/README.md`, `backend/estela/dominio/feedback/README.md` y `backend/feedback_testing/README.md`: detalle técnico de cada parte.
 - `backend/estela/dominio/feedback/skills/ESQUEMA.md`: formato de una *skill*.
-- `RESULTADOS-MAC-INFORME-FINAL.md` (en `feature/mac-flujo`): métricas y pasos de instalación comprobados en el Mac Studio.
-- `diagramas/mac_diagrams_def/` (en `main`): diagramas de arquitectura, despliegue, interacción y secuencia de esta versión.
+- `RESULTADOS-MAC-INFORME-FINAL.md`: métricas y pasos de instalación comprobados en el Mac Studio.
+- `diagramas/mac_diagrams_def/`: diagramas de arquitectura, despliegue, interacción y secuencia de esta versión.
 - `GUIA_REDACCION_INFORMES_ESTELA.md`: guía de estilo de los informes.
 
 **Repositorio de documentación `docs_estela`**
