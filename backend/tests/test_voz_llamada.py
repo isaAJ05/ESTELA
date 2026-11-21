@@ -535,6 +535,7 @@ def _con_fabrica(*textos, abrir=MicrofonoDeFabrica):
 def test_apagar_cierra_el_microfono_y_encender_lo_vuelve_a_abrir():
     e, _, _ = _con_fabrica()
     e.arrancar()
+    e.conectar(SesionFalsa())                # solo en sesión se abre el micrófono
     try:
         _hasta_que(lambda: e.microfono is not None)
         primero = e.microfono
@@ -553,6 +554,7 @@ def test_apagar_cierra_el_microfono_y_encender_lo_vuelve_a_abrir():
 def test_elegir_otro_microfono_cierra_el_anterior_y_abre_el_nuevo():
     e, _, _ = _con_fabrica()
     e.arrancar()
+    e.conectar(SesionFalsa())                # solo en sesión se abre el micrófono
     try:
         _hasta_que(lambda: e.microfono is not None)
         primero = e.microfono
@@ -569,6 +571,7 @@ def test_si_el_microfono_no_abre_queda_apagado_y_dice_por_que():
         raise OSError("no hay entrada")
     e, _, _ = _con_fabrica(abrir=falla)
     e.arrancar()
+    e.conectar(SesionFalsa())                # solo en sesión se abre el micrófono
     try:
         _hasta_que(lambda: e.ajustes()["error"] is not None)
         a = e.ajustes()
@@ -581,9 +584,9 @@ def test_probar_muestra_lo_que_oye_sin_sesion_y_sin_ejecutar_nada():
     e, hechas, voz = _con_fabrica("Estela, pausa", "qué calor")
     e.arrancar()
     try:
+        assert e.probar(5.0) and e.ajustes()["probando"]       # sin sesión, la prueba lo abre
         _hasta_que(lambda: e.microfono is not None)
         e.microfono.frases = [AUDIO]
-        assert e.probar(5.0) and e.ajustes()["probando"]
         _hasta_que(lambda: e.ajustes()["prueba"] is not None)
         assert e.ajustes()["prueba"] == {"n": 1, "texto": "Estela, pausa", "llamada": True,
                                          "comando": cv.PAUSA}

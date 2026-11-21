@@ -383,6 +383,7 @@ def main(argv=None) -> int:
             resumen["entrenadora"] = entrenadora["en_vivo"].resumen()
         if entrenadora["escucha"] is not None:
             resumen["voz_entrada"] = {"frases": list(entrenadora["escucha"].registro)}
+            entrenadora["escucha"].soltar()          # fuera de la sesión, micrófono cerrado
         resumen["voz"] = {"motor": motor_voz.nombre, "descartadas": voz.descartadas,
                           "descartes": dict(voz.descartes)}
         if verbalizador is not None:

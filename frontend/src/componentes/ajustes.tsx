@@ -263,7 +263,7 @@ function OpcionMicrofono({ bridge }: { bridge: Bridge }) {
               ayuda={m === undefined ? 'Consultando el micrófono…'
                 : m.error ? `No pude abrir el micrófono (${m.error}). Comprueba que esté conectado y vuelve a encenderlo.`
                 : !encendido ? 'Apagado: no te escucho y las órdenes de voz no funcionan.'
-                : m.llamada ? 'Di «Estela» y una orden, también durante el ejercicio. El audio no se guarda.'
+                : m.llamada ? 'Solo se abre durante la rutina: di «Estela» y una orden. El audio no se guarda.'
                 : 'Te escucho en pausa y entre ejercicios. El audio no se guarda.'}>
         {m === undefined ? <Loader2 className="girando" aria-label="Consultando el micrófono" />
           : (
@@ -296,7 +296,7 @@ function OpcionMicrofono({ bridge }: { bridge: Bridge }) {
                 {prueba.llamada === false ? 'sin «Estela»: no haría caso'
                   : orden ? <b>{orden}</b> : 'no es una orden'}</>
                 : m.probando ? (m.llamada ? 'Di, por ejemplo, «Estela, pausa».' : 'Di, por ejemplo, «pausa».')
-                : 'Habla y mira si la barra se mueve; «Probar» muestra lo que entiendo.'}
+                : 'Fuera de la rutina el micrófono está cerrado. «Probar» lo abre unos segundos y muestra lo que entiendo.'}
             </span>
           </div>
         </div>

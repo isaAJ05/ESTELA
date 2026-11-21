@@ -467,3 +467,41 @@ def test_estela_al_final_de_la_ventana_y_la_orden_en_la_continuacion():
     i = e.atender_hablando(np.zeros(160, np.float32))
     assert i.comando == cv.PAUSA and hechas == ["pausar"]
     assert voz.cortes == 1 and mic.pedido > 0                # se calló antes de seguir oyendo
+
+
+def test_el_microfono_solo_se_abre_en_la_sesion_o_al_probarlo():
+    """Paula, 2026-11-20: fuera de la rutina el micrófono debe estar cerrado."""
+    abiertos = []
+
+    class MicFalso:
+        dispositivo = None
+
+        def __init__(self, d):
+            self.cerrado = False
+            abiertos.append(self)
+
+        def cerrar(self):
+            self.cerrado = True
+
+        def descartar(self):
+            pass
+
+        def escuchar_frase(self, cancelar, espera_s=1.0):
+            time.sleep(0.02)
+            return None
+
+    e = EscuchaVoz(None, None, VozFalsa(), {}, llamada=True, abrir_microfono=MicFalso)
+    e.arrancar()
+    try:
+        time.sleep(0.3)
+        assert e.microfono is None and abiertos == []          # en el inicio: cerrado
+        assert e.ajustes()["encendido"] and not e.ajustes()["abierto"]
+        e.conectar(SesionFalsa())
+        assert _esperar(lambda: e.microfono is not None)        # en la sesión: abierto
+        e.soltar()
+        assert _esperar(lambda: e.microfono is None) and abiertos[0].cerrado
+        e.probar(0.5)                                           # la prueba lo abre un rato
+        assert _esperar(lambda: e.microfono is not None)
+        assert _esperar(lambda: e.microfono is None, 3.0)       # y se cierra al acabar
+    finally:
+        e.cerrar()

@@ -99,6 +99,7 @@ def test_la_escucha_se_crea_sin_microfono_y_la_seccion_se_ve(monkeypatch, tmp_pa
     escucha = principal._crear_escucha(_args(), voz=None, acciones={}, como_voy=lambda s: "")
     assert escucha is not None
     escucha.arrancar()
+    escucha.probar(2.0)                 # fuera de la sesión solo lo abre la prueba (o la sesión)
     try:
         for _ in range(50):             # el hilo intenta abrirlo y no puede
             if escucha.ajustes()["error"]:

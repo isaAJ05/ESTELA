@@ -105,6 +105,11 @@ class EscuchaVoz:
         self._error_microfono: Optional[str] = None
         #: prueba desde los ajustes: hasta cuándo, y lo último que se oyó en ella
         self._prueba_hasta = 0.0
+        #: hay una sesión en marcha. Fuera de ella (inicio, resumen, progreso) el
+        #: micrófono se cierra aunque esté «encendido»: solo se abre en la sesión y
+        #: en la prueba de los ajustes (Paula, 2026-11-20: «apagar el micrófono
+        #: fuera de la sesión de la rutina»)
+        self._en_sesion = False
         self._prueba: Optional[Dict[str, Any]] = None
         self._sesion: Any = None
         self._parar = threading.Event()
@@ -158,7 +163,19 @@ class EscuchaVoz:
         sesion.oyente = self
         sesion.escucha_siempre = self.llamada
         sesion.escucha_hablando = self.interrumpir_hablando
+        self._en_sesion = True
+        self._hay_cambios.set()                     # abrir el micrófono
         self.arrancar()
+
+    def soltar(self) -> None:
+        """Terminó la sesión: el micrófono se cierra hasta la próxima (o una prueba)."""
+        self._en_sesion = False
+        self._sesion = None
+        self._hay_cambios.set()
+
+    def _lo_necesita(self) -> bool:
+        """¿Debe estar abierto el micrófono ahora? Solo en sesión o probándolo."""
+        return self._en_sesion or self._probando()
 
     # -- ajustes del micrófono (los llama la interfaz desde otro hilo) -------------
     def encender(self, encendida: bool) -> None:
@@ -166,6 +183,8 @@ class EscuchaVoz:
         (si se puede volver a abrir) y no se escucha nada."""
         with self._cerrojo:
             self._encendida = bool(encendida)
+            if encendida:
+                self._error_microfono = None        # se vuelve a intentar al necesitarlo
         self._hay_cambios.set()
 
     def elegir_microfono(self, dispositivo: Optional[int]) -> None:
@@ -182,6 +201,7 @@ class EscuchaVoz:
         with self._cerrojo:
             self._prueba = None
             self._prueba_hasta = time.monotonic() + max(1.0, float(segundos))
+        self._hay_cambios.set()                     # abrir el micrófono para la prueba
         self.arrancar()
         return True
 
@@ -192,7 +212,9 @@ class EscuchaVoz:
         """Para la sección «Micrófono» de los ajustes."""
         mic = self.microfono
         with self._cerrojo:
-            return {"encendido": self._encendida and mic is not None,
+            # «encendido» es lo que eligió la usuaria; fuera de la sesión está cerrado
+            return {"encendido": self._encendida and self._error_microfono is None,
+                    "abierto": mic is not None,
                     "elegido": self._dispositivo,
                     "nombre": getattr(mic, "nombre", None),
                     "nivel": round(min(1.0, float(getattr(mic, "nivel", 0.0) or 0.0)), 4),
@@ -218,7 +240,7 @@ class EscuchaVoz:
             return
         self._hay_cambios.clear()
         with self._cerrojo:
-            quiero, dispositivo = self._encendida, self._dispositivo
+            quiero, dispositivo = self._encendida and self._lo_necesita(), self._dispositivo
         if self._abrir is None:                      # micrófono fijo: solo se deja de escuchar
             return
         mic = self.microfono
@@ -294,6 +316,8 @@ class EscuchaVoz:
 
     def _bucle(self) -> None:
         while not self._parar.is_set():
+            if self.microfono is not None and not self._lo_necesita():
+                self._hay_cambios.set()              # acabó la sesión o la prueba: cerrarlo
             self._aplicar_cambios()
             mic = self.microfono
             if mic is None or not self._encendida:
