@@ -689,7 +689,7 @@ La Figura 2 muestra qué módulos dependen de cuáles, obtenido directamente del
 
 La Figura 3 muestra cómo colaboran los módulos dentro de cada capa. En ella se puede ver que solo los adaptadores usan tecnologías externas y que la sesión accede al estimador y a la voz únicamente a través de sus interfaces.
 
-![Figura 3. Interacción entre módulos](diagramas_estela_modelo_profe/mac_diagrams/png/interaccion-modulos.png)
+![Figura 3. Interacción entre módulos](diagramas/mac_diagrams_def/cortos/INTERACCION_modulos_corto.png)
 
 **Figura 3. Diagrama de interacción entre módulos.** Tecnologías externas, adaptadores, aplicación y dominio, con las interfaces que cada componente ofrece o necesita.
 
