@@ -191,8 +191,11 @@ def test_anterior_y_siguiente_solo_si_aplica(catalogo):
 
     s.anterior()
     assert paso() == 1                                        # ya es el primero
+    dichas = len(voz.dichas)
     s.siguiente()
     s.siguiente()
+    # saltar no es terminar: sin «Muy bien, terminaste…»
+    assert not any("terminaste" in t for t, _ in voz.dichas[dichas:])
     assert paso() == 3
     s.siguiente()
     assert paso() == 3 and not s.terminada                    # ya es el último
