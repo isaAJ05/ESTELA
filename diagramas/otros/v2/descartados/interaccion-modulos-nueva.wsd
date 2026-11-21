@@ -1,0 +1,109 @@
+@startuml interaccion-modulos
+' Diagrama de interacción entre módulos de ESTELA (SegundoInforme §10.3).
+' Abre el «núcleo de análisis» del diagrama de arquitectura: módulos de
+' backend/estela, sus puertos y los datos que cruzan cada frontera.
+' Notación UML de componentes: interfaz ofrecida (-() ), interfaz requerida
+' (--( ), dependencia (flecha punteada) y artefacto (archivo).
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de interacción entre módulos\n(un solo proceso de Python)
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 25
+skinparam ranksep 70
+skinparam packageStyle rectangle
+
+component "Interfaz React\n«ventana pywebview»" as REACT
+
+interface "Fuente" as IFUENTE
+
+package "Adaptadores de entrada" as ENT {
+  component "Fuente de cámara y video\n(captura/, OpenCV)" as CAM
+  component "Orquestador y ventana\n(interfaz/)" as ORQ
+  component "Arranque\n(<U+005F><U+005F>main<U+005F><U+005F>.py)" as MAIN
+  component "Ventana OpenCV\n(interfaz/overlay.py:\ndibuja el EstadoFrame)" as OCV
+}
+
+package "Aplicación (aplicacion/)" as AP {
+  interface "Voz" as IVOZ
+  interface "Estimador" as IEST
+  component "Sesión\n(bucle por fotograma\ny avisos de operación)" as SES
+  component "Reconocedor\nde ejercicio" as REC
+  component "Rutina y catálogo" as RUT
+  component "Umbrales relativos" as UMB
+  component "Pausas" as PAU
+  component "Registro por repetición\ny latencias" as REG
+  component "Alineador DTW" as DTW
+}
+
+package "Adaptadores de salida" as SAL {
+  component "Cola de voz y motores\n(voz/, Piper o voz del sistema)" as VOZ
+  component "Estimador de pose\n(pose/, MediaPipe)" as EP
+}
+
+package "Archivos (dominio/feedback/skills/)" as ARCH {
+  artifact "skills/*.json" as SKILL
+  artifact "referencias/<id>/\nreferencia.json" as REF
+  artifact "referencias/\nreconocimiento.json" as RECJ
+}
+
+package "Dominio (dominio/, solo biblioteca estándar)" as DO {
+  component "Geometría" as GEO
+  component "Segmentador" as SEG
+  component "Motor de feedback\n(MotorFeedback)" as MF
+  component "Motor de decisión" as MOT
+  interface "Verbalizador" as IVERB
+  component "Verbalizador por\nplantillas y validador" as VER
+}
+
+component "Verbalizador con LLM\n(adaptadores/llm/, HTTP a llama-server;\nhoy solo lo usa EXP-001)\n«adaptador de salida»" as LLM
+
+' ----------------------------------------------------------- entrada
+REACT ..> ORQ : comandos /\nestado JSON
+CAM -() IFUENTE
+ORQ -up-( IFUENTE
+ORQ ..> SES : \n\nfotograma →\nEstadoFrame
+MAIN .up.> ORQ : crea e inyecta
+MAIN ..> SES : con --interfaz opencv:\nfotograma → EstadoFrame
+MAIN .left.> OCV
+
+' ------------------------------------------------------------ puertos
+SES --( IVOZ : texto y\nprioridad
+IVOZ -- VOZ
+SES --( IEST : fotograma →\nResultadoPose
+IEST -- EP
+
+' --------------------------------------------------------- aplicación
+SES ..> REC : Observacion →\n¿otro ejercicio?
+REC ..> RECJ : lee
+SES ..> RUT
+RUT ..> SKILL : lee
+RUT ..> REF : lee
+RUT .left.> UMB
+SES ..> PAU
+SES ..> REG
+SES ..> DTW : Observacion →\nreferencia alineada
+
+' ------------------------------------------------ aplicación → dominio
+SES ....> GEO : MuestraPose →\nObservacion
+SES ....> SEG : Observacion →\nfase y repetición
+SES ....> MF : Observacion →\nMensajeFeedback\no Silencio
+MF ..> MOT : Observacion →\nErrorTipificado,\nRefuerzo o Silencio
+MF ..> IVERB : ErrorTipificado
+IVERB -- VER
+IVERB -- LLM
+
+
+legend bottom left
+  Flecha punteada: el módulo de origen usa al de destino; la etiqueta es el dato que cruza.
+  Círculo (-○): interfaz que el componente ofrece; semicírculo (-( ): interfaz que requiere.
+  Fuente, Estimador y Voz son los puertos de aplicacion/puertos.py; Verbalizador, el de dominio.
+  Con --interfaz opencv el arranque hace de orquestador: lee la fuente y llama a la sesión.
+endlegend
+
+@enduml

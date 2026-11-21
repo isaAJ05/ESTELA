@@ -1,0 +1,270 @@
+# Esquema de un archivo de `skill`
+
+Un `skill` contiene **todo** lo que el sistema sabe de un ejercicio. Añadir un ejercicio es añadir un archivo `.json` en este directorio; no se modifica el motor. Tampoco los scripts de referencias ni la interfaz: las medidas y los vídeos de sus referencias se declaran aquí (`medidas_referencia`, `videos_reconocimiento`) y la figura guía se dibuja con los puntos de su referencia (`keypoints_2d`). Solo hace falta código si el ejercicio necesita una medida que `motor/geometria.py` aún no calcula.
+
+El cargador (`motor/skill.py`) valida el esquema y falla ruidosamente. Un archivo mal formado no se carga a medias.
+
+Solo se cargan los `.json` de este directorio, no los de subdirectorios. `retirados/` guarda los skills que salieron del conjunto de ejercicios en ADR-005 (sentadilla, elevación de brazos, rotación de tronco) y la marcha con elevación de rodillas, que salió después al cambiarla por la zancada (2026-11-06), marcados `"estado": "descartado"`: siguen siendo válidos y los tests del motor usan la sentadilla y la marcha como banco de pruebas, pero no forman parte del catálogo.
+
+Ejercicios actuales (ADR-005): `jumping_jacks`, `abduccion_cadera_izq` + `abduccion_cadera_der`, `zancada_atras_izq` + `zancada_atras_der` y `plancha`. Los que se hacen en serie por pierna tienen un archivo por pierna.
+
+## Estructura
+
+```jsonc
+{
+  "skill_id": "sentadilla",          // único; debe coincidir con Observacion.ejercicio_id
+  "nombre": "Sentadilla",
+  "descripcion": "…",                // opcional: frase corta que la interfaz muestra al elegir ejercicios
+  "version": "0.1.0",
+  "estado": "candidato",             // candidato | candidato_en_duda | adoptado | descartado
+  "clase_reconocimiento": "sentadilla", // opcional: clase con que la sesión reconoce «¿es este ejercicio?» (EXP-010); los dos lados de un ejercicio comparten clase. Sin el campo, no se reconoce
+  "medidas_referencia": ["rodilla_media", "tronco_inclinacion"], // opcional: medidas que guarda su referencia; las lee `scripts/crear_referencia.py`. Sin el campo, no se le puede crear referencia
+  "videos_reconocimiento": ["sentadilla 1.mp4"], // opcional: vídeos correctos de donde salen sus referencias de reconocimiento; los lee `scripts/crear_referencias_reconocimiento.py`. Un vídeo sin lado conocido se declara en los dos skills
+  "notas": "…",
+  "fases": ["arriba", "descenso", "fondo", "ascenso"],
+  "orientacion_preferida": "sagital", // frontal | sagital | transversal | cualquiera
+  "angulos_requeridos": ["rodilla_media", "tronco_inclinacion"],
+
+  "politica_silencio": { … },
+  "reglas": [ … ]
+}
+```
+
+## `politica_silencio`
+
+| Campo | Defecto | Qué hace |
+|---|---|---|
+| `refractario_ms` | 4000 | Tiempo mínimo entre dos mensajes cualesquiera. |
+| `refractario_mismo_error_ms` | 12000 | Tiempo mínimo antes de repetir **el mismo** error. |
+| `repeticiones_evidencia` | 2 | Repeticiones consecutivas con el error antes de hablar. Es *bandwidth feedback* en el eje temporal: evita corregir por un frame ruidoso. |
+| `factor_desvanecimiento` | 1.5 | Cada emisión del mismo error multiplica su periodo refractario por este factor. `[?]` La tasa óptima de desvanecimiento es desconocida en la literatura. |
+| `max_emisiones_mismo_error` | 4 | Tope por sesión. Después, silencio. |
+| `fases_silenciadas` | `[]` | Fases en las que no se habla (p. ej. mientras la usuaria está bajo esfuerzo). |
+| `confianza_minima` | 0.6 | Por debajo, la regla no se evalúa. |
+| `tolerancia_orientacion_grados` | 30.0 | Desviación admitida respecto al plano ideal de la regla. **Este valor debe salir de EXP-002, no del defecto.** |
+
+## `reglas`
+
+```jsonc
+{
+  "error_id": "valgo_rodilla_izq",   // único dentro del skill
+  "descripcion": "…",
+  "medida":    { … },                // qué se mide
+  "condicion": { … },                // cuándo es error
+  "fases": ["descenso", "fondo"],    // vacío = cualquier fase
+  "plano": "frontal",                // frontal | sagital | transversal | cualquiera
+  "segmento": "rodilla",             // del vocabulario cerrado de contrato.SEGMENTOS
+  "lado": "izquierdo",               // izquierdo | derecho | bilateral | na
+  "prioridad": 2,                    // 1 = más importante. ÚNICA dentro del skill
+  "severidad": { "moderada": 0.06, "alta": 0.15 },
+  "umbral_origen": "[?] provisional, sin calibrar",
+  "mensaje_id": "valgo_rodilla",     // clave en plantillas_es.json; varias reglas pueden compartirla
+  "direccion": { … },                // opcional; ver abajo
+  "solo_lado_visible": false,         // opcional; ver abajo
+  "silenciada_por": [],               // opcional; ver abajo
+  "relativa": { … }                   // opcional; ver abajo
+}
+```
+
+### `solo_lado_visible` (opcional)
+
+En los ejercicios de perfil la pierna lejana queda tapada (catálogo v2, DEC-013/014). Con `true`, la regla solo se aplica en los frames en que su lado es el que mejor se ve: el motor compara la confianza de la medida (`rodilla_izq`) con la de su espejo (`rodilla_der`), y con empate se aplica. Cuando no se aplica, la regla **no se evalúa ni cuenta como abstención**. Si contara como abstención, el ejercicio no podría felicitar nunca, porque el refuerzo exige comprobar todas las reglas aplicables (ADR-006 §2.9).
+
+Se declara una regla por lado, cada una con `solo_lado_visible`. El cargador exige que la medida termine en `_izq` o `_der` y que coincida con el `lado` de la regla.
+
+Consecuencia aceptada (decisión del 2026-10-08): el ejercicio puede felicitar habiendo comprobado solo el lado visible. En el banco sintético eso lleva M8′ de 0 % a 11,1 % (EXP-001 §8.6).
+
+### `silenciada_por` (opcional)
+
+Lista de `error_id` del mismo skill. Si alguno se disparó en la repetición en curso, esta regla calla el resto de la repetición: ni se evalúa ni acumula evidencia. Sirve para la **precedencia entre errores**:
+- La abducción insuficiente calla si el tronco o la cadera compensaron (catálogo v2, AH-01): no se dice «sube más» a quien ya se inclina para subir más.
+- La profundidad de la zancada calla si el paso está fuera de rango (ZR-04), porque entonces la causa es el paso.
+
+La regla que manda tiene que evaluarse **antes** en la repetición (en una fase anterior o en la misma).
+
+### `medida`
+
+| `tipo` | Campos | Significado |
+|---|---|---|
+| `angulo` | `nombre` | Valor instantáneo de `Observacion.angulos[nombre]`. |
+| `distancia` | `nombre` | Valor instantáneo de `Observacion.distancias[nombre]`. |
+| `desviacion` | `nombre`, `fn` opcional (`mediana`) | Valor (ángulo o distancia) menos `angulos_ref[nombre]`, o el valor que entregue percepción. Con `fn: mediana`, la mediana de los frames de la repetición en curso en que la regla aplica (desde 3 muestras). Necesita la referencia alineada (DTW); sin ella, abstención `dtw_no_disponible` o respaldo absoluto (ver `relativa`). |
+| `agregado` | `fn` (`min`\|`max`\|`rango`\|`media`), `nombre`, `ventana` (`repeticion`) | Agregado acumulado dentro de la repetición actual. |
+| `asimetria` | `nombres` (exactamente 2) | Valor absoluto de la diferencia entre las dos medidas. |
+
+### `condicion`
+
+| `op` | Campos | Error cuando |
+|---|---|---|
+| `>` `>=` `<` `<=` | `umbral` | el valor compara así con el umbral |
+| `fuera_de` | `min`, `max` | el valor está fuera del intervalo |
+| `dentro_de` | `min`, `max` | el valor está dentro del intervalo |
+| `>` `>=` `<` `<=` `fuera_de` | `k`, `ruido` | **relativa** (ADR-004 §2.2), solo sobre una `desviacion`: el umbral es `k × max(σ_ref, ruido)`, con el σ de la referencia en el instante alineado (`Observacion.sigma_ref`). `>` → +k·escala, `<` → −k·escala, `fuera_de` → fuera de ±k·escala |
+| `>` `>=` `<` `<=` | `k`, `ruido`, `extremo` (`max`\|`min`) | **relativa**, solo dentro de `relativa` y sobre un agregado `max`/`min`: el umbral es el extremo de la referencia ∓ k × max(σ en ese frame, ruido) |
+
+El **exceso** (cuánto se rebasa el umbral) determina la severidad mediante el bloque `severidad`: `alta` si el exceso la alcanza, si no `moderada`, si no `leve`. En las condiciones relativas también va en las unidades de la medida (grados por encima del umbral relativo), así que la misma `severidad` sirve para las dos formas.
+
+### `relativa` (opcional; ADR-004 §2.1–2.2, EXP-006)
+
+La misma regla medida contra la referencia del ejercicio. **Solo se usa con umbrales «referencia»** (`python -m estela --umbrales referencia`, `aplicacion/umbrales.py`). Entonces pasa a ser la forma principal y la forma absoluta queda de **respaldo**: se evalúa en los frames en que la desviación no tiene referencia (sin DTW, coste alto). Con umbrales «absolutos», que es el defecto, se ignora.
+
+```jsonc
+// postura o compensación: desviación respecto a la referencia en el instante alineado
+"relativa": {
+  "medida": {"tipo": "desviacion", "nombre": "inclinacion_lateral_tronco", "fn": "mediana"},
+  "condicion": {"op": "<", "k": 3, "ruido": 1.5},
+  "umbral_origen": "[?] k provisional (EXP-005); ruido estimado en EXP-006 §3"
+}
+// amplitud del movimiento principal: el agregado de la regla frente al extremo de la referencia
+"relativa": {"condicion": {"op": "<", "k": 3, "ruido": 1.5, "extremo": "max"}}
+```
+
+- Sin `medida`, hereda la de la regla.
+- `severidad` opcional; sin ella, la de la regla.
+- Si la referencia no trae la medida, la regla se queda absoluta.
+
+**Qué forma usar** (EXP-006 §2.5): `[F]` el DTW «absorbe» la desviación de la medida que guía el alineamiento. Para la amplitud del movimiento principal (brazos en jumping jacks, la pierna en la abducción) se usa el **extremo**; para posturas y compensaciones (tronco, pelvis, codos, cadera en la plancha), la **desviación**, mejor con `fn: mediana`.
+
+### `direccion` (opcional, ADR-004 §2.5)
+
+Traduce el sentido en que debe moverse **el valor de la medida** a una dirección de movimiento que la usuaria entiende. El motor calcula el sentido a partir de la condición y el valor: `>`/`>=` → `disminuir`, `<`/`<=` → `aumentar`, `fuera_de` según el lado por el que se sale, `dentro_de` sin sentido. Luego busca ese sentido aquí y lo emite en `ErrorTipificado.direccion`; el exceso sale en `magnitud`.
+
+| Clave | Valores |
+|---|---|
+| `aumentar`, `disminuir` | `mas_flexion` \| `menos_flexion` \| `subir` \| `bajar` \| `abrir` \| `cerrar` \| `adelante` \| `atras` \| `alargar` \| `acortar` |
+
+Ejemplo: una rodilla, `min(rodilla_der) > 110` → hay que **disminuir** el ángulo → `{"disminuir": "mas_flexion"}`. Sin este bloque el error sale con `direccion = null` y el validador no comprueba la dirección. Las reglas que piden «enderezar» o «alinear» (inclinación del tronco, cabeza) no lo declaran: no encajan en un par de opuestos.
+
+El validador rechaza un mensaje que pida la dirección opuesta (`direccion_contradictoria`), con el léxico de `verbalizador/validador.py::LEXICO_DIRECCIONES`; «no subas» cuenta como pedir bajar.
+
+## `segmentacion` (opcional; la usa `estela/`, no el motor)
+
+El motor no lee esta sección: `motor/skill.py` ignora las claves que no conoce. La usa la aplicación (`estela/dominio/conteo/segmentador.py`) para producir `Observacion.fase` y `Observacion.repeticion` y para contar repeticiones. Un skill sin `segmentacion` se carga, pero no se puede usar en sesión.
+
+```jsonc
+// ciclo: una señal que va del reposo al extremo y vuelve
+"segmentacion": {
+  "tipo": "ciclo",
+  "senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"],
+  "reposo": 155,           // más allá de este valor empieza la repetición
+  "extremo": 110,          // alcanzarlo la hace «completa» (cuenta)
+  "margen_retorno": 10,    // retroceso desde el pico que marca la fase de vuelta
+  "fases": ["arriba", "descenso", "fondo", "ascenso"],  // reposo, ida, extremo, vuelta
+  "suavizado": 3,          // media móvil, en frames
+  "confianza_minima": 0.5  // por debajo, la señal se ignora y el estado se congela
+}
+
+// alternante: un ciclo por pierna; una repetición = una elevación
+"segmentacion": {
+  "tipo": "alternante",
+  "senal_izq": "angulos.cadera_izq", "senal_der": "angulos.cadera_der",
+  "reposo": 150, "extremo": 115, "margen_retorno": 10,
+  "fase_izq_arriba": "apoyo_der", "fase_der_arriba": "apoyo_izq",
+  "fase_transicion": "transicion"
+}
+
+// isometrico: una postura sostenida (plancha, ADR-005); el objetivo va en segundos
+"segmentacion": {
+  "tipo": "isometrico",
+  "condiciones": [                             // en posición = se cumplen todas
+    {"senal": "angulos.tronco_inclinacion", "min": 55},
+    {"senal": ["angulos.rodilla_media", "angulos.rodilla_izq", "angulos.rodilla_der"], "min": 145}
+  ],
+  "fases": ["preparacion", "mantenimiento"],   // fuera de la postura, en la postura
+  "entrada_ms": 1000,      // tiempo cumpliendo las condiciones antes de empezar a contar
+  "salida_ms": 1500,       // tiempo sin cumplirlas antes de dar la postura por interrumpida
+  "bloque_s": 5,           // cada bloque es una «repetición» para el motor
+  "confianza_minima": 0.5
+}
+```
+
+- `senal` es `"angulos.<nombre>"` o `"distancias.<nombre>"` de la `Observacion`, o una **lista ordenada**: se usa la primera con confianza suficiente. Hace falta porque de perfil la pierna lejana queda ocluida y `rodilla_media` hereda la confianza mínima de los dos lados.
+- El sentido (señal que baja o que sube) se deduce de `reposo` y `extremo`.
+- Los nombres de fase deben estar en `fases` del skill; el cargador lo comprueba.
+- La repetición empieza al salir del reposo. Una repetición que no llega al extremo también pasa por la fase de vuelta (para que se evalúen reglas como `profundidad_insuficiente`) pero se cuenta como *incompleta*.
+- En `alternante`, mientras la pierna sube la fase es `fase_transicion`; la fase de apoyo empieza cuando la pierna llega arriba o se da la vuelta. Así las reglas de altura, que usan el mínimo de la repetición, no se evalúan antes del pico.
+- En `isometrico`, `completadas` son los segundos en posición (el objetivo de la rutina se escribe `"duracion_s"` en lugar de `"repeticiones"`), `incompletas` cuenta las interrupciones y cada bloque de `bloque_s` segundos es una repetición para el motor: un error tiene que mantenerse `repeticiones_evidencia` bloques antes de decirse, y los agregados y el refuerzo se calculan por bloque. Las condiciones evitan contar posturas parecidas (a cuatro patas no es plancha porque las rodillas están flexionadas).
+- `requiere` (opcional, solo `ciclo`): lista de condiciones `{senal, min y/o max}` sobre **otras** señales que tienen que cumplirse al menos en un frame de la repetición para que cuente. Si no, la repetición es incompleta, pero pasa igual por la fase de vuelta y las reglas pueden decir qué faltó. Jumping jacks lo usa para la coordinación: la repetición la marcan los brazos y solo cuenta si los pies también se abrieron (EXP-009).
+- `movimiento_equivocado` (opcional): `{senal, min y/o max, aviso}`. Si en la fase de reposo la señal se cumple durante 1 s, la sesión dice `aviso`. Es un aviso de operación, como el de colocarse de frente; no es una corrección y no pasa por el motor. La abducción lo usa para «Ahora toca la pierna izquierda» cuando se sube la otra (EXP-009).
+- Todos los umbrales actuales son `[?]` provisionales. Los de marcha y jumping jacks se fijaron mirando las señales 3D de un vídeo por ejercicio de `PRUEBAS/.../DATASET`; los de abducción y plancha no tienen vídeo de referencia.
+
+## Medidas disponibles
+
+Las calcula `motor/geometria.py` a partir de la pose; el plano es el de `PLANO_DE_ANGULO` (desde dónde es observable con una cámara, EXP-002). Una medida nueva es una ampliación del contrato (ADR-002, ADR-006), no un detalle de implementación.
+
+| Medida | Tipo | Plano | Qué es |
+|---|---|---|---|
+| `codo_*`, `hombro_*`, `cadera_*`, `rodilla_*` (`_izq`, `_der`, `_media`/`_medio`) | ángulo | sagital (hombro: frontal) | Ángulo articular de la terna; 180 = extendido |
+| `tobillo_izq`, `_der` | ángulo | sagital | Rodilla–tobillo–punta del pie. Sin regla todavía (EXP-009) |
+| `tronco_inclinacion` | ángulo | sagital | Tronco respecto a la vertical, sin signo |
+| `inclinacion_lateral` | ángulo | frontal | Tronco hacia los lados, con signo: + = hacia la izquierda de la persona |
+| `oblicuidad_pelvis`, `oblicuidad_hombros` | ángulo | frontal | Línea de caderas / hombros respecto a la horizontal: + = lado izquierdo más alto |
+| `inclinacion_lateral_tronco` | ángulo | frontal | Componente frontal de la inclinación del tronco; + = hacia la izquierda |
+| `inclinacion_pelvis` | ángulo | frontal | Línea entre caderas respecto a la horizontal: + = cadera izquierda más alta |
+| `cabeza_adelantada` | ángulo | sagital | Cuello respecto a la prolongación del tronco, sin signo; 0 = alineada |
+| `abduccion_cadera_izq`, `_der` | ángulo | frontal | Muslo respecto a la vertical en el plano frontal: + = hacia fuera |
+| `alineacion_cuerpo_izq`, `_der` | ángulo | sagital | Ángulo interno hombro–cadera–tobillo para plancha; 180 = cuerpo recto |
+| `rotacion_tronco`, `azimut_cadera` | ángulo | transversal | No observables con una cámara (EXP-002) |
+| `separacion_pies` | distancia | frontal | Separación de tobillos / separación de caderas |
+| `separacion_pies_hombros` | distancia | frontal | Separación de tobillos / anchura de hombros; 1 = pies al ancho de los hombros (jumping jacks, EXP-009) |
+| `valgo_rodilla_izq`, `_der` | distancia | frontal | Rodilla hacia la línea media, en escalas corporales |
+| `alineacion_cadera` | distancia | sagital | Cadera respecto a la recta hombro–tobillo, en escalas corporales: + = hundida. Solo tiene sentido con el cuerpo horizontal (plancha) |
+| `hombro_sobre_codo` | distancia | sagital | Hombro respecto al codo en horizontal, en escalas de tronco: + = hombro por delante (hacia la cabeza). Plancha sobre antebrazos (PL-03/04); lado más visible |
+| `longitud_paso` | distancia | sagital | Distancia horizontal entre tobillos / largo de la pierna (muslo + pierna del lado más visible, que no cambia al doblar la rodilla). Zancada (ZR-04). Necesita los dos tobillos: si el lejano no se ve, la regla se abstiene. `[F]` En los vídeos de EXP-009 §10 se vio (confianza p50 0,82–0,86) |
+
+## Referencias offline
+
+`[R]` El script `scripts/crear_referencia.py` convierte un vídeo de
+referencia en `referencia.json` sin crear un pipeline alternativo: usa
+`EstimadorPose`, `observacion_desde_pose` y el `Segmentador` configurado en el
+skill. Para ejercicios cíclicos agrupa las repeticiones completas, calcula el
+medoide por coste DTW y guarda la media, la desviación estándar y el número de
+observaciones válidas por instante. Los valores con confianza menor que 0,5 se
+guardan como `null`; nunca se rellenan.
+
+Para la plancha (`tipo: "isometrico"`) se calcula la postura media y su sigma
+sobre los frames de la fase `mantenimiento`, sin DTW. En ambos formatos se
+guardan los keypoints 2D normalizados del medoide o de la postura media para
+dibujar la stick figure.
+
+```text
+python scripts/crear_referencia.py --selftest
+python scripts/crear_referencia.py --ejercicio jumping_jacks \
+  --video ruta.mp4 \
+  --salida estela/dominio/feedback/skills/referencias/jumping_jacks/referencia.json
+```
+
+El JSON cíclico contiene `angulos.media`, `angulos.sigma`, `angulos.n`,
+`fases`, `keypoints_2d` y `dtw`. El JSON isométrico contiene `postura.media`,
+`postura.sigma`, `postura.n` y `keypoints_2d`. El gráfico de control se revisa
+antes de usar los valores para sustituir umbrales provisionales.
+
+En sesión, `estela/aplicacion/dtw.py` alinea cada repetición con
+`angulos.media` (DTW incremental de final abierto, ADR-004 §2.3) y lee del
+bloque `dtw`:
+
+| Campo | Qué hace en sesión |
+|---|---|
+| `banda` | Banda Sakoe-Chiba en frames de la referencia, alrededor del instante que tocaría al ritmo de la referencia (tiempo desde el inicio de la repetición × `fps`). `null` = sin banda. Offline, `crear_referencia.py` la centra en la diagonal de las dos series completas. |
+| `coste_maximo` | Opcional. Con `coste_dtw` por encima, el frame no se alinea y las reglas `desviacion` se abstienen (`dtw_no_disponible`). `[?]` Ninguna referencia lo trae todavía: se calibra con el `coste_dtw` por repetición de EXP-006. |
+| `coste_medoide_a_resto` | Solo informativo: coste medio del medoide frente a las demás repeticiones, en las mismas unidades que `coste_dtw`. |
+
+## Reglas de higiene que el cargador impone
+
+- `segmento` debe estar en el vocabulario cerrado (`contrato.SEGMENTOS`). Es lo que permite al validador de salida rechazar mensajes que nombren otra parte del cuerpo.
+- Las **prioridades no pueden repetirse**: con un empate el desempate quedaría indefinido y el motor dejaría de ser determinista.
+- Los `error_id` no pueden repetirse dentro del skill.
+- `estado` debe ser uno de los cuatro valores de la estructura.
+- `solo_lado_visible` exige una medida de un lado (`_izq`/`_der`) cuyo lado coincida con el de la regla.
+- `silenciada_por` solo puede nombrar **otras** reglas del mismo skill.
+- `direccion` solo admite `aumentar`/`disminuir` como claves y valores del vocabulario cerrado.
+
+## Cómo calibrar un umbral (pendiente)
+
+Ningún umbral de este directorio está calibrado. El procedimiento previsto, que todavía no se ha ejecutado:
+
+1. Grabar la referencia del ejercicio con la ejecución correcta validada por la licenciada en educación física.
+2. Grabar ejecuciones con el error inducido según guion.
+3. Medir la distribución de la medida en ambos grupos.
+4. Fijar el umbral y reportar la tasa de falsos positivos y falsos negativos que produce, no solo el valor elegido.
+5. Volver a ejecutar EXP-002: el ancho de la ventana de orientación válida depende del umbral.

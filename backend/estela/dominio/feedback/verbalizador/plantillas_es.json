@@ -1,0 +1,195 @@
+{
+  "_meta": {
+    "idioma": "es",
+    "version": "0.1.0",
+    "nota": "Condición A de EXP-001. Cada mensaje de error menciona un único segmento, el del contrato. Las variantes existen para reducir la repetitividad sin romper el determinismo: la variante se elige por el índice de repetición, no al azar. Excepción: '_refuerzo' no nace de un ErrorTipificado y no menciona segmento ni lado a propósito (ver contrato.Refuerzo).",
+    "revision_licenciada": "2026-10-11: rango_brazos_insuficiente, codos_flexionados, apertura_insuficiente, rodilla_baja, abduccion_insuficiente y tronco_muy_inclinado reescritas siguiendo «Propuesta de corrección ESTELA» (amplitud condicionada a comodidad, control y estabilidad; codos sin bloquear). Falta que ella valide la redacción final. 2026-11-06: profundidad_rodilla, paso_corto y paso_largo (zancada) con el mismo criterio: bajar y dar el paso con control y equilibrio, sin exigir 90° (ZR-01, ZR-04).",
+    "variantes_70b": "2026-11-20: añadidas las variantes del 70B aprobadas en PRUEBAS/variantes_70b/variantes_70b_revisadas.csv (scripts/importar_variantes.py)",
+    "variantes_14b": "2026-11-20: añadidas las variantes aprobadas en PRUEBAS/variantes_14b/variantes_14b_revisadas.csv (scripts/importar_variantes.py)",
+    "revision_pendiente": "[?] Redacción no revisada por la licenciada en educación física ni por el entrenador. Antes de usar con usuarias reales debe validarse que la instrucción es correcta y accionable."
+  },
+
+  "profundidad_insuficiente": {
+    "leve": ["Baja un poco más las {segmento_pl}.", "Flexiona algo más las {segmento_pl}."],
+    "moderada": ["Baja más, flexiona bien las {segmento_pl}.", "Te falta recorrido, baja más las {segmento_pl}."],
+    "alta": ["Baja mucho más, flexiona las {segmento_pl} hasta el fondo."]
+  },
+
+  "tronco_muy_inclinado": {
+    "leve": ["Endereza un poco el {segmento}.", "Sube un poco el pecho.", "Endereza el tronco.", "Inclina menos el tronco.", "Mantén el tronco más vertical.", "Mantén el tronco más recto.", "Corrige la inclinación del tronco.", "Haz que el tronco esté menos inclinado."],
+    "moderada": ["Endereza el {segmento}, pecho arriba.", "Mantén el {segmento} más vertical.", "Endereza tu tronco.", "Corrige la inclinación del tronco.", "Mantén el tronco recto.", "Tronco más erguido.", "Mantén el tronco recto, no lo inclines tanto.", "Corrige la postura del tronco, más vertical.", "Haz que el tronco esté más vertical."],
+    "alta": ["Endereza bien el {segmento}, sin irte hacia delante ni hacia atrás.", "Mantén el tronco recto.", "No inclines el tronco.", "Endereza el tronco.", "Mantén el tronco más erguido."]
+  },
+
+  "valgo_rodilla": {
+    "leve": ["Abre un poco la {segmento} {lado}.", "Lleva la {segmento} {lado} algo más hacia fuera."],
+    "moderada": ["Abre la {segmento} {lado} hacia fuera.", "La {segmento} {lado} se te va hacia dentro."],
+    "alta": ["Abre bien la {segmento} {lado}, se está metiendo hacia dentro."]
+  },
+
+  "asimetria_rodillas": {
+    "leve": ["Reparte el peso entre las dos {segmento_pl}."],
+    "moderada": ["Flexiona las dos {segmento_pl} por igual."],
+    "alta": ["Estás cargando un lado, iguala las dos {segmento_pl}."]
+  },
+
+  "pies_muy_juntos": {
+    "leve": ["Separa un poco los {segmento_pl}."],
+    "moderada": ["Abre más los {segmento_pl}."],
+    "alta": ["Abre bien los {segmento_pl}, los tienes muy juntos."]
+  },
+
+  "rango_brazos_insuficiente": {
+    "leve": ["Sube un poco más los {segmento_pl}, hasta donde te resulte cómodo.", "Sube los brazos.", "Levanta los brazos más arriba.", "Alza los brazos.", "Sube los brazos un poco más, hasta tu límite cómodo.", "Alza los brazos un poco más, sin forzar."],
+    "moderada": ["Sube más los {segmento_pl}, hasta donde te resulte cómodo.", "Eleva un poco más los {segmento_pl}, sin forzar.", "Sube los brazos.", "Sube los brazos un poco más hacia arriba.", "Lleva los brazos más alto en el movimiento."],
+    "alta": ["Intenta subir bastante más los {segmento_pl}, sin forzar.", "Sube los brazos más arriba.", "Lleva los brazos hacia arriba.", "Sube los brazos aún más, mantén el control.", "Asegúrate de elevar los brazos lo suficiente.", "Lleva los brazos más arriba, de forma natural."]
+  },
+
+  "brazo_bajo": {
+    "leve": ["Sube un poco más el {segmento} {lado}."],
+    "moderada": ["Sube más el {segmento} {lado}.", "El {segmento} {lado} se te queda abajo."],
+    "alta": ["Sube bien el {segmento} {lado}, está mucho más bajo."]
+  },
+
+  "asimetria_brazos": {
+    "leve": ["Iguala la altura de los dos {segmento_pl}."],
+    "moderada": ["Sube los dos {segmento_pl} a la misma altura."],
+    "alta": ["Los {segmento_pl} están muy desiguales, súbelos parejos."]
+  },
+
+  "codos_flexionados": {
+    "leve": ["Estira un poco más los {segmento_pl}, sin bloquearlos.", "Estira más los codos.", "Estira los codos un poco más."],
+    "moderada": ["Extiende los {segmento_pl}, sin bloquearlos.", "Estira más los {segmento_pl}, sin llegar a bloquearlos.", "Estira los codos un poco más.", "Mantén los codos estirados.", "Estira más los codos.", "No dobles los codos demasiado, estíralos más."],
+    "alta": ["Estira bastante más los {segmento_pl}, sin bloquearlos.", "Estira más los codos.", "Estira bien los codos."]
+  },
+
+  "apertura_insuficiente": {
+    "leve": ["Abre un poco más los {segmento_pl}, con control.", "Abre los pies un poco más.", "Separa más los pies.", "Abre bien los pies.", "Abre más los pies, mantén el control."],
+    "moderada": ["Abre más los {segmento_pl} en cada salto, sin perder el control.", "Abre bien los pies.", "Separa los pies más.", "Abre los pies más en cada salto, mantén la estabilidad.", "Asegúrate de abrir bien los pies al hacer el salto.", "Abre los pies lo suficiente en cada movimiento sin forzar."],
+    "alta": ["Separa bastante más los {segmento_pl}, manteniendo el control.", "Abre más los pies.", "Separa los pies más.", "Abre bien los pies.", "Abre los pies más, sin perder estabilidad."]
+  },
+
+  "rodilla_extendida_marcha": {
+    "leve": ["Dobla un poco más la {segmento} {lado} al subirla."],
+    "moderada": ["Dobla la {segmento} {lado} al subirla, no la lleves estirada.", "Flexiona la {segmento} {lado} en cada paso."],
+    "alta": ["Dobla bien la {segmento} {lado}, la estás subiendo estirada."]
+  },
+
+  "rodilla_flexionada_plancha": {
+    "leve": ["Estira un poco más la {segmento} {lado}.", "Estira más la rodilla {lado}.", "Extiende bien la rodilla {lado}.", "Estira la rodilla {lado} más."],
+    "moderada": ["Estira la {segmento} {lado}, cuerpo en línea recta.", "Extiende la {segmento} {lado}, sin doblarla.", "Estira más la rodilla {lado}.", "Estira bien la rodilla {lado}.", "Estira más la rodilla {lado}, mantén el cuerpo recto.", "Ajusta la rodilla {lado}, estírala completamente.", "Extiende la rodilla {lado}, no la flexiones."],
+    "alta": ["Estira bien la {segmento} {lado}, la tienes muy doblada.", "Estira más la rodilla {lado}.", "Estira bien la rodilla {lado}.", "Estira la rodilla {lado} completamente.", "Estira más la rodilla {lado}, está demasiado flexionada.", "Ajusta la rodilla {lado}, debe estar más estirada.", "Estira más la rodilla {lado}, está demasiado doblada.", "Asegúrate de que la rodilla {lado} esté completamente extendida."]
+  },
+
+  "rodilla_baja": {
+    "leve": ["Sube un poco más la {segmento} {lado}, si mantienes el equilibrio."],
+    "moderada": ["Eleva más la {segmento} {lado}, sin perder el equilibrio.", "Sube un poco más la {segmento} {lado} en cada paso, con control."],
+    "alta": ["Intenta subir bastante más la {segmento} {lado}, con equilibrio."]
+  },
+
+  "rotacion_insuficiente": {
+    "leve": ["Gira un poco más el {segmento}."],
+    "moderada": ["Gira más el {segmento} en cada lado."],
+    "alta": ["Gira mucho más el {segmento}, casi no rotas."]
+  },
+
+  "cadera_acompana": {
+    "leve": ["Mantén las {segmento_pl} un poco más quietas."],
+    "moderada": ["Mantén las {segmento_pl} fijas mientras giras."],
+    "alta": ["No muevas las {segmento_pl}, el giro es solo de arriba."]
+  },
+
+  "inclinacion_lateral": {
+    "leve": ["Endereza un poco el {segmento}, se va {hacia_lado}.", "Mantén el tronco recto, no te inclines {hacia_lado}.", "Evita inclinar el tronco {hacia_lado}."],
+    "moderada": ["No inclines el {segmento} {hacia_lado}.", "Mantén el {segmento} recto, sin irte {hacia_lado}.", "No te inclines {hacia_lado}.", "No dejes que el tronco se incline {hacia_lado}.", "Evita inclinar el tronco {hacia_lado} durante el movimiento.", "Evita inclinar el tronco {hacia_lado}."],
+    "alta": ["Endereza el {segmento}, te estás inclinando {hacia_lado}.", "No te inclines {hacia_lado}.", "Mantén el tronco recto, no lo inclines {hacia_lado}.", "Corrige la posición del tronco, evita inclinarlo {hacia_lado}.", "Corrige la posición del tronco, no debe inclinarse {hacia_lado}.", "Alinea el tronco, evita inclinarte {hacia_lado}."]
+  },
+
+  "cadera_sube": {
+    "leve": ["Mantén la {segmento} {lado} un poco más baja.", "Baja un poco la cadera {lado}.", "Baja la cadera {lado}.", "Mantén baja la cadera {lado}.", "No dejes que la cadera {lado} suba.", "Mantén la cadera {lado} en posición baja.", "Baja ligeramente la cadera {lado}.", "Evita que la cadera {lado} se eleve."],
+    "moderada": ["No subas la {segmento} {lado}, mantenla nivelada.", "Baja la cadera {lado}.", "Mantén baja la cadera {lado}.", "No levantes la cadera {lado}.", "Baja la cadera {lado}, no la levantes.", "Mantén la cadera {lado} baja durante el movimiento.", "No levantes la cadera {lado}, deja que baje.", "Mantén la cadera {lado} baja, no la subas."],
+    "alta": ["Baja la {segmento} {lado}, la estás subiendo mucho.", "Baja la cadera {lado} ahora.", "Baja la cadera {lado}, está elevada en exceso.", "No subas la cadera {lado}, debe permanecer baja.", "Baja la cadera {lado}, está elevada.", "Baja la cadera {lado}, no la subas."]
+  },
+
+  "abduccion_insuficiente": {
+    "leve": ["Lleva la {segmento} {lado} un poco más hacia el lado, con control.", "Abre la pierna {lado} un poco más.", "Mueve la pierna {lado} hacia afuera.", "Extiende la pierna {lado} hacia el lado.", "Abre la pierna {lado} ligeramente hacia el lateral, con control.", "Dirige la pierna {lado} hacia el costado, sin forzar.", "Mueve la pierna {lado} hacia el lado, manteniendo la estabilidad.", "Abre un poco más la pierna {lado}, mantén el control."],
+    "moderada": ["Abre más la {segmento} {lado} hacia el lado, sin perder estabilidad.", "Abre más la pierna {lado}.", "Separa la pierna {lado}.", "Abre hacia afuera la pierna {lado}.", "Abre la pierna {lado} más hacia afuera.", "Abre la pierna {lado} hacia afuera.", "Abre la pierna {lado} hacia el lado, mantén el equilibrio.", "Abre más la pierna {lado} hacia el costado, mantén el equilibrio.", "Extiende más la pierna {lado} hacia el lado, sin inclinarte."],
+    "alta": ["Separa bastante más la {segmento} {lado}, solo si te mantienes estable.", "Abre más la pierna {lado}.", "Separa la pierna {lado} aún más.", "Separa bien la pierna {lado}.", "Abre bien la pierna {lado}.", "Abre más la pierna {lado}, sin perder la estabilidad.", "Extiende más la pierna {lado} hacia afuera, solo si no pierdes estabilidad.", "Abre más la pierna {lado}, mantén el equilibrio.", "Extiende aún más la pierna {lado}, siempre con control."]
+  },
+
+  "profundidad_rodilla": {
+    "leve": ["Baja un poco más, flexionando la {segmento} {lado}, si mantienes el equilibrio.", "Flexiona más la rodilla {lado}.", "Baja más la rodilla {lado}, flexiona más manteniendo el equilibrio.", "Baja aún más, flexionando la rodilla {lado} con control y equilibrio."],
+    "moderada": ["Flexiona más la {segmento} {lado} al bajar, sin perder el equilibrio.", "Flexiona más la rodilla {lado}.", "Flexiona la rodilla {lado} más.", "Flexiona más tu rodilla {lado}.", "Baja más con la rodilla {lado}.", "Baja más con la rodilla {lado} flexionada.", "Flexiona más profundamente la rodilla {lado}.", "Flexiona más la rodilla {lado} al descender, mantén el control.", "Baja más la rodilla {lado}, flexionando más sin desequilibrarte."],
+    "alta": ["Intenta bajar bastante más, flexionando la {segmento} {lado}, con control.", "Baja más la rodilla {lado} flexionándola.", "Flexiona más la rodilla {lado}.", "Baja más con la rodilla {lado}.", "Flexiona más la rodilla {lado}, baja más con control.", "Baja la rodilla {lado} más profundamente, mantén el control.", "Baja más la rodilla {lado}, asegurándote de flexionarla lo suficiente.", "Baja más, flexiona la rodilla {lado} lo suficiente."]
+  },
+
+  "cadera_hundida": {
+    "leve": ["Sube un poco las {segmento_pl}.", "Sube ligeramente la cadera.", "Eleva la cadera un poco.", "Levanta un poco la cadera.", "Sube las caderas un poco más.", "Levanta las caderas ligeramente."],
+    "moderada": ["Sube las {segmento_pl}, no las dejes caer.", "Sube las {segmento_pl} y mantén el cuerpo recto.", "Sube la cadera.", "Levanta la cadera.", "Eleva la cadera.", "Sube tu cadera, mantén la posición alta.", "Lleva la cadera hacia arriba, no la dejes caer.", "Eleva la cadera, no la dejes hundida."],
+    "alta": ["Sube bien las {segmento_pl}, se están hundiendo.", "Sube la cadera.", "Levanta la cadera.", "Sube tu cadera.", "Sube las caderas, no las dejes caer.", "Levanta las caderas, no las hundas."]
+  },
+
+  "cadera_elevada": {
+    "leve": ["Baja un poco las {segmento_pl}.", "Baja la cadera.", "Baja las caderas un poco.", "Lleva las caderas hacia abajo."],
+    "moderada": ["Baja las {segmento_pl}, alinea el cuerpo.", "Baja un poco las caderas.", "Mantén las caderas más bajas.", "Baja la cadera para alinear el cuerpo.", "Baja tu cadera y mantén la alineación.", "Baja las caderas y corrige la postura."],
+    "alta": ["Baja bien las {segmento_pl}, las tienes muy altas.", "Mantén baja la cadera.", "Baja la cadera ahora.", "Baja las caderas, están demasiado elevadas.", "Mantén las caderas bajas, no las subas.", "Lleva las caderas hacia abajo, no las dejes altas."]
+  },
+
+  "cabeza_desalineada": {
+    "leve": ["Alinea un poco la {segmento} con el cuerpo.", "Mantén la cabeza recta.", "Alinea la cabeza con el cuerpo.", "Mantén la cabeza alineada con el cuerpo."],
+    "moderada": ["Mantén la {segmento} en línea con el cuerpo.", "Alinea la cabeza con el cuerpo.", "Mantén la cabeza recta.", "Alinea tu cabeza con el resto del cuerpo.", "Mantén la cabeza recta y en posición neutral."],
+    "alta": ["Coloca la {segmento} en línea, ni caída ni levantada.", "Alinea la cabeza.", "Mantén la cabeza recta.", "Corrige la posición de la cabeza.", "Mantén la cabeza alineada, sin bajar ni elevar.", "Mantén la cabeza recta, sin desplazarla hacia arriba o abajo."]
+  },
+
+  "hombros_adelantados": {
+    "leve": ["Lleva los {segmento_pl} un poco hacia atrás, en vertical sobre el punto de apoyo.", "Atrás con los hombros.", "Tira los hombros hacia atrás.", "Lleva hacia atrás los hombros.", "Retira los hombros hacia atrás, evita que se adelanten."],
+    "moderada": ["Lleva los {segmento_pl} hacia atrás, en vertical sobre el punto de apoyo.", "Lleva tus hombros hacia atrás.", "Atrás con los hombros.", "Coloca los hombros hacia atrás.", "Atrás con los hombros, alineados sobre el punto de apoyo.", "Mueve los hombros hacia atrás, mantén la alineación vertical."],
+    "alta": ["Lleva bien los {segmento_pl} hacia atrás, en vertical sobre el punto de apoyo.", "Atrás con los hombros.", "Lleva los hombros hacia atrás.", "Mantén los hombros atrás.", "Mantén los hombros atrás, alineados con el punto de apoyo."]
+  },
+
+  "codos_noventa_plancha": {
+    "leve": ["Ajusta el {segmento} {lado} a noventa grados.", "Mantén el codo {lado} en ángulo recto.", "Coloca el codo {lado} a noventa grados.", "Mantén el codo {lado} en una posición de noventa grados.", "Sitúa el codo {lado} en un ángulo de 90 grados.", "Alinea el codo {lado} para formar un ángulo recto.", "Mantén el codo {lado} en un ángulo de 90 grados."],
+    "moderada": ["Pon el {segmento} {lado} a noventa grados.", "Mantén el codo {lado} en ángulo recto.", "Alinea el codo {lado} a 90 grados.", "Ajusta el codo {lado} a 90 grados.", "Coloca el codo {lado} en un ángulo de noventa grados.", "Alinea el codo {lado} en una posición de noventa grados.", "Mantén el codo {lado} en un ángulo recto."],
+    "alta": ["Coloca bien el {segmento} {lado}, a noventa grados exactos.", "Mantén el codo {lado} en ángulo recto.", "Ajusta el codo {lado} a noventa grados.", "Corrige el codo {lado} a noventa grados.", "Ajusta el codo {lado} para que forme 90 grados.", "Mantén el codo {lado} en posición de noventa grados.", "Haz que el codo {lado} esté exactamente a 90 grados.", "Alinea el codo {lado} para que forme exactamente 90 grados."]
+  },
+
+  "salto_insuficiente": {
+    "leve": ["Salta un poco más, despega {art_pl} {segmento_pl} del suelo.", "Despega las piernas.", "Despega las piernas del suelo, haz un pequeño salto."],
+    "moderada": ["Salta en cada repetición, despega {art_pl} {segmento_pl} del suelo.", "Despega las piernas del suelo.", "Levanta las piernas en cada salto.", "Salta en cada repetición, levanta las piernas del suelo.", "Asegúrate de saltar en cada repetición.", "No dejes las piernas en el suelo, salta en cada repetición."],
+    "alta": ["Estás abriendo sin saltar, despega {art_pl} {segmento_pl} del suelo.", "Despega las piernas.", "No estás saltando al abrir, levanta las piernas del suelo."]
+  },
+
+  "hombros_retrasados": {
+    "leve": ["Lleva los {segmento_pl} un poco hacia delante.", "Mueve los hombros hacia delante.", "Lleva hacia delante los hombros.", "Empuja los hombros hacia adelante ligeramente."],
+    "moderada": ["Adelanta los {segmento_pl}, justo sobre el apoyo.", "Mueve los hombros hacia adelante.", "Tira los hombros hacia delante.", "Lleva los hombros hacia adelante.", "Mueve los hombros hacia adelante, sobre el apoyo.", "Lleva los hombros hacia delante, alineados con el apoyo."],
+    "alta": ["Lleva bien los {segmento_pl} hacia delante, sobre el apoyo.", "Mueve los hombros hacia delante, sobre el apoyo."]
+  },
+
+  "paso_corto": {
+    "leve": ["Alarga un poco el paso, para bajar con control.", "Alarga el paso para bajar con mayor control."],
+    "moderada": ["Alarga el paso para bajar y subir con control."],
+    "alta": ["Alarga bastante el paso para bajar y subir con control.", "Alarga el paso para bajar y subir con control."]
+  },
+
+  "paso_largo": {
+    "leve": ["Acorta un poco el paso, para bajar con control.", "Acorta un poco la zancada.", "Acorta tu zancada.", "Acorta tu paso al bajar, para mantener el control.", "Baja con un paso más corto, sin perder equilibrio."],
+    "moderada": ["Acorta el paso para bajar y subir con control.", "Acorta el paso al bajar y subir con mayor control.", "Haz más corto el paso al mover la pierna hacia atrás.", "Acorta el paso al bajar y subir con control.", "Baja y sube acortando el paso.", "Haz el paso más corto al bajar y subir."],
+    "alta": ["Acorta bastante el paso para bajar y subir con control.", "Acorta el paso al bajar y subir con control.", "Baja y sube con paso más corto.", "Haz el paso más corto al bajar y al subir.", "Mantén el paso corto al mover la pierna hacia atrás."]
+  },
+
+  "_refuerzo": {
+    "general": [
+      "Vas muy bien, sigue así.",
+      "Buena forma, mantén ese ritmo.",
+      "Así es, sigue exactamente así.",
+      "Excelente ejecución, continúa.",
+      "Lo estás haciendo bien."
+    ]
+  },
+
+  "_generico": {
+    "leve": ["Corrige un poco la posición {de_art} {segmento} {lado}."],
+    "moderada": ["Corrige la posición {de_art} {segmento} {lado}."],
+    "alta": ["Revisa la posición {de_art} {segmento} {lado}."]
+  }
+}

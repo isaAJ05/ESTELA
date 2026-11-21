@@ -1,0 +1,107 @@
+{
+  "pose_model": "rtmpose",
+  "feature_mode": "coords",
+  "clases": [
+    "elevacion_brazos",
+    "jumping_jack",
+    "marcha_rodillas",
+    "sentadilla"
+  ],
+  "n_train": 622,
+  "n_val": 89,
+  "n_test": 170,
+  "accuracy": 0.7294117647058823,
+  "reporte_por_clase": {
+    "elevacion_brazos": {
+      "precision": 0.7857142857142857,
+      "recall": 1.0,
+      "f1-score": 0.88,
+      "support": 22.0
+    },
+    "jumping_jack": {
+      "precision": 0.7857142857142857,
+      "recall": 0.7857142857142857,
+      "f1-score": 0.7857142857142857,
+      "support": 14.0
+    },
+    "marcha_rodillas": {
+      "precision": 1.0,
+      "recall": 0.5121951219512195,
+      "f1-score": 0.6774193548387096,
+      "support": 82.0
+    },
+    "sentadilla": {
+      "precision": 0.5697674418604651,
+      "recall": 0.9423076923076923,
+      "f1-score": 0.7101449275362319,
+      "support": 52.0
+    },
+    "accuracy": 0.7294117647058823,
+    "macro avg": {
+      "precision": 0.7852990033222591,
+      "recall": 0.8100542749932993,
+      "f1-score": 0.7633196420223068,
+      "support": 170.0
+    },
+    "weighted avg": {
+      "precision": 0.8230213015438733,
+      "recall": 0.7294117647058823,
+      "f1-score": 0.7225642548744603,
+      "support": 170.0
+    }
+  },
+  "matriz_confusion": [
+    [
+      22,
+      0,
+      0,
+      0
+    ],
+    [
+      3,
+      11,
+      0,
+      0
+    ],
+    [
+      0,
+      3,
+      42,
+      37
+    ],
+    [
+      3,
+      0,
+      0,
+      49
+    ]
+  ],
+  "confusiones_mas_frecuentes": [
+    {
+      "real": "marcha_rodillas",
+      "predicho": "sentadilla",
+      "cantidad": 37
+    },
+    {
+      "real": "jumping_jack",
+      "predicho": "elevacion_brazos",
+      "cantidad": 3
+    },
+    {
+      "real": "marcha_rodillas",
+      "predicho": "jumping_jack",
+      "cantidad": 3
+    },
+    {
+      "real": "sentadilla",
+      "predicho": "elevacion_brazos",
+      "cantidad": 3
+    }
+  ],
+  "tiempo_entrenamiento_seg": 64.04297304153442,
+  "epocas_entrenadas": 17,
+  "tiempo_inferencia_total_seg": 5.008691787719727,
+  "tiempo_por_ventana_seg": 0.029462892868939567,
+  "fps_estimado": 33.940998409366046,
+  "tamano_modelo_mb": 1.2530517578125
+}

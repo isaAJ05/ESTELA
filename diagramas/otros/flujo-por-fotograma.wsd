@@ -1,0 +1,81 @@
+@startuml flujo-por-fotograma
+' Flujo de un fotograma en la fase en vivo (SegundoInforme §10.1 y §10.3).
+' Diagrama de secuencia: se ve el orden de las llamadas y qué hilo ejecuta cada parte.
+' No necesita Graphviz.
+
+title ESTELA — Flujo de un fotograma en la fase en vivo
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+participant "Cámara\n(hilo propio)" as CAM
+participant "Orquestador\n(hilo de sesión)" as ORQ
+participant "Sesión" as SES
+participant "Estimador\nde pose" as EP
+participant "Geometría" as GEO
+participant "Segmentador" as SEG
+participant "Alineador\nDTW" as DTW
+participant "Motor de\nfeedback" as MF
+participant "Cola de voz\n(hilo propio)" as VOZ
+participant "Interfaz\n(ventana)" as UI
+
+note over CAM
+  Guarda solo el último fotograma:
+  los que no se alcanzaron a leer
+  se descartan (RF-02).
+end note
+
+loop mientras la sesión esté activa
+  ORQ -> CAM : leer()
+  CAM --> ORQ : (fotograma, t_ms)
+  ORQ -> SES : procesar(fotograma, t_ms)
+  SES -> EP : estimar(fotograma, t_ms)
+  EP --> SES : ResultadoPose\n(puntos y latencia)
+
+  alt no se detecta a la persona
+    SES --> ORQ : EstadoFrame con aviso\n(sin persona o pausa)
+  else hay persona
+    SES -> GEO : observacion_desde_pose(puntos)
+    GEO --> SES : Observacion\n(ángulos, confianza, plano)
+    SES -> SEG : actualizar(observación)
+    SEG --> SES : fase y repetición
+
+    opt DTW activo (sin --sin-dtw)
+      SES -> DTW : actualizar(observación)
+      DTW --> SES : ángulo de referencia,\nprogreso y coste
+    end
+
+    SES -> SES : registrar la repetición\ny vigilar la pausa
+
+    alt sesión en pausa (ausencia o inactividad)
+      SES -> VOZ : decir(aviso de pausa, prioridad de aviso)\n(al empezar la pausa)
+  
+    else sesión activa
+      SES -> MF : procesar(observación)
+      MF -> MF : decisión determinista\n(abstención, reglas, política de silencio)
+      alt hay error o refuerzo
+        MF -> MF : verbalizar\n(plantilla; modelo de lenguaje si se inyecta)
+        MF --> SES : MensajeFeedback
+        SES -> VOZ : decir(texto, prioridad de corrección)
+        
+      else se calla
+        MF --> SES : Silencio(motivo)
+      end
+    end
+    SES --> ORQ : EstadoFrame\n(mensaje o motivo de silencio, latencias)
+  end
+
+  ORQ -> ORQ : publicar el estado
+end
+
+group En paralelo, en el hilo de la interfaz
+  UI -> ORQ : estado(desde) — sondeo largo
+  ORQ --> UI : JSON con el estado más reciente
+  note over UI
+    Si la interfaz dibuja más lento que la cámara,
+    se salta estados en lugar de acumular retraso.
+  end note
+end
+@enduml

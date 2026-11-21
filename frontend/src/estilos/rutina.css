@@ -1,0 +1,500 @@
+/* Inicio en secciones y elección de la rutina. Se lee de cerca (no a 3 m como la sesión). */
+
+.pantalla-inicio {
+  background:
+    radial-gradient(circle at 85% 0%, var(--color-morado-tenue), transparent 34rem),
+    radial-gradient(circle at 0% 100%, var(--color-morado-tenue), transparent 30rem),
+    var(--color-fondo);
+}
+
+/* -- navegación entre secciones ------------------------------------------- */
+.navegacion { display: inline-flex; gap: 0.25rem; padding: 0.25rem; border: 1px solid var(--color-borde); border-radius: var(--radio-pildora); background: var(--color-cristal); }
+.navegacion button, .navegacion-enlace {
+  display: inline-flex; align-items: center; gap: 0.5rem;
+  padding: 0.5rem 1.125rem; border: 0; border-radius: var(--radio-pildora);
+  background: transparent; color: var(--color-texto-suave); font: inherit; font-weight: 700; cursor: pointer;
+  transition: background var(--duracion-corta), color var(--duracion-corta);
+}
+.navegacion button:hover, .navegacion-enlace:hover { color: var(--color-texto); }
+.navegacion-enlace { text-decoration: none; font-weight: 600; }
+.navegacion-enlace svg { width: 0.875rem; height: 0.875rem; opacity: 0.8; }
+.navegacion button.activa { background: var(--color-morado); color: var(--color-sobre-morado); box-shadow: inset 0 0 0 1px rgba(169, 157, 255, 0.45); }
+.navegacion-cuenta {
+  display: inline-grid; place-items: center; min-width: 1.375rem; height: 1.375rem; padding: 0 0.375rem;
+  border-radius: var(--radio-pildora); background: var(--color-violeta-suave); color: var(--color-sobre-violeta); font-size: 0.75rem;
+}
+
+/* -- bienvenida ------------------------------------------------------------ */
+
+.tarjeta-rutina { border-color: rgba(128, 107, 255, 0.28); }
+.tarjeta-rutina-vacia { color: var(--color-texto-suave); }
+
+.enlace-editar, .enlace-volver, .enlace-quitar {
+  display: inline-flex; align-items: center; gap: 0.375rem; width: fit-content;
+  padding: 0.375rem 0; border: 0; background: none; color: var(--color-violeta-suave);
+  font: inherit; font-weight: 700; cursor: pointer;
+}
+.enlace-editar { margin-top: var(--espacio-4); }
+.enlace-editar svg, .enlace-volver svg, .enlace-quitar svg { width: 1rem; height: 1rem; transition: transform var(--duracion-corta); }
+.enlace-editar:hover svg { transform: translateX(3px); }
+.enlace-volver:hover svg { transform: translateX(-3px); }
+.enlace-quitar { color: var(--color-texto-sutil); font-size: 0.875rem; }
+/* volver: solo la flecha, dentro de un círculo (a dónde vuelve va en el tooltip) */
+.boton-volver {
+  display: grid; place-items: center; width: 2.75rem; height: 2.75rem; padding: 0;
+  border: 1px solid var(--color-borde); border-radius: 50%;
+  background: var(--color-cristal); color: var(--color-violeta-suave); cursor: pointer;
+  transition: color var(--duracion-corta), border-color var(--duracion-corta), background var(--duracion-corta);
+}
+.boton-volver svg { width: 1.25rem; height: 1.25rem; transition: transform var(--duracion-corta); }
+.boton-volver:hover { border-color: var(--color-violeta); background: rgba(128, 107, 255, 0.14); color: var(--color-texto); }
+.boton-volver:hover svg { transform: translateX(-2px); }
+.boton-volver:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 2px; }
+.enlace-quitar:hover { color: var(--color-peligro); }
+
+/* -- elegir la rutina ------------------------------------------------------ */
+.elegir-cuerpo {
+  flex: 1;
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(20rem, 24rem); align-items: start;
+  gap: clamp(1.5rem, 3vw, 3rem);
+  width: min(82rem, 100%); margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3.5rem) var(--espacio-7);
+}
+.elegir-catalogo { display: grid; gap: var(--espacio-3); }
+.elegir-catalogo h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); letter-spacing: -0.05em; line-height: 1; }
+.elegir-ayuda { max-width: 38rem; color: var(--color-texto-suave); font-size: 1.0625rem; line-height: 1.55; }
+
+/* tarjetas horizontales: figura a la izquierda, texto y control a la derecha.
+   Caben dos por fila en escritorio y una cuando no hay ancho. */
+.rejilla-ejercicios {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 23rem), 1fr));
+  gap: var(--espacio-4); margin-top: var(--espacio-4);
+}
+
+.tarjeta-ejercicio {
+  display: grid; grid-template-columns: 7.25rem minmax(0, 1fr); overflow: hidden;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-lg);
+  background: linear-gradient(160deg, var(--color-superficie-elevada), var(--color-superficie));
+  transition: border-color var(--duracion-corta), box-shadow var(--duracion-corta), transform var(--duracion-corta);
+}
+/* toda la tarjeta es clicable */
+.tarjeta-ejercicio, .tarjeta-mi-rutina { cursor: pointer; }
+.tarjeta-ejercicio-pie { cursor: default; }
+.tarjeta-ejercicio:hover { border-color: rgba(169, 157, 255, 0.45); box-shadow: var(--sombra-suave); transform: translateY(-2px); }
+.tarjeta-ejercicio:focus-within { border-color: rgba(169, 157, 255, 0.6); }
+.tarjeta-ejercicio.elegida {
+  border-color: var(--color-violeta);
+  background: linear-gradient(150deg, var(--color-morado-tenue), var(--color-superficie) 75%);
+  box-shadow: var(--sombra-brillo);
+}
+
+/* la figura: zona grande que añade o quita */
+.tarjeta-ejercicio-figura {
+  position: relative; display: grid; place-items: center; min-height: 10.5rem;
+  padding: var(--espacio-3) var(--espacio-2) var(--espacio-7);
+  border: 0; border-right: 1px solid var(--color-linea);
+  background: radial-gradient(circle at 50% 42%, rgba(128, 107, 255, 0.16), transparent 70%), var(--color-hundido);
+  cursor: pointer; transition: background var(--duracion-corta);
+}
+.tarjeta-ejercicio-figura:hover { background: radial-gradient(circle at 50% 42%, rgba(128, 107, 255, 0.28), transparent 72%), var(--color-hundido); }
+.tarjeta-ejercicio.elegida .tarjeta-ejercicio-figura {
+  border-right-color: rgba(128, 107, 255, 0.25);
+  background: radial-gradient(circle at 50% 42%, rgba(128, 107, 255, 0.32), transparent 72%), var(--color-morado-tenue);
+}
+.tarjeta-ejercicio-figura .figura { width: auto; height: 6rem; transition: transform var(--duracion-media); }
+.tarjeta-ejercicio-figura .guia-animada { width: 6.5rem; height: 6.5rem; min-height: 0; transition: transform var(--duracion-media); }
+.tarjeta-ejercicio-figura .guia-animada .guia-extra { display: none; }
+.tarjeta-ejercicio-figura:hover .figura, .tarjeta-ejercicio-figura:hover .guia-animada { transform: scale(1.05); }
+.tarjeta-ejercicio-vista {
+  position: absolute; bottom: var(--espacio-3); left: 50%; transform: translateX(-50%);
+  padding: 0.1875rem 0.625rem; border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
+  background: var(--color-cristal); color: var(--color-texto-suave);
+  font-size: 0.75rem; font-weight: 750; white-space: nowrap;
+}
+.tarjeta-ejercicio.elegida .tarjeta-ejercicio-vista { border-color: rgba(128, 107, 255, 0.4); color: var(--color-texto); }
+
+/* nombre, descripción y control */
+.tarjeta-ejercicio-info { display: flex; flex-direction: column; gap: var(--espacio-2); min-width: 0; padding: var(--espacio-4); }
+.tarjeta-ejercicio-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--espacio-3); }
+.tarjeta-ejercicio-cabeza h3 { font-size: 1.0625rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.3; }
+.tarjeta-ejercicio-descripcion { color: var(--color-texto-suave); font-size: 0.875rem; line-height: 1.5; }
+
+.tarjeta-ejercicio-pie { margin-top: auto; padding-top: var(--espacio-3); border-top: 1px solid var(--color-linea); }
+.tarjeta-ejercicio-anadir { display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-3); }
+.tarjeta-ejercicio-objetivo { display: inline-flex; align-items: center; gap: 0.375rem; min-width: 0; white-space: nowrap; color: var(--color-texto-sutil); font-size: 0.875rem; }
+.tarjeta-ejercicio-objetivo strong { color: var(--color-texto); font-weight: 700; }
+.tarjeta-ejercicio-objetivo svg { flex: 0 0 auto; width: 1rem; height: 1rem; color: var(--color-violeta-suave); }
+.tarjeta-ejercicio-anadir .boton { flex: 0 0 auto; min-height: 2.5rem; padding: 0 1rem; font-size: 0.9375rem; }
+
+/* objetivo: etiqueta y rango arriba; menos, campo, más y Quitar abajo */
+.control-objetivo { display: grid; gap: 0.375rem; }
+.control-objetivo-cabeza { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 0 var(--espacio-2); }
+.control-objetivo-cabeza .etiqueta { color: var(--color-texto-suave); font-size: 0.6875rem; letter-spacing: 0.1em; }
+.control-objetivo-fila { display: flex; align-items: center; gap: var(--espacio-2); }
+.stepper {
+  flex: 1 1 auto; max-width: 11rem;
+  display: grid; grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem; align-items: stretch;
+  overflow: hidden; border: 1px solid var(--color-borde); border-radius: var(--radio-md); background: var(--color-fondo);
+  transition: border-color var(--duracion-corta), box-shadow var(--duracion-corta);
+}
+.stepper:focus-within { border-color: var(--color-violeta-suave); box-shadow: 0 0 0 3px rgba(128, 107, 255, 0.2); }
+.stepper.invalido { border-color: var(--color-peligro); box-shadow: none; }
+.stepper button {
+  display: grid; place-items: center; min-height: 2.5rem; border: 0;
+  background: rgba(128, 107, 255, 0.1); color: var(--color-violeta-suave); cursor: pointer;
+  transition: background var(--duracion-corta), color var(--duracion-corta);
+}
+.stepper button:hover:not(:disabled) { background: rgba(128, 107, 255, 0.24); color: var(--color-texto); }
+.stepper button:disabled { background: transparent; color: var(--color-texto-sutil); cursor: not-allowed; opacity: 0.45; }
+.stepper button svg { width: 1rem; height: 1rem; }
+.stepper input {
+  width: 100%; min-width: 0; border: 0; background: transparent; color: var(--color-texto);
+  font: inherit; font-family: var(--fuente-mono); font-size: 1.125rem; font-weight: 700; text-align: center;
+}
+.stepper input:focus-visible { outline: none; }
+.control-error { color: var(--color-peligro); font-size: 0.8125rem; font-weight: 600; }
+
+.boton-quitar {
+  flex: 0 0 auto; display: inline-flex; align-items: center; gap: 0.25rem;
+  min-height: 2.5rem; padding: 0 0.625rem; border: 1px solid transparent; border-radius: var(--radio-md);
+  background: transparent; color: var(--color-texto-suave); font: inherit; font-size: 0.875rem; font-weight: 700; cursor: pointer;
+  transition: color var(--duracion-corta), background var(--duracion-corta), border-color var(--duracion-corta);
+}
+.boton-quitar svg { width: 1rem; height: 1rem; }
+.boton-quitar:hover { border-color: rgba(233, 133, 145, 0.35); background: rgba(233, 133, 145, 0.1); color: var(--color-peligro); }
+
+/* -- resumen lateral de la rutina ------------------------------------------ */
+.resumen-rutina {
+  position: sticky; top: var(--espacio-4);
+  display: grid; gap: var(--espacio-4);
+  border-color: rgba(128, 107, 255, 0.35);
+  background: linear-gradient(170deg, var(--color-morado-tenue), var(--color-cristal) 45%);
+}
+.resumen-rutina-cabeza { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--espacio-3); }
+.resumen-rutina-cabeza h2 { margin-top: 0.25rem; font-size: 1.375rem; line-height: 1.2; }
+.resumen-rutina-cabeza .boton { flex: 0 0 auto; min-height: 2.25rem; padding: 0 0.75rem; font-size: 0.875rem; }
+.resumen-rutina-cifras { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+.resumen-rutina-cifras span {
+  display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.375rem 0.75rem;
+  border-radius: var(--radio-pildora); background: var(--color-relleno); color: var(--color-texto); font-size: 0.875rem; font-weight: 700;
+}
+.resumen-rutina-cifras svg { width: 1rem; height: 1rem; color: var(--color-violeta-suave); }
+/* acento amarillo de la identidad: el tiempo estimado */
+.resumen-rutina-cifras span + span svg { color: var(--color-amarillo); }
+
+/* la lista se desplaza por dentro: «Comenzar» queda siempre a la vista */
+.resumen-rutina-lista {
+  display: grid; gap: 0.375rem; max-height: min(26rem, 46vh); overflow-y: auto;
+  margin: 0 calc(-1 * var(--espacio-2)); padding: 0 var(--espacio-2); list-style: none;
+  scrollbar-width: thin; scrollbar-color: var(--color-borde) transparent;
+}
+.resumen-rutina-lista li {
+  display: grid; grid-template-columns: 1.75rem 2.75rem minmax(0, 1fr) auto; align-items: center; gap: var(--espacio-3);
+  padding: 0.5rem 0.375rem 0.5rem 0.625rem;
+  border: 1px solid transparent; border-radius: var(--radio-md); background: var(--color-hundido);
+  transition: border-color var(--duracion-corta), background var(--duracion-corta);
+}
+.resumen-rutina-lista li:hover { border-color: var(--color-borde); background: var(--color-relleno); }
+.resumen-rutina-numero {
+  display: grid; place-items: center; width: 1.75rem; height: 1.75rem; border-radius: 50%;
+  background: rgba(128, 107, 255, 0.16); color: var(--color-violeta-suave);
+  font-family: var(--fuente-mono); font-size: 0.8125rem; font-weight: 700;
+}
+.resumen-rutina-lista .paso-figura { width: 2.75rem; height: 2.75rem; }
+.resumen-rutina-nombre { display: grid; gap: 0.125rem; min-width: 0; }
+.resumen-rutina-nombre strong {
+  display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  font-size: 0.9375rem; line-height: 1.25;
+}
+.resumen-rutina-nombre span { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.resumen-rutina-acciones { display: flex; align-items: center; gap: 0.125rem; }
+.resumen-rutina-orden { display: grid; }
+.resumen-rutina-acciones button {
+  display: grid; place-items: center; width: 2rem; height: 2rem; border: 0; border-radius: var(--radio-sm);
+  background: transparent; color: var(--color-texto-suave); cursor: pointer;
+  transition: background var(--duracion-corta), color var(--duracion-corta);
+}
+.resumen-rutina-orden button { height: 1.375rem; }
+.resumen-rutina-acciones button:hover:not(:disabled) { background: rgba(128, 107, 255, 0.16); color: var(--color-texto); }
+.resumen-rutina-acciones .resumen-rutina-quitar:hover { background: rgba(233, 133, 145, 0.14); color: var(--color-peligro); }
+.resumen-rutina-acciones button:disabled { color: var(--color-texto-sutil); cursor: not-allowed; opacity: 0.35; }
+.resumen-rutina-acciones svg { width: 1rem; height: 1rem; }
+.resumen-rutina-vacia {
+  display: grid; justify-items: center; gap: 0.375rem; padding: var(--espacio-5) var(--espacio-3);
+  border: 1px dashed var(--color-borde); border-radius: var(--radio-md); color: var(--color-texto-suave); text-align: center;
+}
+.resumen-rutina-vacia svg { width: 1.75rem; height: 1.75rem; color: var(--color-violeta-suave); }
+.resumen-rutina-pie { display: grid; gap: var(--espacio-2); padding-top: var(--espacio-4); border-top: 1px solid var(--color-linea); }
+.resumen-rutina-pie .boton { width: 100%; min-height: 3.5rem; font-size: 1.125rem; }
+.resumen-rutina-aviso { color: var(--color-ambar); font-size: 0.875rem; font-weight: 600; text-align: center; }
+
+/* -- «Mis rutinas»: tarjetas de rutinas guardadas ---------------------------- */
+/* mismo ancho y márgenes que «Personaliza tu rutina»; caben hasta 4 columnas */
+.mis-rutinas {
+  flex: 1; display: grid; gap: var(--espacio-5); align-content: start;
+  width: min(82rem, 100%); margin: 0 auto;
+  padding: 0 clamp(1rem, 4vw, 3.5rem) var(--espacio-7);
+}
+.mis-rutinas-cabeza { display: grid; gap: var(--espacio-3); }
+.mis-rutinas-cabeza h1 { font-size: clamp(2.25rem, 4vw, 3.25rem); letter-spacing: -0.05em; line-height: 1; }
+.rejilla-mis-rutinas {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 17.5rem), 1fr)); gap: var(--espacio-4);
+}
+/* Mismo lenguaje que .tarjeta-ejercicio: degradado, se eleva al pasar el ratón,
+   zona grande de figuras arriba y pie separado por una línea. Flex en columna +
+   estirado de la fila del grid: misma altura; el pie va abajo con margin-top: auto. */
+.tarjeta-mi-rutina {
+  display: flex; flex-direction: column; min-width: 0; overflow: hidden;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-lg);
+  background: linear-gradient(160deg, var(--color-superficie-elevada), var(--color-superficie));
+  transition: border-color var(--duracion-corta), box-shadow var(--duracion-corta), transform var(--duracion-corta);
+}
+.tarjeta-mi-rutina:hover { border-color: rgba(169, 157, 255, 0.45); box-shadow: var(--sombra-suave); transform: translateY(-2px); }
+.tarjeta-mi-rutina:focus-within { border-color: rgba(169, 157, 255, 0.6); }
+.tarjeta-mi-rutina.en-uso {
+  border-color: var(--color-violeta);
+  background: linear-gradient(150deg, var(--color-morado-tenue), var(--color-superficie) 75%);
+  box-shadow: var(--sombra-brillo);
+}
+
+/* figuras de los ejercicios: zona grande que abre la rutina para editarla */
+.tarjeta-mi-rutina-figuras {
+  position: relative; display: grid; place-items: center; min-height: 8.5rem;
+  padding: var(--espacio-4) var(--espacio-3) var(--espacio-7);
+  border: 0; border-bottom: 1px solid var(--color-linea);
+  background: radial-gradient(circle at 50% 42%, rgba(128, 107, 255, 0.16), transparent 70%), var(--color-hundido);
+  font: inherit; cursor: pointer; transition: background var(--duracion-corta);
+}
+.tarjeta-mi-rutina-figuras:hover:not(:disabled) {
+  background: radial-gradient(circle at 50% 42%, rgba(128, 107, 255, 0.28), transparent 72%), var(--color-hundido);
+}
+.tarjeta-mi-rutina-figuras:disabled { cursor: not-allowed; }
+.tarjeta-mi-rutina-figuras:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: -2px; }
+.tarjeta-mi-rutina.en-uso .tarjeta-mi-rutina-figuras {
+  border-bottom-color: rgba(128, 107, 255, 0.25);
+  background: radial-gradient(circle at 50% 42%, rgba(128, 107, 255, 0.32), transparent 72%), var(--color-morado-tenue);
+}
+.tarjeta-mi-rutina-tira { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: var(--espacio-2); }
+.tarjeta-mi-rutina-mini {
+  display: grid; place-items: center; width: 3.5rem; height: 3.5rem; border-radius: var(--radio-md);
+  background: rgba(128, 107, 255, 0.08); transition: transform var(--duracion-media);
+}
+.tarjeta-mi-rutina-mini .figura { width: auto; height: 3rem; }
+.tarjeta-mi-rutina-mini .guia-animada { width: 3.25rem; height: 3.25rem; min-height: 0; }
+.tarjeta-mi-rutina-mini .guia-animada .guia-extra { display: none; }
+/* al pasar el ratón las figuras crecen un poco, una tras otra */
+.tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini { transform: translateY(-2px) scale(1.06); }
+.tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini:nth-child(2) { transition-delay: 40ms; }
+.tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini:nth-child(3) { transition-delay: 80ms; }
+.tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini:nth-child(4) { transition-delay: 120ms; }
+/* píldora con ejercicios y duración, como la de la vista en las tarjetas de ejercicio */
+.tarjeta-mi-rutina-cifras {
+  position: absolute; bottom: var(--espacio-3); left: 50%; transform: translateX(-50%);
+  padding: 0.1875rem 0.625rem; border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
+  background: var(--color-cristal); color: var(--color-texto-suave);
+  font-size: 0.75rem; font-weight: 750; white-space: nowrap;
+}
+.tarjeta-mi-rutina.en-uso .tarjeta-mi-rutina-cifras { border-color: rgba(128, 107, 255, 0.4); color: var(--color-texto); }
+
+/* Tema claro: el velo oscuro (`--color-hundido`) con el brillo encima daba un
+   gris sucio. Aquí la zona de figuras va en lila limpio sobre blanco, con el
+   brillo más contenido, y lo mismo en las tarjetas de «Personaliza tu rutina». */
+[data-tema="claro"] .tarjeta-mi-rutina-figuras,
+[data-tema="claro"] .tarjeta-ejercicio-figura {
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, #f3efff, #e9e3ff);
+}
+[data-tema="claro"] .tarjeta-mi-rutina-figuras:hover:not(:disabled),
+[data-tema="claro"] .tarjeta-ejercicio-figura:hover {
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 70%), linear-gradient(180deg, #ece6ff, #dfd7ff);
+}
+[data-tema="claro"] .tarjeta-mi-rutina.en-uso .tarjeta-mi-rutina-figuras,
+[data-tema="claro"] .tarjeta-ejercicio.elegida .tarjeta-ejercicio-figura {
+  background: radial-gradient(circle at 50% 40%, #ffffff 0%, rgba(255, 255, 255, 0) 62%), linear-gradient(180deg, #e7e0ff, #d9cfff);
+}
+[data-tema="claro"] .tarjeta-mi-rutina-mini { background: rgba(255, 255, 255, 0.7); box-shadow: 0 0 0 1px rgba(106, 85, 232, 0.14); }
+
+/* nombre, ejercicios y botones */
+.tarjeta-mi-rutina-info { display: flex; flex: 1; flex-direction: column; gap: var(--espacio-2); min-width: 0; padding: var(--espacio-4); }
+.tarjeta-mi-rutina-cabeza { display: flex; align-items: center; justify-content: space-between; gap: var(--espacio-2); min-height: 2rem; }
+.tarjeta-mi-rutina-esquina { display: flex; align-items: center; gap: var(--espacio-1); }
+.tarjeta-mi-rutina h3 { font-size: 1.1875rem; font-weight: 700; letter-spacing: -0.02em; line-height: 1.25; overflow-wrap: anywhere; }
+/* «En uso»: la misma marca rellena que un ejercicio elegido */
+.tarjeta-mi-rutina-marca {
+  display: inline-flex; align-items: center; gap: 0.25rem; height: 1.75rem; padding: 0 0.625rem;
+  border-radius: var(--radio-pildora); background: var(--color-violeta-suave); color: var(--color-sobre-violeta);
+  font-size: 0.75rem; font-weight: 800; white-space: nowrap;
+}
+.tarjeta-mi-rutina-marca svg { width: 0.875rem; height: 0.875rem; }
+.tarjeta-mi-rutina-nota { color: var(--color-ambar); font-size: 0.8125rem; font-weight: 600; }
+/* la lista no se estira: hueco fijo entre ejercicios, alineada arriba */
+.tarjeta-mi-rutina-pasos {
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 0.375rem;
+  margin: 0 0 var(--espacio-2); padding: 0; list-style: none;
+}
+.tarjeta-mi-rutina-pasos li {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: var(--espacio-2);
+  padding: 0.3125rem 0.5rem; border-radius: var(--radio-sm); background: var(--color-hundido);
+}
+/* nombres largos en hasta dos líneas; el completo queda en el title del elemento */
+.tarjeta-mi-rutina-nombre {
+  display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 2;
+  font-size: 0.8125rem; font-weight: 600; line-height: 1.25;
+}
+.tarjeta-mi-rutina-objetivo { color: var(--color-texto-sutil); font-family: var(--fuente-mono); font-size: 0.75rem; white-space: nowrap; }
+.tarjeta-mi-rutina-pie {
+  display: grid; gap: var(--espacio-2); margin-top: auto;
+  padding-top: var(--espacio-3); border-top: 1px solid var(--color-linea);
+}.tarjeta-mi-rutina-acciones { display: flex; flex-wrap: wrap; gap: var(--espacio-2); }
+/* base de 7rem: los dos caben en una fila; si no hay ancho, pasan a dos filas en vez de salirse */
+.tarjeta-mi-rutina-acciones .boton { flex: 1 1 7rem; min-height: 2.75rem; padding: 0 0.75rem; white-space: nowrap; }
+.tarjeta-mi-rutina-borrar {
+  display: grid; place-items: center; flex: 0 0 auto; width: 2.25rem; height: 2.25rem;
+  border: 1px solid transparent; border-radius: var(--radio-sm); background: transparent;
+  color: var(--color-texto-sutil); cursor: pointer; transition: background var(--duracion-corta), color var(--duracion-corta);
+}
+.tarjeta-mi-rutina-borrar:hover { border-color: var(--color-borde); background: rgba(233, 133, 145, 0.14); color: var(--color-peligro); }
+.tarjeta-mi-rutina-borrar:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 2px; }
+.tarjeta-mi-rutina-borrar svg { width: 1.125rem; height: 1.125rem; }
+.tarjeta-nueva-rutina {
+  display: grid; place-content: center; justify-items: center; gap: var(--espacio-2); min-height: 14rem; padding: var(--espacio-5);
+  border: 1px dashed var(--color-borde); border-radius: var(--radio-lg);
+  background: radial-gradient(circle at 50% 38%, rgba(128, 107, 255, 0.08), transparent 70%);
+  color: var(--color-texto-suave); font: inherit; text-align: center; cursor: pointer;
+  transition: border-color var(--duracion-corta), color var(--duracion-corta), background var(--duracion-corta),
+              box-shadow var(--duracion-corta), transform var(--duracion-corta);
+}
+.tarjeta-nueva-rutina:hover:not(:disabled) {
+  border-color: var(--color-violeta); color: var(--color-texto); transform: translateY(-2px); box-shadow: var(--sombra-suave);
+  background: radial-gradient(circle at 50% 38%, rgba(128, 107, 255, 0.2), transparent 72%);
+}
+.tarjeta-nueva-rutina:focus-visible { outline: 2px solid var(--color-violeta); outline-offset: 2px; }
+.tarjeta-nueva-rutina:disabled { cursor: not-allowed; opacity: 0.55; }
+.tarjeta-nueva-rutina-icono {
+  display: grid; place-items: center; width: 3.5rem; height: 3.5rem; margin-bottom: var(--espacio-1);
+  border: 1px solid var(--color-borde); border-radius: 50%; background: var(--color-relleno); color: var(--color-violeta-suave);
+  transition: background var(--duracion-corta), color var(--duracion-corta), border-color var(--duracion-corta), transform var(--duracion-media);
+}
+.tarjeta-nueva-rutina-icono svg { width: 1.5rem; height: 1.5rem; }
+.tarjeta-nueva-rutina:hover:not(:disabled) .tarjeta-nueva-rutina-icono {
+  border-color: transparent; background: var(--color-violeta-suave); color: var(--color-sobre-violeta); transform: rotate(90deg);
+}
+.tarjeta-nueva-rutina strong { color: var(--color-texto); font-size: 1.125rem; }
+.tarjeta-nueva-rutina > span:last-child { font-size: 0.875rem; }
+
+/* nombre y «Guardar» en la vista de personalizar */
+.guardar-rutina { display: grid; gap: var(--espacio-2); padding-top: var(--espacio-3); border-top: 1px solid var(--color-linea); }
+.guardar-rutina-fila { display: flex; gap: var(--espacio-2); }
+.guardar-rutina-fila input {
+  flex: 1; min-width: 0; min-height: 2.5rem; padding: 0 0.75rem;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-md);
+  background: var(--color-hundido); color: var(--color-texto); font: inherit;
+}
+.guardar-rutina-fila input:focus { outline: none; border-color: var(--color-violeta); box-shadow: 0 0 0 3px rgba(128, 107, 255, 0.25); }
+.guardar-rutina-fila input[aria-invalid="true"] { border-color: var(--color-peligro); }
+/* botón cuadrado solo con el icono; el span lleva el tooltip (un botón deshabilitado no lo muestra) */
+.guardar-rutina-boton { flex: 0 0 auto; display: inline-flex; }
+.guardar-rutina-fila .boton { width: 2.5rem; min-height: 2.5rem; padding: 0; }
+.guardar-rutina-fila .boton svg { width: 1.25rem; height: 1.25rem; }
+.guardar-rutina-nota { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.guardar-rutina-hecho { display: inline-flex; align-items: center; gap: 0.375rem; color: var(--color-exito); font-size: 0.875rem; font-weight: 600; }
+.guardar-rutina-hecho svg { width: 1rem; height: 1rem; }
+
+@media (prefers-reduced-motion: reduce) {
+  .tarjeta-ejercicio:hover { transform: none; }
+  .tarjeta-ejercicio-figura:hover .figura, .tarjeta-ejercicio-figura:hover .guia-animada { transform: none; }
+  .tarjeta-mi-rutina:hover, .tarjeta-nueva-rutina:hover:not(:disabled) { transform: none; }
+  .tarjeta-mi-rutina-figuras:hover:not(:disabled) .tarjeta-mi-rutina-mini,
+  .tarjeta-nueva-rutina:hover:not(:disabled) .tarjeta-nueva-rutina-icono { transform: none; }
+}
+
+/* -- sesión: lo que queda de la rutina ------------------------------------- */
+.panel-siguientes { flex: 0 0 auto; display: grid; gap: var(--espacio-2); }
+.panel-siguientes p { display: flex; justify-content: space-between; gap: var(--espacio-3); min-width: 0; color: var(--color-texto-suave); font-size: 0.9375rem; }
+.panel-siguientes p span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.panel-siguientes p b { color: var(--color-texto-sutil); font-family: var(--fuente-mono); font-size: 0.8125rem; font-weight: 500; white-space: nowrap; }
+
+/* -- ajustes: iconos de la cabecera y panel ---------------------------------- */
+.cabecera-derecha { display: flex; align-items: center; gap: var(--espacio-4); }
+.controles-cabecera { display: flex; gap: var(--espacio-2); }
+.boton-icono {
+  display: grid; place-items: center; width: 2.5rem; height: 2.5rem; padding: 0;
+  border: 1px solid var(--color-borde); border-radius: 50%;
+  background: var(--color-cristal); color: var(--color-texto-suave); cursor: pointer;
+  transition: color var(--duracion-corta), border-color var(--duracion-corta);
+}
+.boton-icono:hover { border-color: var(--color-violeta); color: var(--color-texto); }
+.boton-icono svg { width: 1.125rem; height: 1.125rem; }
+
+.panel-ajustes { display: grid; gap: var(--espacio-2); width: min(34rem, 100%); max-height: 100%; overflow-y: auto; }
+.panel-ajustes-cabeza { display: flex; align-items: center; justify-content: space-between; margin-bottom: var(--espacio-2); }
+.panel-ajustes-cabeza h2 { font-size: 1.75rem; }
+.opcion-ajuste {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--espacio-3) var(--espacio-5);
+  padding: var(--espacio-4) 0; border-top: 1px solid var(--color-linea);
+}
+.opcion-ajuste strong { display: block; font-size: 1rem; }
+.opcion-ajuste span { display: block; max-width: 18rem; color: var(--color-texto-sutil); font-size: 0.875rem; }
+.segmentos button { display: inline-flex; align-items: center; gap: 0.375rem; padding: 0.5rem 0.875rem; font-size: 0.9375rem; }
+.segmentos svg { width: 1rem; height: 1rem; }
+.segmentos { flex-wrap: wrap; }
+/* cámara: cabecera con el botón de cargar; debajo, elegir y la vista previa */
+.opcion-camara { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--espacio-3); }
+.opcion-camara-cabeza { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: var(--espacio-3) var(--espacio-5); }
+.opcion-camara .boton { min-height: 2.5rem; padding: 0 0.875rem; font-size: 0.9375rem; }
+.opcion-camara-fila { display: flex; align-items: center; flex-wrap: wrap; gap: var(--espacio-2) var(--espacio-3); }
+.opcion-camara-fila .camara-unica, .selector-dispositivo { flex: 1 1 12rem; min-width: 0; }
+.selector-dispositivo {
+  min-height: 2.5rem; padding: 0 0.75rem; border: 1px solid var(--color-borde); border-radius: var(--radio-md);
+  background: var(--color-superficie); color: var(--color-texto); font: inherit; font-size: 0.9375rem; cursor: pointer;
+}
+.selector-dispositivo:focus-visible { outline: none; border-color: var(--color-violeta); box-shadow: 0 0 0 3px rgba(128, 107, 255, 0.25); }
+.solo-lectores { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.vista-previa-camara { display: grid; gap: var(--espacio-2); margin: 0; }
+/* siempre oscuro, como el escenario de la sesión */
+.vista-previa-camara-marco {
+  display: grid; place-items: center; aspect-ratio: 16 / 9; overflow: hidden;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-md); background: #0e0d16;
+}
+.vista-previa-camara img { display: block; width: 100%; height: 100%; object-fit: contain; }
+.vista-previa-camara img.espejo { transform: scaleX(-1); }
+.vista-previa-camara-marco p {
+  display: flex; align-items: center; gap: var(--espacio-2); max-width: 22rem; padding: var(--espacio-4);
+  color: #b7b0c9; font-size: 0.875rem; text-align: left;
+}
+.vista-previa-camara-marco svg { flex: none; width: 1.125rem; height: 1.125rem; }
+.vista-previa-camara figcaption { color: var(--color-texto-sutil); font-size: 0.8125rem; }
+.opcion-ajuste .camara-unica { display: inline-flex; align-items: center; gap: 0.375rem; max-width: none; margin: 0; color: var(--color-texto); font-size: 0.9375rem; }
+.camara-unica svg { width: 1rem; height: 1rem; }
+
+/* Micrófono: entrada, nivel y prueba, debajo de su interruptor */
+.microfono-detalle { display: grid; gap: var(--espacio-2); padding: 0 0 var(--espacio-3); color: var(--color-texto-suave); font-size: 0.9375rem; }
+.microfono-apagado { display: flex; align-items: center; gap: 0.5rem; color: var(--color-texto-sutil); }
+.microfono-apagado svg, .microfono-entrada svg { flex: none; width: 1.125rem; height: 1.125rem; }
+.microfono-entrada { display: flex; align-items: center; gap: 0.5rem; }
+.microfono-entrada select {
+  flex: 1; min-width: 0; padding: 0.5rem 0.625rem; border: 1px solid var(--color-borde); border-radius: var(--radio-md);
+  background: var(--color-superficie); color: var(--color-texto); font: inherit;
+}
+.nivel-entrada { height: 0.5rem; border-radius: 1rem; background: var(--color-relleno); overflow: hidden; }
+.nivel-entrada i { display: block; height: 100%; border-radius: 1rem; background: var(--color-exito); transition: width 0.15s linear; }
+.microfono-prueba { display: flex; align-items: center; gap: var(--espacio-3); }
+.microfono-prueba > span { min-width: 0; }
+.interruptor {
+  position: relative; flex: 0 0 auto; width: 3.25rem; height: 1.875rem; padding: 0;
+  border: 1px solid var(--color-borde); border-radius: var(--radio-pildora);
+  background: var(--color-relleno-fuerte); cursor: pointer; transition: background var(--duracion-corta);
+}
+.interruptor span {
+  position: absolute; top: 0.1875rem; left: 0.1875rem; width: 1.375rem; height: 1.375rem; border-radius: 50%;
+  background: var(--color-texto-suave); transition: transform var(--duracion-corta), background var(--duracion-corta);
+}
+.interruptor.activo { border-color: var(--color-violeta); background: var(--color-violeta); }
+.interruptor.activo span { transform: translateX(1.375rem); background: var(--color-sobre-violeta); }
+
+@media (max-width: 900px) {
+  .elegir-cuerpo { grid-template-columns: 1fr; }
+  .resumen-rutina { position: static; }
+}
+@media (max-width: 600px) {
+  .cabecera { flex-wrap: wrap; }
+}

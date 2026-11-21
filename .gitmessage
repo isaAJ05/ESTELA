@@ -1,0 +1,33 @@
+# ==========================================================
+# ESTELA - COMMIT
+# ==========================================================
+#
+# Formato:
+#
+# <tipo>(<modulo>): <descripcion>
+#
+# El ClickUp Task ID es OBLIGATORIO.
+#
+# Ejemplo:
+#
+# feat(pose): mejorar deteccion de postura
+#
+# CU-abc123
+#
+# ==========================================================
+#
+# Tipos:
+#
+# feat      Nueva funcionalidad
+# fix       Correccion de error
+# refactor  Refactorizacion
+# docs      Documentacion
+# test      Pruebas
+# perf      Rendimiento
+# chore     Mantenimiento/configuracion
+#
+# ==========================================================
+
+feat(scope): descripcion
+
+CU-

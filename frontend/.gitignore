@@ -1,0 +1,3 @@
+node_modules/
+*.tsbuildinfo
+# dist/ sí se versiona: es lo que abre `python -m estela` sin tener Node instalado

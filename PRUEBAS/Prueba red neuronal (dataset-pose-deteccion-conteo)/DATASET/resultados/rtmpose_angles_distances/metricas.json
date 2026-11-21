@@ -1,0 +1,102 @@
+{
+  "pose_model": "rtmpose",
+  "feature_mode": "angles_distances",
+  "clases": [
+    "elevacion_brazos",
+    "jumping_jack",
+    "marcha_rodillas",
+    "sentadilla"
+  ],
+  "n_train": 622,
+  "n_val": 89,
+  "n_test": 170,
+  "accuracy": 0.7647058823529411,
+  "reporte_por_clase": {
+    "elevacion_brazos": {
+      "precision": 0.9565217391304348,
+      "recall": 1.0,
+      "f1-score": 0.9777777777777777,
+      "support": 22.0
+    },
+    "jumping_jack": {
+      "precision": 0.7368421052631579,
+      "recall": 1.0,
+      "f1-score": 0.8484848484848485,
+      "support": 14.0
+    },
+    "marcha_rodillas": {
+      "precision": 1.0,
+      "recall": 0.524390243902439,
+      "f1-score": 0.688,
+      "support": 82.0
+    },
+    "sentadilla": {
+      "precision": 0.6,
+      "recall": 0.9807692307692307,
+      "f1-score": 0.7445255474452555,
+      "support": 52.0
+    },
+    "accuracy": 0.7647058823529411,
+    "macro avg": {
+      "precision": 0.8233409610983982,
+      "recall": 0.8762898686679175,
+      "f1-score": 0.8146970434269705,
+      "support": 170.0
+    },
+    "weighted avg": {
+      "precision": 0.8503486337326692,
+      "recall": 0.7647058823529411,
+      "f1-score": 0.7560072203356016,
+      "support": 170.0
+    }
+  },
+  "matriz_confusion": [
+    [
+      22,
+      0,
+      0,
+      0
+    ],
+    [
+      0,
+      14,
+      0,
+      0
+    ],
+    [
+      0,
+      5,
+      43,
+      34
+    ],
+    [
+      1,
+      0,
+      0,
+      51
+    ]
+  ],
+  "confusiones_mas_frecuentes": [
+    {
+      "real": "marcha_rodillas",
+      "predicho": "sentadilla",
+      "cantidad": 34
+    },
+    {
+      "real": "marcha_rodillas",
+      "predicho": "jumping_jack",
+      "cantidad": 5
+    },
+    {
+      "real": "sentadilla",
+      "predicho": "elevacion_brazos",
+      "cantidad": 1
+    }
+  ],
+  "tiempo_entrenamiento_seg": 103.45278310775757,
+  "epocas_entrenadas": 24,
+  "tiempo_inferencia_total_seg": 4.861372470855713,
+  "tiempo_por_ventana_seg": 0.02859630865209243,
+  "fps_estimado": 34.96954841850991,
+  "tamano_modelo_mb": 1.0186767578125
+}

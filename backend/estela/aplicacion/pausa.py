@@ -1,0 +1,176 @@
+"""Pausa por inactividad de la sesión (T22.b).
+
+La sesión se pausa si la usuaria sale del encuadre o deja de hacer el
+ejercicio, y retoma donde iba. A diferencia de otras apps, que reinician los
+contadores tras un rato sin actividad, aquí **pausar nunca reinicia**: perder
+las repeticiones hechas frustra a la persona.
+
+Dos motivos:
+
+``sin_persona``  `sin_persona_s` seguidos sin detectar a nadie. Se retoma en
+                 cuanto vuelve la persona con la orientación correcta.
+``inactividad``  `inactividad_s` con la persona delante pero sin progreso en el
+                 ejercicio (ni fase, ni repetición, ni contadores cambian).
+                 Solo se vigila cuando el ejercicio ya empezó (para no pausar
+                 mientras la persona se coloca) y la señal es válida (si no se
+                 ven las articulaciones, el problema es el encuadre y lo avisa
+                 la sesión). Se retoma cuando vuelve a haber progreso con la
+                 orientación correcta. Si durante esta pausa la persona sale
+                 del encuadre `sin_persona_s`, el motivo pasa a ``sin_persona``.
+
+``usuaria``     la usuaria pulsó «Pausar» (`pausar_usuaria`). No se retoma sola:
+                 solo con `reanudar_usuaria`. Si ya había una pausa automática,
+                 la misma pausa pasa a este motivo.
+
+El gesto del brazo derecho arriba (`gesto.py`) pausa con motivo ``usuaria``
+y reanuda cualquier pausa (`reanudar_gesto`).
+
+Hacer otro ejercicio no es inactividad (EXP-010): mientras el reconocedor ve
+otro movimiento (`otro_ejercicio`), la espera de inactividad no corre, y una
+pausa por inactividad en curso se quita. Así solo queda el aviso «ese
+movimiento no es el de ahora», sin una pausa encima.
+
+La quietud de un isométrico no es inactividad: en posición, el segmentador
+suma un segundo cada segundo y eso cuenta como progreso.
+
+`DetectorPausa` es lógica pura (sin voz ni reloj propio) para poder probarlo
+aislado; la sesión decide qué decir con los eventos que devuelve.
+
+`[?]` Los dos umbrales son provisionales: se fijaron por criterio, no
+medidos con usuarias (EXP-008).
+
+`inactividad_s=None` apaga la pausa por inactividad. La sesión la crea así desde
+el 2026-11-20 (Paula: «quita la que se activa y desactiva dependiendo de si uno
+se mueve o no; deja solo la de voz y la manual»).
+"""
+
+from __future__ import annotations
+
+from typing import Hashable, Optional
+
+SIN_PERSONA = "sin_persona"
+INACTIVIDAD = "inactividad"
+USUARIA = "usuaria"
+
+EVENTO_PAUSA = "pausa"
+EVENTO_REANUDA = "reanuda"
+
+#: segundos sin persona antes de pausar
+PAUSA_SIN_PERSONA_S = 5.0
+#: segundos sin progreso en el ejercicio antes de pausar (más que el anterior:
+#: un descanso corto entre repeticiones no debe pausar)
+PAUSA_INACTIVIDAD_S = 8.0
+
+
+class DetectorPausa:
+    """Estado de pausa de un paso de la rutina.
+
+    `actualizar` se llama una vez por frame con:
+
+    * `persona`: si el estimador detectó a alguien.
+    * `progreso`: algo comparable que cambia cuando la usuaria avanza en el
+      ejercicio (p. ej. fase, repetición y contadores), o None si no se puede
+      vigilar la inactividad (el ejercicio no empezó o la señal no es válida).
+    * `orientacion_ok`: si está colocada como pide el ejercicio.
+    * `otro_ejercicio`: si el reconocedor ve otro ejercicio (ya sostenido).
+
+    Devuelve `EVENTO_PAUSA`, `EVENTO_REANUDA` o None.
+    """
+
+    def __init__(self, sin_persona_s: float = PAUSA_SIN_PERSONA_S,
+                 inactividad_s: Optional[float] = PAUSA_INACTIVIDAD_S) -> None:
+        self.sin_persona_ms = sin_persona_s * 1000.0
+        #: None: sin pausa por inactividad
+        self.inactividad_ms = None if inactividad_s is None else inactividad_s * 1000.0
+        self.motivo: Optional[str] = None
+        self.veces = 0
+        self._pausado_ms = 0
+        self._desde_ms: Optional[int] = None
+        self._ult_persona_ms: Optional[int] = None
+        self._ult_progreso_ms: Optional[int] = None
+        self._progreso: Optional[Hashable] = None
+
+    @property
+    def pausada(self) -> bool:
+        return self.motivo is not None
+
+    def tiempo_pausado_ms(self, t_ms: int) -> int:
+        """Tiempo total en pausa, incluida la pausa en curso hasta `t_ms`."""
+        en_curso = t_ms - self._desde_ms if self._desde_ms is not None else 0
+        return self._pausado_ms + max(0, en_curso)
+
+    def pausar_usuaria(self, t_ms: int) -> Optional[str]:
+        if self.pausada:
+            self.motivo = USUARIA                 # misma pausa, ahora a mano
+            return None
+        return self._pausar(t_ms, USUARIA)
+
+    def reanudar_usuaria(self, t_ms: int) -> Optional[str]:
+        if self.motivo != USUARIA:
+            return None
+        return self._reanudar(t_ms, None)
+
+    def reanudar_gesto(self, t_ms: int) -> Optional[str]:
+        """Reanuda cualquier pausa: la usuaria pidió seguir con el gesto
+        (`gesto.py`), aunque la pausa fuera automática."""
+        if not self.pausada:
+            return None
+        return self._reanudar(t_ms, None)
+
+    def actualizar(self, t_ms: int, persona: bool,
+                   progreso: Optional[Hashable] = None,
+                   orientacion_ok: bool = True,
+                   otro_ejercicio: bool = False) -> Optional[str]:
+        if self.motivo == USUARIA:
+            return None
+        if self.pausada:
+            if self.motivo == INACTIVIDAD and persona and otro_ejercicio:
+                return self._reanudar(t_ms, progreso)
+            return self._quizas_reanudar(t_ms, persona, progreso, orientacion_ok)
+
+        if self._ult_persona_ms is None:
+            self._ult_persona_ms = t_ms            # el paso acaba de empezar
+        if not persona:
+            if t_ms - self._ult_persona_ms >= self.sin_persona_ms:
+                return self._pausar(t_ms, SIN_PERSONA)
+            return None
+        self._ult_persona_ms = t_ms
+
+        if otro_ejercicio or progreso is None or progreso != self._progreso:
+            self._progreso, self._ult_progreso_ms = progreso, t_ms
+            return None
+        if self.inactividad_ms is not None and t_ms - self._ult_progreso_ms >= self.inactividad_ms:
+            return self._pausar(t_ms, INACTIVIDAD)
+        return None
+
+    def _quizas_reanudar(self, t_ms: int, persona: bool,
+                         progreso: Optional[Hashable],
+                         orientacion_ok: bool) -> Optional[str]:
+        if not persona:
+            if (self.motivo == INACTIVIDAD
+                    and t_ms - self._ult_persona_ms >= self.sin_persona_ms):
+                self.motivo = SIN_PERSONA         # misma pausa, otro motivo
+            return None
+        self._ult_persona_ms = t_ms
+        if not orientacion_ok:
+            return None
+        if self.motivo == INACTIVIDAD and (progreso is None
+                                           or progreso == self._progreso):
+            return None
+        return self._reanudar(t_ms, progreso)
+
+    def _reanudar(self, t_ms: int, progreso: Optional[Hashable]) -> str:
+        self._pausado_ms = self.tiempo_pausado_ms(t_ms)
+        self.motivo, self._desde_ms = None, None
+        self._ult_persona_ms = self._ult_progreso_ms = t_ms
+        self._progreso = progreso
+        return EVENTO_REANUDA
+
+    def _pausar(self, t_ms: int, motivo: str) -> str:
+        self.motivo, self._desde_ms = motivo, t_ms
+        self.veces += 1
+        return EVENTO_PAUSA
+
+
+__all__ = ["DetectorPausa", "SIN_PERSONA", "INACTIVIDAD", "USUARIA", "EVENTO_PAUSA",
+           "EVENTO_REANUDA", "PAUSA_SIN_PERSONA_S", "PAUSA_INACTIVIDAD_S"]
