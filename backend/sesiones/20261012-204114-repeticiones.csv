@@ -1,0 +1,25 @@
+﻿ejercicio;rep;resultado;t_s;duracion_s;frases;abduccion_cadera_izq_min;abduccion_cadera_izq_max;inclinacion_lateral_min;inclinacion_lateral_max;oblicuidad_pelvis_min;oblicuidad_pelvis_max
+abduccion_cadera_izq;1;cuenta;16,3;0,1;;-151,15;134,45;-178,48;179,92;3,42;21,93
+abduccion_cadera_izq;2;cuenta;33,9;0,6;;-2,01;39,02;-4,71;-3,42;2,89;12,27
+abduccion_cadera_izq;3;cuenta;40,5;1,2;Mantén la cadera izquierda un poco más baja.;3,72;54,87;-7,25;-4,79;4,72;16,19
+abduccion_cadera_izq;4;cuenta;47,3;1,5;;0,34;73,9;-6,6;-3,35;2,4;10,91
+abduccion_cadera_izq;5;cuenta;49,9;1,7;;5,55;75,44;-11,18;-5,96;3,78;12,7
+abduccion_cadera_izq;6;cuenta;52,5;1,6;Endereza un poco el tronco, se va hacia la derecha.;2,11;81,3;-10,05;-5,86;3,73;13,74
+abduccion_cadera_izq;7;cuenta;58,4;1,5;Mantén la cadera izquierda un poco más baja.;0,53;90,2;-8,46;-4,12;3,7;16,48
+abduccion_cadera_izq;8;cuenta;61,0;1,5;;6,05;58,14;-7,21;-4,66;3,91;11,31
+abduccion_cadera_izq;9;cuenta;62,9;1,1;;4,8;44,6;-6,76;-4,4;2,87;10,04
+abduccion_cadera_izq;10;cuenta;67,3;3,6;;-0,79;47,63;-7,69;-1,83;3,06;10,99
+abduccion_cadera_izq;11;cuenta;73,7;1,6;;-0,79;42,91;-8,27;-5,14;6,72;15,72
+abduccion_cadera_izq;12;cuenta;76,3;1,2;No subas la cadera izquierda, mantenla nivelada.;3,39;42,05;-10,08;-6,55;7,13;17,57
+abduccion_cadera_izq;13;cuenta;82,9;1,1;;3,45;34,76;-7,43;-5,55;7,68;13,97
+abduccion_cadera_izq;14;cuenta;85,1;1,1;;3,2;35,38;-6,98;-3,57;5,32;13,67
+abduccion_cadera_izq;15;cuenta;87,7;1,4;;5,04;39,01;-8,12;-4,94;8,24;14,81
+abduccion_cadera_izq;16;cuenta;90,4;1,1;Endereza un poco el tronco, se va hacia la derecha.;0,77;31,08;-9,03;-6,13;7,1;13,79
+abduccion_cadera_izq;17;cuenta;107,0;7,2;Mantén la cadera izquierda un poco más baja.;4,02;79,33;-13,36;-4,04;2,87;14,75
+abduccion_cadera_izq;18;cuenta;109,0;1,2;;7,16;47,71;-8,68;-6,27;5,67;12,37
+abduccion_cadera_izq;19;cuenta;110,9;1,5;;7,28;57,68;-10,42;-2,55;2,16;14,71
+abduccion_cadera_izq;20;cuenta;112,6;1,2;Endereza un poco el tronco, se va hacia la derecha.;1,97;53,01;-8,42;-2,81;1,45;12,5
+abduccion_cadera_izq;21;cuenta;115,1;1,3;;4,24;53,02;-7,46;-3,5;3,14;11,52
+abduccion_cadera_izq;22;cuenta;118,2;1,4;;5,5;45,17;-3,16;-1,08;1,62;9,09
+abduccion_cadera_izq;23;cuenta;124,8;1,4;;3,76;24,58;-5,05;-0,98;2,29;5,2
+abduccion_cadera_izq;24;cuenta;126,7;0,8;;7,47;37,94;-8,0;-6,1;5,15;9,57

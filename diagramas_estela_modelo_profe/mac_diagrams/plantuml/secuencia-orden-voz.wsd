@@ -1,0 +1,39 @@
+@startuml
+title Secuencia - Orden de voz durante la sesión
+
+actor Usuario
+participant "Micrófono" as MIC
+participant "Escucha de Voz" as ESC
+participant "Whisper" as WHI
+participant "Comandos de voz" as CMD
+participant "Orquestador" as ORQ
+participant "Entrenadora" as ENT
+participant "Cola de Voz" as VOZ
+
+Usuario -> MIC : «Estela, pausa»
+MIC -> ESC : audio
+ESC -> WHI : transcribir(audio)
+WHI --> ESC : texto
+alt oyó «Estela»
+  ESC -> VOZ : callar y sonar «te escucho»
+  ESC -> CMD : interpretar(texto)
+  CMD --> ESC : orden
+  alt menciona dolor
+    ESC -> ORQ : pausar()
+    ESC -> VOZ : decir(respuesta fija)
+  else «¿cómo voy?»
+    ESC -> ENT : como_voy()
+    ENT --> ESC : respuesta
+    ESC -> VOZ : decir(respuesta)
+  else orden de control
+    ESC -> ORQ : misma acción que el botón
+    ESC -> VOZ : decir(confirmación)
+  else no la entiende
+    ESC -> VOZ : decir(«No te entendí»)
+  end
+  VOZ --> Usuario : frase hablada
+else no dijo «Estela»
+  ESC -> ESC : ignorar
+end
+' Solo en mac-flujo. La orden la decide una lista fija, sin modelo de lenguaje.
+@enduml

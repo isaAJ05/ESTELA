@@ -1,0 +1,45 @@
+@startuml SECUENCIA_llm_corto
+' Versión corta de SECUENCIA_llm.wsd para diapositivas — rama
+' feature/mac-flujo (commit 8248abb). El LLM redacta, el código decide y valida.
+
+title ESTELA — El modelo de lenguaje solo redacta
+
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+participant "Motor de\nfeedback" as MF
+participant "Sesión" as SES
+participant "LLM\n(Ollama)" as LLM
+participant "Validador" as VAL
+participant "Plantillas" as PLA
+participant "Voz" as VOZ
+
+== Corrección durante el ejercicio (4B) ==
+MF -> SES : error ya decidido
+SES ->> LLM : redactar (en otro hilo)
+alt responde antes de 400 ms
+  LLM -> VAL : frase
+  alt válida
+    VAL --> SES : frase del LLM
+  else rechazada
+    VAL -> PLA : plantilla
+    PLA --> SES : frase fija
+  end
+else falla o tarda
+  LLM -> PLA : plantilla
+  PLA --> SES : frase fija
+end
+SES ->> VOZ : decir
+
+== Resumen final y «¿cómo voy?» (14B) ==
+SES -> LLM : solo cifras de la sesión
+alt responde antes de 5 s y pasa la validación
+  LLM --> SES : resumen
+else
+  PLA --> SES : resumen de plantilla
+end
+SES ->> VOZ : decir
+@enduml

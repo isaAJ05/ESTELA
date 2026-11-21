@@ -1,0 +1,168 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T14:05:28",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "ruido": {
+    "abduccion_cadera_der": {
+      "videos": {
+        "der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com)": 0.4936,
+        "der Abducción de cadera con banda_ técnica paso a paso": 0.4213,
+        "Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral": 0.1257,
+        "izquierda abductor": 0.3874
+      },
+      "mediana": 0.4044,
+      "max": 0.4936
+    },
+    "abduccion_cadera_izq": {
+      "videos": {
+        "izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc": 0.5972,
+        "Abducción activa de cadera en bipedestación": 0.1899
+      },
+      "mediana": 0.3935,
+      "max": 0.5972
+    },
+    "alineacion_cadera": {
+      "videos": {
+        "Ejercicio De Plancha": 0.0004
+      },
+      "mediana": 0.0004,
+      "max": 0.0004
+    },
+    "cabeza_adelantada": {
+      "videos": {
+        "Ejercicio De Plancha": 0.0465
+      },
+      "mediana": 0.0465,
+      "max": 0.0465
+    },
+    "codo_medio": {
+      "videos": {
+        "1 hombre": 3.2169,
+        "2 mujer": 2.2841,
+        "3 mujer": 0.3814,
+        "4 mujer": 1.2305,
+        "5 hombre": 2.6178,
+        "8 hombre": 1.3685,
+        "9 mujer": 0.8479,
+        "7 hombre": 1.0827
+      },
+      "mediana": 1.2995,
+      "max": 3.2169
+    },
+    "hombro_medio": {
+      "videos": {
+        "1 hombre": 3.0613,
+        "2 mujer": 5.6842,
+        "3 mujer": 1.0209,
+        "4 mujer": 4.1538,
+        "5 hombre": 3.6129,
+        "8 hombre": 2.5451,
+        "9 mujer": 1.0733,
+        "7 hombre": 2.4443
+      },
+      "mediana": 2.8032,
+      "max": 5.6842
+    },
+    "hombro_sobre_codo": {
+      "videos": {
+        "Ejercicio De Plancha": 0.0006
+      },
+      "mediana": 0.0006,
+      "max": 0.0006
+    },
+    "inclinacion_lateral": {
+      "videos": {
+        "izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc": 0.198,
+        "Abducción activa de cadera en bipedestación": 0.1559,
+        "der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com)": 0.1289,
+        "der Abducción de cadera con banda_ técnica paso a paso": 0.1041,
+        "Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral": 0.167,
+        "izquierda abductor": 0.0961
+      },
+      "mediana": 0.1424,
+      "max": 0.198
+    },
+    "inclinacion_lateral_tronco": {
+      "videos": {
+        "izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc": 0.198,
+        "Abducción activa de cadera en bipedestación": 0.1559,
+        "der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com)": 0.1289,
+        "der Abducción de cadera con banda_ técnica paso a paso": 0.1041,
+        "Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral": 0.167,
+        "izquierda abductor": 0.0961
+      },
+      "mediana": 0.1424,
+      "max": 0.198
+    },
+    "inclinacion_pelvis": {
+      "videos": {
+        "izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc": 0.1329,
+        "Abducción activa de cadera en bipedestación": 0.0965,
+        "der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com)": 0.1791,
+        "der Abducción de cadera con banda_ técnica paso a paso": 0.1565,
+        "Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral": 0.0618,
+        "izquierda abductor": 0.0897
+      },
+      "mediana": 0.1147,
+      "max": 0.1791
+    },
+    "oblicuidad_pelvis": {
+      "videos": {
+        "izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc": 0.1329,
+        "Abducción activa de cadera en bipedestación": 0.0965,
+        "der ok Abducción de cadera con banda_ técnica paso a paso (online-video-cutter.com)": 0.1791,
+        "der Abducción de cadera con banda_ técnica paso a paso": 0.1565,
+        "Abducción de cadera de pie con apoyo_ El ejercicio tras un ataque o derrame cerebral": 0.0618,
+        "izquierda abductor": 0.0897
+      },
+      "mediana": 0.1147,
+      "max": 0.1791
+    },
+    "rodilla_der": {
+      "videos": {
+        "Ejercicio De Plancha": 0.0447
+      },
+      "mediana": 0.0447,
+      "max": 0.0447
+    },
+    "separacion_pies": {
+      "videos": {
+        "1 hombre": 0.022,
+        "2 mujer": 0.0306,
+        "3 mujer": 0.0032,
+        "4 mujer": 0.0377,
+        "5 hombre": 0.0496,
+        "8 hombre": 0.0127,
+        "9 mujer": 0.0087,
+        "7 hombre": 0.019
+      },
+      "mediana": 0.0205,
+      "max": 0.0496
+    },
+    "separacion_pies_hombros": {
+      "videos": {
+        "1 hombre": 0.017,
+        "2 mujer": 0.0203,
+        "3 mujer": 0.0023,
+        "4 mujer": 0.0208,
+        "5 hombre": 0.03,
+        "8 hombre": 0.0092,
+        "9 mujer": 0.0076,
+        "7 hombre": 0.0131
+      },
+      "mediana": 0.015,
+      "max": 0.03
+    },
+    "tronco_inclinacion": {
+      "videos": {
+        "Ejercicio De Plancha": 0.0241
+      },
+      "mediana": 0.0241,
+      "max": 0.0241
+    }
+  }
+}

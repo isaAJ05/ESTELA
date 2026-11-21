@@ -1,0 +1,92 @@
+@startuml
+title Interacción entre Módulos de ESTELA
+
+actor Usuario
+[Interfaz React] as React
+
+package "Adaptadores de entrada" {
+  [Orquestador e Interfaz] as ORQ
+  [Captura] as CAP
+  [Escucha de voz] as ESC
+}
+
+package "Aplicación" {
+  [Sesión] as SES
+  [Rutina] as RUT
+  [Alineador DTW] as DTW
+  [Reconocedor de ejercicio] as REC
+  [Gesto de pausa] as GES
+  [Registro por repetición] as REG
+  [Pausa y Métricas] as PAU
+  [Perfiles e Historial] as HIS
+  [Comandos de voz] as CMD
+  [Verbalización aparte] as VAP
+  [Entrenadora] as ENT
+}
+
+package "Dominio" {
+  [Geometría] as GEO
+  [Segmentador] as SEG
+  [Motor de Feedback] as MF
+  [Motor de Decisión] as DEC
+  [Verbalizador y Validador] as VER
+  [Skills y referencias] as SKI
+}
+
+package "Adaptadores de salida" {
+  [Pose] as POSE
+  [Voz] as VOZ
+  [Verbalizador LLM] as LLM
+  [Generador Ollama] as GEN
+}
+
+[Cámara web] as Cam
+[Micrófono] as Mic
+[MediaPipe] as MP
+[Piper] as Piper
+[Whisper] as Whisper
+[Ollama] as Ollama
+
+Usuario --> React
+Usuario --> Mic
+React --> ORQ
+ORQ --> CAP
+ORQ --> SES
+ORQ --> HIS
+CAP --> Cam
+ESC --> Mic
+ESC --> Whisper
+ESC --> CMD
+ESC --> ORQ
+ESC --> ENT
+
+SES --> RUT
+SES --> DTW
+SES --> REC
+SES --> GES
+SES --> REG
+SES --> PAU
+SES --> GEO
+SES --> SEG
+SES --> MF
+SES --> VAP
+SES --> POSE
+SES --> VOZ
+
+MF --> DEC
+MF --> VER
+VAP --> LLM
+LLM --> VER
+ENT --> GEN
+DEC --> SKI
+RUT --> SKI
+REC --> SKI
+
+POSE --> MP
+VOZ --> Piper
+LLM --> Ollama
+GEN --> Ollama
+' En mac-flujo el LLM sí corre en la app: el verbalizador redacta un error ya
+' decidido (si falla, usa la plantilla del Verbalizador) y la entrenadora
+' hace el resumen final y responde «¿cómo voy?». Nunca decide qué error hubo.
+@enduml

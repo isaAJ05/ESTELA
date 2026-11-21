@@ -1,0 +1,427 @@
+{
+  "rutina": "abduccion_cadera_izq",
+  "terminada": true,
+  "frames": 1425,
+  "frames_sin_persona": 162,
+  "latencias": {
+    "pose": {
+      "n": 1425,
+      "p50_ms": 56.736,
+      "p95_ms": 84.143
+    },
+    "geometria": {
+      "n": 1263,
+      "p50_ms": 0.634,
+      "p95_ms": 1.314
+    },
+    "segmentacion": {
+      "n": 1263,
+      "p50_ms": 0.06,
+      "p95_ms": 0.153
+    },
+    "dtw": {
+      "n": 1263,
+      "p50_ms": 52.221,
+      "p95_ms": 241.903
+    },
+    "motor": {
+      "n": 1235,
+      "p50_ms": 0.091,
+      "p95_ms": 0.238
+    },
+    "total": {
+      "n": 1235,
+      "p50_ms": 121.358,
+      "p95_ms": 300.76
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "abduccion_cadera_izq",
+      "objetivo": 24,
+      "unidad": "repeticiones",
+      "completadas": 24,
+      "incompletas": 1,
+      "duracion_s": 186.2,
+      "pausas_sesion": 1,
+      "pausa_s": 4.8,
+      "mensajes": [
+        {
+          "t_ms": 78319,
+          "texto": "No subas la cadera izquierda, mantenla nivelada.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "moderada",
+          "repeticion": 2
+        },
+        {
+          "t_ms": 91751,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 4
+        },
+        {
+          "t_ms": 116120,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 10
+        },
+        {
+          "t_ms": 128803,
+          "texto": "Endereza un poco el tronco, se va hacia la derecha.",
+          "error_id": "tronco_inclinado_der",
+          "segmento": "tronco",
+          "lado": "derecho",
+          "severidad": "leve",
+          "repeticion": 13
+        },
+        {
+          "t_ms": 143590,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 17
+        },
+        {
+          "t_ms": 162107,
+          "texto": "Endereza un poco el tronco, se va hacia la derecha.",
+          "error_id": "tronco_inclinado_der",
+          "segmento": "tronco",
+          "lado": "derecho",
+          "severidad": "leve",
+          "repeticion": 19
+        },
+        {
+          "t_ms": 180881,
+          "texto": "Endereza un poco el tronco, se va hacia la derecha.",
+          "error_id": "tronco_inclinado_der",
+          "segmento": "tronco",
+          "lado": "derecho",
+          "severidad": "leve",
+          "repeticion": 23
+        }
+      ],
+      "abstenciones": {
+        "sin_error": 1061,
+        "evidencia_insuficiente": 45,
+        "periodo_refractario": 97,
+        "desvanecimiento": 25
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "t_s": 75.5,
+          "duracion_s": 2.9,
+          "abduccion_cadera_izq_min": -4.07,
+          "abduccion_cadera_izq_max": 63.49,
+          "inclinacion_lateral_min": -14.53,
+          "inclinacion_lateral_max": -5.18,
+          "oblicuidad_pelvis_min": 2.41,
+          "oblicuidad_pelvis_max": 18.23
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "t_s": 79.1,
+          "duracion_s": 0.8,
+          "abduccion_cadera_izq_min": 3.64,
+          "abduccion_cadera_izq_max": 47.22,
+          "inclinacion_lateral_min": -3.11,
+          "inclinacion_lateral_max": 2.21,
+          "oblicuidad_pelvis_min": 1.31,
+          "oblicuidad_pelvis_max": 10.94
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "t_s": 86.6,
+          "duracion_s": 2.0,
+          "abduccion_cadera_izq_min": -1.06,
+          "abduccion_cadera_izq_max": 71.29,
+          "inclinacion_lateral_min": -14.54,
+          "inclinacion_lateral_max": -9.4,
+          "oblicuidad_pelvis_min": 5.41,
+          "oblicuidad_pelvis_max": 18.86
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "t_s": 92.9,
+          "duracion_s": 1.2,
+          "abduccion_cadera_izq_min": 1.04,
+          "abduccion_cadera_izq_max": 45.81,
+          "inclinacion_lateral_min": -7.06,
+          "inclinacion_lateral_max": -2.78,
+          "oblicuidad_pelvis_min": 1.39,
+          "oblicuidad_pelvis_max": 10.49
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "t_s": 98.5,
+          "duracion_s": 1.6,
+          "abduccion_cadera_izq_min": 2.55,
+          "abduccion_cadera_izq_max": 69.8,
+          "inclinacion_lateral_min": -10.01,
+          "inclinacion_lateral_max": -5.71,
+          "oblicuidad_pelvis_min": 5.13,
+          "oblicuidad_pelvis_max": 15.61
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "t_s": 101.8,
+          "duracion_s": 1.2,
+          "abduccion_cadera_izq_min": -3.57,
+          "abduccion_cadera_izq_max": 40.45,
+          "inclinacion_lateral_min": -6.33,
+          "inclinacion_lateral_max": -2.53,
+          "oblicuidad_pelvis_min": 0.76,
+          "oblicuidad_pelvis_max": 11.15
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "t_s": 104.2,
+          "duracion_s": 1.2,
+          "abduccion_cadera_izq_min": -2.39,
+          "abduccion_cadera_izq_max": 40.13,
+          "inclinacion_lateral_min": -8.57,
+          "inclinacion_lateral_max": -2.42,
+          "oblicuidad_pelvis_min": 1.09,
+          "oblicuidad_pelvis_max": 11.55
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "t_s": 108.8,
+          "duracion_s": 0.8,
+          "abduccion_cadera_izq_min": 7.8,
+          "abduccion_cadera_izq_max": 20.09,
+          "inclinacion_lateral_min": -5.16,
+          "inclinacion_lateral_max": -4.2,
+          "oblicuidad_pelvis_min": 1.17,
+          "oblicuidad_pelvis_max": 2.08
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "t_s": 111.6,
+          "duracion_s": 2.6,
+          "abduccion_cadera_izq_min": 9.12,
+          "abduccion_cadera_izq_max": 50.03,
+          "inclinacion_lateral_min": -5.68,
+          "inclinacion_lateral_max": -1.65,
+          "oblicuidad_pelvis_min": 0.33,
+          "oblicuidad_pelvis_max": 8.77
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "t_s": 117.1,
+          "duracion_s": 1.1,
+          "abduccion_cadera_izq_min": -0.26,
+          "abduccion_cadera_izq_max": 54.43,
+          "inclinacion_lateral_min": -6.43,
+          "inclinacion_lateral_max": -2.67,
+          "oblicuidad_pelvis_min": 1.44,
+          "oblicuidad_pelvis_max": 11.64
+        },
+        {
+          "rep": 11,
+          "resultado": "no_cuenta",
+          "t_s": 121.6,
+          "duracion_s": 0.2,
+          "abduccion_cadera_izq_min": -1.92,
+          "abduccion_cadera_izq_max": 11.2,
+          "inclinacion_lateral_min": -4.1,
+          "inclinacion_lateral_max": -2.51,
+          "oblicuidad_pelvis_min": 4.19,
+          "oblicuidad_pelvis_max": 5.81
+        },
+        {
+          "rep": 12,
+          "resultado": "cuenta",
+          "t_s": 124.0,
+          "duracion_s": 1.4,
+          "abduccion_cadera_izq_min": -2.09,
+          "abduccion_cadera_izq_max": 63.19,
+          "inclinacion_lateral_min": -11.81,
+          "inclinacion_lateral_max": -3.86,
+          "oblicuidad_pelvis_min": 4.88,
+          "oblicuidad_pelvis_max": 20.81
+        },
+        {
+          "rep": 13,
+          "resultado": "cuenta",
+          "t_s": 131.1,
+          "duracion_s": 2.3,
+          "abduccion_cadera_izq_min": 6.47,
+          "abduccion_cadera_izq_max": 55.68,
+          "inclinacion_lateral_min": -12.96,
+          "inclinacion_lateral_max": -8.94,
+          "oblicuidad_pelvis_min": 8.94,
+          "oblicuidad_pelvis_max": 19.87
+        },
+        {
+          "rep": 14,
+          "resultado": "cuenta",
+          "t_s": 136.8,
+          "duracion_s": 1.5,
+          "abduccion_cadera_izq_min": 4.27,
+          "abduccion_cadera_izq_max": 60.61,
+          "inclinacion_lateral_min": -11.2,
+          "inclinacion_lateral_max": -6.97,
+          "oblicuidad_pelvis_min": 9.97,
+          "oblicuidad_pelvis_max": 21.02
+        },
+        {
+          "rep": 15,
+          "resultado": "cuenta",
+          "t_s": 139.7,
+          "duracion_s": 1.5,
+          "abduccion_cadera_izq_min": 1.81,
+          "abduccion_cadera_izq_max": 39.97,
+          "inclinacion_lateral_min": -8.09,
+          "inclinacion_lateral_max": -3.81,
+          "oblicuidad_pelvis_min": 7.92,
+          "oblicuidad_pelvis_max": 17.4
+        },
+        {
+          "rep": 16,
+          "resultado": "cuenta",
+          "t_s": 142.4,
+          "duracion_s": 1.4,
+          "abduccion_cadera_izq_min": 2.19,
+          "abduccion_cadera_izq_max": 45.59,
+          "inclinacion_lateral_min": -7.88,
+          "inclinacion_lateral_max": -4.57,
+          "oblicuidad_pelvis_min": 6.4,
+          "oblicuidad_pelvis_max": 17.9
+        },
+        {
+          "rep": 17,
+          "resultado": "cuenta",
+          "t_s": 144.8,
+          "duracion_s": 1.2,
+          "abduccion_cadera_izq_min": 4.37,
+          "abduccion_cadera_izq_max": 44.49,
+          "inclinacion_lateral_min": -7.42,
+          "inclinacion_lateral_max": -4.28,
+          "oblicuidad_pelvis_min": 5.86,
+          "oblicuidad_pelvis_max": 15.07
+        },
+        {
+          "rep": 18,
+          "resultado": "cuenta",
+          "t_s": 159.3,
+          "duracion_s": 1.7,
+          "abduccion_cadera_izq_min": 5.3,
+          "abduccion_cadera_izq_max": 64.32,
+          "inclinacion_lateral_min": -16.71,
+          "inclinacion_lateral_max": -7.85,
+          "oblicuidad_pelvis_min": 10.12,
+          "oblicuidad_pelvis_max": 21.09
+        },
+        {
+          "rep": 19,
+          "resultado": "cuenta",
+          "t_s": 163.6,
+          "duracion_s": 1.5,
+          "abduccion_cadera_izq_min": -4.22,
+          "abduccion_cadera_izq_max": 46.79,
+          "inclinacion_lateral_min": -12.26,
+          "inclinacion_lateral_max": -0.37,
+          "oblicuidad_pelvis_min": 3.27,
+          "oblicuidad_pelvis_max": 19.78
+        },
+        {
+          "rep": 20,
+          "resultado": "cuenta",
+          "t_s": 174.1,
+          "duracion_s": 4.3,
+          "abduccion_cadera_izq_min": -2.31,
+          "abduccion_cadera_izq_max": 88.76,
+          "inclinacion_lateral_min": -26.73,
+          "inclinacion_lateral_max": -2.91,
+          "oblicuidad_pelvis_min": 3.87,
+          "oblicuidad_pelvis_max": 25.16
+        },
+        {
+          "rep": 21,
+          "resultado": "cuenta",
+          "t_s": 175.3,
+          "duracion_s": 0.8,
+          "abduccion_cadera_izq_min": -6.59,
+          "abduccion_cadera_izq_max": 48.3,
+          "inclinacion_lateral_min": -8.84,
+          "inclinacion_lateral_max": 0.38,
+          "oblicuidad_pelvis_min": -0.41,
+          "oblicuidad_pelvis_max": 10.01
+        },
+        {
+          "rep": 22,
+          "resultado": "cuenta",
+          "t_s": 180.3,
+          "duracion_s": 0.4,
+          "abduccion_cadera_izq_min": 6.41,
+          "abduccion_cadera_izq_max": 22.29,
+          "inclinacion_lateral_min": -12.41,
+          "inclinacion_lateral_max": -8.01,
+          "oblicuidad_pelvis_min": 5.1,
+          "oblicuidad_pelvis_max": 5.83
+        },
+        {
+          "rep": 23,
+          "resultado": "cuenta",
+          "t_s": 183.0,
+          "duracion_s": 2.2,
+          "abduccion_cadera_izq_min": 5.4,
+          "abduccion_cadera_izq_max": 51.35,
+          "inclinacion_lateral_min": -12.7,
+          "inclinacion_lateral_max": -3.36,
+          "oblicuidad_pelvis_min": 4.11,
+          "oblicuidad_pelvis_max": 13.2
+        },
+        {
+          "rep": 24,
+          "resultado": "cuenta",
+          "t_s": 192.2,
+          "duracion_s": 1.3,
+          "abduccion_cadera_izq_min": 3.53,
+          "abduccion_cadera_izq_max": 61.88,
+          "inclinacion_lateral_min": -10.74,
+          "inclinacion_lateral_max": -5.52,
+          "oblicuidad_pelvis_min": 5.67,
+          "oblicuidad_pelvis_max": 18.52
+        },
+        {
+          "rep": 25,
+          "resultado": "cuenta",
+          "t_s": 194.4,
+          "duracion_s": 0.8,
+          "abduccion_cadera_izq_min": 3.68,
+          "abduccion_cadera_izq_max": 26.89,
+          "inclinacion_lateral_min": -9.8,
+          "inclinacion_lateral_max": -5.56,
+          "oblicuidad_pelvis_min": 4.3,
+          "oblicuidad_pelvis_max": 7.48
+        }
+      ]
+    }
+  ],
+  "voz": {
+    "motor": "piper",
+    "descartadas": 1
+  }
+}

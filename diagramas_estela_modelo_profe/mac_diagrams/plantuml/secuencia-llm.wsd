@@ -1,0 +1,51 @@
+@startuml
+title Secuencia - Verbalizador con modelo de lenguaje y caída a plantilla
+
+participant "Sesión" as S
+participant "Motor de Feedback" as MF
+participant "Verbalizador LLM" as L
+participant "Ollama" as O
+participant "Validador" as V
+participant "Plantillas" as T
+participant "Cola de Voz" as VOZ
+
+S -> MF : procesar(observación)
+MF -> MF : decidir (motor determinista)
+
+alt se calla
+  MF --> S : silencio (motivo)
+else refuerzo (felicitar)
+  MF -> T : verbalizar_refuerzo(refuerzo)
+  T --> MF : texto de plantilla
+  MF --> S : mensaje (plantilla)
+  S -> VOZ : decir(mensaje)
+else error tipificado
+  MF --> S : error tipificado
+  S ->> L : verbalizar(error) en otro hilo
+  L -> O : petición HTTP local, máximo 400 ms\n(ejercicio, parte del cuerpo, lado, error,\nseveridad y dirección; sin ángulos)
+
+  alt responde dentro del tiempo
+    O --> L : texto
+    L -> V : validar(texto, error)
+    alt texto válido
+      V --> L : válido
+      L --> S : mensaje (texto del modelo)
+    else texto rechazado
+      V --> L : inválido (motivo)
+      L -> T : verbalizar(error)
+      T --> L : texto de plantilla
+      L --> S : mensaje (plantilla)
+    end
+  else error de conexión, tiempo agotado o respuesta ilegible
+    L -> T : verbalizar(error)
+    T --> L : texto de plantilla
+    L --> S : mensaje (plantilla)
+  end
+  opt sigue el mismo ejercicio, sin pausa
+    S -> VOZ : decir(mensaje)
+  end
+end
+' En mac-flujo el LLM sí corre en la app (qwen3:4b-instruct por Ollama).
+' La entrenadora (qwen3:14b) sigue el mismo patrón: recibe solo cifras,
+' el código valida su respuesta y, si falla o tarda más de 5 s, usa una plantilla.
+@enduml

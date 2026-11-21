@@ -1,0 +1,113 @@
+{
+  "rutina": "marcha_rodillas",
+  "terminada": true,
+  "frames": 2094,
+  "frames_sin_persona": 111,
+  "latencias": {
+    "pose": {
+      "n": 2094,
+      "p50_ms": 50.41,
+      "p95_ms": 67.186,
+      "media_ms": 51.129,
+      "max_ms": 172.812
+    },
+    "geometria": {
+      "n": 1983,
+      "p50_ms": 0.473,
+      "p95_ms": 1.069,
+      "media_ms": 0.548,
+      "max_ms": 2.864
+    },
+    "segmentacion": {
+      "n": 1983,
+      "p50_ms": 0.048,
+      "p95_ms": 0.118,
+      "media_ms": 0.061,
+      "max_ms": 1.94
+    },
+    "dtw": {
+      "n": 1983,
+      "p50_ms": 9.342,
+      "p95_ms": 56.521,
+      "media_ms": 16.94,
+      "max_ms": 143.072
+    },
+    "motor": {
+      "n": 1904,
+      "p50_ms": 0.068,
+      "p95_ms": 0.21,
+      "media_ms": 0.089,
+      "max_ms": 1.068
+    },
+    "decision": {
+      "n": 1904,
+      "p50_ms": 0.062,
+      "p95_ms": 0.194,
+      "media_ms": 0.082,
+      "max_ms": 1.057
+    },
+    "total": {
+      "n": 1904,
+      "p50_ms": 68.481,
+      "p95_ms": 112.411,
+      "media_ms": 73.61,
+      "max_ms": 281.135
+    },
+    "verbalizacion": {
+      "n": 3,
+      "p50_ms": 0.252,
+      "p95_ms": 0.299,
+      "media_ms": 0.256,
+      "max_ms": 0.305
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "marcha_rodillas",
+      "objetivo": 24,
+      "unidad": "repeticiones",
+      "completadas": 24,
+      "incompletas": 8,
+      "duracion_s": 145.3,
+      "pausas_sesion": 3,
+      "pausa_s": 11.2,
+      "mensajes": [
+        {
+          "t_ms": 71000,
+          "texto": "Lo estás haciendo bien.",
+          "error_id": null,
+          "segmento": null,
+          "lado": null,
+          "severidad": null,
+          "repeticion": 11
+        },
+        {
+          "t_ms": 101468,
+          "texto": "Así es, sigue exactamente así.",
+          "error_id": null,
+          "segmento": null,
+          "lado": null,
+          "severidad": null,
+          "repeticion": 20
+        },
+        {
+          "t_ms": 137329,
+          "texto": "Lo estás haciendo bien.",
+          "error_id": null,
+          "segmento": null,
+          "lado": null,
+          "severidad": null,
+          "repeticion": 28
+        }
+      ],
+      "abstenciones": {
+        "sin_error": 1750,
+        "evidencia_insuficiente": 151
+      }
+    }
+  ],
+  "voz": {
+    "motor": "piper",
+    "descartadas": 2
+  }
+}

@@ -1,5 +1,7 @@
 @startuml ARQUITECTURA_sistema_corto
-' Versión corta de ARQUITECTURA_sistema.wsd para diapositivas.
+' Versión corta de ARQUITECTURA_sistema.wsd para diapositivas — rama test
+' (commit 0387218). Frente a la versión anterior añade el historial y los
+' perfiles locales (ADR-008, ADR-009).
 
 title ESTELA — Arquitectura
 
@@ -25,13 +27,14 @@ rectangle "Equipo de la usuaria — todo se ejecuta en local" as EQ {
   component "Piper\n(voz)" as PIP
   component "MediaPipe\n(pose)" as MP
   folder "Ejercicios\n(skills y referencias)" as CONF
+  folder "Historial\n(perfiles y progreso)" as HIST
 }
 
 component "Preparación offline\nde referencias" as OFF
 
 USU <-- ALT : correcciones\nen español
 USU --> CAM : hace el\nejercicio
-USU --> UI : elige la rutina
+USU --> UI : elige perfil\ny rutina
 
 ALT <-- NUC : voz
 CAM --> NUC : fotogramas
@@ -39,6 +42,7 @@ UI <--> NUC : comandos /\nestado
 NUC --> PIP
 NUC --> MP
 NUC --> CONF : lee
+NUC --> HIST : guarda
 
 OFF --> CONF : genera
 @enduml

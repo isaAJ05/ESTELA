@@ -1,0 +1,240 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:18:00",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "izq-ok-abduccion-de-cadera-con-banda-tecnica-paso-a-paso-online-video-cutter_FovKZRDc.mp4",
+  "ejercicio": "abduccion_cadera_izq",
+  "modelo_pose": "full",
+  "fps_video": 18.0,
+  "frames": 563,
+  "pose_ms": {
+    "n": 563,
+    "p50": 24.8319,
+    "p95": 33.7216,
+    "max": 55.7951
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 563,
+        "p50": 0.2675,
+        "p95": 0.3841,
+        "max": 1.7847
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_izq_sube"
+        ],
+        [
+          4,
+          "tronco_inclinado_der"
+        ],
+        [
+          7,
+          "cadera_izq_sube"
+        ],
+        [
+          10,
+          "tronco_inclinado_der"
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 563,
+        "p50": 15.2431,
+        "p95": 34.109,
+        "max": 53.6911
+      },
+      "sesion_sin_pose_ms": {
+        "n": 563,
+        "p50": 15.6024,
+        "p95": 34.5455,
+        "max": 54.3057
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_izq_sube"
+        ],
+        [
+          4,
+          "tronco_inclinado_der"
+        ],
+        [
+          7,
+          "cadera_izq_sube"
+        ],
+        [
+          10,
+          "tronco_inclinado_der"
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 563,
+        "p50": 0.0872,
+        "p95": 0.1296,
+        "max": 0.3737
+      },
+      "sesion_sin_pose_ms": {
+        "n": 563,
+        "p50": 0.4102,
+        "p95": 0.5289,
+        "max": 1.2303
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_izq_sube"
+        ],
+        [
+          4,
+          "tronco_inclinado_der"
+        ],
+        [
+          7,
+          "cadera_izq_sube"
+        ],
+        [
+          10,
+          "tronco_inclinado_der"
+        ]
+      ],
+      "motivos_dtw": {
+        "sin_repeticion": 9,
+        "alineado": 554
+      },
+      "calidad": {
+        "frames_alineados": 554,
+        "retrocesos": 4,
+        "retroceso_max_frames_ref": 2,
+        "progreso_esperado_al_cerrar": 0.481
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.41,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.92,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 1.01,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.51,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.92,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 1.04,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.59,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "duracion_s": 1.4,
+          "coste_dtw": 0.82,
+          "progreso_dtw": 0.48
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "duracion_s": 0.8,
+          "coste_dtw": 2.31,
+          "progreso_dtw": 0.37
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "duracion_s": 1.4,
+          "coste_dtw": 0.45,
+          "progreso_dtw": 0.5
+        },
+        {
+          "rep": 11,
+          "resultado": "cuenta",
+          "duracion_s": 1.5,
+          "coste_dtw": 0.84,
+          "progreso_dtw": 0.5
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 11,
+        "p50": 0.84,
+        "p95": 1.675,
+        "max": 2.31
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "abduccion_cadera_izq": {
+          "n": 554,
+          "p10": 0.17,
+          "p50": 3.18,
+          "p90": 20.0
+        },
+        "inclinacion_lateral_tronco": {
+          "n": 554,
+          "p10": 19.74,
+          "p50": 20.0,
+          "p90": 20.01
+        },
+        "inclinacion_pelvis": {
+          "n": 554,
+          "p10": 19.07,
+          "p50": 20.0,
+          "p90": 20.0
+        }
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

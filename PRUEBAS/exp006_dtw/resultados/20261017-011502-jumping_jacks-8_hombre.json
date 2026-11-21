@@ -1,0 +1,227 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:14:55",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "8 hombre.mp4",
+  "ejercicio": "jumping_jacks",
+  "modelo_pose": "full",
+  "fps_video": 30.0,
+  "frames": 375,
+  "pose_ms": {
+    "n": 375,
+    "p50": 40.7956,
+    "p95": 67.1056,
+    "max": 136.363
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 375,
+        "p50": 0.4239,
+        "p95": 0.6575,
+        "max": 1.0511
+      },
+      "completadas": 15,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 375,
+        "p50": 12.4664,
+        "p95": 54.8605,
+        "max": 208.7384
+      },
+      "sesion_sin_pose_ms": {
+        "n": 375,
+        "p50": 13.1284,
+        "p95": 55.2641,
+        "max": 209.6095
+      },
+      "completadas": 15,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 375,
+        "p50": 0.0886,
+        "p95": 0.157,
+        "max": 0.2791
+      },
+      "sesion_sin_pose_ms": {
+        "n": 375,
+        "p50": 0.4054,
+        "p95": 0.6227,
+        "max": 2.2229
+      },
+      "completadas": 15,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ]
+      ],
+      "motivos_dtw": {
+        "sin_repeticion": 49,
+        "alineado": 326
+      },
+      "calidad": {
+        "frames_alineados": 326,
+        "retrocesos": 35,
+        "retroceso_max_frames_ref": 11,
+        "progreso_esperado_al_cerrar": 0.623
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 0.9,
+          "coste_dtw": 13.52,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 10.8,
+          "progreso_dtw": 0.66
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 9.72,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 9.34,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 13.46,
+          "progreso_dtw": 0.16
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 11.32,
+          "progreso_dtw": 0.16
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 11.32,
+          "progreso_dtw": 0.16
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 6.85,
+          "progreso_dtw": 0.52
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 5.0,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 12.09,
+          "progreso_dtw": 0.16
+        },
+        {
+          "rep": 11,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 11.6,
+          "progreso_dtw": 0.16
+        },
+        {
+          "rep": 12,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 4.64,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 13,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 6.39,
+          "progreso_dtw": 0.57
+        },
+        {
+          "rep": 14,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 6.01,
+          "progreso_dtw": 0.52
+        },
+        {
+          "rep": 15,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 5.11,
+          "progreso_dtw": 0.64
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 15,
+        "p50": 9.72,
+        "p95": 13.478,
+        "max": 13.52
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "hombro_medio": {
+          "n": 326,
+          "p10": -10.85,
+          "p50": 18.71,
+          "p90": 20.13
+        },
+        "codo_medio": {
+          "n": 326,
+          "p10": 13.52,
+          "p50": 20.0,
+          "p90": 36.79
+        },
+        "separacion_pies": "solo distancias: no se desplaza en grados"
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

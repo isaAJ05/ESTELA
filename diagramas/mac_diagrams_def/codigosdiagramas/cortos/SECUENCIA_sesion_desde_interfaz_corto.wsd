@@ -1,0 +1,55 @@
+@startuml SECUENCIA_sesion_desde_interfaz_corto
+' Versión corta de SECUENCIA_sesion_desde_interfaz.wsd para diapositivas —
+' rama feature/mac-flujo (commit 8248abb). Frente a la de test añade las
+' órdenes de voz, «¿cómo voy?» y el resumen hablado de la entrenadora.
+
+title ESTELA — Una sesión desde la interfaz
+
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Usuaria" as USU
+participant "Interfaz" as UI
+participant "Órdenes\nde voz" as ESC
+participant "Orquestador" as ORQ
+participant "Hilo de\nsesión" as HILO
+participant "Entrenadora\n(LLM)" as ENT
+participant "Voz" as VOZ
+participant "Historial" as HIS
+
+USU -> UI : elige perfil y rutina
+UI -> ORQ : iniciar(rutina)
+ORQ ->> HILO : lanzar
+HILO -> HILO : abrir cámara\ny modelo de pose
+
+par
+  loop cada fotograma
+    HILO -> HILO : procesar el fotograma
+    HILO ->> VOZ : correcciones y avisos
+    HILO -> ORQ : publicar estado
+  end
+else
+  loop mientras la ventana esté abierta
+    UI -> ORQ : estado (sondeo largo)
+    ORQ --> UI : estado más reciente
+  end
+else
+  USU -> UI : pausar / siguiente / terminar
+  UI -> ORQ : comando (en cola)
+else
+  USU -> ESC : «Estela, pausa»
+  ESC -> ORQ : comando (misma cola)
+  USU -> ESC : «Estela, ¿cómo voy?»
+  ESC -> ENT : lo hecho hasta ahora
+  ENT ->> VOZ : respuesta
+end
+
+HILO -> HIS : guardar la sesión\n(si hay perfil)
+HILO -> ORQ : resumen (solo métricas)
+ORQ --> UI : resumen
+UI -> USU : pantalla de resumen
+ENT ->> VOZ : resumen final hablado
+@enduml

@@ -1,0 +1,152 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:19:24",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "der 876. Abducción de cadera con apoyo en silla.mp4",
+  "ejercicio": "abduccion_cadera_der",
+  "modelo_pose": "full",
+  "fps_video": 29.97002997002997,
+  "frames": 316,
+  "pose_ms": {
+    "n": 316,
+    "p50": 25.1059,
+    "p95": 32.9978,
+    "max": 49.0775
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 306,
+        "p50": 0.2787,
+        "p95": 0.3943,
+        "max": 0.9036
+      },
+      "completadas": 2,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_der_sube"
+        ],
+        [
+          2,
+          "tronco_inclinado_izq"
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 306,
+        "p50": 43.5378,
+        "p95": 109.6836,
+        "max": 177.3367
+      },
+      "sesion_sin_pose_ms": {
+        "n": 306,
+        "p50": 43.8849,
+        "p95": 110.0196,
+        "max": 177.7644
+      },
+      "completadas": 2,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_der_sube"
+        ],
+        [
+          2,
+          "tronco_inclinado_izq"
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 306,
+        "p50": 0.09,
+        "p95": 0.1966,
+        "max": 0.3465
+      },
+      "sesion_sin_pose_ms": {
+        "n": 306,
+        "p50": 0.417,
+        "p95": 0.7351,
+        "max": 1.074
+      },
+      "completadas": 2,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          2,
+          "cadera_der_sube"
+        ],
+        [
+          2,
+          "tronco_inclinado_izq"
+        ]
+      ],
+      "motivos_dtw": {
+        "alineado": 306
+      },
+      "calidad": {
+        "frames_alineados": 306,
+        "retrocesos": 10,
+        "retroceso_max_frames_ref": 1,
+        "progreso_esperado_al_cerrar": 0.481
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 2.9,
+          "coste_dtw": 4.93,
+          "progreso_dtw": 0.46
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 6.6,
+          "coste_dtw": 7.73,
+          "progreso_dtw": 0.46
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 2,
+        "p50": 6.33,
+        "p95": 7.59,
+        "max": 7.73
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "abduccion_cadera_der": {
+          "n": 306,
+          "p10": -1.84,
+          "p50": 6.41,
+          "p90": 20.0
+        },
+        "inclinacion_lateral_tronco": {
+          "n": 306,
+          "p10": 20.0,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "inclinacion_pelvis": {
+          "n": 306,
+          "p10": 17.09,
+          "p50": 20.0,
+          "p90": 20.0
+        }
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

@@ -1,0 +1,198 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:09:52",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "1 hombre.mp4",
+  "ejercicio": "jumping_jacks",
+  "modelo_pose": "full",
+  "fps_video": 23.976023976023978,
+  "frames": 248,
+  "pose_ms": {
+    "n": 248,
+    "p50": 33.0308,
+    "p95": 65.2192,
+    "max": 224.8293
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 235,
+        "p50": 0.7605,
+        "p95": 1.1288,
+        "max": 2.4156
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 235,
+        "p50": 25.297,
+        "p95": 79.9645,
+        "max": 713.6408
+      },
+      "sesion_sin_pose_ms": {
+        "n": 235,
+        "p50": 26.0735,
+        "p95": 81.3912,
+        "max": 732.2929
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 235,
+        "p50": 0.3783,
+        "p95": 0.7127,
+        "max": 2.8536
+      },
+      "sesion_sin_pose_ms": {
+        "n": 235,
+        "p50": 1.458,
+        "p95": 2.5026,
+        "max": 4.1167
+      },
+      "completadas": 11,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          5,
+          null
+        ]
+      ],
+      "motivos_dtw": {
+        "alineado": 235
+      },
+      "calidad": {
+        "frames_alineados": 235,
+        "retrocesos": 26,
+        "retroceso_max_frames_ref": 7,
+        "progreso_esperado_al_cerrar": 0.623
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 0.4,
+          "coste_dtw": 19.14,
+          "progreso_dtw": 0.07
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 3.59,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 3.9,
+          "progreso_dtw": 0.61
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 3.48,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 3.24,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 2.9,
+          "progreso_dtw": 0.66
+        },
+        {
+          "rep": 7,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 4.03,
+          "progreso_dtw": 0.59
+        },
+        {
+          "rep": 8,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 3.82,
+          "progreso_dtw": 0.61
+        },
+        {
+          "rep": 9,
+          "resultado": "cuenta",
+          "duracion_s": 0.5,
+          "coste_dtw": 3.43,
+          "progreso_dtw": 0.61
+        },
+        {
+          "rep": 10,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 3.44,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 11,
+          "resultado": "cuenta",
+          "duracion_s": 0.6,
+          "coste_dtw": 2.95,
+          "progreso_dtw": 0.66
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 11,
+        "p50": 3.48,
+        "p95": 11.585,
+        "max": 19.14
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "hombro_medio": {
+          "n": 235,
+          "p10": -3.76,
+          "p50": 6.41,
+          "p90": 26.22
+        },
+        "codo_medio": {
+          "n": 235,
+          "p10": 6.48,
+          "p50": 20.0,
+          "p90": 33.16
+        },
+        "separacion_pies": "solo distancias: no se desplaza en grados"
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

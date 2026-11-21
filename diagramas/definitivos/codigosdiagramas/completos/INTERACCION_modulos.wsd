@@ -1,7 +1,14 @@
 @startuml INTERACCION_modulos
-' Diagrama de interacción entre módulos de ESTELA (SegundoInforme §10.3).
+' Diagrama de interacción entre módulos de ESTELA (SegundoInforme §10.3) —
+' rama test (commit 0387218, 2026-11-19).
 ' Formato del diagrama de componentes original (diagramas/componentes.wsd),
-' completado con el código de test y de feature/reconocimiento-ejercicio.
+' completado con el código de test.
+' Cambios frente a la versión anterior, verificados con los imports de test:
+'   - Gesto de pausa (aplicacion/gesto.py), usado por la sesión;
+'   - Perfiles e Historial (aplicacion/perfiles.py e historial.py, ADR-008 y
+'     ADR-009), usados por el orquestador, y su carpeta historial/;
+'   - Visor de calibración (scripts/visor_calibracion.py), que corre la
+'     sesión real sobre un video.
 ' Notación UML: componente, interfaz ofrecida (-() ), interfaz requerida
 ' (--( ), dependencia (flecha punteada) y artefacto (archivo).
 ' Las capas van de izquierda a derecha: tecnologías externas, adaptadores,
@@ -45,12 +52,15 @@ package "Aplicación" as AP {
   interface "Voz" as IVOZ
   interface "Estimador" as IEST
   component "Sesión y pausas" as SES
+  component "Gesto de pausa\n(brazo derecho arriba)" as GES
   component "Reconocedor de ejercicio" as REC
   component "Rutina y catálogo" as RUT
   component "Umbrales relativos" as UMB
   component "Alineador DTW" as DTW
   component "Registro por repetición" as REG
   component "Latencias y métricas" as MET
+  component "Perfiles" as PER
+  component "Historial de sesiones" as HIS
 }
 
 package "Dominio" as DO {
@@ -64,7 +74,10 @@ package "Dominio" as DO {
   component "Verbalizador por plantillas\ny validador" as VER
 }
 
+artifact "historial/\n(perfiles.json y\n<perfil>.jsonl)" as HISF
+
 component "Creadores de referencias\n(scripts/crear_referencia*.py)\n«offline»; reutilizan el estimador,\nla geometría, el segmentador y el catálogo" as CR
+component "Visor de calibración\n(scripts/visor_calibracion.py)\n«offline»; corre la sesión real\nsobre un video" as VIS
 artifact "Video de referencia\n(fuera del repositorio)" as VIDEO
 
 ' Aristas en orden de izquierda a derecha, fila por fila.
@@ -90,6 +103,7 @@ SES -up-( IEST
 SES -up-( IVOZ
 
 ' ------------------------------------------------- dependencias entre capas
+SES ..> GES
 SES ..> REC
 SES ..> RUT
 SES ..> MF
@@ -109,12 +123,19 @@ MF --( IVERB : Verbalizador
 VER -left-() IVERB
 LLM -() IVERB
 
+' ------------------------------------------------ perfiles e historial
+ORQ ..> PER
+ORQ ..> HIS
+PER ..> HIS
+HIS ..> HISF : «lee y escribe\nal cerrar la sesión»
+
 ' Acerca el orquestador al arranque, arriba de su columna (sin dibujar)
 MAIN -[hidden]-> ORQ
 
 ' --------------------------------------------------------------- offline
 REFS <.. CR : «genera»
 CR .right.> VIDEO : «lee»
+VIS ..> SES : «usa»
 
 legend bottom left
   Aplicación: biblioteca estándar y NumPy. Dominio: solo biblioteca estándar.

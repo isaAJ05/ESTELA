@@ -1,10 +1,17 @@
 @startuml DEPENDENCIAS_modulos
 ' Dependencias de importación entre módulos de ESTELA (SegundoInforme §10.3,
-' figura complementaria del diagrama de interacción entre módulos).
+' figura complementaria del diagrama de interacción entre módulos) — rama test
+' (commit 0387218, 2026-11-19).
 ' Diagrama de paquetes UML: cada paquete es un módulo o paquete de Python
 ' (backend/estela/...), y cada flecha punteada es una dependencia de importación
 ' verificada leyendo los `import` del código. La etiqueta indica qué dato cruza
 ' la frontera (los contratos de datos de §10.3).
+' Cambios frente a la versión anterior, verificados con los imports de test:
+'   - gesto (sesion lo importa);
+'   - perfiles e historial (interfaz importa los dos; perfiles importa historial);
+'   - sesion importa feedback.motor.decision (constantes de calidad de la
+'     repetición, sesion.py:38);
+'   - __main__ también importa perfiles (leyenda).
 ' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
 ' !pragma layout smetana
 
@@ -30,8 +37,11 @@ folder "captura" <<adaptador>> as CAP
 folder "interfaz" <<adaptador>> as INTERF
 folder "pose" <<adaptador>> as POSE
 folder "puertos\n(Estimador, Voz, Fuente)" <<aplicacion>> as PUE
+folder "perfiles" <<aplicacion>> as PER
+folder "historial" <<aplicacion>> as HIS
 folder "sesion" <<aplicacion>> as SES
 folder "reconocimiento" <<aplicacion>> as RECO
+folder "gesto" <<aplicacion>> as GES
 folder "pausa y metricas" <<aplicacion>> as PAU
 folder "dtw" <<aplicacion>> as DTW
 folder "feedback.pipeline\n(MotorFeedback)" <<dominio>> as PIPE
@@ -50,16 +60,21 @@ folder "feedback.motor.skill\n(carga de skills)" <<dominio>> as SKI
 VOZ ..> PUE
 INTERF ..> POSE
 INTERF ..> PUE
+INTERF ..> PER
+INTERF ..> HIS : registro de la sesión
 INTERF ..> SES : EstadoFrame
 INTERF ..> GEO
 INTERF ..> RUT
+PER ..> HIS
 POSE ..> PUE
 SES ..> PUE : ResultadoPose
 SES ..> RECO : Observacion\n→ ¿otro ejercicio?
+SES ..> GES : puntos\n→ ¿gesto de pausa?
 SES ..> PAU
 SES ..> DTW : Observacion
 SES ..> PIPE : Observacion\n→ MensajeFeedback\no Silencio
 SES ..> VER
+SES ..> DEC : calidad de\nla repetición
 SES ..> CON : Observacion\n→ fase y repetición
 SES ..> REG
 SES ..> RUT
@@ -81,7 +96,7 @@ legend bottom left
   <back:#FDEBD0> adaptadores/ </back>  <back:#D6EAF8> aplicacion/ (usa NumPy) </back>  <back:#D5F5E3> dominio/ (solo biblioteca estándar) </back>
   Flecha punteada: el módulo de origen importa al de destino; la etiqueta es el dato que cruza.
   Todos los módulos importan los contratos de datos (feedback.contrato); esa flecha se omite.
-  <U+005F><U+005F>main<U+005F><U+005F> (raíz de composición) importa interfaz, captura, voz, pose, sesion, rutina y registro para cablearlos; se omite.
+  <U+005F><U+005F>main<U+005F><U+005F> (raíz de composición) importa interfaz, captura, voz, pose, sesion, rutina, registro y perfiles para cablearlos; se omite.
   captura no importa los puertos: cumple el puerto Fuente por estructura (typing.Protocol).
 endlegend
 @enduml

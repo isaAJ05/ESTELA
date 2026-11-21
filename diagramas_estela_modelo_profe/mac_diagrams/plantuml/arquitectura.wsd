@@ -1,0 +1,38 @@
+@startuml
+title Arquitectura del Sistema ESTELA
+
+actor Usuario
+actor "Equipo de desarrollo" as Dev
+
+[Interfaz de escritorio\n(React en ventana pywebview)] as UI
+[Núcleo ESTELA\n(Python: análisis y retroalimentación)] as Core
+[Cámara web] as Cam
+[Micrófono] as Mic
+[MediaPipe\nPose Landmarker] as MP
+[Piper\n(síntesis de voz)] as Piper
+[Whisper\n(órdenes de voz)] as Whisper
+[Ollama\n(modelos de lenguaje locales)] as LLM
+[Skills y referencias\n(archivos JSON)] as Skills
+[Historial y perfiles\n(archivos JSON locales)] as Hist
+[Creador de referencias\n(offline)] as CR
+[Video de referencia] as Vid
+
+Usuario --> UI
+Usuario --> Cam
+Usuario --> Mic
+UI --> Core
+Core --> Cam
+Core --> Mic
+Core --> MP
+Core --> Piper
+Core --> Whisper
+Core --> LLM
+Core --> Skills
+Core --> Hist
+
+Dev --> CR
+CR --> Vid
+CR --> Skills
+' En mac-flujo el LLM sí corre en la app: redacta las correcciones (qwen3:4b)
+' y hace de entrenadora (qwen3:14b). Nunca decide qué error hubo.
+@enduml

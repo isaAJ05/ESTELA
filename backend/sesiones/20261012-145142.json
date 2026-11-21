@@ -1,0 +1,142 @@
+{
+  "rutina": "plancha",
+  "terminada": true,
+  "frames": 3027,
+  "frames_sin_persona": 142,
+  "latencias": {
+    "pose": {
+      "n": 3027,
+      "p50_ms": 51.205,
+      "p95_ms": 69.71,
+      "media_ms": 52.097,
+      "max_ms": 176.911
+    },
+    "geometria": {
+      "n": 2885,
+      "p50_ms": 0.476,
+      "p95_ms": 1.054,
+      "media_ms": 0.548,
+      "max_ms": 2.407
+    },
+    "segmentacion": {
+      "n": 2885,
+      "p50_ms": 0.055,
+      "p95_ms": 0.125,
+      "media_ms": 0.065,
+      "max_ms": 0.771
+    },
+    "dtw": {
+      "n": 2885,
+      "p50_ms": 0.002,
+      "p95_ms": 0.004,
+      "media_ms": 0.003,
+      "max_ms": 0.593
+    },
+    "motor": {
+      "n": 2415,
+      "p50_ms": 0.09,
+      "p95_ms": 0.238,
+      "media_ms": 0.107,
+      "max_ms": 3.055
+    },
+    "decision": {
+      "n": 2415,
+      "p50_ms": 0.084,
+      "p95_ms": 0.227,
+      "media_ms": 0.101,
+      "max_ms": 2.688
+    },
+    "total": {
+      "n": 2415,
+      "p50_ms": 56.937,
+      "p95_ms": 76.336,
+      "media_ms": 58.209,
+      "max_ms": 197.764
+    },
+    "verbalizacion": {
+      "n": 6,
+      "p50_ms": 0.276,
+      "p95_ms": 0.326,
+      "media_ms": 0.278,
+      "max_ms": 0.329
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "plancha",
+      "objetivo": 80,
+      "unidad": "segundos",
+      "completadas": 80,
+      "incompletas": 6,
+      "duracion_s": 147.8,
+      "pausas_sesion": 3,
+      "pausa_s": 33.9,
+      "mensajes": [
+        {
+          "t_ms": 25451,
+          "texto": "Baja bien las caderas, las tienes muy altas.",
+          "error_id": "cadera_elevada",
+          "segmento": "cadera",
+          "lado": "bilateral",
+          "severidad": "alta",
+          "repeticion": 2
+        },
+        {
+          "t_ms": 42270,
+          "texto": "Baja las caderas, alinea el cuerpo.",
+          "error_id": "cadera_elevada",
+          "segmento": "cadera",
+          "lado": "bilateral",
+          "severidad": "moderada",
+          "repeticion": 3
+        },
+        {
+          "t_ms": 56152,
+          "texto": "Lleva los hombros un poco hacia atrás.",
+          "error_id": "hombros_adelantados",
+          "segmento": "hombro",
+          "lado": "na",
+          "severidad": "leve",
+          "repeticion": 6
+        },
+        {
+          "t_ms": 61255,
+          "texto": "Baja un poco las caderas.",
+          "error_id": "cadera_elevada",
+          "segmento": "cadera",
+          "lado": "bilateral",
+          "severidad": "leve",
+          "repeticion": 7
+        },
+        {
+          "t_ms": 97174,
+          "texto": "Lleva los hombros un poco hacia atrás.",
+          "error_id": "hombros_adelantados",
+          "segmento": "hombro",
+          "lado": "na",
+          "severidad": "leve",
+          "repeticion": 10
+        },
+        {
+          "t_ms": 179066,
+          "texto": "Lleva los hombros un poco hacia atrás.",
+          "error_id": "hombros_adelantados",
+          "segmento": "hombro",
+          "lado": "na",
+          "severidad": "leve",
+          "repeticion": 16
+        }
+      ],
+      "abstenciones": {
+        "sin_error": 1153,
+        "evidencia_insuficiente": 158,
+        "periodo_refractario": 353,
+        "desvanecimiento": 745
+      }
+    }
+  ],
+  "voz": {
+    "motor": "piper",
+    "descartadas": 1
+  }
+}

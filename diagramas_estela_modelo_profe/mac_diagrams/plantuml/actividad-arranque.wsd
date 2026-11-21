@@ -1,0 +1,31 @@
+@startuml
+title Diagrama de Actividad - Arranque de ESTELA
+
+start
+:Iniciar ESTELA;
+:Cargar rutina y skills;
+if (¿Rutina válida?) then (no)
+  :Mostrar error;
+  stop
+endif
+:Crear voz (Piper o voz del sistema);
+if (¿Ollama tiene los modelos?) then (sí)
+  :Usar LLM para frases y entrenadora;
+else (no)
+  :Usar plantillas;
+endif
+if (¿Hay micrófono y modelo Whisper?) then (sí)
+  :Activar órdenes de voz;
+else (no)
+  :Seguir sin órdenes de voz;
+endif
+:Abrir la ventana;
+:Usuario elige perfil y rutina;
+if (¿Arranca la GPU?) then (sí)
+  :Pose heavy en GPU;
+else (no)
+  :Pose full en CPU;
+endif
+:Sesión en marcha;
+stop
+@enduml

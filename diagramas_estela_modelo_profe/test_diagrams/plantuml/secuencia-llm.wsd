@@ -1,0 +1,53 @@
+@startuml
+title Secuencia - Verbalizador con modelo de lenguaje y caída a plantilla
+
+participant "Banco de pruebas\n(EXP-001)" as B
+participant "Motor de Feedback" as MF
+participant "Verbalizador LLM" as L
+participant "llama-server" as H
+participant "Validador" as V
+participant "Plantillas" as T
+
+note over B, L
+  En test la aplicación no activa el LLM: solo lo usa el
+  banco de pruebas de EXP-001, y la condición F nunca se
+  ha ejecutado contra un modelo real.
+end note
+
+B -> MF : procesar(observación)
+MF -> MF : decidir (motor determinista)
+
+alt se calla
+  MF --> B : silencio (motivo)
+else refuerzo (felicitar)
+  MF -> T : verbalizar_refuerzo(refuerzo)
+  T --> MF : texto de plantilla
+  MF --> B : mensaje (plantilla)
+else error tipificado
+  MF -> L : verbalizar(error)
+  L -> H : petición HTTP local, máximo 700 ms\n(ejercicio, parte del cuerpo, lado, error,\nseveridad, fase y dirección; sin ángulos)
+
+  alt responde dentro del tiempo
+    H --> L : texto
+    alt condición F (esquema JSON y validación)
+      L -> V : validar(texto, error)
+      alt texto válido
+        V --> L : válido
+        L --> MF : mensaje (texto del modelo)
+      else texto rechazado
+        V --> L : inválido (motivo)
+        L -> T : verbalizar(error)
+        T --> L : texto de plantilla
+        L --> MF : mensaje (plantilla)
+      end
+    else condición F' (control, sin esquema ni validación)
+      L --> MF : mensaje (texto del modelo)
+    end
+  else error de conexión, tiempo agotado o respuesta ilegible
+    L -> T : verbalizar(error)
+    T --> L : texto de plantilla
+    L --> MF : mensaje (plantilla)
+  end
+  MF --> B : mensaje
+end
+@enduml

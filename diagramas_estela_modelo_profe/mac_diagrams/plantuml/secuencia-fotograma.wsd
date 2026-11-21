@@ -1,0 +1,68 @@
+@startuml
+title Secuencia - Corrección de un fotograma en la sesión en vivo
+
+actor Usuario
+participant "Interfaz" as UI
+participant "Orquestador" as ORQ
+participant "Cámara" as CAM
+participant "Sesión" as SES
+participant "Estimador de Pose" as EP
+participant "Motor de Feedback" as MF
+participant "Verbalizador LLM" as LLM
+participant "Cola de Voz" as VOZ
+
+loop mientras la sesión esté activa
+  ORQ -> CAM : leer()
+  CAM --> ORQ : último fotograma
+  ORQ -> SES : procesar(fotograma)
+  SES -> EP : estimar(fotograma)
+  EP --> SES : puntos articulares
+
+  alt pausa pedida por el usuario (botón o «Estela, pausa»)
+    SES --> ORQ : estado en pausa
+  else no se detecta a la persona
+    SES --> ORQ : estado con aviso (sin persona)
+  else colocándose al empezar el ejercicio
+    SES -> SES : revisar orientación y cuerpo entero
+    opt bien colocado durante 1,5 s seguidos
+      SES -> VOZ : decir(«Ya te veo bien»)
+    end
+    SES --> ORQ : estado de colocación
+  else hay persona y el ejercicio está en curso
+    SES -> SES : calcular ángulos, fase y repetición\n(Geometría, Segmentador, DTW, Reconocedor)
+    alt sesión en pausa
+      SES -> VOZ : decir(aviso de pausa)
+    else sesión activa
+      SES -> MF : procesar(observación)
+      alt hay error
+        MF --> SES : error tipificado
+        SES ->> LLM : redactar(error)
+      else refuerzo
+        MF --> SES : mensaje de refuerzo
+        SES -> VOZ : decir(mensaje)
+      else se calla
+        MF --> SES : silencio (motivo)
+      end
+      opt hace otro ejercicio
+        SES -> VOZ : decir(«Ese movimiento no es el de ahora»)
+      end
+    end
+    SES --> ORQ : estado del fotograma
+  end
+end
+
+group En paralelo, en el hilo del verbalizador
+  LLM -> LLM : redactar la frase\n(si tarda más de 400 ms: plantilla)
+  LLM --> SES : frase de corrección
+  opt sigue el mismo ejercicio, sin pausa
+    SES -> VOZ : decir(frase)
+    VOZ --> Usuario : frase hablada
+  end
+end
+
+group En paralelo, en el hilo de la interfaz
+  UI -> ORQ : consultar estado
+  ORQ --> UI : estado más reciente (JSON)
+  UI --> Usuario : mostrar sesión
+end
+@enduml

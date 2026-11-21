@@ -1,5 +1,6 @@
 @startuml INTERACCION_modulos_corto
-' Versión corta de INTERACCION_modulos.wsd para diapositivas.
+' Versión corta de INTERACCION_modulos.wsd para diapositivas — rama test
+' (commit 0387218). Frente a la versión anterior añade perfiles e historial.
 ' Capas de arriba abajo: adaptadores, aplicación y dominio.
 
 title ESTELA — Interacción entre módulos
@@ -23,6 +24,7 @@ package "Adaptadores" as AD {
 package "Aplicación" as AP {
   component "Sesión y rutina" as SES
   component "Comparación con referencias\n(DTW y reconocimiento)" as CMP
+  component "Perfiles\ne historial" as HIS
 }
 
 package "Dominio" as DO {
@@ -33,6 +35,7 @@ package "Dominio" as DO {
 
 ORQ .left.> CAM : fotograma
 ORQ ..> SES : procesar
+ORQ ..> HIS : guardar\nprogreso
 EP <.. SES : estimar pose
 VOZ <.. SES : decir
 SES .left.> CMP : comparar

@@ -1,0 +1,122 @@
+@startuml DEPENDENCIAS_modulos
+' Dependencias de importación entre módulos de ESTELA (figura complementaria
+' del diagrama de interacción entre módulos) — rama feature/mac-flujo (commit
+' 8248abb, 2026-11-20): la versión final con modelo de lenguaje, para Mac.
+' Diagrama de paquetes UML: cada paquete es un módulo o paquete de Python
+' (backend/estela/...), y cada flecha punteada es una dependencia de importación
+' verificada leyendo los `import` del código. La etiqueta indica qué dato cruza
+' la frontera.
+' Cambios frente a test (diagramas/definitivos/), verificados con los imports:
+'   - voz_entrada (escucha, micrófono, reconocedor Whisper): importa
+'     comandos_voz, entrenadora (dolor) y los puertos;
+'   - comandos_voz: importa el validador (normalizar); sesion lo importa
+'     (puede_escuchar);
+'   - verbalizacion_aparte: importa la base del verbalizador; sesion lo importa;
+'   - entrenadora: importa el validador; la importan llm (entrenadora_en_vivo)
+'     y voz_entrada;
+'   - llm importa ahora también los puertos (Voz) y la entrenadora;
+'   - entrenadora_ollama y ollama (en llm) no importan nada del proyecto.
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Dependencias de importación entre módulos\n(backend/estela)
+
+top to bottom direction
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 10
+skinparam nodesep 45
+skinparam ranksep 85
+skinparam packageStyle folder
+
+skinparam folder {
+  BackgroundColor<<adaptador>> #FDEBD0
+  BackgroundColor<<aplicacion>> #D6EAF8
+  BackgroundColor<<dominio>> #D5F5E3
+}
+hide stereotype
+
+folder "voz" <<adaptador>> as VOZ
+folder "voz_entrada\n(escucha, micrófono, Whisper)" <<adaptador>> as VENT
+folder "captura" <<adaptador>> as CAP
+folder "interfaz" <<adaptador>> as INTERF
+folder "pose" <<adaptador>> as POSE
+folder "llm\n(verbalizador, entrenadora\nen vivo y Ollama)" <<adaptador>> as LLM
+folder "puertos\n(Estimador, Voz, Fuente)" <<aplicacion>> as PUE
+folder "perfiles" <<aplicacion>> as PER
+folder "historial" <<aplicacion>> as HIS
+folder "comandos_voz" <<aplicacion>> as CMD
+folder "entrenadora" <<aplicacion>> as ENT
+folder "sesion" <<aplicacion>> as SES
+folder "verbalizacion_aparte" <<aplicacion>> as VAP
+folder "reconocimiento" <<aplicacion>> as RECO
+folder "gesto" <<aplicacion>> as GES
+folder "pausa y metricas" <<aplicacion>> as PAU
+folder "dtw" <<aplicacion>> as DTW
+folder "feedback.pipeline\n(MotorFeedback)" <<dominio>> as PIPE
+folder "registro" <<aplicacion>> as REG
+folder "feedback.motor.geometria" <<dominio>> as GEO
+folder "feedback.motor.decision" <<dominio>> as DEC
+folder "feedback.verbalizador\n(base, plantillas y validador)" <<dominio>> as VER
+folder "rutina" <<aplicacion>> as RUT
+folder "conteo\n(segmentador)" <<dominio>> as CON
+folder "umbrales" <<aplicacion>> as UMB
+folder "feedback.motor.skill\n(carga de skills)" <<dominio>> as SKI
+
+' Aristas en orden de izquierda a derecha: así Graphviz parte de un orden
+' sin cruces.
+VOZ ..> PUE
+VENT ..> PUE : Voz
+VENT ..> CMD : texto → orden
+VENT ..> ENT : ¿menciona dolor?
+INTERF ..> POSE
+INTERF ..> PUE
+INTERF ..> PER
+INTERF ..> HIS : registro de la sesión
+INTERF ..> SES : EstadoFrame
+INTERF ..> GEO
+INTERF ..> RUT
+LLM ..> PUE : Voz
+LLM ..> ENT : cifras → Respuesta
+LLM ..> VER : ErrorTipificado\n→ MensajeFeedback
+PER ..> HIS
+POSE ..> PUE
+SES ..> PUE : ResultadoPose
+SES ..> CMD : ¿puede escuchar?
+SES ..> VAP : ErrorTipificado\n(en otro hilo)
+SES ..> RECO : Observacion\n→ ¿otro ejercicio?
+SES ..> GES : puntos\n→ ¿gesto de pausa?
+SES ..> PAU
+SES ..> DTW : Observacion
+SES ..> PIPE : Observacion\n→ MensajeFeedback\no Silencio
+SES ..> VER
+SES ..> DEC : calidad de\nla repetición
+SES ..> CON : Observacion\n→ fase y repetición
+SES ..> REG
+SES ..> RUT
+SES ..> GEO : MuestraPose\n→ Observacion
+CMD ..> VER : normalizar
+ENT ..> VER : validar el texto
+VAP ..> VER : Verbalizador
+RECO ..> SKI
+PIPE ..> DEC : Observacion\n→ ErrorTipificado,\nRefuerzo o Silencio
+PIPE ..> SKI
+PIPE ..> VER : ErrorTipificado\n→ MensajeFeedback
+DEC ..> SKI : reglas y umbrales
+REG ..> CON
+REG ..> RUT
+RUT ..> CON
+RUT ..> UMB
+RUT ..> SKI
+UMB ..> SKI
+
+legend bottom left
+  <back:#FDEBD0> adaptadores/ </back>  <back:#D6EAF8> aplicacion/ (usa NumPy; sin red) </back>  <back:#D5F5E3> dominio/ (solo biblioteca estándar) </back>
+  Flecha punteada: el módulo de origen importa al de destino; la etiqueta es el dato que cruza.
+  Todos los módulos importan los contratos de datos (feedback.contrato); esa flecha se omite.
+  <U+005F><U+005F>main<U+005F><U+005F> (raíz de composición) importa interfaz, captura, voz, voz_entrada, pose, llm, sesion, rutina,
+  registro, perfiles, historial y entrenadora para cablearlos; se omite.
+  captura no importa los puertos: cumple el puerto Fuente por estructura (typing.Protocol).
+  Ningún módulo de aplicacion/ ni de dominio/ importa llm ni voz_entrada: el modelo de lenguaje y Whisper se inyectan desde fuera.
+endlegend
+@enduml

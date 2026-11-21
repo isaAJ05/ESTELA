@@ -1,0 +1,96 @@
+@startuml ARQUITECTURA_sistema
+' Diagrama de arquitectura de ESTELA — rama feature/mac-flujo (commit 8248abb,
+' 2026-11-20): la versión final con modelo de lenguaje, para Mac.
+' Vista de alto nivel: actores, componentes principales y servicios externos,
+' sin abrir los módulos internos ni detallar dónde se ejecuta cada cosa.
+' Frente a la rama test (diagramas/definitivos/), verificado en el código:
+'   - órdenes de voz: micrófono + Whisper (whisper.cpp con Metal, modelo
+'     «small»), en modo «llamada» («Estela, pausa»), también durante el
+'     ejercicio y mientras ESTELA habla (adaptadores/voz_entrada/);
+'   - Ollama en local con dos modelos (config.py): qwen3:4b-instruct redacta
+'     las correcciones en un hilo aparte (tiempo límite 400 ms) y qwen3:14b es
+'     la entrenadora (resumen final y «¿cómo voy?», 5 s); el LLM nunca decide
+'     el error. Si Ollama o un modelo faltan, se usan las plantillas;
+'   - dolor o lesión: respuesta fija, sin modelo;
+'   - pose heavy en la GPU del Mac (respaldo: full en CPU);
+'   - sonido corto de «te escucho» al oír «Estela»;
+'   - preparación offline: variantes de frases redactadas por un LLM y
+'     revisadas por una persona (rol A de ADR-004) y hoja A/B de modelos;
+'   - no tiene el visor de calibración de test.
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de arquitectura
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam ArrowFontSize 11
+skinparam nodesep 40
+skinparam ranksep 130
+skinparam rectangle {
+  BorderStyle dashed
+}
+
+actor "Usuaria" as USU
+actor "Equipo de desarrollo" as DEV
+
+rectangle "Mac de la usuaria — todo se ejecuta en local, sin servicios en la nube" as EQ {
+  node "Altavoces" as ALT
+  node "Cámara web" as CAM
+  node "Micrófono" as MIC
+  component "Interfaz de escritorio\n(React en ventana pywebview)" as UI
+  component "Núcleo de análisis en tiempo real\n(Python: sesión, pose, conteo, comparación DTW,\nreconocimiento del ejercicio, gesto y pausa,\ndecisión, órdenes de voz y voz)" as NUC
+  component "MediaPipe Pose Landmarker\n«biblioteca de terceros»\n(heavy en GPU)" as MP
+  component "Piper TTS\n«biblioteca de terceros»" as PIP
+  component "Voz del sistema (say)\n«respaldo»" as SIS
+  component "Whisper (whisper.cpp)\n«biblioteca de terceros»\n(modelo small, GPU)" as WHI
+  component "Ollama «proceso local»\nqwen3:4b-instruct (correcciones)\nqwen3:14b (entrenadora)" as OLL
+  folder "Modelos locales\n(pose .task, voz .onnx,\nWhisper .bin)" as MOD
+  folder "Configuración de ejercicios\n(skills, referencias, referencias de\nreconocimiento, rutinas y plantillas, JSON)" as CONF
+  folder "Historial y perfiles\n(perfiles.json y una sesión por línea, JSONL;\nsin video ni ángulos)" as HIST
+  folder "Métricas de sesión\n(JSON y CSV, solo con --guardar-metricas;\nsin video)" as MET
+}
+
+artifact "Videos de referencia\n(fuera del repositorio)" as VID
+component "Preparación offline\n(scripts: referencias, referencias de\nreconocimiento, descarga de modelos,\nvariantes de frases con LLM revisadas\npor una persona, hoja A/B de modelos)" as OFF
+
+' ----------------------------------------------------------- usuaria
+USU <-- ALT : correcciones, avisos\ny resumen en español
+USU --> CAM : hace el ejercicio frente a ella\n(brazo derecho arriba = pausa)
+USU --> MIC : «Estela, pausa»,\n«¿cómo voy?»…
+USU --> UI : elige perfil y rutina,\nve su progreso
+
+' --------------------------------------------------- flujo en sesión
+ALT <-- NUC : voz sintetizada\ny sonido «te escucho»
+CAM --> NUC : fotogramas\n(solo en memoria)
+MIC --> NUC : audio\n(solo en memoria)
+UI <--> NUC : llamadas a la API pywebview /\nestado (JSON)
+NUC --> MP : fotograma → 33 puntos
+NUC --> WHI : audio → texto\n(la orden la decide una lista fija)
+NUC --> PIP : frase → audio
+NUC ..> SIS : frase → audio\n(si no hay Piper)
+NUC --> OLL : error ya tipificado → frase (4B, 400 ms);\ncifras de la sesión → resumen (14B, 5 s)\n(si falla o tarda: plantilla)
+MP --> MOD : carga
+PIP --> MOD : carga
+WHI --> MOD : carga
+NUC --> CONF : lee
+NUC --> HIST : escribe al cerrar la sesión /\nlee para «Mi progreso» y «¿cómo voy?»
+NUC --> MET : escribe
+
+' ------------------------------------------------------------ offline
+DEV --> OFF : ejecuta
+VID --> OFF
+OFF --> CONF : genera referencias\ny variantes revisadas
+OFF --> MOD : descarga una vez\n(única vez con red)
+OFF ..> OLL : redacta variantes\ny compara modelos
+
+legend bottom left
+  Valores por defecto en un Mac con Apple Silicon (config.defectos): pose heavy en GPU, frases con LLM,
+  entrenadora con LLM y órdenes de voz en modo «llamada». Si falta la GPU, Ollama, un modelo o el micrófono,
+  el arranque cae a lo de la versión básica (pose en CPU, plantillas, sin órdenes de voz) y lo avisa.
+  El modelo de lenguaje nunca decide qué error hubo: recibe un error ya tipificado o cifras ya derivadas.
+endlegend
+
+@enduml

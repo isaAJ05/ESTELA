@@ -5,7 +5,7 @@
 **Estudiantes:** Isabella Arrieta Juliao · Natalia Carpintero Leal · Paula Núñez Zarante
 **Tutores:** Ph.D. Margarita Gamarra · Augusto Salazar Silva
 
-> **Nota para el equipo.** Esta versión toma como base la rama `feature/mac-flujo` (17-nov-2026) y las mediciones del Mac Studio M2 Ultra (16 y 17-nov-2026). Los recuadros **[ESPACIO PARA COMPLETAR]** que quedan corresponden a lo que todavía no se ha medido: las sesiones anotadas con participantes, el cuestionario de usabilidad y las órdenes de voz con micrófono real. Los recuadros **[REVISAR]** señalan cifras que solo constan en los mensajes de *commit* o en el `ESTADO.md` del Mac (sus archivos de resultados no están en git) y que conviene confirmar antes de entregar.
+> **Nota para el equipo.** Esta versión toma como base la rama `feature/mac-flujo` (17-nov-2026) y las mediciones del Mac Studio M2 Ultra (16 y 17-nov-2026). Los recuadros **[ESPACIO PARA COMPLETAR]** que quedan corresponden a lo que todavía no se ha medido: las sesiones anotadas con participantes y las órdenes de voz con micrófono real. El cuestionario de usabilidad (tres participantes, 20-nov-2026) ya está en la sección 13.3.3. Los recuadros **[REVISAR]** señalan cifras que solo constan en los mensajes de *commit* o en el `ESTADO.md` del Mac (sus archivos de resultados no están en git) y que conviene confirmar antes de entregar.
 
 ## Resumen / Abstract
 
@@ -17,7 +17,7 @@ Para lograrlo, ESTELA identifica puntos del cuerpo en cada imagen, calcula ángu
 
 En el equipo final, un Mac Studio con M2 Ultra, la aplicación aprovecha la capacidad adicional para tres funciones que siguen sin decidir qué error ocurrió: un modelo de lenguaje local que redacta las correcciones con otras palabras, una «entrenadora» que resume cada ejercicio al terminarlo y órdenes de voz («Estela, pausa») reconocidas en el propio equipo. Todas pasan por un validador y, si fallan o tardan, la aplicación vuelve a las plantillas.
 
-El proyecto se desarrolló de forma iterativa, registrando las decisiones de diseño y resolviendo las dudas técnicas con experimentos definidos antes de medir. En un banco de casos sintéticos, el motor no nombró nunca una parte del cuerpo distinta de la detectada y no corrigió ejecuciones correctas. En el Mac Studio, con videos públicos, la estimación de pose tardó 20,7 ms en el percentil 95, el sistema sostuvo la tasa de imágenes del video sin descartar ninguna y la voz empezó 0,03 s después de detectar el error, frente a 3,93 s antes de corregir la cola de voz. Ejecutar al mismo tiempo la pose, el modelo de lenguaje, la voz y el reconocimiento de órdenes no cambió el tiempo de la pose. Queda pendiente medir la exactitud de las correcciones frente a personas reales, que requiere sesiones anotadas.
+El proyecto se desarrolló de forma iterativa, registrando las decisiones de diseño y resolviendo las dudas técnicas con experimentos definidos antes de medir. En un banco de casos sintéticos, el motor no nombró nunca una parte del cuerpo distinta de la detectada y no corrigió ejecuciones correctas. En el Mac Studio, con videos públicos, la estimación de pose tardó 20,7 ms en el percentil 95, el sistema sostuvo la tasa de imágenes del video sin descartar ninguna y la voz empezó 0,03 s después de detectar el error, frente a 3,93 s antes de corregir la cola de voz. Ejecutar al mismo tiempo la pose, el modelo de lenguaje, la voz y el reconocimiento de órdenes no cambió el tiempo de la pose. En una evaluación de usabilidad con tres participantes, la versión final obtuvo una puntuación SUS media de 91,7 sobre 100, y las tres personas consideraron adecuada la cantidad de indicaciones; el principal problema fue la información que solo aparece en pantalla, como el contador. Queda pendiente medir la exactitud de las correcciones frente a personas reales, que requiere sesiones anotadas.
 
 ## 1. Introducción
 
@@ -665,11 +665,9 @@ La siguiente tabla presenta los componentes principales, su ubicación en el có
 | *Skills* y referencias | Archivos de configuración | Contienen todo lo que el sistema sabe de cada ejercicio. | RNF-08 |
 | Creación de referencias | Programa independiente | Construye la referencia de un ejercicio a partir de un video. | RF-05, RF-13 |
 
-La Figura 1 muestra la arquitectura completa a alto nivel. En ella conviene observar tres aspectos. Primero, todos los componentes, incluidos MediaPipe, Piper y el servidor opcional del modelo de lenguaje, funcionan dentro del computador de la persona. Segundo, la interfaz y el núcleo de análisis solo intercambian órdenes y estados. Tercero, las referencias se preparan antes de la sesión. Los perfiles, el historial y los componentes del Mac (entrenadora, órdenes de voz y servidor Ollama) se añadieron después de elaborar la figura. Los perfiles y el historial son archivos locales que la capa de aplicación lee al empezar y escribe al terminar la sesión. Ollama y whisper.cpp ocupan el mismo lugar que el servidor opcional del modelo de lenguaje: son procesos o bibliotecas del mismo computador.
+La Figura 1 muestra la arquitectura completa a alto nivel. En ella conviene observar tres aspectos. Primero, todos los componentes, incluidos MediaPipe, Piper y el servidor opcional del modelo de lenguaje, funcionan dentro del computador de la persona. Segundo, la interfaz y el núcleo de análisis solo intercambian órdenes y estados. Tercero, las referencias se preparan antes de la sesión. La figura corresponde a la versión del Mac e incluye el micrófono con Whisper, Ollama, y los perfiles y el historial, que son archivos locales que la capa de aplicación lee al empezar y escribe al terminar la sesión. Ollama y whisper.cpp ocupan el mismo lugar que el servidor opcional del modelo de lenguaje: son procesos o bibliotecas del mismo computador.
 
-> **[ESPACIO PARA COMPLETAR]** Actualizar las figuras 1, 3 y 6 con el historial, los perfiles, la entrenadora, el micrófono con Whisper y Ollama, o conservar la aclaración anterior.
-
-![Figura 1. Arquitectura de ESTELA](diagramas/definitivos/completos/ARQUITECTURA_sistema.png)
+![Figura 1. Arquitectura de ESTELA](diagramas_estela_modelo_profe/mac_diagrams/png/arquitectura.png)
 
 **Figura 1. Diagrama de arquitectura del sistema.** Actores, componentes principales y servicios de terceros. Todo se ejecuta en el equipo del usuario y la preparación de referencias ocurre fuera de la sesión.
 
@@ -691,7 +689,7 @@ La Figura 2 muestra qué módulos dependen de cuáles, obtenido directamente del
 
 La Figura 3 muestra cómo colaboran los módulos dentro de cada capa. En ella se puede ver que solo los adaptadores usan tecnologías externas y que la sesión accede al estimador y a la voz únicamente a través de sus interfaces.
 
-![Figura 3. Interacción entre módulos](diagramas/definitivos/completos/INTERACCION_modulos.png)
+![Figura 3. Interacción entre módulos](diagramas/mac_diagrams_def/cortos/INTERACCION_modulos_corto.png)
 
 **Figura 3. Diagrama de interacción entre módulos.** Tecnologías externas, adaptadores, aplicación y dominio, con las interfaces que cada componente ofrece o necesita.
 
@@ -699,13 +697,13 @@ La Figura 3 muestra cómo colaboran los módulos dentro de cada capa. En ella se
 
 La secuencia más importante es lo que ocurre con **cada imagen de la cámara**, que muestra la Figura 4. El orquestador toma la imagen más reciente y se la entrega a la sesión. Si no hay una persona, la sesión muestra un aviso y no llama al motor. Si hay una persona, calcula las medidas, actualiza el conteo y la comparación con la referencia. Si la persona se está colocando o la sesión está en pausa, el motor no corrige. En cualquier otro caso, el motor decide y, si hay un mensaje, lo deja en la cola de voz sin esperar a que se pronuncie.
 
-![Figura 4. Flujo de un fotograma en la fase en vivo](diagramas/definitivos/completos/SECUENCIA_flujo_por_fotograma.png)
+![Figura 4. Flujo de un fotograma en la fase en vivo](diagramas_estela_modelo_profe/mac_diagrams/png/secuencia-fotograma.png)
 
 **Figura 4. Secuencia del análisis de una imagen.** Orden de las llamadas, hilo que ejecuta cada parte y casos en que no se llama al motor.
 
 La segunda secuencia es el **control de la sesión desde la interfaz**, que muestra la Figura 5. Al pulsar «Comenzar», la interfaz envía la rutina elegida. El orquestador la valida, prepara las frases de voz y abre la cámara. Si algo falla, por ejemplo porque la cámara está ocupada, la interfaz muestra el motivo. Durante la sesión, la interfaz pide el estado de forma continua, y las órdenes de la persona, como pausar o pasar al siguiente ejercicio, se aplican en la siguiente imagen. Al terminar, el sistema cierra la cámara, calcula el resumen y lo guarda en el historial del perfil con el que empezó la sesión.
 
-![Figura 5. Control de una sesión desde la interfaz](diagramas/definitivos/completos/SECUENCIA_sesion_desde_interfaz.png)
+![Figura 5. Control de una sesión desde la interfaz](diagramas_estela_modelo_profe/mac_diagrams/png/secuencia-sesion-interfaz.png)
 
 **Figura 5. Secuencia del control de una sesión.** Inicio, consulta del estado, órdenes del usuario y cierre con el resumen.
 
@@ -852,7 +850,7 @@ La aplicación solo escribe dos tipos de archivos: los perfiles e historiales, q
 
 La Figura 6 muestra dónde se ejecuta cada parte. Todo ocurre en un único computador. La interfaz y el servidor del modelo de lenguaje (Ollama en el Mac) se comunican con Python dentro del mismo equipo, y la cámara, el micrófono y los parlantes se conectan directamente a él.
 
-![Figura 6. Despliegue de ESTELA](diagramas/definitivos/completos/DESPLIEGUE_sistema.png)
+![Figura 6. Despliegue de ESTELA](diagramas_estela_modelo_profe/mac_diagrams/png/despliegue.png)
 
 **Figura 6. Despliegue de ESTELA.** Componentes en ejecución, dispositivos conectados y archivos locales. Durante la sesión ningún dato sale del equipo.
 
@@ -931,9 +929,86 @@ Las personas sugirieron felicitar más, poder ocultar las líneas de guía, most
 
 #### 13.3.3 Evaluación con participantes de la versión final
 
-Para la versión final, la evaluación se planteó con un cuestionario breve al terminar la rutina. El cuestionario pregunta si las correcciones se entendieron, si llegaron a tiempo para corregir el movimiento, si el sistema habló demasiado o muy poco y si los avisos de colocación fueron claros.
+La evaluación cualitativa del Informe 2 sirvió para encontrar problemas. En la versión final se quiso, además, **medir** la experiencia con una escala estándar y comprobar si los cambios de la sección 13.3.2 resolvieron lo que las personas señalaron. Esta evaluación mide la percepción de uso; no mide si las correcciones eran técnicamente correctas, que es lo que miden las sesiones anotadas del protocolo V-01 (sección 13.4.12).
 
-> **[ESPACIO PARA COMPLETAR]** Metodología y resultados de las sesiones con participantes: fecha, número de participantes, equipo y cámara, cuestionario aplicado, resultados por pregunta, hallazgos principales y nivel de cumplimiento de los criterios de aceptación. Indicar qué sesiones quedan pendientes.
+**Participantes.** Tres personas mayores de edad, el 20 de noviembre de 2026. Las tres aceptaron que sus respuestas se usaran con fines académicos y el formulario no pidió nombres. Dos ya habían participado en la evaluación del Informe 2 y una usaba ESTELA por primera vez. Sus hábitos de ejercicio eran distintos, lo que permitió incluir tanto a alguien acostumbrado a entrenar como a alguien que casi no lo hace, que es la persona para la que se pensó ESTELA (sección 6.3).
+
+| Participante | Frecuencia de ejercicio | Uso previo de ESTELA | ¿Necesitó ayuda del equipo? |
+| --- | --- | --- | --- |
+| P1 | 3 o más veces por semana | Sí, versión del Informe 2 | No |
+| P2 | 1 o 2 veces por semana | Sí, versión del Informe 2 | No |
+| P3 | Casi nunca | No | Sí, una vez |
+
+**Procedimiento.** Cada participante hizo la rutina completa de cuatro ejercicios mientras una persona del equipo observaba sin intervenir, salvo cuando el participante pedía ayuda. Esa misma persona registró si fue necesario ayudar. Al terminar, el participante respondió solo un formulario anónimo en línea de seis páginas, que tomaba unos cinco minutos. Las sesiones se hicieron en dos equipos: el Mac Studio, con las funciones de la sección 14.6, y un portátil con el flujo básico. No se grabó a nadie.
+
+> **[REVISAR]** Confirmar qué participante usó cada equipo. Como las órdenes de voz solo existen en la versión del Mac, P2, que sí las usó, tuvo que estar en el Mac; para P1 y P3 no hay registro.
+
+**Instrumento.** El formulario tenía cinco bloques:
+
+1. **Escala de usabilidad del sistema (SUS)** [42]: diez afirmaciones estándar, traducidas al español, que se responden de 1 (totalmente en desacuerdo) a 5 (totalmente de acuerdo). La mitad están redactadas en positivo y la otra mitad en negativo. Se eligió porque es breve, funciona con pocos participantes y permite comparar el resultado con otros sistemas.
+2. **Siete afirmaciones propias de ESTELA**, con la misma escala, sobre lo que el SUS no pregunta: si las correcciones se entendieron, si llegaron a tiempo y si parecían justificadas, y si fueron claros los avisos de colocación, el contador, la figura animada y los controles de la sesión.
+3. **Cantidad de indicaciones**, de 1 (muy pocas) a 5 (demasiadas), donde 3 es la cantidad adecuada. Con esta pregunta se evalúa la política de silencio (sección 2.6).
+4. **Órdenes de voz**, que solo responde quien las usó: cinco afirmaciones sobre si fueron entendidas, si hubo que repetirlas, si ESTELA hizo algo que no se le pidió, si se notaba cuándo escuchaba y si los resúmenes de la entrenadora fueron útiles.
+5. **Preguntas abiertas** sobre correcciones confusas, lo que más gustó, lo más difícil y lo que cambiarían, y si recomendarían ESTELA.
+
+**Análisis.** La puntuación SUS se calculó con el método estándar [42]. En las afirmaciones positivas se resta 1 a la respuesta, en las negativas se resta la respuesta a 5, se suman los diez valores y el total se multiplica por 2,5. El resultado va de 0 a 100. No es un porcentaje, sino una puntuación que se compara con referencias publicadas. En el análisis de Bangor *et al.*, las puntuaciones alrededor de 85 corresponden al adjetivo «excelente», y la media del conjunto de sistemas que estudiaron es de unos 70 [43]. Con tres participantes no se calculan intervalos de confianza ni se hacen pruebas estadísticas. Se informan las respuestas de cada persona y la mediana, y los resultados se toman como indicios.
+
+**Resultados del SUS.** La puntuación media fue de **91,7** (mín. 87,5, máx. 95). Las tres puntuaciones superan con amplitud la media de referencia y quedan en el rango que Bangor *et al.* asocian con «excelente» [43].
+
+| Afirmación del SUS | Sentido | P1 | P2 | P3 |
+| --- | --- | --- | --- | --- |
+| 1. Me gustaría usar ESTELA con frecuencia. | + | 4 | 4 | 5 |
+| 2. Me pareció innecesariamente complicada. | − | 1 | 1 | **5** |
+| 3. Me pareció fácil de usar. | + | 5 | 5 | 5 |
+| 4. Necesitaría ayuda de una persona con conocimientos técnicos. | − | 2 | 1 | 2 |
+| 5. Sus funciones están bien integradas. | + | 5 | 5 | 5 |
+| 6. Me pareció demasiado inconsistente. | − | 1 | 2 | 1 |
+| 7. La mayoría de las personas aprendería a usarla muy rápido. | + | 4 | 5 | 5 |
+| 8. Me pareció muy incómoda de usar. | − | 1 | 1 | 1 |
+| 9. Me sentí con mucha confianza al usarla. | + | 5 | 5 | 5 |
+| 10. Tuve que aprender muchas cosas antes de poder usarla. | − | 1 | 1 | 1 |
+| **Puntuación SUS** | | **92,5** | **95,0** | **87,5** |
+
+La respuesta de P3 a la afirmación 2 («innecesariamente complicada»: 5) contradice sus respuestas a las afirmaciones 3 y 5, también con 5: es la misma persona que dijo que ESTELA fue fácil de usar y que sus funciones están bien integradas. Esto es típico de los cuestionarios que alternan afirmaciones positivas y negativas: quien responde rápido puede marcar «de acuerdo» sin notar que esa afirmación está en negativo [44]. La respuesta se conservó en el cálculo, porque no hay forma de confirmar qué quiso decir la persona. Si se hubiera tratado de un error y la respuesta fuera 1, la puntuación de P3 sería 97,5 y la media, 95. Ninguna de las dos lecturas cambia la conclusión.
+
+**Resultados de las afirmaciones propias de ESTELA.**
+
+| Afirmación | P1 | P2 | P3 | Mediana |
+| --- | --- | --- | --- | --- |
+| Entendí lo que ESTELA me pedía corregir. | 4 | 5 | 4 | 4 |
+| Las correcciones llegaron a tiempo para ajustar el movimiento. | 5 | 5 | 4 | 5 |
+| Cuando ESTELA me corrigió, sentí que de verdad lo estaba haciendo mal. | 4 | 4 | 5 | 4 |
+| Los avisos para colocarme frente a la cámara fueron claros. | 5 | 5 | 4 | 5 |
+| Cuando el contador se detenía, entendí por qué. | 5 | 5 | **1** | 5 |
+| La figura animada me ayudó a saber cómo hacer cada ejercicio. | 4 | 5 | 5 | 5 |
+| Pausar, pasar al siguiente ejercicio o terminar fue fácil. | 5 | 5 | 5 | 5 |
+
+De las 21 respuestas, solo una fue negativa (1 o 2): la de P3 sobre el contador. En la **cantidad de indicaciones**, los tres participantes marcaron 3, la cantidad adecuada: nadie sintió que ESTELA hablara demasiado ni que callara demasiado. Las dos afirmaciones que se relacionan con los tiempos medidos en la sección 14.3, que las correcciones se entendieran y que llegaran a tiempo, obtuvieron 4 o 5 en todos los casos.
+
+**Órdenes de voz.** Solo P2 las usó. Esta persona respondió que ESTELA entendió sus órdenes (5), que no tuvo que repetirlas (1), que ESTELA no hizo nada que no se le pidiera (1), que sabía cuándo la estaba escuchando (5) y que los resúmenes al terminar cada ejercicio le fueron útiles (5). Sobre cómo prefería controlar la sesión, por voz o con botones, respondió que le daba igual. P1 y P3 respondieron que no sabían que las órdenes de voz existían. Es la primera evidencia con una persona y un micrófono real, aunque es una sola persona y no permite calcular tasas de reconocimiento.
+
+**Respuestas abiertas.** Las respuestas se agruparon en hallazgos, ordenados por prioridad:
+
+| Hallazgo | Evidencia | Prioridad |
+| --- | --- | --- |
+| **El aviso de colocación siguió repitiéndose cuando la persona ya estaba bien colocada.** Es la única corrección que alguien no entendió o consideró equivocada. | P3: «La de ponerme de perfil o mirar la cámara para ver el ejercicio. Ya estaba, pero me lo seguía diciendo». | Alta: contradice lo que la persona ve y le resta confianza a las demás correcciones. |
+| **El contador pasó desapercibido para la participante nueva.** Las dos personas del Informe 2, donde este problema ya había aparecido, entendieron por qué se detenía (5 y 5); la participante nueva no (1) y dijo que no lo había visto. | P3 sugirió «que también hable el contador, pues no había visto el contador». | Alta: es el problema principal del Informe 2 y sigue sin resolverse para quien no conoce la aplicación. |
+| **El texto en pantalla se veía poco y elegir un ejercicio no fue evidente.** | P3: «La letra no la vi mucho. Cómo seleccionar un ejercicio». Fue también la única participante que necesitó ayuda del equipo. | Media. |
+| **No queda claro cuándo empieza y termina cada ejercicio si no se mira la pantalla.** | P3 propuso una «indicación por voz del inicio y fin del ejercicio». | Media. |
+| **Las órdenes de voz no se descubren solas.** | P1 y P3 no sabían que existían. | Media, si usaron el Mac; si usaron el portátil, la función no estaba disponible y el hallazgo no aplica. |
+| **Lo más valorado: los puntos sobre el cuerpo, las correcciones y la libertad para pausar.** | P2: «Los puntos en la silueta de la persona». P3: «Me corrigió la forma de hacer el ejercicio y fue fácil de continuar. Puedo tomar mis pausas». | — |
+
+P2 señaló como lo más difícil «hacer algunos ejercicios como lo pedía Estela», lo que se refiere a la exigencia del ejercicio y no a la aplicación. Dos participantes recomendarían ESTELA a alguien que empieza a hacer ejercicio en casa y uno respondió «tal vez».
+
+**Interpretación.** Los resultados indican que la versión final es fácil de aprender y de usar, incluso para alguien que casi no hace ejercicio y que la usaba por primera vez. Esto respalda dos decisiones de diseño: dar las correcciones de una en una y con una política de silencio, y mantener la figura animada como guía. Que la cantidad de indicaciones se percibiera como adecuada es relevante, porque la sobrecorrección es el riesgo que documenta la literatura [26].
+
+Los dos problemas que sí aparecieron tienen la misma causa: **información que solo está en la pantalla**, como el contador y el texto, en un momento en que la persona mira su cuerpo y no el monitor. La propia participante propuso la solución: decir en voz alta el conteo, el inicio y el fin de cada ejercicio. El aviso de colocación repetido es distinto, porque parece un problema de detección y no de presentación: el sistema seguía considerando que la orientación no era la correcta. Con los datos del formulario no se puede saber si la causa fue la tolerancia de orientación, que el experimento EXP-002 ya había señalado como mejorable (sección 14.2), o la posición de la cámara en esa sesión.
+
+**Limitaciones.** Tres participantes no son suficientes para generalizar ni para dar una puntuación SUS estable: un solo participante más podría mover la media varios puntos. Dos participantes ya conocían una versión anterior, lo que favorece la facilidad de aprendizaje, y además vieron implementadas sus propias sugerencias, lo que puede elevar la valoración. La presencia de una persona del equipo puede haber inclinado las respuestas hacia lo positivo, aunque el formulario era anónimo y se respondió sin ayuda. Las sesiones se hicieron en dos equipos distintos, de modo que la experiencia no fue idéntica para todos. Por último, el cuestionario mide la percepción: que una persona sintiera que la corrección era justa no demuestra que el error existiera.
+
+**Relación con los requisitos.** La evaluación aporta evidencia a favor del RNF-09 (indicaciones claras y comprensibles: mediana de 4 en «entendí lo que me pedía corregir») y del OE5 (figura animada útil: mediana de 5). Para el OE4, la percepción de que las correcciones llegaron a tiempo (mediana de 5) es coherente con la voz medida a 0,03 s de la detección, pero la exactitud de los mensajes sigue requiriendo las sesiones anotadas V-01.
+
+> **[REVISAR]** Las sesiones anotadas del protocolo V-01, que miden precisión y recobrado, siguen pendientes y no forman parte de esta evaluación.
 
 ### 13.4 Experimentos
 
@@ -1215,6 +1290,8 @@ Ninguna de las cuatro cambia quién decide qué error ocurrió: esa decisión si
 
 ### 14.7 Resultados de las sesiones con participantes
 
+Los resultados del cuestionario de usabilidad, que mide la percepción de uso, están en la sección 13.3.3. Esta sección se reserva para la exactitud de las correcciones, medida con las sesiones anotadas del protocolo V-01.
+
 > **[ESPACIO PARA COMPLETAR]** Precisión, recobrado, sobrecorrección y porcentaje de mensajes correctos por ejercicio, calculados con la herramienta de medición a partir de las sesiones anotadas, con el número de repeticiones y el acuerdo entre anotadores si aplica. Incluir una breve interpretación por ejercicio.
 
 ### 14.8 Cumplimiento de los objetivos
@@ -1225,7 +1302,7 @@ Ninguna de las cuatro cambia quién decide qué error ocurrió: esa decisión si
 | OE2 · Detección de errores | Precisión ≥ 0,80 y recobrado ≥ 0,70 por ejercicio | Los dieciocho errores están implementados y el motor señala el error simulado en el 100 % de los casos del banco. | Pendiente: requiere sesiones anotadas. |
 | OE3 · Abstención y sobrecorrección | 0 % de mensajes no respaldados y ≤ 10 % de sobrecorrección | 0 % de 174 mensajes y 0 % de 18 ejecuciones correctas en el banco; 0 de 17 correcciones no respaldadas en video en el Mac. | Cumplido en el banco y en video; falta con personas. |
 | OE4 · Indicaciones en español | ≥ 90 % de mensajes correctos y voz en ≤ 1 s (p95) | Voz a 0,03 s (p95) de la detección en el Mac, frente a 3,93 s antes de la corrección. | Cumplido en tiempo; la exactitud de los mensajes está pendiente. |
-| OE5 · Guía visual | Figura animada para los cuatro ejercicios | Implementada para los cuatro ejercicios y valorada positivamente por los participantes. | Cumplido. |
+| OE5 · Guía visual | Figura animada para los cuatro ejercicios | Implementada para los cuatro ejercicios. En el cuestionario de la versión final, mediana de 5 sobre 5 en «la figura animada me ayudó a saber cómo hacer cada ejercicio» (sección 13.3.3). | Cumplido. |
 
 ### 14.9 Discusión
 
@@ -1240,6 +1317,8 @@ Las mediciones en el Mac dejan tres aprendizajes. El primero es que la mayor par
 El segundo es que la ventaja real del Mac está en lo que permite añadir. Para el flujo básico (cámara, pose, reglas y voz) un portátil con *lite* es suficiente en algunos casos. En cambio, ejecutar a la vez el modelo más preciso de pose, un modelo de lenguaje, la síntesis y el reconocimiento de voz, sin retrasar la pose, solo fue posible en el Mac, gracias a su tarjeta gráfica y a sus 128 GB de memoria. En el portátil con Windows, incluso *lite* superó los 33 ms.
 
 El tercero es que el modelo de lenguaje confirmó el riesgo que justificó la arquitectura. Entre el 6 y el 7 % de sus frases afirmaban o callaban un lado incorrecto, aunque recibía el error ya tipificado. Por eso el modelo no decide nada, el validador revisa cada frase y la plantilla queda siempre como respaldo. Con estas condiciones, el modelo de lenguaje puede mejorar la variedad de los mensajes sin poner en riesgo su contenido. Aun así, su adopción en vivo no se puede dar por decidida hasta comparar su calidad con la de las plantillas mediante sesiones anotadas (sección 9.4).
+
+La evaluación de usabilidad aporta la perspectiva de quien usa el sistema. Con una puntuación SUS media de 91,7 y una cantidad de indicaciones juzgada adecuada por los tres participantes, la política de silencio y las correcciones de una en una no se percibieron como insuficientes, y tampoco como excesivas. Los problemas encontrados no estaban en el motor, sino en la presentación: el contador y el texto pasaron desapercibidos para la participante que usaba ESTELA por primera vez, porque durante el ejercicio la persona mira su cuerpo y no la pantalla. Esto sugiere que la voz, que ya es el canal de las correcciones, debería llevar también el conteo y el inicio y el fin de cada ejercicio. Son indicios de tres personas, no una conclusión general (sección 13.3.3).
 
 Lo que no se pudo cumplir con la evidencia disponible es la parte de exactitud de los objetivos OE2, OE3 y OE4. El banco sintético y los videos demuestran que el motor hace lo que sus reglas dicen y que no afirma lo que no ve, pero no que sus reglas coincidan con lo que observaría una persona experta.
 
@@ -1261,7 +1340,7 @@ El proyecto también tiene limitaciones. La referencia de técnica de cada ejerc
 
 El proyecto puede continuar en dos líneas.
 
-La primera es **mejorar las indicaciones**. Hoy el motor revisa la postura en cada repetición, pero no el ritmo. En los ejercicios cíclicos se podría evaluar si la persona va demasiado rápido o hace pausas irregulares, un criterio que quedó fuera del alcance (sección 4.3). En la plancha se podría anunciar el tiempo restante y dar mensajes de ánimo mientras la persona sostiene la postura. Otra mejora sencilla es que la aplicación compruebe al iniciar que existen todas las medidas que usan las reglas.
+La primera es **mejorar las indicaciones**. Hoy el motor revisa la postura en cada repetición, pero no el ritmo. En los ejercicios cíclicos se podría evaluar si la persona va demasiado rápido o hace pausas irregulares, un criterio que quedó fuera del alcance (sección 4.3). En la plancha se podría anunciar el tiempo restante y dar mensajes de ánimo mientras la persona sostiene la postura. La evaluación de usabilidad (sección 13.3.3) añade tres mejoras concretas: decir en voz alta el conteo y el inicio y el fin de cada ejercicio, porque el contador en pantalla pasó desapercibido; revisar por qué el aviso de colocación se repitió cuando la persona ya estaba de perfil, posiblemente ajustando la tolerancia de orientación por regla (sección 14.2); y presentar las órdenes de voz al inicio de la sesión, porque dos de tres participantes no sabían que existían. Otra mejora sencilla es que la aplicación compruebe al iniciar que existen todas las medidas que usan las reglas.
 
 La segunda es **ampliar el alcance con nuevas funciones**, y la principal es facilitar la incorporación de ejercicios. El diseño actual ya permite añadir un ejercicio sin modificar el núcleo, porque cada ejercicio es una *skill*: un archivo de configuración con su referencia, sus errores y sus umbrales. Sin embargo, crear una *skill* todavía requiere conocer su formato, ejecutar programas de consola y editar los umbrales a mano. Una propuesta es un **perfil de entrenador**, distinto del perfil de quien entrena. Desde ese perfil, una persona con conocimiento del ejercicio, como un instructor, podría cargar el video de referencia, elegir qué errores revisar, ver sobre el video dónde se activa cada regla y ajustar el umbral en la misma pantalla. La aplicación generaría la *skill* sin que fuera necesario editar archivos, y la nueva *skill* tendría que pasar las mismas validaciones que las actuales antes de usarse en una sesión. Como punto de partida ya existe una herramienta interna que reproduce un video a través de la sesión real y grafica, para cada regla, la medida, el umbral y los momentos en que el sistema corregiría. Este perfil no debe confundirse con la entrenadora del Mac, que solo resume cada ejercicio al terminarlo.
 
@@ -1351,6 +1430,12 @@ También se podría adaptar el motor a cada persona según su nivel, lo que requ
 
 [41] ggml-org, *whisper.cpp* (implementación en C/C++ de Whisper, con aceleración Metal en Apple Silicon), GitHub. [En línea]. Disponible: https://github.com/ggml-org/whisper.cpp
 
-> **[REVISAR]** Añadir la fecha de consulta de [39] y [41] y comprobar los datos de [38] y [40] contra la fuente antes de entregar.
+[42] J. Brooke, "SUS: A 'quick and dirty' usability scale," en *Usability Evaluation in Industry*, P. W. Jordan, B. Thomas, B. A. Weerdmeester e I. L. McClelland, Eds. Londres: Taylor & Francis, 1996, pp. 189–194.
+
+[43] A. Bangor, P. Kortum y J. Miller, "Determining what individual SUS scores mean: Adding an adjective rating scale," *Journal of Usability Studies*, vol. 4, n.º 3, pp. 114–123, 2009.
+
+[44] J. Sauro y J. R. Lewis, "When designing usability questionnaires, does it hurt to be positive?," en *Proc. SIGCHI Conference on Human Factors in Computing Systems (CHI '11)*, Vancouver, 2011, pp. 2215–2224, doi: 10.1145/1978942.1979266.
+
+> **[REVISAR]** Añadir la fecha de consulta de [39] y [41] y comprobar los datos de [38] y [40] contra la fuente antes de entregar. Comprobar también [42]–[44] y las cifras de referencia que se toman de [43] en la sección 13.3.3 (≈ 85 para «excelente» y media de ≈ 70): se citaron de memoria, sin consultar la fuente.
 
 **Fuentes declaradas por la licenciada, pendientes de verificación bibliográfica antes de citarse:** A. Barba Martínez *et al.*, *Manual de Actividad Física y Salud*, UNAM–CCH, 2025; F. Robles-Palazón y P. Sainz de Baranda, «Programas de entrenamiento neuromuscular para la prevención de lesiones en jóvenes deportistas», *SPORT TK*, 6(2), 115–126, 2017; Universidad de La Sabana, *Guía básica de actividades físicas en casa*.

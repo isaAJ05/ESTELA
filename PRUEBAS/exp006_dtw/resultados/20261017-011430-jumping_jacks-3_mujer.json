@@ -1,0 +1,164 @@
+{
+  "entorno": {
+    "fecha": "2026-10-17T01:12:32",
+    "maquina": "Windows-11-10.0.26200-SP0",
+    "procesador": "Intel64 Family 6 Model 126 Stepping 5, GenuineIntel",
+    "python": "3.13.5",
+    "numpy": "2.5.4"
+  },
+  "video": "3 mujer.mp4",
+  "ejercicio": "jumping_jacks",
+  "modelo_pose": "full",
+  "fps_video": 29.97002997002997,
+  "frames": 525,
+  "pose_ms": {
+    "n": 525,
+    "p50": 60.5286,
+    "p95": 198.6633,
+    "max": 1575.2148
+  },
+  "pasadas": {
+    "sin_dtw": {
+      "dtw_ms": {
+        "n": 0
+      },
+      "sesion_sin_pose_ms": {
+        "n": 525,
+        "p50": 1.2613,
+        "p95": 3.5055,
+        "max": 13.3086
+      },
+      "completadas": 6,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          3,
+          "codos_flexionados"
+        ]
+      ],
+      "motivos_dtw": null
+    },
+    "anterior": {
+      "dtw_ms": {
+        "n": 525,
+        "p50": 211.4259,
+        "p95": 530.1764,
+        "max": 1451.9039
+      },
+      "sesion_sin_pose_ms": {
+        "n": 525,
+        "p50": 211.8389,
+        "p95": 531.2201,
+        "max": 1453.0879
+      },
+      "completadas": 6,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          3,
+          "codos_flexionados"
+        ]
+      ],
+      "motivos_dtw": {}
+    },
+    "incremental": {
+      "dtw_ms": {
+        "n": 525,
+        "p50": 0.1006,
+        "p95": 0.2021,
+        "max": 4.0824
+      },
+      "sesion_sin_pose_ms": {
+        "n": 525,
+        "p50": 0.458,
+        "p95": 0.8336,
+        "max": 4.7363
+      },
+      "completadas": 6,
+      "incompletas": 0,
+      "mensajes": [
+        [
+          3,
+          "codos_flexionados"
+        ]
+      ],
+      "motivos_dtw": {
+        "sin_repeticion": 2,
+        "alineado": 523
+      },
+      "calidad": {
+        "frames_alineados": 523,
+        "retrocesos": 22,
+        "retroceso_max_frames_ref": 3,
+        "progreso_esperado_al_cerrar": 0.623
+      },
+      "repeticiones": [
+        {
+          "rep": 1,
+          "resultado": "cuenta",
+          "duracion_s": 0.9,
+          "coste_dtw": 8.49,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 2,
+          "resultado": "cuenta",
+          "duracion_s": 0.8,
+          "coste_dtw": 5.68,
+          "progreso_dtw": 0.66
+        },
+        {
+          "rep": 3,
+          "resultado": "cuenta",
+          "duracion_s": 8.4,
+          "coste_dtw": 6.53,
+          "progreso_dtw": 0.64
+        },
+        {
+          "rep": 4,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 6.17,
+          "progreso_dtw": 0.62
+        },
+        {
+          "rep": 5,
+          "resultado": "cuenta",
+          "duracion_s": 0.7,
+          "coste_dtw": 6.57,
+          "progreso_dtw": 0.61
+        },
+        {
+          "rep": 6,
+          "resultado": "cuenta",
+          "duracion_s": 0.8,
+          "coste_dtw": 5.06,
+          "progreso_dtw": 0.64
+        }
+      ],
+      "coste_dtw_al_cerrar": {
+        "n": 6,
+        "p50": 6.35,
+        "p95": 8.01,
+        "max": 8.49
+      },
+      "desplazamiento": {
+        "delta": 20.0,
+        "hombro_medio": {
+          "n": 523,
+          "p10": -1.63,
+          "p50": 2.83,
+          "p90": 20.0
+        },
+        "codo_medio": {
+          "n": 523,
+          "p10": 10.52,
+          "p50": 20.0,
+          "p90": 20.0
+        },
+        "separacion_pies": "solo distancias: no se desplaza en grados"
+      }
+    }
+  },
+  "mismos_mensajes_en_las_tres_pasadas": true
+}

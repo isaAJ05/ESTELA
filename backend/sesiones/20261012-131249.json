@@ -1,0 +1,117 @@
+{
+  "rutina": "abduccion_cadera_izq",
+  "terminada": true,
+  "frames": 1150,
+  "frames_sin_persona": 119,
+  "latencias": {
+    "pose": {
+      "n": 1150,
+      "p50_ms": 50.419,
+      "p95_ms": 69.725
+    },
+    "geometria": {
+      "n": 1031,
+      "p50_ms": 0.476,
+      "p95_ms": 1.045
+    },
+    "segmentacion": {
+      "n": 1031,
+      "p50_ms": 0.047,
+      "p95_ms": 0.112
+    },
+    "dtw": {
+      "n": 1031,
+      "p50_ms": 30.112,
+      "p95_ms": 135.439
+    },
+    "motor": {
+      "n": 1031,
+      "p50_ms": 0.077,
+      "p95_ms": 0.2
+    },
+    "total": {
+      "n": 1031,
+      "p50_ms": 89.119,
+      "p95_ms": 192.393
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "abduccion_cadera_izq",
+      "objetivo": 24,
+      "unidad": "repeticiones",
+      "completadas": 24,
+      "incompletas": 3,
+      "duracion_s": 110.5,
+      "pausas_sesion": 0,
+      "pausa_s": 0.0,
+      "mensajes": [
+        {
+          "t_ms": 39633,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 5
+        },
+        {
+          "t_ms": 52420,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 10
+        },
+        {
+          "t_ms": 56462,
+          "texto": "Endereza el tronco, te estás inclinando hacia la derecha.",
+          "error_id": "tronco_inclinado_der",
+          "segmento": "tronco",
+          "lado": "derecho",
+          "severidad": "alta",
+          "repeticion": 11
+        },
+        {
+          "t_ms": 73518,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 16
+        },
+        {
+          "t_ms": 83354,
+          "texto": "Endereza un poco el tronco, se va hacia la derecha.",
+          "error_id": "tronco_inclinado_der",
+          "segmento": "tronco",
+          "lado": "derecho",
+          "severidad": "leve",
+          "repeticion": 19
+        },
+        {
+          "t_ms": 101804,
+          "texto": "Mantén la cadera izquierda un poco más baja.",
+          "error_id": "cadera_izq_sube",
+          "segmento": "cadera",
+          "lado": "izquierdo",
+          "severidad": "leve",
+          "repeticion": 24
+        }
+      ],
+      "abstenciones": {
+        "sin_error": 808,
+        "plano_no_observable": 12,
+        "evidencia_insuficiente": 49,
+        "periodo_refractario": 132,
+        "desvanecimiento": 30
+      }
+    }
+  ],
+  "voz": {
+    "motor": "piper",
+    "descartadas": 2
+  }
+}

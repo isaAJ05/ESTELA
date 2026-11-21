@@ -1,0 +1,126 @@
+{
+  "rutina": "jumping_jacks",
+  "terminada": true,
+  "frames": 2499,
+  "frames_sin_persona": 1307,
+  "latencias": {
+    "pose": {
+      "n": 2499,
+      "p50_ms": 37.165,
+      "p95_ms": 68.885,
+      "media_ms": 40.526,
+      "max_ms": 154.624
+    },
+    "geometria": {
+      "n": 1192,
+      "p50_ms": 0.412,
+      "p95_ms": 0.906,
+      "media_ms": 0.508,
+      "max_ms": 4.111
+    },
+    "segmentacion": {
+      "n": 1192,
+      "p50_ms": 0.043,
+      "p95_ms": 0.1,
+      "media_ms": 0.054,
+      "max_ms": 1.355
+    },
+    "dtw": {
+      "n": 1192,
+      "p50_ms": 26.765,
+      "p95_ms": 74.514,
+      "media_ms": 30.796,
+      "max_ms": 154.758
+    },
+    "motor": {
+      "n": 1176,
+      "p50_ms": 0.065,
+      "p95_ms": 0.18,
+      "media_ms": 0.084,
+      "max_ms": 1.432
+    },
+    "decision": {
+      "n": 1176,
+      "p50_ms": 0.059,
+      "p95_ms": 0.165,
+      "media_ms": 0.074,
+      "max_ms": 0.601
+    },
+    "total": {
+      "n": 1176,
+      "p50_ms": 80.337,
+      "p95_ms": 132.798,
+      "media_ms": 83.416,
+      "max_ms": 209.496
+    },
+    "verbalizacion": {
+      "n": 4,
+      "p50_ms": 0.492,
+      "p95_ms": 0.788,
+      "media_ms": 0.522,
+      "max_ms": 0.817
+    }
+  },
+  "pasos": [
+    {
+      "skill_id": "jumping_jacks",
+      "objetivo": 24,
+      "unidad": "repeticiones",
+      "completadas": 24,
+      "incompletas": 14,
+      "duracion_s": 137.0,
+      "pausas_sesion": 2,
+      "pausa_s": 37.3,
+      "mensajes": [
+        {
+          "t_ms": 120145,
+          "texto": "Extiende los codos, sin bloquearlos.",
+          "error_id": "codos_flexionados",
+          "segmento": "codo",
+          "lado": "bilateral",
+          "severidad": "moderada",
+          "repeticion": 16
+        },
+        {
+          "t_ms": 129155,
+          "texto": "Sube un poco más los brazos, hasta donde te resulte cómodo.",
+          "error_id": "brazos_no_llegan_arriba",
+          "segmento": "brazo",
+          "lado": "bilateral",
+          "severidad": "leve",
+          "repeticion": 18
+        },
+        {
+          "t_ms": 151093,
+          "texto": "Sube un poco más los brazos, hasta donde te resulte cómodo.",
+          "error_id": "brazos_no_llegan_arriba",
+          "segmento": "brazo",
+          "lado": "bilateral",
+          "severidad": "leve",
+          "repeticion": 27
+        },
+        {
+          "t_ms": 173993,
+          "texto": "Intenta subir bastante más los brazos, sin forzar.",
+          "error_id": "brazos_no_llegan_arriba",
+          "segmento": "brazo",
+          "lado": "bilateral",
+          "severidad": "alta",
+          "repeticion": 36
+        }
+      ],
+      "abstenciones": {
+        "sin_error": 1096,
+        "evidencia_insuficiente": 46,
+        "confianza_baja": 20,
+        "plano_no_observable": 16,
+        "periodo_refractario": 5,
+        "desvanecimiento": 17
+      }
+    }
+  ],
+  "voz": {
+    "motor": "texto",
+    "descartadas": 1
+  }
+}

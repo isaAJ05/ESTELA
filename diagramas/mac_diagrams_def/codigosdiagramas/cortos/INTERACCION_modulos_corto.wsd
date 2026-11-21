@@ -1,0 +1,52 @@
+@startuml INTERACCION_modulos_corto
+' Versión corta de INTERACCION_modulos.wsd para diapositivas — rama
+' feature/mac-flujo (commit 8248abb). Frente a la de test añade las órdenes
+' de voz, el verbalizador con LLM y la entrenadora.
+' Capas de arriba abajo: adaptadores, aplicación y dominio.
+
+title ESTELA — Interacción entre módulos
+
+top to bottom direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam ArrowFontSize 14
+skinparam titleFontSize 20
+skinparam nodesep 45
+skinparam ranksep 70
+
+package "Adaptadores" as AD {
+  component "Órdenes de voz\n(micrófono y Whisper)" as ESC
+  component "Cámara" as CAM
+  component "Orquestador\ne interfaz" as ORQ
+  component "Pose\n(MediaPipe)" as EP
+  component "Voz\n(Piper)" as VOZ
+  component "LLM local\n(Ollama)" as LLM
+}
+
+package "Aplicación" as AP {
+  component "Sesión y rutina" as SES
+  component "Comparación con referencias\n(DTW y reconocimiento)" as CMP
+  component "Perfiles\ne historial" as HIS
+  component "Entrenadora\n(resumen y «¿cómo voy?»)" as ENT
+}
+
+package "Dominio" as DO {
+  component "Geometría y\nsegmentador" as GEO
+  component "Motor de feedback\n(decisión + plantillas)" as MF
+  artifact "Skills y\nreferencias (JSON)" as CONF
+}
+
+ORQ .left.> CAM : fotograma
+ORQ ..> SES : procesar
+ORQ ..> HIS : guardar\nprogreso
+ESC ..> ORQ : orden
+EP <.. SES : estimar pose
+VOZ <.. SES : decir
+SES .left.> CMP : comparar
+SES ..> GEO : ángulos\ny fase
+SES ..> MF : decidir
+SES ..> CONF : lee
+LLM <.. SES : redactar\n(error ya decidido)
+LLM <.. ENT : resumir
+@enduml
