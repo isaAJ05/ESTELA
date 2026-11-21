@@ -1,0 +1,126 @@
+@startuml ACTIVIDAD_arranque
+' Arranque de ESTELA y qué pasa si falta algo — rama feature/mac-flujo
+' (commit 8248abb, 2026-11-20). Diagrama nuevo.
+' Sigue __main__.main(), _argumentos() con config.defectos(), crear_motor()
+' (adaptadores/voz/motores.py), _crear_verbalizador() y _llm_listo()
+' (pregunta a Ollama por /api/tags), _crear_entrenadora(), _crear_escucha() y
+' _crear_estimador() (este último al empezar cada sesión, en el hilo de sesión).
+' Idea que muestra: en el Mac se enciende todo lo que ese equipo aprovecha,
+' pero ninguna pieza es imprescindible: si falta, se avisa y se sigue con la
+' versión básica. Solo la rutina inválida o la interfaz sin compilar detienen
+' el arranque.
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Arranque y qué pasa si falta algo
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam ArrowFontSize 11
+
+start
+:python -m estela;
+:leer los argumentos de la línea de comandos;
+if (¿Mac con Apple Silicon?) then (sí)
+  :lo no pedido toma los valores del Mac:
+  pose heavy en GPU, frases con LLM, entrenadora con LLM,
+  órdenes de voz en modo «llamada» e «interrumpir»;
+else (no)
+  :lo no pedido toma los valores básicos:
+  pose lite en CPU, plantillas, sin entrenadora,
+  sin órdenes de voz;
+endif
+:cargar el catálogo de skills y la rutina;
+if (¿rutina válida?) then (no)
+  :error;
+  stop
+endif
+if (¿interfaz compilada (frontend/dist)?) then (no)
+  :error: compilar con npm run build;
+  stop
+endif
+
+partition "Voz de salida" {
+  if (¿hay una voz Piper (.onnx)?) then (sí)
+    :Piper;
+  elseif (¿hay voz del sistema (say)?) then (sí)
+    :voz del sistema (aviso);
+  else (no)
+    :solo texto en pantalla (aviso);
+  endif
+  :precalentar las frases de la rutina;
+}
+
+partition "Correcciones con LLM (qwen3:4b)" {
+  if (¿se pidieron frases con LLM?) then (sí)
+    if (¿Ollama responde y tiene el modelo?) then (sí)
+      :verbalizador con LLM;
+      :precalentar el modelo (en otro hilo);
+    else (no)
+      :aviso: «Se usan las plantillas»;
+    endif
+  else (no)
+    :plantillas;
+  endif
+}
+
+partition "Entrenadora (qwen3:14b)" {
+  if (¿se pidió entrenadora?) then (no)
+    :sin entrenadora;
+  else (sí)
+    if (¿con LLM, y Ollama tiene el modelo?) then (sí)
+      :entrenadora con LLM;
+    else (no)
+      :entrenadora con plantillas (aviso);
+    endif
+  endif
+}
+
+partition "Órdenes de voz (Whisper)" {
+  if (¿se pidieron órdenes de voz?) then (no)
+    :sin órdenes de voz;
+  else (sí)
+    if (¿hay micrófono?) then (no)
+      :aviso: conectarlo y encenderlo en Ajustes
+      (la escucha se crea igual);
+    endif
+    if (¿está el modelo ggml-small.bin?) then (no)
+      :aviso: falta el modelo;
+      :sin órdenes de voz;
+    elseif (¿arranca whisper.cpp?) then (no)
+      :aviso con el motivo;
+      :sin órdenes de voz;
+    else (sí)
+      :escucha de voz lista
+      (precalentar Whisper en otro hilo);
+    endif
+  endif
+}
+
+:abrir la ventana con la interfaz;
+:la usuaria elige perfil y rutina y pulsa «Empezar»;
+
+partition "Al empezar cada sesión: pose" {
+  if (¿se pidió la GPU (defecto en el Mac)?) then (sí)
+    if (¿está el modelo heavy?) then (no)
+      :full en CPU (aviso);
+    elseif (¿arranca la GPU (inferencia de prueba)?) then (sí)
+      :heavy en GPU;
+    else (no)
+      :full en CPU (aviso)
+      (heavy en CPU no cabe en 33 ms);
+    endif
+  else (no)
+    :modelo pedido en CPU
+    (lite por defecto fuera del Mac);
+  endif
+}
+:sesión en marcha;
+stop
+
+legend bottom left
+  Valores del Mac: config.defectos(). Cualquier valor se puede forzar por la línea de comandos.
+  Ninguna pieza del Mac es imprescindible: sin GPU, Ollama, un modelo o el micrófono,
+  ESTELA sigue con lo de la versión básica y lo avisa en el registro.
+endlegend
+@enduml

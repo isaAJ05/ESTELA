@@ -1,0 +1,119 @@
+@startuml SECUENCIA_orden_de_voz
+' Una orden de voz de principio a fin — rama feature/mac-flujo (commit 8248abb,
+' 2026-11-20). Diagrama nuevo: en test no hay órdenes de voz.
+' Sigue a EscuchaVoz (adaptadores/voz_entrada/escucha.py), Microfono y
+' DetectorDeFrase (microfono.py, frases.py), ReconocedorWhisperCpp
+' (reconocedor.py), comandos_voz.py, Sesion.puede_escuchar y Orquestador.
+' Defecto en el Mac (config.defectos): modo «llamada» (solo cuenta lo que
+' empieza por «Estela») y modo «interrumpir» (también se escucha mientras
+' ESTELA habla). En otros equipos las órdenes de voz están apagadas.
+' Cifras [F] de reconocedor.py: Whisper «small» en la Mac Studio (2026-11-16),
+' 98 clips sintéticos: p50 56 ms, p95 69 ms; 64 de 72 órdenes acertadas,
+' ninguna equivocada y 1 orden falsa en 26 clips sin orden.
+' [?] Sin medir con micrófono real: el eco de la propia voz de ESTELA y el
+' ruido real del ejercicio (config.GUARDA_ECO_S = 0, sin calibrar).
+' No necesita Graphviz.
+
+title ESTELA — Una orden de voz de principio a fin
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 280
+
+actor "Usuaria" as USU
+participant "Micrófono\n(sounddevice y\ndetector de frase)" as MIC
+participant "Escucha de voz\n(hilo propio)" as ESC
+participant "Whisper\n(whisper.cpp, small,\nGPU del Mac)" as WHI
+participant "Comandos de voz\n(lista fija)" as CMD
+participant "Sesión" as SES
+participant "Orquestador" as ORQ
+participant "Entrenadora" as ENT
+participant "Cola de voz" as VOZ
+
+note over MIC, WHI
+  El audio solo vive en memoria: no se guarda
+  ni sale del equipo. De lo que no empieza por
+  «Estela» se anota cuántas palabras, nunca el texto.
+end note
+
+loop mientras la escucha esté encendida
+  ESC -> SES : ¿puede escuchar ahora?\n(durante el ejercicio, en pausa y entre ejercicios;\nterminada la rutina, no)
+  alt no se puede
+    ESC -> MIC : descartar el audio
+  else ESTELA está callada
+    USU -> MIC : «Estela, pausa»
+    loop mientras la frase sigue (cada 0,3 s)
+      MIC -> ESC : últimos 2 s de la frase en curso
+      ESC -> WHI : transcribir(trozo)
+      WHI --> ESC : texto (p95 69 ms)
+      ESC -> CMD : hallar_llamada(texto)
+      opt oye «Estela» por primera vez (aviso temprano)
+        ESC ->> VOZ : sonido «te escucho» y ceder el turno 6 s\n(ESTELA no empieza frases nuevas)
+        ESC -> ESC : pantalla: «Te escucho»
+      end
+      opt dos trozos seguidos con la misma orden,\nque no puede seguir en otra
+        ESC -> MIC : cortar ya la frase\n(no espera al silencio)
+      end
+    end
+    MIC -> ESC : frase entera (al callar o como mucho a los 5 s)
+    ESC -> WHI : transcribir(frase)
+    WHI --> ESC : texto
+    ESC -> CMD : hallar_llamada + interpretar(texto)
+    alt no empieza por «Estela» (y no hay una llamada abierta)
+      ESC -> ESC : ignorar: no se responde ni se muestra
+    else solo «Estela»
+      ESC -> ESC : queda atenta 6 s:\nla frase siguiente cuenta como orden
+    else «Estela» + orden
+      ESC -> ESC : ejecutar(orden)  [ver abajo]
+    end
+  else ESTELA está hablando (modo «interrumpir»)
+    USU -> MIC : «Estela, para»
+    MIC -> ESC : últimos 2,5 s, cada 1 s\n(su voz también entra en el micrófono)
+    ESC -> WHI : transcribir(ventana)
+    WHI --> ESC : texto
+    ESC -> CMD : buscar_llamada(texto)
+    alt «Estela» viene de lo que ESTELA misma está diciendo
+      ESC -> MIC : olvidar la ventana (es su propio eco)
+    else la usuaria la llamó
+      ESC ->> VOZ : ceder el turno e interrumpir()\n(ESTELA se calla al momento)
+      alt trae una orden
+        ESC -> ESC : ejecutar(orden)  [ver abajo]
+      else sin orden clara
+        ESC ->> VOZ : sonido «te escucho»
+        ESC -> MIC : escuchar un poco más (ESTELA ya callada)
+        opt sigue sin orden
+          ESC ->> VOZ : decir(«Dime», urgente)\ny queda atenta 6 s
+        end
+      end
+    end
+  end
+end
+
+== ejecutar(orden) ==
+alt menciona dolor o lesión
+  ESC -> ORQ : pausar()
+  ESC ->> VOZ : decir(«Si te duele, no sigas. Si la molestia continúa,\nconsulta a un profesional de la salud.», urgente)\n(respuesta fija, sin modelo)
+else «¿cómo voy?»
+  ESC -> ENT : como_voy(lo hecho hasta ahora, progreso del perfil)
+  ENT --> ESC : respuesta (qwen3:14b o plantilla)
+  ESC ->> VOZ : decir(respuesta, prioridad de aviso)
+else «reinicia la sesión»
+  ESC ->> VOZ : decir(pregunta de confirmación)
+  USU -> MIC : «sí» o «no»
+  opt confirma
+    ESC -> ORQ : reiniciar_sesion()
+  end
+else pausa, sigue, siguiente, anterior, reinicia el ejercicio o termina
+  ESC -> ESC : traducir según el momento\n(«sigue»: reanudar si está en pausa,\n«listo» si se está colocando)
+  ESC -> ORQ : la misma acción que el botón
+  ORQ ->> VOZ : interrumpir() (corta lo que esté diciendo)
+  ORQ -> ORQ : encolar el comando\n(el hilo de sesión lo aplica en la vuelta siguiente)
+  ESC ->> VOZ : decir(confirmación corta)
+else «cállate» o «repite eso»
+  ESC ->> VOZ : interrumpir() / repetir la última frase
+else no la entiende
+  ESC ->> VOZ : decir(«No te entendí»)\n(sin repetirlo muy seguido)
+end
+@enduml

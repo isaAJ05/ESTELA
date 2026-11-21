@@ -1,0 +1,32 @@
+@startuml ACTIVIDAD_arranque_corto
+' Versión corta de ACTIVIDAD_arranque.wsd para diapositivas — rama
+' feature/mac-flujo (commit 8248abb).
+
+title ESTELA — Si falta algo, sigue funcionando
+
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam ArrowFontSize 14
+
+start
+:arranca en el Mac
+(enciende todo por defecto);
+if (¿GPU?) then (sí)
+  :pose heavy en GPU;
+else (no)
+  :pose full en CPU;
+endif
+if (¿Ollama con los modelos?) then (sí)
+  :frases y entrenadora con LLM;
+else (no)
+  :plantillas;
+endif
+if (¿micrófono y Whisper?) then (sí)
+  :órdenes de voz;
+else (no)
+  :solo botones;
+endif
+:sesión en marcha;
+stop
+@enduml

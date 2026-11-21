@@ -1,0 +1,36 @@
+@startuml SECUENCIA_orden_de_voz_corto
+' Versión corta de SECUENCIA_orden_de_voz.wsd para diapositivas — rama
+' feature/mac-flujo (commit 8248abb).
+
+title ESTELA — Una orden de voz
+
+skinparam shadowing false
+skinparam defaultFontSize 16
+skinparam titleFontSize 20
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+
+actor "Usuaria" as USU
+participant "Micrófono\ny Whisper" as ESC
+participant "Lista fija\nde órdenes" as CMD
+participant "Orquestador" as ORQ
+participant "Voz" as VOZ
+
+USU -> ESC : «Estela, pausa»
+ESC -> ESC : audio → texto\n(p95 69 ms, en el Mac)
+ESC ->> VOZ : oyó «Estela»: sonido «te escucho»\n(ESTELA se calla y cede el turno)
+ESC -> CMD : interpretar
+alt no empieza por «Estela»
+  CMD --> ESC : se ignora
+else dolor
+  CMD --> ESC : pausar
+  ESC -> ORQ : pausar
+  ESC ->> VOZ : respuesta fija
+else orden de la lista
+  CMD --> ESC : pausa
+  ESC -> ORQ : igual que el botón
+  ESC ->> VOZ : «En pausa»
+else no la entiende
+  ESC ->> VOZ : «No te entendí»
+end
+@enduml
