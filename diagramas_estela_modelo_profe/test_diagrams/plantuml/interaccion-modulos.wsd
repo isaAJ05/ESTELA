@@ -13,8 +13,11 @@ package "Aplicación" {
   [Sesión] as SES
   [Rutina] as RUT
   [Alineador DTW] as DTW
+  [Reconocedor de ejercicio] as REC
+  [Gesto de pausa] as GES
   [Registro por repetición] as REG
   [Pausa y Métricas] as PAU
+  [Perfiles e Historial] as HIS
 }
 
 package "Dominio" {
@@ -23,28 +26,29 @@ package "Dominio" {
   [Motor de Feedback] as MF
   [Motor de Decisión] as DEC
   [Verbalizador y Validador] as VER
-  [Skills] as SKI
+  [Skills y referencias] as SKI
 }
 
 package "Adaptadores de salida" {
   [Pose] as POSE
   [Voz] as VOZ
-  [Verbalizador LLM] as VLLM
 }
 
 [Cámara web] as Cam
 [MediaPipe] as MP
 [Piper] as Piper
-[llama-server] as LLM
 
 Usuario --> React
 React --> ORQ
 ORQ --> CAP
 ORQ --> SES
+ORQ --> HIS
 CAP --> Cam
 
 SES --> RUT
 SES --> DTW
+SES --> REC
+SES --> GES
 SES --> REG
 SES --> PAU
 SES --> GEO
@@ -57,9 +61,11 @@ MF --> DEC
 MF --> VER
 DEC --> SKI
 RUT --> SKI
+REC --> SKI
 
-VLLM --> VER
 POSE --> MP
 VOZ --> Piper
-VLLM --> LLM
+' En test el verbalizador con LLM (llama-server) solo lo usa el banco de
+' pruebas de EXP-001, fuera del producto: no se dibuja aquí (sí en
+' diagramas/definitivos/).
 @enduml

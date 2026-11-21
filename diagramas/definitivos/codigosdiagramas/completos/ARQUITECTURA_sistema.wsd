@@ -1,0 +1,77 @@
+@startuml ARQUITECTURA_sistema
+' Diagrama de arquitectura de ESTELA — rama test (commit 0387218, 2026-11-19).
+' Vista de alto nivel: actores, componentes principales y servicios externos,
+' sin abrir los módulos internos (eso lo hace INTERACCION_modulos.wsd) ni
+' detallar dónde se ejecuta cada cosa (eso lo hace DESPLIEGUE_sistema.wsd).
+' Cambios frente a la versión anterior, verificados en el código de test:
+'   - historial y perfiles locales (ADR-008, ADR-009);
+'   - reconocimiento del ejercicio (EXP-010) y gesto de pausa dentro del núcleo;
+'   - voz del sistema (say / espeak-ng) como respaldo de Piper;
+'   - llama-server ya no cuelga del núcleo: en test solo lo usa el banco
+'     de pruebas de feedback (feedback_testing, EXP-001);
+'   - modelos locales descargados una sola vez y visor de calibración.
+' Render: PlantUML con Graphviz. Sin Graphviz, descomentar la línea siguiente.
+' !pragma layout smetana
+
+title ESTELA — Diagrama de arquitectura
+
+left to right direction
+skinparam componentStyle uml2
+skinparam shadowing false
+skinparam defaultFontSize 13
+skinparam ArrowFontSize 11
+skinparam nodesep 40
+skinparam ranksep 130
+skinparam rectangle {
+  BorderStyle dashed
+}
+
+actor "Usuaria" as USU
+actor "Equipo de desarrollo" as DEV
+
+rectangle "Equipo de la usuaria — todo se ejecuta en local, sin servicios en la nube" as EQ {
+  node "Altavoces" as ALT
+  node "Cámara web" as CAM
+  component "Interfaz de escritorio\n(React en ventana pywebview;\nalternativa de pruebas: ventana OpenCV)" as UI
+  component "Núcleo de análisis en tiempo real\n(Python: sesión, pose, conteo, comparación DTW,\nreconocimiento del ejercicio, gesto y pausa,\ndecisión y voz)" as NUC
+  component "Piper TTS\n«biblioteca de terceros»" as PIP
+  component "Voz del sistema\n(say / espeak-ng)\n«respaldo»" as SIS
+  component "MediaPipe Pose Landmarker\n«biblioteca de terceros»" as MP
+  folder "Modelos locales\n(pose .task y voz .onnx)" as MOD
+  folder "Configuración de ejercicios\n(skills, referencias, referencias de\nreconocimiento y rutinas, JSON)" as CONF
+  folder "Historial y perfiles\n(perfiles.json y una sesión por línea, JSONL;\nsin video ni ángulos)" as HIST
+  folder "Métricas de sesión\n(JSON y CSV, solo con --guardar-metricas;\nsin video)" as MET
+}
+
+artifact "Videos de referencia\n(fuera del repositorio)" as VID
+component "Preparación offline\n(scripts: referencias, referencias de\nreconocimiento, descarga de modelos,\nvisor de calibración)" as OFF
+component "Banco de pruebas de feedback\n(feedback_testing, EXP-001)" as BAN
+component "llama-server\n«proceso opcional»" as LLM
+
+' ----------------------------------------------------------- usuaria
+USU <-- ALT : correcciones y\navisos en español
+USU --> CAM : hace el ejercicio frente a ella\n(brazo derecho arriba = pausa)
+USU --> UI : elige perfil y rutina,\nve su progreso
+
+' --------------------------------------------------- flujo en sesión
+ALT <-- NUC : voz sintetizada
+CAM --> NUC : fotogramas\n(solo en memoria)
+UI <--> NUC : llamadas a la API pywebview /\nestado (JSON)
+NUC --> MP : fotograma → 33 puntos
+NUC --> PIP : frase → audio
+NUC ..> SIS : frase → audio\n(si no hay Piper)
+MP --> MOD : carga
+PIP --> MOD : carga
+NUC --> CONF : lee
+NUC --> HIST : escribe al cerrar la sesión /\nlee para «Mi progreso»
+NUC --> MET : escribe
+
+' ------------------------------------------------------------ offline
+DEV --> OFF : ejecuta
+VID --> OFF
+OFF --> CONF : genera\nreferencias
+OFF --> MOD : descarga una vez\n(única vez con red)
+DEV --> BAN : ejecuta
+BAN ..> LLM : error ya tipificado →\nfrase (condición F)
+
+@enduml

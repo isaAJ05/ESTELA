@@ -16,11 +16,20 @@ loop mientras la sesión esté activa
   ORQ -> SES : procesar(fotograma)
   SES -> EP : estimar(fotograma)
   EP --> SES : puntos articulares
+  SES -> SES : revisar el gesto de pausa\n(brazo derecho arriba 3 s)
 
-  alt no se detecta a la persona
+  alt pausa pedida por el usuario (botón o gesto)
+    SES --> ORQ : estado en pausa
+  else no se detecta a la persona
     SES --> ORQ : estado con aviso (sin persona)
-  else hay persona
-    SES -> SES : calcular ángulos, fase y repetición\n(Geometría, Segmentador, DTW)
+  else colocándose al empezar el ejercicio
+    SES -> SES : revisar orientación y cuerpo entero
+    opt bien colocado durante 1,5 s seguidos
+      SES -> VOZ : decir(«Ya te veo bien»)
+    end
+    SES --> ORQ : estado de colocación
+  else hay persona y el ejercicio está en curso
+    SES -> SES : calcular ángulos, fase y repetición\n(Geometría, Segmentador, DTW, Reconocedor)
     alt sesión en pausa
       SES -> VOZ : decir(aviso de pausa)
     else sesión activa
@@ -31,6 +40,9 @@ loop mientras la sesión esté activa
         VOZ --> Usuario : frase hablada
       else se calla
         MF --> SES : silencio (motivo)
+      end
+      opt hace otro ejercicio
+        SES -> VOZ : decir(«Ese movimiento no es el de ahora»)
       end
     end
     SES --> ORQ : estado del fotograma

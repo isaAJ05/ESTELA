@@ -9,20 +9,24 @@ actor "Equipo de desarrollo" as Dev
 [Cámara web] as Cam
 [MediaPipe\nPose Landmarker] as MP
 [Piper\n(síntesis de voz)] as Piper
-[llama-server\n(modelo de lenguaje, opcional)] as LLM
+[Skills y referencias\n(archivos JSON)] as Skills
+[Historial y perfiles\n(archivos JSON locales)] as Hist
 [Creador de referencias\n(offline)] as CR
 [Video de referencia] as Vid
-[Skills y referencias\n(archivos JSON)] as Skills
 
 Usuario --> UI
+Usuario --> Cam
 UI --> Core
 Core --> Cam
 Core --> MP
 Core --> Piper
-Core --> LLM
 Core --> Skills
+Core --> Hist
 
 Dev --> CR
 CR --> Vid
 CR --> Skills
+' En test el LLM (llama-server) solo lo usa el banco de pruebas de EXP-001,
+' fuera del producto, y nunca se ha ejecutado: no se dibuja aquí. Sí aparece
+' en la versión completa (diagramas/definitivos/).
 @enduml

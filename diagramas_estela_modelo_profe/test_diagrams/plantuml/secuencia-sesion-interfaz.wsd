@@ -1,0 +1,54 @@
+@startuml
+title Secuencia - Una sesión completa desde la interfaz
+
+actor Usuario
+participant "Interfaz" as UI
+participant "Orquestador" as ORQ
+participant "Hilo de Sesión" as HILO
+participant "Sesión" as SES
+participant "Cola de Voz" as VOZ
+participant "Historial" as HIS
+
+Usuario -> UI : elegir perfil y rutina
+UI -> ORQ : iniciar(rutina)
+alt ya hay una sesión en curso o la rutina no es válida
+  ORQ --> UI : rechazado
+else se puede iniciar
+  ORQ -> HILO : lanzar el hilo de sesión
+  ORQ --> UI : aceptado
+  HILO -> HILO : abrir cámara y cargar el modelo de pose
+  alt falla la cámara o el modelo
+    HILO -> ORQ : publicar error
+  else todo listo
+    HILO -> SES : crear sesión
+    SES -> VOZ : decir(primer ejercicio)
+
+    par procesamiento
+      loop por cada fotograma
+        HILO -> SES : procesar(fotograma)
+        SES --> HILO : estado del fotograma
+        HILO -> ORQ : publicar estado
+      end
+    else consulta de la interfaz
+      loop mientras la sesión esté activa
+        UI -> ORQ : consultar estado
+        ORQ --> UI : estado más reciente
+        UI --> Usuario : mostrar sesión
+      end
+    else comandos del usuario
+      Usuario -> UI : pausar, siguiente o terminar
+      UI -> ORQ : comando
+      ORQ -> HILO : aplicar en la siguiente vuelta
+    end
+
+    HILO -> SES : resumen()
+    SES --> HILO : resumen
+    opt el usuario tiene perfil
+      HILO -> HIS : guardar la sesión
+    end
+    HILO -> ORQ : publicar resumen
+    ORQ --> UI : resumen
+    UI --> Usuario : mostrar resumen
+  end
+end
+@enduml

@@ -12,9 +12,7 @@ node "Equipo del Usuario (Windows, Linux o macOS)" as PC {
     [MediaPipe] as MP
     [Piper] as Piper
     [Skills y referencias (JSON)] as Skills
-  }
-  node "Proceso externo opcional" as EXT {
-    [llama-server] as LLM
+    [Historial y perfiles (JSON)] as Hist
   }
   node "Cámara web" as Cam
   node "Salida de audio" as Aud
@@ -32,7 +30,11 @@ Core --> Cam
 Core --> MP
 Core --> Piper
 Core --> Skills
-Core --> LLM
+Core --> Hist
 Piper --> Aud
-Core ..> Repo
+PC ..> Repo
+' En test el LLM (llama-server) solo lo usa el banco de pruebas de EXP-001,
+' fuera del producto: no se dibuja aquí (sí en diagramas/definitivos/).
+' La descarga la hace scripts/descargar_modelos.py en la instalación, no el
+' núcleo: por eso la flecha sale del equipo y no de Núcleo ESTELA.
 @enduml

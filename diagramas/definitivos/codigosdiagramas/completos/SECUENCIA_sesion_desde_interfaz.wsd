@@ -1,0 +1,143 @@
+@startuml SECUENCIA_sesion_desde_interfaz
+' Control de una sesión desde la interfaz de escritorio (SegundoInforme §10.4)
+' — rama test (commit 0387218, 2026-11-19).
+' Diagrama de secuencia: inicio de la sesión, sondeo largo del estado,
+' comandos de la usuaria y cierre con el resumen. Sigue a ventana.Api y a
+' Orquestador (adaptadores/interfaz/). No necesita Graphviz.
+' Cambios frente a la versión anterior, verificados en el código de test:
+'   - perfil elegido antes de empezar; la sesión se guarda en su historial
+'     al cerrar (ADR-008, ADR-009); sin perfil («invitada») no se guarda;
+'   - iniciar solo se acepta desde el inicio, el resumen o un error;
+'   - al iniciar se cierra la vista previa de la cámara;
+'   - comandos nuevos: anterior, listo (fin de la colocación), pausar y
+'     reanudar; configurar también activa el reconocimiento y elige cámara;
+'   - la sesión termina también por error; tras el resumen se puede
+'     repetir la rutina o volver al inicio.
+
+title ESTELA — Control de una sesión desde la interfaz
+
+skinparam shadowing false
+skinparam defaultFontSize 12
+skinparam sequenceMessageAlign center
+skinparam responseMessageBelowArrow true
+skinparam maxMessageSize 320
+
+actor "Usuaria" as USU
+participant "Interfaz React\n(ventana pywebview)" as UI
+participant "Api de la ventana\n(hilo por llamada)" as API
+participant "Orquestador" as ORQ
+participant "Hilo de sesión\n(Orquestador._correr)" as HILO
+participant "Fuente y\nestimador" as FE
+participant "Sesión" as SES
+participant "Cola de voz\n(hilo propio)" as VOZ
+participant "Perfiles e\nhistorial" as HIS
+participant "Arranque\n(al terminar)" as MAIN
+
+== Inicio ==
+opt hay perfiles en el equipo
+  USU -> UI : elige su perfil
+  UI -> API : elegir_perfil(id)
+  API -> ORQ : elegir_perfil(id)
+end
+USU -> UI : elige ejercicios, orden y objetivo\n(o una rutina guardada)
+UI -> API : iniciar(opciones)
+API -> API : validar la rutina\n(rutina_desde_opciones)
+alt rutina inválida
+  API --> UI : False
+else rutina válida
+  API -> ORQ : iniciar(rutina)
+  alt ya hay una sesión en curso
+    ORQ --> API : False
+  else fase de inicio, resumen o error
+    opt la rutina cambió
+      ORQ ->> VOZ : precalentar(frases de la rutina)
+    end
+    ORQ -> ORQ : fijar el perfil de esta sesión,\nvaciar comandos pendientes y\ncerrar la vista previa de la cámara
+    ORQ -> ORQ : publicar(fase «preparando»)
+    ORQ ->> HILO : lanzar el hilo de sesión
+    ORQ --> API : True
+  end
+  API --> UI : True / False
+end
+
+HILO -> FE : abrir la fuente y cargar el modelo de pose
+alt la cámara o el modelo fallan
+  HILO -> ORQ : publicar(fase «error», motivo)
+else todo listo
+  HILO -> SES : crear Sesion(rutina, catálogo, estimador, voz;\nDTW, colocación y reconocimiento)
+  SES ->> VOZ : decir(anuncio del primer ejercicio)
+  HILO -> ORQ : publicar(fase «sesion»)
+end
+
+== Sesión en curso: tres actividades a la vez ==
+par hilo de sesión
+  loop por cada fotograma
+    HILO -> SES : aplicar los comandos pendientes
+    ref over HILO, SES : Flujo de un fotograma en la fase en vivo
+    HILO -> ORQ : publicar(EstadoFrame, fotograma)
+  end
+else sondeo largo de la interfaz
+  loop mientras la ventana esté abierta
+    UI -> API : estado(desde)
+    API -> ORQ : estado(desde)
+    ORQ -> ORQ : esperar una versión más nueva\n(hasta 0,5 s)
+    alt hay versión nueva
+      ORQ -> ORQ : convertir a JSON y comprimir\nel fotograma en JPEG
+      ORQ --> API : estado (JSON + JPEG)
+      API --> UI : estado
+      UI -> UI : dibujar; si va más lenta que la\ncámara, se salta estados
+    else no llega en 0,5 s
+      ORQ --> API : None
+      API --> UI : None (vuelve a preguntar)
+    end
+  end
+else comandos de la usuaria
+  USU -> UI : siguiente, anterior, reiniciar, listo,\npausar, reanudar o terminar
+  UI -> API : siguiente() / anterior() / reiniciar() / listo()\n/ pausar() / reanudar() / terminar()
+  API -> ORQ : encolar el comando
+  ORQ --> API : (vuelve de inmediato)
+  API --> UI
+  note over HILO : el hilo de sesión aplica el comando\nal comienzo de la vuelta siguiente
+  USU -> UI : silenciar la voz o activar el reconocimiento
+  UI -> API : configurar({voz, reconocer, camara})
+  API -> ORQ : configurar(...)
+  opt voz
+    ORQ ->> VOZ : silenciar()
+  end
+  opt reconocer
+    ORQ -> ORQ : encolar «reconocer»\n(vale desde la vuelta siguiente)
+  end
+  note over ORQ : la cámara elegida se usa\ndesde la próxima sesión
+end
+
+== Cierre ==
+note over HILO
+  Termina cuando la rutina se completa,
+  la usuaria pulsa «terminar», la fuente
+  deja de dar fotogramas o hay un error.
+end note
+HILO -> FE : cerrar la fuente y el estimador
+HILO -> SES : resumen()
+SES --> HILO : resumen (solo métricas derivadas)
+HILO -> MAIN : al_terminar(resumen)
+opt con --guardar-metricas
+  MAIN -> MAIN : escribir JSON y CSV en sesiones/\n(sin video ni puntos articulares)
+end
+alt hay perfil de la sesión
+  HILO -> HIS : agregar(registro de la sesión)\n(fecha, rutina, cómo terminó y\nqué indicaciones recibió; sin video ni ángulos)
+  HIS --> HILO : guardada (o no, si falla la escritura)
+else invitada o sin perfiles
+  note over HILO, HIS : no se guarda nada
+end
+HILO -> ORQ : publicar(fase «resumen», resumen, guardada)
+UI -> API : estado(desde)
+API -> ORQ : estado(desde)
+ORQ --> UI : resumen
+UI -> USU : pantalla de resumen
+alt «Repetir rutina»
+  UI -> API : iniciar() sin rutina: repite la última
+else «Volver al inicio»
+  UI -> API : volver_al_inicio()
+  API -> ORQ : publicar(fase «inicio»)
+end
+@enduml
