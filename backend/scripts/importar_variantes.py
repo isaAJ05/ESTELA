@@ -125,9 +125,10 @@ def main() -> None:
         texto = ruta.read_text(encoding="utf-8")
         for (m, s), lista in nuevas.items():
             texto = insertar(texto, m, s, lista)
-        nota = ('    "variantes_70b": "2026-11-20: añadidas las variantes del 70B aprobadas en '
-                'PRUEBAS/variantes_70b/variantes_70b_revisadas.csv (scripts/importar_variantes.py)",\n')
-        if '"variantes_70b"' not in texto:
+        clave = "variantes_" + a.hoja.stem.split("_")[1]          # variantes_70b, variantes_14b…
+        nota = (f'    "{clave}": "2026-11-20: añadidas las variantes aprobadas en '
+                f'PRUEBAS/{a.hoja.parent.name}/{a.hoja.name} (scripts/importar_variantes.py)",\n')
+        if f'"{clave}"' not in texto:
             texto = texto.replace('    "revision_pendiente"', nota + '    "revision_pendiente"', 1)
         json.loads(texto)                           # sigue siendo JSON válido
         ruta.write_text(texto, encoding="utf-8")
