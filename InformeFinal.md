@@ -5,7 +5,7 @@
 **Estudiantes:** Isabella Arrieta Juliao · Natalia Carpintero Leal · Paula Núñez Zarante
 **Tutores:** Ph.D. Margarita Gamarra · Augusto Salazar Silva
 
-> **Nota para el equipo.** Esta versión toma como base la rama `feature/mac-flujo` (17-nov-2026) y las mediciones del Mac Studio M2 Ultra (16 y 17-nov-2026). Los recuadros **[ESPACIO PARA COMPLETAR]** que quedan corresponden a lo que todavía no se ha medido: las sesiones anotadas con participantes y las órdenes de voz con micrófono real. El cuestionario de usabilidad (tres participantes, 20-nov-2026) ya está en la sección 13.3.3. Los recuadros **[REVISAR]** señalan cifras que solo constan en los mensajes de *commit* o en el `ESTADO.md` del Mac (sus archivos de resultados no están en git) y que conviene confirmar antes de entregar.
+<!-- **Nota para el equipo.** Esta versión toma como base la rama `feature/mac-flujo` (17-nov-2026) y las mediciones del Mac Studio M2 Ultra (16 y 17-nov-2026). Los recuadros **[ESPACIO PARA COMPLETAR]** que quedan corresponden a lo que todavía no se ha medido: las sesiones anotadas con participantes y las órdenes de voz con micrófono real. El cuestionario de usabilidad (tres participantes, 20-nov-2026) ya está en la sección 13.3.3. Los recuadros **[REVISAR]** señalan cifras que solo constan en los mensajes de *commit* o en el `ESTADO.md` del Mac (sus archivos de resultados no están en git) y que conviene confirmar antes de entregar. -->
 
 ## Resumen / Abstract
 
