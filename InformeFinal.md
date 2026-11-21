@@ -665,11 +665,9 @@ La siguiente tabla presenta los componentes principales, su ubicación en el có
 | *Skills* y referencias | Archivos de configuración | Contienen todo lo que el sistema sabe de cada ejercicio. | RNF-08 |
 | Creación de referencias | Programa independiente | Construye la referencia de un ejercicio a partir de un video. | RF-05, RF-13 |
 
-La Figura 1 muestra la arquitectura completa a alto nivel. En ella conviene observar tres aspectos. Primero, todos los componentes, incluidos MediaPipe, Piper y el servidor opcional del modelo de lenguaje, funcionan dentro del computador de la persona. Segundo, la interfaz y el núcleo de análisis solo intercambian órdenes y estados. Tercero, las referencias se preparan antes de la sesión. Los perfiles, el historial y los componentes del Mac (entrenadora, órdenes de voz y servidor Ollama) se añadieron después de elaborar la figura. Los perfiles y el historial son archivos locales que la capa de aplicación lee al empezar y escribe al terminar la sesión. Ollama y whisper.cpp ocupan el mismo lugar que el servidor opcional del modelo de lenguaje: son procesos o bibliotecas del mismo computador.
+La Figura 1 muestra la arquitectura completa a alto nivel. En ella conviene observar tres aspectos. Primero, todos los componentes, incluidos MediaPipe, Piper y el servidor opcional del modelo de lenguaje, funcionan dentro del computador de la persona. Segundo, la interfaz y el núcleo de análisis solo intercambian órdenes y estados. Tercero, las referencias se preparan antes de la sesión. La figura corresponde a la versión del Mac e incluye el micrófono con Whisper, Ollama, y los perfiles y el historial, que son archivos locales que la capa de aplicación lee al empezar y escribe al terminar la sesión. Ollama y whisper.cpp ocupan el mismo lugar que el servidor opcional del modelo de lenguaje: son procesos o bibliotecas del mismo computador.
 
-> **[ESPACIO PARA COMPLETAR]** Actualizar las figuras 1, 3 y 6 con el historial, los perfiles, la entrenadora, el micrófono con Whisper y Ollama, o conservar la aclaración anterior.
-
-![Figura 1. Arquitectura de ESTELA](diagramas/definitivos/completos/ARQUITECTURA_sistema.png)
+![Figura 1. Arquitectura de ESTELA](diagramas_estela_modelo_profe/mac_diagrams/png/arquitectura.png)
 
 **Figura 1. Diagrama de arquitectura del sistema.** Actores, componentes principales y servicios de terceros. Todo se ejecuta en el equipo del usuario y la preparación de referencias ocurre fuera de la sesión.
 
@@ -691,7 +689,7 @@ La Figura 2 muestra qué módulos dependen de cuáles, obtenido directamente del
 
 La Figura 3 muestra cómo colaboran los módulos dentro de cada capa. En ella se puede ver que solo los adaptadores usan tecnologías externas y que la sesión accede al estimador y a la voz únicamente a través de sus interfaces.
 
-![Figura 3. Interacción entre módulos](diagramas/definitivos/completos/INTERACCION_modulos.png)
+![Figura 3. Interacción entre módulos](diagramas_estela_modelo_profe/mac_diagrams/png/interaccion-modulos.png)
 
 **Figura 3. Diagrama de interacción entre módulos.** Tecnologías externas, adaptadores, aplicación y dominio, con las interfaces que cada componente ofrece o necesita.
 
@@ -699,13 +697,13 @@ La Figura 3 muestra cómo colaboran los módulos dentro de cada capa. En ella se
 
 La secuencia más importante es lo que ocurre con **cada imagen de la cámara**, que muestra la Figura 4. El orquestador toma la imagen más reciente y se la entrega a la sesión. Si no hay una persona, la sesión muestra un aviso y no llama al motor. Si hay una persona, calcula las medidas, actualiza el conteo y la comparación con la referencia. Si la persona se está colocando o la sesión está en pausa, el motor no corrige. En cualquier otro caso, el motor decide y, si hay un mensaje, lo deja en la cola de voz sin esperar a que se pronuncie.
 
-![Figura 4. Flujo de un fotograma en la fase en vivo](diagramas/definitivos/completos/SECUENCIA_flujo_por_fotograma.png)
+![Figura 4. Flujo de un fotograma en la fase en vivo](diagramas_estela_modelo_profe/mac_diagrams/png/secuencia-fotograma.png)
 
 **Figura 4. Secuencia del análisis de una imagen.** Orden de las llamadas, hilo que ejecuta cada parte y casos en que no se llama al motor.
 
 La segunda secuencia es el **control de la sesión desde la interfaz**, que muestra la Figura 5. Al pulsar «Comenzar», la interfaz envía la rutina elegida. El orquestador la valida, prepara las frases de voz y abre la cámara. Si algo falla, por ejemplo porque la cámara está ocupada, la interfaz muestra el motivo. Durante la sesión, la interfaz pide el estado de forma continua, y las órdenes de la persona, como pausar o pasar al siguiente ejercicio, se aplican en la siguiente imagen. Al terminar, el sistema cierra la cámara, calcula el resumen y lo guarda en el historial del perfil con el que empezó la sesión.
 
-![Figura 5. Control de una sesión desde la interfaz](diagramas/definitivos/completos/SECUENCIA_sesion_desde_interfaz.png)
+![Figura 5. Control de una sesión desde la interfaz](diagramas_estela_modelo_profe/mac_diagrams/png/secuencia-sesion-interfaz.png)
 
 **Figura 5. Secuencia del control de una sesión.** Inicio, consulta del estado, órdenes del usuario y cierre con el resumen.
 
@@ -852,7 +850,7 @@ La aplicación solo escribe dos tipos de archivos: los perfiles e historiales, q
 
 La Figura 6 muestra dónde se ejecuta cada parte. Todo ocurre en un único computador. La interfaz y el servidor del modelo de lenguaje (Ollama en el Mac) se comunican con Python dentro del mismo equipo, y la cámara, el micrófono y los parlantes se conectan directamente a él.
 
-![Figura 6. Despliegue de ESTELA](diagramas/definitivos/completos/DESPLIEGUE_sistema.png)
+![Figura 6. Despliegue de ESTELA](diagramas_estela_modelo_profe/mac_diagrams/png/despliegue.png)
 
 **Figura 6. Despliegue de ESTELA.** Componentes en ejecución, dispositivos conectados y archivos locales. Durante la sesión ningún dato sale del equipo.
 
