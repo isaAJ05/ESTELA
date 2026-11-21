@@ -430,6 +430,7 @@ function Pausa({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void 
   const motivo = useSesion('motivoPausa')
   const pausaManual = useCapacidad('pausaManual')
   const conGesto = useCapacidad('gestoPausa')
+  const conVoz = useEstado((s) => s.estado?.sesion?.microfono?.encendido ?? false)
   if (!pausada) return null
   const texto = TEXTO_PAUSA[motivo ?? 'inactividad']
   return (
@@ -439,6 +440,7 @@ function Pausa({ bridge, alTerminar }: { bridge: Bridge; alTerminar: () => void 
         <span className="etiqueta">Sesión en pausa</span>
         <h2 id="titulo-pausa">{texto.titulo}</h2>
         <p>{texto.detalle}</p>
+        {conVoz && motivo === 'usuaria' && <p className="pausa-gesto"><Mic aria-hidden="true" />También puedes decir «Estela, seguir».</p>}
         {conGesto && <p className="pausa-gesto"><Hand aria-hidden="true" />También puedes seguir manteniendo el brazo derecho arriba 3 segundos.</p>}
         <div className="acciones">
           {pausaManual && motivo === 'usuaria' && <Boton onClick={() => void bridge.reanudar()}><Play />Reanudar</Boton>}
