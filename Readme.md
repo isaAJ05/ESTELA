@@ -1,5 +1,6 @@
 # ESTELA
-VIDEO DEMO: https://youtu.be/efZmI3LplR8
+VIDEO DEMO: https://youtu.be/MGvIow_HVAU
+
 DIAPOSITIVAS AVANCE: https://canva.link/4qllfjw9c5q3am4
 
 ## Resumen ejecutivo
