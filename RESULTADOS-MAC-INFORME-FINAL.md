@@ -4,9 +4,9 @@ Rama `feature/mac-flujo`. Código medido: el de `6424b08` (`main` del 22-nov), c
 Fechas: los pasos 0, 1, 2 y 3 se midieron el 2026-11-22. Las secciones con «(20-nov)» en el título se midieron o revisaron el 2026-11-20 en el mismo equipo y no se repitieron.
 Etiquetas: `[F]` medido o comprobado en este Mac en la fecha de su sección · `[F-2]` tomado de un commit, de `ESTADO.md` o de un archivo de resultados anterior · `[?]` no se pudo medir · `[I]` deducido de lo medido o del código.
 Este archivo solo contiene métricas. No contiene audio, vídeo ni el texto de lo que dijo nadie.
-Commits de este trabajo en la rama: `37e9520` lleva la herramienta del paso 3, su prueba y el arreglo de una línea del paso 5 (su mensaje dice «Actualizacion de Informe» y metió por error `backend/.DS_Store`, que `1bba5af` quita); los resultados y este documento van en los commits siguientes.
+Commits de este trabajo en la rama: `37e9520` lleva la herramienta del paso 3, su prueba y el arreglo de una línea del paso 5 (su mensaje dice «Actualizacion de Informe» y metió por error `backend/.DS_Store`, que `1bba5af` quita); `42bd098` trae los pasos 0, 1 y 2, y el paso 3 llega con el commit de esta versión.
 
-**Estado:** borrador. Medidos los pasos 0, 1 y 2. El paso 3 se está midiendo: su herramienta ya está en la rama y pasa las pruebas. Faltan los pasos 5 y 7, que se hacen frente al Mac.
+**Estado:** medidos los pasos 0, 1, 2 y 3. Quedan pendientes los pasos 5 y 7, que se hacen frente al Mac; su guía está más abajo.
 
 ---
 
@@ -230,30 +230,87 @@ Las cifras son iguales en las cuatro sesiones de cada vídeo (dos corridas, dos 
 ### Qué no cubre esta medición
 
 - **La entrenadora no llegó a hablar** en ninguna de las 12 sesiones «todo» `[F]`. Desde `3c7d229` no habla entre ejercicios y el vídeo se acaba antes del final de la rutina, así que «todo» ya no incluye llamadas al modelo de la entrenadora. En `8dfd164` sí hablaba entre los dos pasos (1,0–1,4 s por respuesta) `[F-2]`. Para incluirla habría que lanzar la app con `--entrenadora-entre si` desde el script, que hoy no lo permite.
-- **Antes de la corrida de 0,3 s, el Monitor de Actividad estaba al 13,3 % de CPU** (`top`), por encima del 10 % acordado. En las demás corridas del día estaba en torno al 1 %. La corrida no se repitió; sus cifras son parecidas a las de la corrida de 2,0 s y a las del 20-nov.
+- **Antes de la corrida de 0,3 s, el Monitor de Actividad estaba al 13,3 % de CPU** (`top`), por encima del 10 % acordado. En las demás corridas del día estaba en torno al 1 %. Se decidió no repetirla (22-nov); sus cifras son parecidas a las de la corrida de 2,0 s y a las del 20-nov.
 - Memoria: el proceso más grande de cada corrida llegó a 3,95 GB de RSS (`/usr/bin/time -l`) `[F]`. No se sabe cuál de las 12 sesiones fue; las de «todo» cargan además Whisper y Piper en el mismo proceso.
 
 Resultados: `~/estela-mac/resultados/todo-a-la-vez-v2/` y `todo-a-la-vez-v2-cada03/` (`todo_a_la_vez.json` y un `.json` y un `.log` por sesión), con sus registros `todo-a-la-vez-v2.log` y `todo-a-la-vez-v2-cada03.log`. No están en el repositorio.
 
 ---
 
-## Paso 3 · De la detección a la voz con el LLM encendido (OE4) — MIDIENDO (22-nov)
+## Paso 3 · De la detección a la voz con el LLM encendido (OE4) (22-nov)
 
 Hasta hoy ninguna herramienta medía de la detección a la voz con el LLM encendido: `informe2.py` usaba siempre plantillas.
 
-**Herramienta nueva (hecha, commit `37e9520`):** `informe2.py --verbalizador llm`.
-- Crea el verbalizador igual que la app (`__main__._crear_verbalizador`: `qwen3:4b-instruct-2507-q4_K_M` por Ollama, límite de 400 ms), espera a que el modelo esté cargado y lo pasa a `Sesion(..., verbalizador=v, verbalizar_aparte=True)`.
+**Herramienta nueva (commit `37e9520`):** `informe2.py --verbalizador llm`.
+- Crea el verbalizador igual que la app (`__main__._crear_verbalizador`: mismo modelo, backend y límite de tiempo), espera a que el modelo esté cargado y lo pasa a `Sesion(..., verbalizador=v, verbalizar_aparte=True)`.
 - `deteccion_a_voz()` mide cada frase desde la llegada de la imagen en que se detectó el error hasta que empieza a sonar. Cuenta aparte las correcciones sustituidas mientras esperaban al LLM y las que volvieron tarde.
 - Apunta el tiempo de cada redacción y si cayó a plantilla (y por qué).
-- Sin `--verbalizador llm` el emparejamiento es el de antes.
 - Prueba nueva: `tests/test_informe2_llm.py`, 5 casos con un verbalizador falso y lento, sin Ollama.
 
-| Dato | Valor | Etiqueta |
-|---|---|---|
-| Pruebas con la herramienta nueva, en la copia de medición | 737 pasan, 0 fallan, 0 omitidas (12 fuera por la marca `metricas`), en 35,9 s | [F] |
-| De la detección a la voz con el LLM | Midiéndose | [?] |
+### Comprobación: sin `--verbalizador llm` sale lo mismo que antes
 
-Registro de las pruebas: `~/estela-mac/resultados/MAC-pytest-paso3.log`.
+Comando: el de la corrida b) del paso 1 con `--sin-modelos`, ya con el código nuevo y con la salida en `~/estela-mac/resultados/paso3-sin-llm/` (17:38–17:59).
+
+| | Paso 1 b), código anterior | Código nuevo, sin LLM | Etiqueta |
+|---|---|---|---|
+| Imágenes procesadas | 16 125 | 16 125 | [F] |
+| Pose p95 | 16,5 ms | 16,0 ms | [F] |
+| Correcciones (y refuerzos) | 21 (y 3) | 21 (y 3), las mismas por ejercicio: 1, 6, 3 y 11, y ninguna en la zancada | [F] |
+| De la detección a la voz, p50 / p95 / máx | 0,03 / 0,10 / 0,11 s | 0,03 / 0,10 / 0,10 s | [F] |
+| Segunda pasada («cola») | 22 correcciones; 0,03 s (p95) | 22 correcciones; 0,03 s (p95) | [F] |
+| Pruebas en la copia de medición | 732 pasan | 737 pasan (las 5 nuevas), 0 fallan, 0 omitidas, en 35,9 s | [F] |
+
+### Medición con el LLM
+
+Comando (18:00–18:21), con la configuración real del Mac:
+```
+.venv/bin/python -m feedback_testing.informe2 --modelo heavy --delegado gpu --verbalizador llm --sin-modelos --salida-md feedback_testing/resultados/MAC-gpu-heavy-llm.md --salida-json feedback_testing/resultados/MAC-gpu-heavy-llm.json
+```
+Modelo `qwen3:4b-instruct-2507-q4_K_M` por Ollama, límite de 400 ms por frase y temperatura 0,7: los valores de la app. El modelo ya estaba cargado al empezar. Antes de la corrida ningún proceso pasaba del 7 % de CPU. Son los mismos 23 vídeos a ritmo real, con la política «último frame» y Piper sin audio.
+
+| De la detección a la voz | Correcciones | p50 | p95 | Máximo | Etiqueta |
+|---|---|---|---|---|---|
+| **Total** | 21 | 0,35 s | 0,39 s | 0,44 s | [F] |
+| *Jumping jacks* | 1 | 0,35 s | — | 0,35 s | [F] |
+| Abducción derecha | 6 | 0,35 s | 0,37 s | 0,37 s | [F] |
+| Abducción izquierda | 3 | 0,39 s | 0,44 s | 0,44 s | [F] |
+| Plancha | 11 | 0,35 s | 0,39 s | 0,39 s | [F] |
+| Zancada derecha e izquierda | 0 | — | — | — | [F] |
+
+De ese tiempo, 0,29 s de mediana (0,32 s de p95) van de la imagen al encolado, que es sobre todo la redacción. Otros 0,07 s (0,085 s de p95) van del encolado al audio: es Piper sintetizando una frase que no podía estar preparada `[F]`. Ninguna corrección esperó a otra frase.
+
+| Qué pasó con las correcciones | n | Etiqueta |
+|---|---|---|
+| Decididas por el motor | 21 | [F] |
+| Redactadas por el LLM | 20 | [F] |
+| Caídas a plantilla | 1: el validador rechazó la frase porque no pedía la corrección (`sin_correccion`) | [F] |
+| Sustituidas antes de redactarse | 0 | [F] |
+| Redactadas tarde | 0 | [F] |
+| Encoladas y dichas | 21 de 21 | [F] |
+| Mensajes no respaldados | 0 de 21 | [F] |
+
+| Tiempo de cada redacción | n | p50 | p95 | Máximo | Etiqueta |
+|---|---|---|---|---|---|
+| Todas | 21 | 265 ms | 294 ms | 331 ms | [F] |
+| Con la frase del LLM | 20 | 265 ms | 296 ms | 331 ms | [F] |
+
+Comparación:
+
+| | De la detección a la voz, p95 | Etiqueta |
+|---|---|---|
+| Plantillas, medición anterior (*full* en CPU) | 0,03 s (17 correcciones) | [F-2] |
+| Plantillas hoy, con *heavy* en GPU (paso 1 b) | 0,10 s (21) | [F] |
+| LLM hoy, con *heavy* en GPU | 0,39 s (21); máximo de 0,44 s | [F] |
+| Meta | ≤ 1 s | |
+
+El informe estimaba que quedaría por debajo de 0,5 s, y así es. La pose no cambia con el LLM: 16,2 ms (p95), mínimo de 25,0 imágenes por segundo y 6 descartadas de 16 131, como en el paso 1 b) `[F]`. En la segunda pasada («cola») hubo 22 correcciones, con 0,41 s de p95 y 0,45 s de máximo `[F]`. Memoria máxima del proceso de medición: 3,75 GB.
+
+Límites de esta medición:
+- Son 21 correcciones y ninguna es de zancada.
+- No hubo ninguna corrección sustituida ni tardía. Esos dos contadores quedaron en cero sin ponerse a prueba con vídeo; sí los cubre la prueba automática.
+- No incluye la latencia del dispositivo de audio.
+
+Resultados: `backend/feedback_testing/resultados/MAC-gpu-heavy-llm.{md,json}` (en el repositorio) y, fuera de él, `~/estela-mac/resultados/paso3-sin-llm/`. Registros: `~/estela-mac/resultados/MAC-gpu-heavy-llm.log`, `MAC-gpu-heavy-sin-llm.log` y `MAC-pytest-paso3.log`.
 
 ---
 
@@ -307,7 +364,7 @@ La correspondencia A4/A5/A6 con lite/full/heavy está tomada de EXP-004 y del co
 
 Hasta ahora solo hay resultados con audio sintético (`[F-2]`, paso 4.2).
 
-**Arreglo previo (hecho, commit `37e9520`):** `scripts/voz/probar_microfono.py` usaba `cv.separar_llamada`, que exige que «Estela» sea la primera palabra. La app usa `cv.hallar_llamada` desde `8248abb`, que la acepta en cualquier punto de la frase. Se cambió solo esa llamada. El script sigue sin el aviso temprano ni las ventanas parciales de la app: mide el reconocimiento de cada frase, no la sesión completa.
+**Arreglo previo (hecho, commit `37e9520`):** `scripts/voz/probar_microfono.py` usaba `cv.separar_llamada`, que exige que «Estela» sea la primera palabra. La app usa `cv.hallar_llamada` desde `8248abb`, que la acepta en cualquier punto de la frase. Se cambió solo esa llamada. El script sigue sin el aviso temprano ni las ventanas parciales de la app: mide el reconocimiento de cada frase, no la sesión completa. Con el cambio, las pruebas siguen pasando: 737, 0 fallan `[F]` (22-nov).
 
 **Condiciones:** el micrófono de las sesiones, a unos 2,5 m, en la sala de las sesiones, con todas las ventanas de ESTELA cerradas para que no compitan por el micrófono. En la Terminal **del Mac**:
 ```
@@ -466,9 +523,9 @@ Respecto a `InformeFinal.md` en `main` (`6424b08`, 22-nov). Las medidas son del 
 | Imágenes por encima de 33 ms con todo encendido | 14.3 y 14.6 («Falta repetir la medición») | 10 de 7 694 (máximo de 314 ms), todas por la llamada al LLM dentro del ciclo de cada imagen | Con los mismos 4 vídeos: 4 de 7 694 (máximo de 196 ms) reconociendo una orden cada 2,0 s, y 1 (198 ms) cada 0,3 s. Con la pose sola hay 3 (276–280 ms). La más lenta es la renovación del detector de la GPU y ninguna la causa el LLM, que redacta fuera del ciclo (260 ms de mediana por frase) | [F] |
 | Pose con todo encendido | 14.3 y 14.6 | 17,5 ms (p95), igual sola que con todo; Whisper 109 ms y Piper 178 ms (p95) | Con 6 vídeos (8 334 imágenes): 14,4 ms con todo y 14,3 ms sola; Whisper 113 ms y Piper 154 ms (p95) | [F] |
 | Pruebas del backend en el Mac | 11.2 | 731 el 20-nov (`082c2e3`) | 732 en `6424b08` (`main`): 0 fallan y 0 se omiten. Con la herramienta del paso 3 (`37e9520`) son 737. Las 12 de más respecto a las 720 de Windows son las que allí se omiten por faltar el vídeo de prueba y Whisper | [F] |
-| OE4 con el LLM encendido | 14.8 | «Estimado y sin medir»: debería quedar por debajo de 0,5 s | Midiéndose (paso 3) | [?] |
-| Órdenes con micrófono real | 14.4 | Sin medir | Sin medir todavía: es el paso 5 | [?] |
-| Prueba completa con cámara | 13.2 | «Su resultado no se registró» | Sin hacer todavía: es el paso 7 | [?] |
+| OE4 con el LLM encendido | 14.4 y 14.8 | «Estimado y sin medir»: debería quedar por debajo de 0,5 s | Medido con la configuración del Mac (*heavy* en GPU, Qwen3 4B, límite de 400 ms): 0,39 s (p95) y 0,44 s de máximo en 21 correcciones. 20 las redactó el LLM (265 ms de mediana por frase) y 1 cayó a plantilla; 0 no respaldadas. Cumple la meta de 1 s | [F] |
+| Órdenes con micrófono real | 14.4 | Sin medir | Sigue sin medir: el paso 5 quedó pendiente el 22-nov | [?] |
+| Prueba completa con cámara | 13.2 | «Su resultado no se registró» | Sigue sin hacerse: el paso 7 quedó pendiente el 22-nov | [?] |
 
 Las correcciones que proponía el borrador del 20-nov (3,26 s de la entrenadora con el 70B, 69–71 ms de whisper.cpp, 4,7 y 6,3 ms como máximos en GPU y las 243 frases nuevas) ya están en `InformeFinal.md` `[F]` (leído el 22-nov).
 
@@ -480,4 +537,4 @@ Las correcciones que proponía el borrador del 20-nov (3,26 s de la entrenadora 
 2. **Pose con *heavy* en GPU.** El informe dice «13–14 ms» dentro de la aplicación. Con la herramienta general y los 23 vídeos son 16,5 ms (p95), y 14,4 ms en «todo a la vez». ¿Cuál de las tres va en OE1?
 3. **Renovación del detector de la GPU.** En dos minutos seguidos sin avisos, una imagen tarda unos 280 ms (paso 2). ¿Se describe en el informe como límite conocido, junto a la fila «Falta repetir la medición» de 14.6?
 4. **La entrenadora ya no entra en «todo a la vez»**, porque desde `3c7d229` no habla entre ejercicios. ¿Se repite la prueba con `--entrenadora-entre si` (hay que cambiar el script), o el informe dice que la prueba ya no la incluye?
-5. **Monitor de Actividad al 13 % de CPU** antes de la corrida de 0,3 s del paso 2. ¿Se repite esa corrida con el Monitor cerrado?
+5. **Zancada sin correcciones.** En ninguna corrida produjo correcciones un vídeo de zancada, así que para ese ejercicio no hay tiempo de la detección a la voz, ni con plantillas ni con el LLM. ¿Se dice así en OE4, o se busca un vídeo de zancada con errores?
