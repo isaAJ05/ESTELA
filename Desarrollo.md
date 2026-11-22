@@ -125,7 +125,6 @@ ESTELA/
 ├── .githooks/commit-msg              exige el identificador de ClickUp
 ├── .gitmessage                       plantilla del mensaje de commit
 ├── RESULTADOS-MAC-INFORME-FINAL.md   métricas del Mac Studio (borrador)
-├── GUIA_REDACCION_INFORMES_ESTELA.md guía de estilo de los informes
 ├── InformeFinal.md, PrimerInforme.md, SegundoInforme.md
 └── Readme.md, Instalación.md, Desarrollo.md
 ```
@@ -586,7 +585,7 @@ La documentación se organiza en tres niveles. En la raíz del repositorio está
 
 Un ADR se registra cuando una decisión afecta la arquitectura, la tecnología, el alcance o la reproducibilidad, y no para detalles menores. Cada ADR indica su estado (propuesta, aceptada o enmendada). Los experimentos separan la pregunta, las alternativas, el método, las métricas, los resultados medidos, la interpretación y la conclusión, y fijan el criterio de decisión antes de medir. Los resultados medidos nunca se presentan como supuestos ni como hallazgos de la literatura, y se usan las mismas etiquetas de evidencia descritas en la sección 10.1.
 
-Los resultados de las mediciones se guardan en carpetas `resultados/` con la fecha y, cuando aplica, la rama en el nombre; por ejemplo, `INFORME2-metricas_mac-flujo_2026-11-20_1620.md`. Los diagramas se escriben en PlantUML (archivos `.wsd` en `codigosdiagramas/`) y se exportan a imagen. Los informes siguen `GUIA_REDACCION_INFORMES_ESTELA.md`.
+Los resultados de las mediciones se guardan en carpetas `resultados/` con la fecha y, cuando aplica, la rama en el nombre; por ejemplo, `INFORME2-metricas_mac-flujo_2026-11-20_1620.md`. Los diagramas se escriben en PlantUML (archivos `.wsd` en `codigosdiagramas/`) y se exportan a imagen.
 
 ## 11. Problemas frecuentes y recomendaciones
 
@@ -706,7 +705,6 @@ Las cifras de los modelos de lenguaje y de Whisper provienen de los comentarios 
 - `backend/estela/dominio/feedback/skills/ESQUEMA.md`: formato de una *skill*.
 - `RESULTADOS-MAC-INFORME-FINAL.md`: métricas y pasos de instalación comprobados en el Mac Studio.
 - `diagramas/mac_diagrams_def/`: diagramas de arquitectura, despliegue, interacción y secuencia de esta versión.
-- `GUIA_REDACCION_INFORMES_ESTELA.md`: guía de estilo de los informes.
 
 **Repositorio de documentación `docs_estela`**
 
