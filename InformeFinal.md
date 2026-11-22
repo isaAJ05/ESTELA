@@ -1538,6 +1538,4 @@ El trabajo pendiente se agrupa en cinco líneas. La primera es la más urgente, 
 
 [44] J. Sauro y J. R. Lewis, "When designing usability questionnaires, does it hurt to be positive?," en *Proc. SIGCHI Conference on Human Factors in Computing Systems (CHI '11)*, Vancouver, 2011, pp. 2215–2224, doi: 10.1145/1978942.1979266.
 
-> **[REVISAR]** Añadir la fecha de consulta de [39] y [41] y comprobar los datos de [38] y [40] contra la fuente antes de entregar.
-
 **Fuentes declaradas por la licenciada, pendientes de verificación bibliográfica antes de citarse:** A. Barba Martínez *et al.*, *Manual de Actividad Física y Salud*, UNAM–CCH, 2025; F. Robles-Palazón y P. Sainz de Baranda, «Programas de entrenamiento neuromuscular para la prevención de lesiones en jóvenes deportistas», *SPORT TK*, 6(2), 115–126, 2017; Universidad de La Sabana, *Guía básica de actividades físicas en casa*.
