@@ -40,7 +40,7 @@ Las cuatro tareas no tienen la misma dificultad. Percibir el cuerpo es hoy un pr
 
 La estimación de pose consiste en localizar, en una imagen, puntos del cuerpo como hombros, codos, caderas, rodillas y tobillos. A estos puntos se les llama *keypoints* o *landmarks*. ESTELA trabaja con una sola cámara convencional, sin sensores de profundidad ni marcadores en el cuerpo, lo que se conoce como estimación monocular.
 
-El proyecto usa **MediaPipe Pose Landmarker**, un estimador de Google basado en los modelos BlazePose, diseñado para ejecutarse en el propio dispositivo [12], [13], [21]. MediaPipe entrega dos tipos de coordenadas. Las *coordenadas de imagen* indican la posición del punto en la foto. Las *coordenadas de mundo* estiman la posición en metros, con origen en el centro de la cadera. ESTELA prefiere estas últimas porque un ángulo calculado con ellas no cambia si la persona se mueve dentro del encuadre o se acerca a la cámara.
+El proyecto usa **MediaPipe Pose Landmarker**, un estimador de Google basado en los modelos BlazePose, diseñado para ejecutarse en el propio dispositivo [12], [13], [21], [25]. MediaPipe entrega dos tipos de coordenadas. Las *coordenadas de imagen* indican la posición del punto en la foto. Las *coordenadas de mundo* estiman la posición en metros, con origen en el centro de la cadera. ESTELA prefiere estas últimas porque un ángulo calculado con ellas no cambia si la persona se mueve dentro del encuadre o se acerca a la cámara.
 
 Cada punto viene acompañado de un valor de **visibilidad**, que indica qué tan confiable es su ubicación. Este valor es la base de la decisión de no corregir cuando la cámara no ve bien una articulación (sección 2.7).
 
@@ -769,7 +769,7 @@ Un punto débil que conviene reconocer es el tamaño de la sesión. La sesión e
 | Tecnología | Uso en ESTELA | Por qué se eligió |
 | --- | --- | --- |
 | Python 3.10 o superior | Toda la lógica | Tiene herramientas maduras de visión y audio. El dominio usa solo la biblioteca estándar, para que sea fácil de probar. |
-| MediaPipe Pose Landmarker | Estimación de pose; en el Mac, con el delegado GPU (Metal) | Funciona en el dispositivo y entrega coordenadas 3D y visibilidad por punto [12], [13]. En el Mac, la GPU permite usar el modelo más preciso dentro del tiempo objetivo. |
+| MediaPipe Pose Landmarker | Estimación de pose; en el Mac, con el delegado GPU (Metal) | Funciona en el dispositivo y entrega coordenadas 3D y visibilidad por punto [12], [13]. En el Mac, la GPU permite usar el modelo más preciso dentro del tiempo objetivo. La aplicación lo configura para una sola persona (`num_poses=1`), porque la documentación no aclara si el modelo admite varias [17]. |
 | NumPy | DTW, reconocedor y métricas | Permite cálculos numéricos rápidos. |
 | OpenCV | Lectura de la cámara y de videos | Es la herramienta más usada para captura de video. |
 | Piper con la voz `es_MX-claude-high` | Voz | Voz en español que funciona sin conexión, con licencia Apache-2.0 [32]. |
@@ -1515,7 +1515,7 @@ El trabajo pendiente se agrupa en cinco líneas. La primera es la más urgente, 
 
 [24] Tempo, "3D Tempo Vision form feedback," *Tempo Support*. [En línea]. Disponible: https://support.tempo.fit/support/solutions/articles/151000154714-3d-tempo-vision-form-feedback (consultado el 12 de octubre de 2026).
 
-[25] Google AI Edge, "MediaPipe Pose (documentación *legacy*)," *google-ai-edge/mediapipe*, GitHub. [En línea]. Disponible: https://github.com/google-ai-edge/mediapipe/blob/master/docs/solutions/pose.md
+[25] Google AI Edge, "MediaPipe Pose (documentación *legacy*)," *google-ai-edge/mediapipe*, GitHub. [En línea]. Disponible: https://github.com/google-ai-edge/mediapipe/blob/3eb8983cde1517fdff4abbfb33586316af6d45be/docs/solutions/pose.md
 
 [26] W.-H. Yeh, Y.-A. Su, C.-N. Chen, Y.-H. Lin, C. Ku, W.-H. Chiu, M.-C. Hu y L.-W. Ku, "CoachMe: Decoding sport elements with a reference-based coaching instruction generation model," en *Proc. 63rd Annual Meeting of the Association for Computational Linguistics (ACL), vol. 1: Long Papers*, Viena, 2025, pp. 29126–29151, doi: 10.18653/v1/2025.acl-long.1413.
 
