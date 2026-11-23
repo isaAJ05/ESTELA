@@ -226,7 +226,7 @@ Las sesiones se diseñaron para las siguientes condiciones de uso:
 - Servicios en la nube durante la sesión.
 - Un modelo de lenguaje o multimodal que decida qué error ocurrió o si se debe hablar. En ESTELA el modelo de lenguaje solo redacta lo que el motor ya decidió.
 - Una conversación libre con la aplicación. Las órdenes de voz son una lista cerrada.
-- La selección automática del ejercicio. El ejercicio lo define la rutina; el reconocedor de la sección 10 solo emite un aviso opcional.
+- La selección automática del ejercicio. El ejercicio lo define la rutina; el reconocedor de ejercicio solo emite un aviso opcional (sección 14.5).
 
 ## 4. Objetivos
 
@@ -377,8 +377,6 @@ ESTELA ofrece **indicaciones habladas en español durante el ejercicio, con todo
 3. **Preferir callar antes que equivocarse.** El sistema no corrige cuando no ve bien una articulación o cuando la persona no está en la orientación adecuada, y registra el motivo.
 4. **Aprovechar un equipo más potente sin cambiar quién decide.** En el Mac Studio, la memoria y la tarjeta gráfica permiten ejecutar a la vez la pose, un modelo de lenguaje, la síntesis y el reconocimiento de voz. Estas funciones mejoran la forma de comunicar, pero la decisión sobre el error sigue siendo del motor de reglas.
 
-Como se vio en la sección 5, existen antecedentes clínicos con procesamiento local e indicaciones de audio [33], pero no se encontró uno que combine español, una política explícita de abstención y un tiempo de respuesta medido como criterio de aceptación.
-
 ### 6.5 Relación con el problema y el alcance
 
 La solución responde a las tres causas del problema descritas en la sección 3.1. La falta de un observador se cubre con la cámara y el estimador de pose funcionando durante toda la sesión. El contenido que funciona en un solo sentido se reemplaza por un ciclo que observa, compara, decide y responde. La demora se elimina porque las indicaciones se dan mientras ocurre el movimiento.
@@ -435,7 +433,7 @@ Cuatro tipos de validación guiaron la evolución del prototipo. La primera fue 
 
 La segunda fue la **revisión técnico-deportiva**. Una especialista en educación física revisó el catálogo de errores y los umbrales. A partir de sus observaciones se dejaron de lado los umbrales estrictos e iguales para todos, y se adoptaron límites mínimos más permisivos. El mismo criterio se aplicó después a la zancada.
 
-La tercera fue la **validación de rendimiento**. La herramienta de medición reprodujo videos a través de la aplicación real y encontró las dos causas de retraso del sistema, que se corrigieron en el código. Después se repitió la medición en el Mac Studio, con los mismos videos, para confirmar el efecto de las correcciones en el equipo final. La cuarta fue la **validación con usuarios**, que orientó la mayoría de los cambios de la interfaz y se presenta en la sección 13. Las pruebas de una integrante del equipo con el micrófono en el Mac orientaron los ajustes de las órdenes de voz.
+La tercera fue la **validación de rendimiento**. La herramienta de medición reprodujo videos a través de la aplicación real y encontró las dos causas de retraso del sistema, que se corrigieron en el código. Después se repitió la medición en el Mac Studio, con videos de los cuatro ejercicios finales, para confirmar el efecto de las correcciones en el equipo final. La cuarta fue la **validación con usuarios**, que orientó la mayoría de los cambios de la interfaz y se presenta en la sección 13. Las pruebas de una integrante del equipo con el micrófono en el Mac orientaron los ajustes de las órdenes de voz.
 
 ## 8. Requerimientos
 
@@ -639,13 +637,13 @@ Antes de las sesiones hay una preparación que se hace una sola vez por ejercici
 
 Esta arquitectura es consecuencia directa de las alternativas elegidas en la sección 9. Como MediaPipe se conecta mediante un adaptador, se podría cambiar de estimador sin tocar el dominio. Como el verbalizador se conecta por una interfaz común, las plantillas se pueden reemplazar por el modelo de lenguaje sin cambiar la decisión. Además, el DTW y las reglas relativas a la referencia se pueden activar o desactivar al iniciar la aplicación.
 
-La misma separación permitió adaptar la aplicación al Mac sin crear una versión distinta. Al arrancar, un único punto del código (`config.defectos`) detecta si el equipo es un Mac con Apple Silicon. Si lo es, enciende la pose *heavy* en la tarjeta gráfica, el verbalizador con modelo de lenguaje, la entrenadora y las órdenes de voz; en los demás equipos deja la configuración anterior. Cualquier opción indicada al iniciar tiene prioridad, y si falta algo, como Ollama, un modelo o el micrófono, la aplicación vuelve a la opción básica y lo anota en el registro.
+La misma separación permitió adaptar la aplicación al Mac sin escribir un código distinto para cada equipo. Al arrancar, un único punto del código (`config.defectos`) detecta si el equipo es un Mac con Apple Silicon. Si lo es, enciende la pose *heavy* en la tarjeta gráfica, el verbalizador con modelo de lenguaje, la entrenadora y las órdenes de voz; en los demás equipos deja la configuración anterior. Cualquier opción indicada al iniciar tiene prioridad, y si falta algo, como Ollama, un modelo o el micrófono, la aplicación vuelve a la opción básica y lo anota en el registro.
 
 #### 10.1.2 Componentes del sistema e interacción
 
 ##### 10.1.2.1 Descripción de componentes
 
-La siguiente tabla presenta los componentes principales, su ubicación en el código y los requerimientos con los que se relacionan.
+La siguiente tabla presenta los componentes principales, la capa a la que pertenecen y los requerimientos con los que se relacionan.
 
 | Componente | Capa | Qué hace | Requerimientos |
 | --- | --- | --- | --- |
@@ -842,7 +840,7 @@ ESTELA no se conecta con servicios en la nube, bases de datos remotas ni sistema
 
 ESTELA es una aplicación de escritorio y, por lo tanto, no requiere un servidor ni una infraestructura en la nube. En su versión actual se ejecuta desde el código fuente del repositorio, en Windows, Linux o macOS. No se empaquetó en contenedores, porque la aplicación necesita acceso directo a la cámara, al micrófono y a la salida de audio del equipo. La conexión a internet solo es necesaria durante la instalación, para descargar las dependencias y los modelos; las sesiones funcionan sin conexión. El equipo final de operación es el Mac Studio, donde se activan todas las funciones; en los demás equipos la aplicación funciona con la configuración básica.
 
-No se construyó un ejecutable: la aplicación se instala desde el código, como se describe en la sección 12.2, y empaquetarla queda como trabajo futuro (sección 15). El repositorio tiene dos versiones. La rama `main`, que es la rama por defecto, contiene la versión completa, con las funciones del Mac; la rama `test` contiene la versión básica, sin modelo de lenguaje ni órdenes de voz, para cualquier equipo. La guía `Instalación.md` del repositorio detalla las dos.
+No se construyó un ejecutable: la aplicación se instala desde el código, como se describe en la sección 12.2, y empaquetarla queda como trabajo futuro (sección 15). El repositorio tiene dos versiones. La rama `main`, que es la rama por defecto, contiene la versión completa, con las funciones del Mac, que en otros equipos arranca con la configuración básica (sección 10.1.1); la rama `test` conserva la versión básica, sin modelo de lenguaje ni órdenes de voz. La guía `Instalación.md` del repositorio detalla las dos.
 
 ### 12.1 Requisitos
 
@@ -956,7 +954,7 @@ El criterio de éxito de estas pruebas es que todas pasen sin cámara, sin tarje
 | Entrenadora | Que la acción propuesta sea válida para el momento, que el resumen no invente cifras ni juzgue la técnica y que ante el dolor responda con el texto fijo. |
 | Órdenes de voz | Que cada forma de decir una orden se traduzca a la orden correcta, que dos órdenes distintas en una frase no se adivinen y que sin «Estela» no se actúe. Se usan clips de audio generados con síntesis de voz, sin grabar a nadie. |
 
-Las 720 pruebas del backend pasan en la versión final, y las 25 pruebas de la interfaz verifican la lógica de perfiles, progreso, rutina y ajustes.
+Las pruebas del backend pasan en la versión final (720 en Windows y 732 en el Mac, sección 11.2), y las 25 pruebas de la interfaz verifican la lógica de perfiles, progreso, rutina y ajustes.
 
 Además, el motor se probó con un **banco de casos sintéticos**. Cada caso simula directamente las medidas que recibe el motor: errores de distinta severidad, articulaciones tapadas, orientaciones incorrectas y ejecuciones correctas. Este banco no simula a una persona real; sirve para comprobar que el motor hace lo que sus reglas indican. También se ejecutó el experimento de **observabilidad** (sección 13.4), que giró esqueletos 3D sintéticos para ver qué medidas se pueden obtener con una cámara desde cada orientación.
 
