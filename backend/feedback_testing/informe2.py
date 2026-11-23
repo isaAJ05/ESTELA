@@ -13,6 +13,7 @@ Uso (desde `backend/`):
     python -m feedback_testing.informe2 --videos a.mp4:jumping_jacks b.mp4:plancha
     python -m feedback_testing.informe2 --anotaciones datos_locales/anotaciones
     python -m feedback_testing.informe2 --camara 0 --ejercicio jumping_jacks --duracion-s 60
+    python -m feedback_testing.informe2 --verbalizador llm   # el LLM redacta, como en el Mac
 
 Qué corre:
 
@@ -20,7 +21,9 @@ Qué corre:
    las dos políticas de fuente: `ultimo` (como `FuenteCamara`: se procesa el
    frame más reciente y se descartan los viejos) y `cola` (como `FuenteVideo`:
    todos los frames, el retraso se acumula). Latencia por etapa, FPS, retraso,
-   silencios, detección → voz y mensajes.
+   silencios, detección → voz y mensajes. Con `--verbalizador llm` las
+   correcciones las redacta el LLM de la app (Ollama), fuera del bucle por
+   imagen, y detección → voz incluye lo que tarda en redactar.
 2. **Variantes de MediaPipe** lite / full / heavy (EXP-004) a ritmo máximo:
    latencia de pose, capacidad en FPS, % de frames con persona y jitter en la
    plancha mantenida.
@@ -386,6 +389,70 @@ def crear_voz(nombre: str) -> Tuple[MotorVoz, str]:
 
 
 # ---------------------------------------------------------------------------
+# Verbalizador: plantillas o el LLM de la app
+# ---------------------------------------------------------------------------
+
+class VerbalizadorMedido:
+    """El verbalizador de la app, apuntando cada redacción: cuánto tardó y si
+    cayó a plantilla (y por qué). No cambia lo que devuelve."""
+
+    def __init__(self, verbalizador) -> None:
+        self._v = verbalizador
+        #: `Sesion` decide con ella en el bucle por imagen (`verbalizar_aparte`)
+        self.fallback = verbalizador.fallback
+        #: por redacción: ms, plantilla (¿cayó?) y motivo de la caída
+        self.redacciones: List[Dict[str, Any]] = []
+
+    def verbalizar(self, error):
+        t0 = time.perf_counter()
+        msg = self._v.verbalizar(error)
+        motivo = msg.motivo_rechazo or ""
+        if not motivo.startswith("fallo_backend"):       # del validador, solo el tipo
+            motivo = motivo.split(":", 1)[0]
+        self.redacciones.append({"ms": (time.perf_counter() - t0) * 1000.0,
+                                 "plantilla": bool(msg.fallback),
+                                 "motivo": (motivo or "sin motivo") if msg.fallback else None})
+        return msg
+
+    def __getattr__(self, nombre: str):                  # modelo, timeout_ms, llamadas…
+        return getattr(self._v, nombre)
+
+
+def crear_verbalizador(nombre: str) -> Tuple[Optional[VerbalizadorMedido], Dict[str, Any]]:
+    """(verbalizador, descripción). `plantillas` = None, el defecto de `Sesion`.
+
+    `llm` = el que arranca `python -m estela --verbalizador llm`
+    (`__main__._crear_verbalizador`: mismo modelo, backend y tiempo límite).
+    La app lo precalienta en segundo plano mientras abre la ventana; aquí se
+    espera a que el modelo esté cargado, para no medir la carga."""
+    if nombre != "llm":
+        return None, {"quien": "plantillas"}
+    from estela import __main__ as app
+    args = app._argumentos(["--verbalizador", "llm"])
+    v = app._crear_verbalizador(args)
+    if v is None:
+        raise SystemExit(f"--verbalizador llm: Ollama no responde o le falta {args.llm_modelo} "
+                         "(la app seguiría con plantillas; aquí no hay nada que medir)")
+    t0 = time.perf_counter()
+    if not v.precalentar():
+        raise SystemExit(f"--verbalizador llm: {v.modelo} no se pudo cargar en {v.url}")
+    return VerbalizadorMedido(v), {
+        "quien": "llm", "modelo": v.modelo, "backend": v.backend,
+        "timeout_ms": v.timeout_ms, "temperatura": v.temperatura,
+        "precalentado_s": time.perf_counter() - t0}
+
+
+def _cierra_redaccion(sesion: Sesion, timeout: float = 5.0) -> None:
+    """Con el LLM redactando aparte: espera a la corrección que esté en curso
+    (se dice o cuenta como tardía, pero no se pierde) y para su hilo. Con
+    plantillas no hace nada."""
+    aparte = getattr(sesion, "_aparte", None)
+    if aparte is not None:
+        aparte.esperar(timeout)
+    sesion.cerrar()
+
+
+# ---------------------------------------------------------------------------
 # Reproducción de una fuente por la sesión
 # ---------------------------------------------------------------------------
 
@@ -408,10 +475,24 @@ class Corrida:
     voz: List[Dict[str, Any]] = field(default_factory=list)
     resumen: Dict[str, Any] = field(default_factory=dict)
     calentamiento_ms: Optional[float] = None
+    #: solo con el LLM: una entrada por redacción (`VerbalizadorMedido.redacciones`)
+    redacciones: List[Dict[str, Any]] = field(default_factory=list)
 
     @property
     def duracion_pared_s(self) -> float:
         return (self.fin[-1] - self.llegada[0]) if self.fin else 0.0
+
+    @property
+    def redaccion_aparte(self) -> bool:
+        """¿Redactó las correcciones un verbalizador lento (el LLM), fuera del
+        bucle por imagen?"""
+        return "verbalizacion_aparte" in self.resumen
+
+    def dichos(self) -> List[Tuple[str, Dict[str, Any]]]:
+        """(skill_id, mensaje) en el orden en que la sesión los mandó a la voz.
+        Cada mensaje lleva el `t_ms` del frame en que se detectó."""
+        return [(p["skill_id"], m) for p in self.resumen.get("pasos", ())
+                for m in p["mensajes"]]
 
     def rendimiento(self) -> Dict[str, Any]:
         return mi.rendimiento(self.frames_fuente, len(self.t_ms), self.duracion_pared_s)
@@ -422,6 +503,14 @@ class Corrida:
         return mi.retraso_acumulado(self.llegada, self.fin)
 
     def mensajes(self) -> List[mi.MensajeEmitido]:
+        """Mensajes de la sesión. Con el LLM redactando aparte son los que se
+        mandaron a la voz, con su frase (la del LLM o la plantilla a la que
+        cayó): el registro por frame solo guarda la plantilla con que decide el
+        motor, y cuenta también las correcciones que no llegaron a decirse."""
+        if self.redaccion_aparte:
+            return [mi.MensajeEmitido(m["t_ms"], m["error_id"], m["segmento"], m["lado"],
+                                      m["severidad"], m["texto"], skill_id)
+                    for skill_id, m in self.dichos()]
         return [mi.MensajeEmitido(e["t_ms"], e["mensaje"]["error_id"],
                                   e["mensaje"]["segmento"], e["mensaje"]["lado"],
                                   e["mensaje"]["severidad"], e["mensaje"]["texto"],
@@ -431,13 +520,26 @@ class Corrida:
     def deteccion_a_voz(self) -> List[Dict[str, Any]]:
         """Por mensaje (corrección o refuerzo): llegada del frame → encolado →
         inicio de audio. La n-ésima llamada a `decir` con prioridad de
-        feedback es el n-ésimo mensaje de la sesión."""
-        con_msg = [i for i, e in enumerate(self.registro) if e.get("mensaje")]
+        feedback es el n-ésimo mensaje de la sesión.
+
+        Con el LLM redactando aparte eso no vale: la corrección se encola
+        cuando la redacción vuelve, y las sustituidas o tardías no se encolan
+        nunca. Entonces la n-ésima llamada es el n-ésimo mensaje que la sesión
+        mandó a la voz (`dichos`), y se mide desde la llegada del frame en que
+        se detectó (su `t_ms`): «frame → encolado» incluye lo que tardó el LLM.
+        Las que no se encolaron están en `redaccion`."""
         feedback = [v for v in self.voz if v["prioridad"] == PRIORIDAD_FEEDBACK]
+        if self.redaccion_aparte:
+            frame = {t: i for i, t in enumerate(self.t_ms)}
+            pares = [(frame[m["t_ms"]], m["t_ms"], m["error_id"] is None, v)
+                     for (_, m), v in zip(self.dichos(), feedback)]
+        else:
+            con_msg = [i for i, e in enumerate(self.registro) if e.get("mensaje")]
+            pares = [(i, self.registro[i]["t_ms"], self.registro[i]["mensaje"]["refuerzo"], v)
+                     for i, v in zip(con_msg, feedback)]
         res = []
-        for i, v in zip(con_msg, feedback):
-            e = self.registro[i]
-            d = {"t_ms": e["t_ms"], "refuerzo": e["mensaje"]["refuerzo"],
+        for i, t_ms, refuerzo, v in pares:
+            d = {"t_ms": t_ms, "refuerzo": refuerzo,
                  "descartada": v["descartada"],
                  "motivo_descarte": v.get("motivo_descarte"),
                  "frame_a_encolado_s": v["t_encolado"] - self.llegada[i]}
@@ -446,6 +548,32 @@ class Corrida:
                 d["total_s"] = v["t_inicio_audio"] - self.llegada[i]
             res.append(d)
         return res
+
+    def redaccion(self) -> Optional[Dict[str, Any]]:
+        """Con el LLM redactando aparte, qué pasó con las correcciones que
+        decidió el motor; None con plantillas.
+
+        `detectadas` = `sustituidas` (llegó otra mientras esperaban al LLM y no
+        se redactaron) + `redactadas` (+ `sin_terminar` si quedó alguna al
+        cerrar). `redactadas` = `tarde` (al volver ya no tocaba decirlas) +
+        `encoladas` en la voz. De las redactadas, `del_llm` son frases del
+        modelo y `a_plantilla` cayeron a la plantilla (`caidas`: por motivo)."""
+        ap = self.resumen.get("verbalizacion_aparte")
+        if ap is None:
+            return None
+        caidas: Dict[str, int] = {}
+        for r in self.redacciones:
+            if r["plantilla"]:
+                caidas[r["motivo"]] = caidas.get(r["motivo"], 0) + 1
+        a_plantilla = sum(caidas.values())
+        return {"detectadas": ap["pedidas"], "sustituidas": ap["sustituidas"],
+                "redactadas": len(self.redacciones),
+                "sin_terminar": ap["pedidas"] - ap["sustituidas"] - len(self.redacciones),
+                "tarde": ap["tarde"],
+                "encoladas": sum(1 for _, m in self.dichos() if m["error_id"] is not None),
+                "del_llm": len(self.redacciones) - a_plantilla,
+                "a_plantilla": a_plantilla, "caidas": caidas,
+                "redacciones": [{**r, "ms": round(r["ms"], 2)} for r in self.redacciones]}
 
     def sin_medidas(self) -> List[Dict[str, Any]]:
         """Registro sin las medidas de la observación (no van a disco)."""
@@ -536,20 +664,25 @@ def _nuevo_estimador(modelo: str):
 
 def reproducir_video(cv2, video: Video, catalogo, modelo: str, politica: str,
                      ritmo: str, motor_voz: MotorVoz, max_s: Optional[float] = None,
-                     tramo_ms: Optional[Tuple[int, int]] = None) -> Corrida:
+                     tramo_ms: Optional[Tuple[int, int]] = None,
+                     verbalizador: Optional[VerbalizadorMedido] = None) -> Corrida:
     """Pasa un vídeo por una `Sesion` de un solo ejercicio.
 
     `politica` "cola": se procesan todos los frames en orden (`FuenteVideo`);
     con `ritmo` "real" cada frame no se procesa antes de su marca nominal.
     `politica` "ultimo": un hilo publica los frames a ritmo real y la sesión
     toma siempre el más reciente (`FuenteCamara`); exige ritmo real.
+    `verbalizador`: None = plantillas; el de `crear_verbalizador("llm")`
+    redacta fuera del bucle por imagen, como en la app.
     """
     if politica == "ultimo" and ritmo != "real":
         raise ValueError("la política 'ultimo' solo tiene sentido a ritmo real")
     est, calentamiento = _nuevo_estimador(modelo)
     cola = ColaVoz(motor_voz)
     rutina = rutina_de_un_ejercicio(video.ejercicio_id, OBJETIVO_SIN_FIN, catalogo)
-    sesion = Sesion(rutina, catalogo, est, cola, registrar=True)
+    sesion = Sesion(rutina, catalogo, est, cola, registrar=True, verbalizador=verbalizador,
+                    verbalizar_aparte=verbalizador is not None)
+    redactadas_antes = len(verbalizador.redacciones) if verbalizador is not None else 0
     frame_ini = int(math.ceil(tramo_ms[0] * video.fps / 1000.0)) if tramo_ms else 0
     frame_fin = int(tramo_ms[1] * video.fps / 1000.0) if tramo_ms else None
     if max_s is not None:
@@ -596,11 +729,14 @@ def reproducir_video(cv2, video: Video, catalogo, modelo: str, politica: str,
                 cap.release()
             c.frames_fuente = len(c.t_ms)
     finally:
+        _cierra_redaccion(sesion)
         cola.cerrar(esperar=True)
         est.cerrar()
     c.registro = sesion.registro
     c.voz = list(cola.registro)
     c.resumen = sesion.resumen()
+    if verbalizador is not None:
+        c.redacciones = verbalizador.redacciones[redactadas_antes:]
     return c
 
 
@@ -968,6 +1104,7 @@ class Opciones:
     politicas: Tuple[str, ...] = ("ultimo", "cola")
     modelos: Tuple[str, ...] = MODELOS_POSE
     voz: str = "auto"
+    verbalizador: str = "plantillas"                     # o "llm" (corrida principal)
     max_s: Optional[float] = None
     max_s_modelos: Optional[float] = 30.0
     bandas_frac: Tuple[float, ...] = (0.1, 0.2)
@@ -1000,6 +1137,9 @@ def _log(msg: str) -> None:
 def ejecutar(op: Opciones) -> Dict[str, Any]:
     """Corre todo lo que se pueda y devuelve los resultados (sin escribir)."""
     global DELEGADO_POSE
+    if op.verbalizador == "llm" and op.camara is not None:
+        raise SystemExit("--verbalizador llm solo está hecho para la corrida con vídeos, "
+                         "no con --camara")
     DELEGADO_POSE = op.delegado
     catalogo = cargar_catalogo()
     rutina = cargar_rutina(config.RUTINAS / "calentamiento_basico.json", catalogo)
@@ -1083,11 +1223,16 @@ def ejecutar(op: Opciones) -> Dict[str, Any]:
         max_s = 8.0 if op.rapido else op.max_s
         if not videos:
             P["pose"] = "pendiente de medición: no se encontró ningún vídeo"
+        verbalizador = None
+        if op.verbalizador == "llm" and videos:
+            _log("LLM: cargando el modelo que redacta las correcciones")
+            verbalizador, R["verbalizador"] = crear_verbalizador("llm")
         for politica in op.politicas:
             for v in videos:
                 _log(f"{v.nombre} ({v.ejercicio_id}) · {op.modelo} · {politica} · ritmo real")
                 corridas.append(reproducir_video(cv2, v, catalogo, op.modelo, politica,
-                                                 "real", motor, max_s=max_s))
+                                                 "real", motor, max_s=max_s,
+                                                 verbalizador=verbalizador))
     R["corridas"] = corridas
 
     # -- variantes de MediaPipe ------------------------------------------------
@@ -1191,9 +1336,11 @@ def objetivos(R: Mapping[str, Any]) -> List[Dict[str, Any]]:
     totales = [d["total_s"] for d in corr if "total_s" in d]
     caducadas = sum(1 for d in corr if d.get("motivo_descarte") == "caducada")
     p95v = mi.percentil(totales, 95)
+    con_llm = ("; redactadas por el LLM, incluida la redacción"
+               if R.get("verbalizador", {}).get("quien") == "llm" else "")
     fila("deteccion_voz_p95_s", p95v,
          f"{_n(p95v, 2)} s (n = {len(totales)} correcciones habladas; {caducadas} descartadas "
-         f"por esperar más de 1 s; {R.get('voz', '')})",
+         f"por esperar más de 1 s; {R.get('voz', '')}{con_llm})",
          P.get("deteccion_voz", "pendiente de medición: ninguna corrección hablada"))
 
     an = R.get("anotaciones")
@@ -1217,6 +1364,50 @@ def objetivos(R: Mapping[str, Any]) -> List[Dict[str, Any]]:
         for clave in ("precision", "recobrado", "sobrecorreccion", "mensajes_correctos"):
             fila(clave, None, "", pend)
     return filas
+
+
+def _seccion_redaccion(corridas: Sequence[Corrida], llm: Mapping[str, Any]) -> List[str]:
+    """Con `--verbalizador llm`: qué pasó con las correcciones que decidió el
+    motor, cuánto tardó cada redacción y detección → voz por ejercicio."""
+    reds = [c.redaccion() for c in corridas]
+
+    def suma(clave: str) -> int:
+        return sum(r[clave] for r in reds)
+
+    caidas: Dict[str, int] = {}
+    for r in reds:
+        for k, v in r["caidas"].items():
+            caidas[k] = caidas.get(k, 0) + v
+    por_motivo = ", ".join(f"`{k}` {v}" for k, v in sorted(caidas.items())) or "ninguna"
+    todas = [x for r in reds for x in r["redacciones"]]
+    L = ["### Redacción con el LLM", "",
+         f"`{llm['modelo']}` por {llm['backend']}, tiempo límite {llm['timeout_ms']} ms. El motor decide "
+         "en el frame y el LLM redacta en otro hilo: la corrección se encola cuando la redacción "
+         "vuelve, así que «frame → encolado» (arriba) incluye ese tiempo. Si el LLM falla, pasa del "
+         "tiempo límite o el validador rechaza su frase, se dice la plantilla.", "",
+         "| Correcciones | n |", "|---|---|",
+         f"| decididas por el motor (pedidas al LLM) | {suma('detectadas')} |",
+         f"| sustituidas sin redactar (llegó otra mientras esperaban al LLM) | {suma('sustituidas')} |",
+         f"| redactadas | {suma('redactadas')} |",
+         f"| — con la frase del LLM | {suma('del_llm')} |",
+         f"| — caídas a plantilla | {suma('a_plantilla')} (por motivo: {por_motivo}) |",
+         f"| redactadas tarde (al volver ya no tocaba decirlas) | {suma('tarde')} |",
+         f"| encoladas en la voz | {suma('encoladas')} |"]
+    if suma("sin_terminar"):
+        L.append(f"| sin redactar al cerrar la corrida | {suma('sin_terminar')} |")
+    L += ["", "| Tiempo de cada redacción (ms) | n | media | p50 | p95 | máx |", "|---|---|---|---|---|---|",
+          _fila_resumen("todas", mi.resumen_serie([x["ms"] for x in todas]), 1),
+          _fila_resumen("con la frase del LLM",
+                        mi.resumen_serie([x["ms"] for x in todas if not x["plantilla"]]), 1),
+          _fila_resumen("caídas a plantilla",
+                        mi.resumen_serie([x["ms"] for x in todas if x["plantilla"]]), 1),
+          "", "Detección → inicio de voz de las correcciones que sonaron, por ejercicio (s):", "",
+          "| Ejercicio | n | media | p50 | p95 | máx |", "|---|---|---|---|---|---|"]
+    for ej in sorted({c.ejercicio_id for c in corridas}):
+        totales = [d["total_s"] for c in corridas if c.ejercicio_id == ej
+                   for d in c.deteccion_a_voz() if not d["refuerzo"] and "total_s" in d]
+        L.append(_fila_resumen(ej, mi.resumen_serie(totales), 3))
+    return L + [""]
 
 
 def escribir_markdown(R: Mapping[str, Any]) -> str:
@@ -1247,6 +1438,12 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
     L.append(f"| modelo de pose (corrida principal) | pose_landmarker_{R['opciones']['modelo']} |")
     L.append(f"| delegado de pose | {R['opciones'].get('delegado', 'cpu')} |")
     L.append(f"| voz | {R.get('voz', 'n/d')} |")
+    llm = R.get("verbalizador") if R.get("verbalizador", {}).get("quien") == "llm" else None
+    if llm:
+        L.append(f"| quién redacta las correcciones | LLM `{llm['modelo']}` por {llm['backend']}, "
+                 f"tiempo límite {llm['timeout_ms']} ms, temperatura {_n(llm['temperatura'], 1)}; "
+                 f"fuera del bucle por imagen. Modelo cargado antes de medir "
+                 f"({_n(llm['precalentado_s'], 1)} s) |")
     if "voz_precalentado_s" in R:
         L.append(f"| precalentado de la voz | {_n(R['voz_precalentado_s'], 1)} s antes de medir, "
                  "sin contar las frases ya sintetizadas al medir el RTF (en la app es en segundo "
@@ -1361,6 +1558,8 @@ def escribir_markdown(R: Mapping[str, Any]) -> str:
               f"cuenta las que sonaron. Refuerzos: {len(dv) - len(corr)}.",
               "`[?]` No incluye la latencia del dispositivo de audio." if "sin audio" in R.get("voz", "") else "",
               ""]
+        if llm:
+            L += _seccion_redaccion(principal, llm)
 
         # -- silencios
         sil = mi.tasas_silencio([e for c in principal for e in c.registro])
@@ -1575,6 +1774,7 @@ def a_json(R: Mapping[str, Any]) -> Dict[str, Any]:
             "calentamiento_ms": c.calentamiento_ms, "rendimiento": c.rendimiento(),
             "retraso": c.retraso(), "silencios": mi.tasas_silencio(c.registro),
             "resumen_sesion": c.resumen, "deteccion_a_voz": c.deteccion_a_voz(),
+            **({"redaccion": c.redaccion()} if c.redaccion_aparte else {}),
             "por_frame": {
                 "t_ms": c.t_ms,
                 "retraso_ms": ([round((f - l) * 1000, 2) for l, f in zip(c.llegada, c.fin)]
@@ -1626,6 +1826,10 @@ def _argumentos(argv=None) -> Opciones:
     p.add_argument("--politicas", default="ultimo,cola")
     p.add_argument("--voz", choices=("auto", "texto", "piper-sin-audio", "piper"), default="auto",
                    help="auto = Piper sin audio si hay voz, si no texto; piper = con altavoz")
+    p.add_argument("--verbalizador", choices=("plantillas", "llm"), default="plantillas",
+                   help="quién redacta las correcciones en la corrida principal. llm = el de "
+                        "`python -m estela --verbalizador llm` (Ollama, mismo modelo y tiempo "
+                        "límite), fuera del bucle por imagen; detección → voz incluye la redacción")
     p.add_argument("--max-segundos", type=float, default=None,
                    help="recorta cada vídeo en la corrida principal")
     p.add_argument("--max-segundos-modelos", type=float, default=30.0)
@@ -1655,6 +1859,7 @@ def _argumentos(argv=None) -> Opciones:
                     delegado=a.delegado,
                     modelos=tuple(m for m in a.modelos.split(",") if m),
                     politicas=tuple(x for x in a.politicas.split(",") if x), voz=a.voz,
+                    verbalizador=a.verbalizador,
                     max_s=a.max_segundos, max_s_modelos=a.max_segundos_modelos,
                     bandas_frac=tuple(float(x) for x in a.bandas_frac.split(",") if x),
                     anotaciones=tuple(a.anotaciones), tolerancia_ms=a.tolerancia_ms,

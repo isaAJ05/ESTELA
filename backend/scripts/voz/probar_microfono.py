@@ -87,7 +87,7 @@ def main(argv=None) -> int:
             t0 = time.perf_counter()
             texto = reconocedor.transcribir(audio)
             ms = (time.perf_counter() - t0) * 1000
-            llamado, orden = cv.separar_llamada(texto) if llamada else (True, texto)
+            llamado, orden = cv.hallar_llamada(texto) if llamada else (True, texto)
             i = cv.interpretar(orden)
             dolor = llamado and menciona_dolor(orden)
             if not llamado:
