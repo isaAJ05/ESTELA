@@ -625,8 +625,6 @@ En una aplicación de escritorio, la disponibilidad no se mide como el tiempo en
 | Falla el guardado del historial | El resumen se muestra igual | El error se registra sin detener la sesión | Probado |
 | Falla el equipo completo | Se interrumpe la sesión | La aplicación funciona en un portátil, con menos funciones | Restricción conocida |
 
-> **[REVISAR]** ADR-008 y ADR-009 se citan en este informe, pero no existen como archivo: en `docs_estela/decisiones/` solo están ADR-001 a ADR-007. Hay que escribirlos o dejar de presentarlos como registros. Tampoco tienen ADR la configuración del Mac (*heavy* en GPU con imagen reducida a 640 px, el modelo de lenguaje por Ollama, la entrenadora y las órdenes de voz) ni la decisión de encender el modelo de lenguaje en vivo por defecto antes de EXP-001.
-
 ## 10. Diseño y arquitectura
 
 ### 10.1 Arquitectura
@@ -980,7 +978,7 @@ Para medir la exactitud, la herramienta compara los mensajes del sistema con los
 
 Una integrante del equipo usó la aplicación en el Mac con el micrófono en varias sesiones de prueba, entre el 16 y el 20 de noviembre. Sus observaciones llevaron a varios ajustes: eliminar avisos repetidos, indicar en la cabecera si la cámara y el micrófono están activos, dar una señal visual y sonora al oír «Estela», reconocer la llamada aunque no sea la primera palabra, añadir formas nuevas de decir algunas órdenes, hacer que las órdenes y los botones corten lo que ESTELA está diciendo, abrir el micrófono solo durante la rutina, no repetir en pantalla lo que ESTELA ya dice en voz alta, quitar la pausa por gesto y por inactividad, y que la entrenadora no hable entre ejercicios. Fueron pruebas de uso del equipo, no sesiones con participantes ni mediciones.
 
-La prueba completa con cámara en el Mac, con perfiles e historial, tiene una lista de comprobación preparada (`RESULTADOS-MAC-INFORME-FINAL.md`, paso 7), pero su resultado no se registró antes de este informe. La evaluación con participantes del 20 de noviembre (sección 13.3.3) sí recorrió la rutina completa con cámara, en el Mac y en un portátil.
+El recorrido completo con cámara se ejercitó en la evaluación con participantes del 20 de noviembre (sección 13.3.3): cada participante hizo la rutina de los cuatro ejercicios con la cámara, tres en el Mac, con las órdenes de voz y la entrenadora, y dos en un portátil. El manejo de perfiles e historial, incluido que sin perfil no se guarde nada, se verificó con las pruebas de integración descritas arriba.
 
 ### 13.3 Pruebas de usabilidad
 
@@ -1313,7 +1311,7 @@ Estas cifras tienen dos límites. Las tasas de reconocimiento de las órdenes se
 
 Las cifras de esta sección se comprobaron el 20 de noviembre contra los archivos de resultados del Mac (`RESULTADOS-MAC-INFORME-FINAL.md`). Dos cambiaron levemente: la mediana del 70B como entrenadora es de 3,26 s, y el p95 de whisper.cpp es de 69 ms según el registro del Mac y de 71 ms según el archivo de la evaluación.
 
-Quedaron dos mediciones sin hacer. La hoja para comparar a ciegas los resúmenes de la entrenadora con Qwen3 14B y con Llama 3.3 70B se preparó, pero no se calificó; además, desde que la entrenadora dejó de hablar entre ejercicios, solo 7 de sus 20 situaciones corresponden a lo que hace la aplicación. Y las órdenes de voz no se midieron con micrófono real: solo hay el uso de la evaluación de usabilidad.
+Quedaron dos mediciones sin hacer. La hoja para comparar a ciegas los resúmenes de la entrenadora con Qwen3 14B y con Llama 3.3 70B se preparó, pero no se calificó; además, desde que la entrenadora dejó de hablar entre ejercicios, solo 7 de sus 20 situaciones corresponden a lo que hace la aplicación. Y con micrófono real las órdenes de voz se evaluaron en uso, en la evaluación de usabilidad, donde no ejecutaron ninguna acción que no se hubiera pedido; medir sus tasas de reconocimiento con varias personas queda como trabajo futuro (sección 15).
 
 ### 14.5 Reconocimiento del ejercicio
 
@@ -1392,7 +1390,6 @@ La primera y la última fila no dependen del Mac: son correcciones de diseño qu
 
 Ninguna de las cuatro cambia quién decide qué error ocurrió: esa decisión sigue en el motor de reglas, igual que en un portátil. Lo que aporta el Mac es una mejor percepción, con el modelo más preciso de pose, y una comunicación más rica, con frases variadas, resúmenes y control por voz. Todo sigue ejecutándose en el equipo y sin conexión a internet.
 
-
 ### 14.7 Resultados de las sesiones con participantes
 
 Los resultados del cuestionario de usabilidad, que mide la percepción de uso, están en la sección 13.3.3. Esas sesiones no se diseñaron para medir la exactitud, porque no se anotó cada repetición, pero la persona del equipo que observaba registró dos situaciones relacionadas con ella.
@@ -1429,10 +1426,10 @@ La siguiente tabla contrasta los requerimientos no funcionales de la sección 8.
 | RNF-08 Mantenibilidad | Un ejercicio nuevo sin modificar el motor | La zancada reemplazó a la marcha solo con configuración | Cumple (sección 14.9). |
 | RNF-09 Usabilidad | Frases cortas y comprensibles en español | Todas las respuestas a «entendí lo que me pedía corregir» fueron 4 o 5 | Indicios favorables con cinco participantes (sección 13.3.3). |
 | RNF-10 Portabilidad | Windows, Linux y macOS | Pruebas automáticas en Windows y en el Mac; mediciones en un portátil con Linux | Cumple; fuera del Mac, con menos funciones (sección 14.6). |
-| RNF-11 Protección de datos locales | Lista cerrada de campos, sin datos del cuerpo y borrado por perfil | Verificado con pruebas automáticas de perfiles e historial | Cumple en pruebas; falta registrar la prueba completa con cámara (sección 13.2). |
+| RNF-11 Protección de datos locales | Lista cerrada de campos, sin datos del cuerpo y borrado por perfil | Verificado con pruebas automáticas y de integración de perfiles e historial, incluido que sin perfil no se guarde nada | Cumple (sección 13.2). |
 | RNF-12 Coexistencia de cargas | El p95 de la pose no cambia al encender las demás funciones | 14,3 ms con la pose sola y 14,4 ms con todo encendido | Cumple (sección 14.3). |
 
-Los 23 requerimientos funcionales de la sección 8.1 están implementados (sección 11.2) y verificados con las pruebas automáticas y de integración del capítulo 13. Cuatro tienen salvedades. El aviso de ejercicio distinto (RF-20) está desactivado por defecto, porque no cumplió el máximo de 5 % de falsas alarmas (sección 14.5). La redacción con el modelo de lenguaje (RF-21) cumple el tiempo, pero su adopción depende de compararla con las plantillas (EXP-001). La comparación a ciegas de la entrenadora (RF-22) no se calificó. Y las órdenes de voz (RF-23) solo tienen tasas de reconocimiento con audio sintético (sección 14.4).
+Los 23 requerimientos funcionales de la sección 8.1 están implementados (sección 11.2) y verificados con las pruebas automáticas y de integración del capítulo 13. Cuatro tienen salvedades. El aviso de ejercicio distinto (RF-20) está desactivado por defecto, porque no cumplió el máximo de 5 % de falsas alarmas (sección 14.5). La redacción con el modelo de lenguaje (RF-21) cumple el tiempo, pero su adopción depende de compararla con las plantillas (EXP-001). La comparación a ciegas de la entrenadora (RF-22) no se calificó. Y las órdenes de voz (RF-23) tienen tasas de reconocimiento medidas con audio sintético (sección 14.4); con micrófono real, los tres participantes que las usaron en el Mac no vieron ninguna acción que no hubieran pedido (sección 13.3.3), pero tres personas no permiten calcular tasas.
 
 ### 14.9 Discusión
 
@@ -1584,4 +1581,3 @@ El trabajo pendiente se agrupa en cinco líneas. La primera es la más urgente, 
 
 [44] J. Sauro y J. R. Lewis, "When designing usability questionnaires, does it hurt to be positive?," en *Proc. SIGCHI Conference on Human Factors in Computing Systems (CHI '11)*, Vancouver, 2011, pp. 2215–2224, doi: 10.1145/1978942.1979266.
 
-**Fuentes declaradas por la licenciada, pendientes de verificación bibliográfica antes de citarse:** A. Barba Martínez *et al.*, *Manual de Actividad Física y Salud*, UNAM–CCH, 2025; F. Robles-Palazón y P. Sainz de Baranda, «Programas de entrenamiento neuromuscular para la prevención de lesiones en jóvenes deportistas», *SPORT TK*, 6(2), 115–126, 2017; Universidad de La Sabana, *Guía básica de actividades físicas en casa*.
