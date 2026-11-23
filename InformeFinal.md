@@ -805,7 +805,7 @@ La tabla resume el estado de cada componente al cierre del proyecto.
 | Verbalizador por plantillas | Completo: 341 frases en 84 grupos (error y severidad), que se turnan entre repeticiones. 243 de ellas son variantes que escribieron Qwen3 14B y Llama 3.3 70B antes de la sesión y que se revisaron una por una antes de incorporarlas (papel A del modelo de lenguaje en ADR-004). | Esa revisión la hizo un asistente de IA (Claude) con un criterio escrito, por encargo del equipo; falta la de la especialista (sección 14.4). |
 | Verbalizador con modelo de lenguaje | Implementado con Ollama; encendido por defecto en el Mac y apagado en los demás equipos. Redacta fuera del ciclo de cada imagen, recibe la plantilla como frase de referencia y las últimas frases dichas para ese error, y varía el comienzo de cada frase. | Su adopción definitiva depende de compararlo con las plantillas en sesiones anotadas (sección 9.4). |
 | Entrenadora | Implementada; encendida por defecto en el Mac. Da el resumen final hablado y contesta «¿cómo voy?». Entre ejercicios ya no habla: la aplicación pasa directamente al siguiente (la opción `--entrenadora-entre` recupera el resumen entre ejercicios). | No estaba en el Informe 2 y no tiene ADR propio. |
-| Órdenes de voz | Implementadas; encendidas por defecto en el Mac, en modo «Estela» y con el modo «interrumpir». Incluyen pausa, seguir, siguiente, anterior, reiniciar, terminar, «¿cómo voy?», «repite eso», «calla» (corta solo la frase que suena), silencio (apaga la voz) y activar ángulos o reconocimiento. El micrófono solo se abre durante la rutina. | No estaban en el Informe 2. Probadas con audio sintético y usadas por participantes en la evaluación de usabilidad; faltan tasas de reconocimiento con micrófono real. |
+| Órdenes de voz | Implementadas; encendidas por defecto en el Mac, en modo «Estela» y con el modo «interrumpir». Incluyen pausa, seguir, siguiente, anterior, reiniciar, terminar, «¿cómo voy?», «repite eso», «calla» (corta solo la frase que suena), silencio (apaga la voz) y activar ángulos o reconocimiento; la lista completa está en la sección 12.3. El micrófono solo se abre durante la rutina. | No estaban en el Informe 2. Probadas con audio sintético y usadas por participantes en la evaluación de usabilidad; faltan tasas de reconocimiento con micrófono real. |
 | Voz | Completa. Las correcciones no esperan detrás de los avisos, las órdenes y los botones de la persona interrumpen lo que suena, la voz se puede silenciar y las palabras en inglés se pronuncian a la española. Con la voz encendida, la pantalla no repite en texto lo que ESTELA dice. | Cambios hechos para reducir el tiempo de respuesta y a partir de las pruebas en el Mac. |
 | Sesión y rutina | Completas, con colocación, pausa con botón, tecla o voz, pausa automática al salir del encuadre y ejercicio anterior. | Cambios tras la evaluación con usuarios. La pausa por gesto del brazo y la pausa por inactividad se implementaron, pero se apagaron el 20 de noviembre; el código sigue y se pueden volver a encender. |
 | Reconocedor de ejercicio | Implementado, desactivado por defecto. | Daba falsas alarmas con variaciones del ejercicio correcto. |
@@ -906,6 +906,26 @@ Algunas opciones útiles al iniciar la aplicación:
 | `pytest` | Ejecuta las pruebas automáticas, sin cámara. |
 
 Durante la sesión, la barra espaciadora pausa o reanuda, `N` y `P` pasan al ejercicio siguiente o anterior, `R` reinicia el ejercicio, `Esc` termina y `D` muestra información técnica, como las imágenes por segundo y el tiempo de cada etapa. Si la voz de Piper no está disponible, la aplicación usa la voz del sistema y, si tampoco existe, muestra las frases en pantalla. En el Mac, las mismas acciones se pueden pedir con la voz («Estela, pausa», «Estela, siguiente», «Estela, terminar»; «Estela, calla» corta solo la frase que está diciendo), y la sección Micrófono de los ajustes permite elegir la entrada, ver su nivel y probar qué entendería el sistema sin ejecutar la orden.
+
+En el Mac, cada orden de voz empieza por «Estela» y puede decirse de varias formas. La tabla resume la lista cerrada de órdenes:
+
+| Orden | Ejemplos de cómo decirla | Qué hace | Qué responde ESTELA |
+| --- | --- | --- | --- |
+| Pausa | «Estela, pausa», «espera», «un momento» | Pausa la sesión. | «En pausa». |
+| Seguir | «Estela, seguir», «continúa», «vamos» | Reanuda la sesión. | «Seguimos». |
+| Siguiente | «Estela, siguiente», «salta», «pasa al siguiente» | Pasa al ejercicio siguiente. | «Ahora, …» y el ejercicio; en el último, «Este es el último ejercicio». |
+| Anterior | «Estela, anterior», «vuelve», «el de antes» | Vuelve al ejercicio anterior. | Anuncia el ejercicio; en el primero, «Este es el primer ejercicio». |
+| Reiniciar el ejercicio | «Estela, reinicia», «empieza de nuevo» | Empieza de cero el ejercicio actual. | «Reiniciamos el ejercicio». |
+| Reiniciar todo | «Estela, reinicia todo», «reinicia la rutina» | Empieza de cero la sesión, después de confirmar. | «¿Reinicio toda la sesión? Responde sí o no». |
+| Terminar | «Estela, terminar», «hasta aquí» | Termina la rutina y muestra el resumen. | «Terminamos». |
+| ¿Cómo voy? | «Estela, ¿cómo voy?», «¿qué tal lo hago?» | Pide un resumen del avance. | Responde la entrenadora. |
+| Repite eso | «Estela, repite eso», «¿qué dijiste?» | Repite la última indicación. | La indicación; si no hay, «No tengo nada que repetir». |
+| Calla | «Estela, calla», «basta», «deja de hablar» | Corta solo la frase que está sonando; la voz sigue encendida. | Nada. |
+| Silencio / Háblame | «Estela, silencio» / «Estela, háblame» | Apaga la voz durante la sesión / la vuelve a encender. | Nada / «Voz activada». |
+| Ángulos | «Estela, activa los ángulos» / «quita los ángulos» | Muestra u oculta los ángulos en pantalla. | «Ángulos activados» / «desactivados». |
+| Reconocimiento | «Estela, activa el reconocimiento» / «desactiva el reconocimiento» | Enciende o apaga el aviso de ejercicio distinto (sección 14.5). | «Reconocimiento activado» / «desactivado». |
+
+Si la persona dice solo «Estela», la frase siguiente, dicha en los 6 s posteriores, cuenta como orden. Si oye palabras pero ninguna orden clara, ESTELA responde «No te entendí. Repite, por favor». Las frases que no empiezan por «Estela» o no la contienen se ignoran.
 
 La aplicación solo escribe dos tipos de archivos: los perfiles e historiales, que se pueden borrar desde «Mi perfil» y «Mi progreso», y los resúmenes técnicos de experimentos, si se piden. Ninguno contiene imágenes ni puntos del cuerpo.
 
@@ -1383,7 +1403,7 @@ Estas observaciones no permiten calcular la precisión ni el recobrado, pero ori
 
 No hay resultados de exactitud con personas, porque las sesiones V-01 no se realizaron antes de este informe (sección 13.4.12). La herramienta de medición ya calcula la precisión, el recobrado, la sobrecorrección y el porcentaje de mensajes correctos por ejercicio a partir de las anotaciones, de modo que ese cálculo ya está implementado para cuando existan las sesiones.
 
-### 14.8 Cumplimiento de los objetivos
+### 14.8 Cumplimiento de los objetivos y requerimientos
 
 | Objetivo | Meta | Resultado | Estado |
 | --- | --- | --- | --- |
@@ -1394,6 +1414,25 @@ No hay resultados de exactitud con personas, porque las sesiones V-01 no se real
 | OE5 · Guía visual | Figura animada para los cuatro ejercicios | Implementada para los cuatro ejercicios. En el cuestionario de la versión final, mediana de 5 sobre 5 en «la figura animada me ayudó a saber cómo hacer cada ejercicio» (sección 13.3.3). | Cumplido. |
 
 En cuanto al objetivo general, el prototipo se diseñó e implementó completo para los cuatro ejercicios, con retroalimentación visual y hablada, y se midieron su desempeño técnico y su latencia. La validación en un entorno controlado quedó a medias: hay mediciones de tiempo y una evaluación de usabilidad con participantes, pero faltan las sesiones anotadas que miden la exactitud de las correcciones.
+
+La siguiente tabla contrasta los requerimientos no funcionales de la sección 8.2 con los resultados.
+
+| Requerimiento | Criterio | Resultado | Estado |
+| --- | --- | --- | --- |
+| RNF-01 Rendimiento | ≥ 25 imágenes por segundo y pose ≤ 33 ms (p95) | 21,3 ms (*full* en CPU) y 16,5 ms (*heavy* en GPU); mínimo de 25,0 imágenes por segundo | Cumple (sección 14.3). |
+| RNF-02 Oportunidad | ≤ 1 s de la detección a la voz (p95) | 0,07–0,10 s con plantillas y 0,39 s con el modelo de lenguaje | Cumple (sección 14.3). |
+| RNF-03 Exactitud | Precisión ≥ 0,80, recobrado ≥ 0,70 y ≥ 90 % de mensajes correctos | Sin sesiones anotadas | Pendiente del protocolo V-01 (secciones 13.4.12 y 14.7). |
+| RNF-04 Seguridad del mensaje | 0 % de mensajes no respaldados y ≤ 10 % de sobrecorrección | 0 % no respaldados en el banco y en video; 0 % de sobrecorrección en el banco | Cumple en el banco y en video; falta con personas (secciones 14.1 y 14.3). |
+| RNF-05 Privacidad | Ninguna imagen ni dato biométrico enviado fuera | Todo el procesamiento ocurre en el equipo | Cumple por diseño (secciones 12.3 y 14.6). |
+| RNF-06 Disponibilidad | Sesión completa sin red | La sesión no usa conexión; solo la instalación la necesita | Cumple por diseño (sección 12.3). |
+| RNF-07 Determinismo | 100 % de coincidencia en la decisión al repetir | 163 casos repetidos 10 veces, con y sin las funciones del Mac | Cumple (sección 14.1). |
+| RNF-08 Mantenibilidad | Un ejercicio nuevo sin modificar el motor | La zancada reemplazó a la marcha solo con configuración | Cumple (sección 14.9). |
+| RNF-09 Usabilidad | Frases cortas y comprensibles en español | Todas las respuestas a «entendí lo que me pedía corregir» fueron 4 o 5 | Indicios favorables con cinco participantes (sección 13.3.3). |
+| RNF-10 Portabilidad | Windows, Linux y macOS | Pruebas automáticas en Windows y en el Mac; mediciones en un portátil con Linux | Cumple; fuera del Mac, con menos funciones (sección 14.6). |
+| RNF-11 Protección de datos locales | Lista cerrada de campos, sin datos del cuerpo y borrado por perfil | Verificado con pruebas automáticas de perfiles e historial | Cumple en pruebas; falta registrar la prueba completa con cámara (sección 13.2). |
+| RNF-12 Coexistencia de cargas | El p95 de la pose no cambia al encender las demás funciones | 14,3 ms con la pose sola y 14,4 ms con todo encendido | Cumple (sección 14.3). |
+
+Los 23 requerimientos funcionales de la sección 8.1 están implementados (sección 11.2) y verificados con las pruebas automáticas y de integración del capítulo 13. Cuatro tienen salvedades. El aviso de ejercicio distinto (RF-20) está desactivado por defecto, porque no cumplió el máximo de 5 % de falsas alarmas (sección 14.5). La redacción con el modelo de lenguaje (RF-21) cumple el tiempo, pero su adopción depende de compararla con las plantillas (EXP-001). La comparación a ciegas de la entrenadora (RF-22) no se calificó. Y las órdenes de voz (RF-23) solo tienen tasas de reconocimiento con audio sintético (sección 14.4).
 
 ### 14.9 Discusión
 
@@ -1413,7 +1452,7 @@ La evaluación de usabilidad aporta la perspectiva de quien usa el sistema. Con 
 
 La exactitud de las correcciones, que forma parte de los objetivos OE2, OE3 y OE4, se abordó en tres niveles. El banco sintético demuestra que el motor hace lo que sus reglas dicen; los videos, que no afirma lo que no ve; y la revisión de la especialista, que las reglas y sus umbrales son razonables desde el punto de vista técnico-deportivo. El cuarto nivel, comparar cada corrección con lo que anota una persona en cada repetición, es el que permite expresar la exactitud en cifras de precisión y recobrado. Su protocolo quedó definido (sección 13.4.12) y constituye la siguiente etapa de validación.
 
-El proyecto también tiene limitaciones. La referencia de técnica de cada ejercicio se construyó a partir de un solo video y, en algunos casos, de videos públicos con baja tasa de imágenes o sin licencia explícita. Los umbrales siguen siendo provisionales hasta calibrarlos con datos anotados. Los perfiles no tienen contraseña, de modo que en un equipo compartido cualquiera puede ver el progreso de otra persona, aunque la aplicación lo advierte. El reconocedor de ejercicio confunde la zancada con la abducción y tiene un 10 % de falsas alarmas, por lo que quedó desactivado por defecto. Las funciones del Mac dependen de ese equipo: en un portátil común la aplicación funciona, pero sin modelo de lenguaje, sin órdenes de voz y con el modelo más ligero de pose. La población objetivo empieza en los 14 años, pero la validación se hizo solo con mayores de edad, y las variantes de las frases las revisó un asistente de IA y no la especialista. Por último, la zancada no produjo correcciones en los videos, de modo que no hay tiempo de la detección a la voz para ese ejercicio; la renovación del detector de la GPU puede retrasar una imagen unos 280 ms; y las tasas de reconocimiento de las órdenes de voz solo se midieron con audio sintético.
+El proyecto también tiene limitaciones. La referencia de técnica de cada ejercicio se construyó a partir de un solo video y, en algunos casos, de videos públicos con baja tasa de imágenes o sin licencia explícita. Los umbrales siguen siendo provisionales hasta calibrarlos con datos anotados. Los perfiles no tienen contraseña, de modo que en un equipo compartido cualquiera puede ver el progreso de otra persona, aunque la aplicación lo advierte. El reconocedor de ejercicio confunde la zancada con la abducción y tiene un 10 % de falsas alarmas, por lo que quedó desactivado por defecto. Las funciones del Mac dependen de ese equipo: en un portátil común la aplicación funciona, pero sin modelo de lenguaje, sin órdenes de voz y con el modelo más ligero de pose. La población objetivo empieza en los 14 años, pero la validación se hizo solo con mayores de edad, y las variantes de las frases las revisó un asistente de IA y no la especialista. Por último, la zancada no produjo correcciones en los videos, de modo que no hay tiempo de la detección a la voz para ese ejercicio; en sesiones largas sin avisos, la renovación periódica del detector de la GPU retrasa una imagen aislada unos 280 ms, sin que el retraso se acumule (sección 14.3); y las tasas de reconocimiento de las órdenes de voz solo se midieron con audio sintético.
 
 ### 14.10 Conclusiones
 
