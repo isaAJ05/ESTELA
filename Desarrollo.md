@@ -124,7 +124,6 @@ ESTELA/
 ├── design/ESTELA.pdf                 diseño visual
 ├── .githooks/commit-msg              exige el identificador de ClickUp
 ├── .gitmessage                       plantilla del mensaje de commit
-├── RESULTADOS-MAC-INFORME-FINAL.md   métricas del Mac Studio (borrador)
 ├── InformeFinal.md, PrimerInforme.md, SegundoInforme.md
 └── Readme.md, Instalación.md, Desarrollo.md
 ```
@@ -151,7 +150,6 @@ ESTELA/
 | `PRUEBAS/` | Prototipos históricos, arneses de experimentos y hojas de revisión (sección 6.2). |
 | `.githooks/commit-msg` y `.gitmessage` | Regla del identificador de ClickUp y plantilla del mensaje de *commit* (sección 10.2). |
 | `.claude/skills/estela-card-writer/` | Instrucciones para que Claude Code redacte tarjetas de ClickUp con las convenciones del proyecto. |
-| `RESULTADOS-MAC-INFORME-FINAL.md` | Métricas del Mac Studio para el informe final, en estado de borrador. |
 | `diagramas/` | Diagramas en PlantUML y en imagen: `mac_diagrams_def/` (versión completa, vigentes), `definitivos/` (versión básica) y `otros/` (versión anterior). |
 | `landing/` y `vercel.json` | Página de presentación estática y su publicación en Vercel. No forman parte de la aplicación. |
 
@@ -703,7 +701,6 @@ Las cifras de los modelos de lenguaje y de Whisper provienen de los comentarios 
 - `Instalación.md` y `Readme.md`: puesta en marcha y presentación del proyecto.
 - `backend/README.md`, `frontend/README.md`, `backend/estela/dominio/feedback/README.md` y `backend/feedback_testing/README.md`: detalle técnico de cada parte.
 - `backend/estela/dominio/feedback/skills/ESQUEMA.md`: formato de una *skill*.
-- `RESULTADOS-MAC-INFORME-FINAL.md`: métricas y pasos de instalación comprobados en el Mac Studio.
 - `diagramas/mac_diagrams_def/`: diagramas de arquitectura, despliegue, interacción y secuencia de esta versión.
 
 **Repositorio de documentación `docs_estela`**
