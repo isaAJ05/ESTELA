@@ -1143,7 +1143,7 @@ Cada experimento definió su pregunta, sus alternativas, sus datos, sus métrica
 - **Alternativas.** MediaPipe en sus tres variantes (*lite*, *full* y *heavy*), en el procesador o en la tarjeta gráfica, y RTMPose.
 - **Criterio.** Primero se descartan las variantes que no cumplen 33 ms (p95) en todos los videos, que detectan a la persona en menos del 95 % de las imágenes o que no entregan coordenadas 3D. Entre las restantes se elige la más precisa. En caso de empate gana MediaPipe, porque ya está integrado.
 - **Datos y método.** Se usó la herramienta de medición del proyecto con 19 videos públicos, en el Mac y en dos portátiles. RTMPose no se midió en el Mac, y las métricas de calidad más detalladas del plan, como los intercambios entre izquierda y derecha, no se calcularon.
-- **Resultado.** En el procesador del Mac cumplen *lite* y *full*, pero no *heavy* (58,4 ms con estos 19 videos y 59,5 ms con los 23 de la sección 14.3). En la tarjeta gráfica las tres variantes tardan menos de 7 ms. El estimador detectó a la persona en el 97,4 % de las imágenes. Por eso el Mac usa *heavy*, la variante más precisa, en la tarjeta gráfica. Las cifras completas están en la sección 14.3.
+- **Resultado.** En el procesador del Mac cumplen *lite* y *full*, pero no *heavy* (58,4 ms con estos 19 videos y 59,5 ms con los 23 de la sección 14.3). En la tarjeta gráfica, las tres cumplen con margen. El estimador detectó a la persona en el 97,4 % de las imágenes. Por eso el Mac usa *heavy*, la variante más precisa, en la tarjeta gráfica. Las cifras completas están en la sección 14.3.
 
 #### 13.4.4 EXP-005: calibración de los umbrales
 
@@ -1238,7 +1238,7 @@ Es importante no confundir estas cifras con la exactitud sobre personas reales. 
 
 ### 14.2 Qué puede ver una sola cámara
 
-El experimento de observabilidad mostró que medir sobre la imagen puede producir errores tan grandes como los umbrales. Por ejemplo, el ángulo de la rodilla en una sentadilla vista de frente puede tener un error de hasta 79°, cuando el umbral de profundidad era de 15°. En la sentadilla, ninguna orientación permite evaluar a la vez si la rodilla se va hacia adentro (solo se ve de frente) y la profundidad (solo se ve de perfil), y por eso se retiró. En cambio, los *jumping jacks* se pueden evaluar entre 0° y 70° de giro.
+El experimento de observabilidad (sección 13.4.2) mostró que medir sobre la imagen puede producir errores tan grandes como los propios umbrales. En la sentadilla, además, ninguna orientación permite evaluar a la vez si la rodilla se va hacia adentro (solo se ve de frente) y la profundidad (solo se ve de perfil), y por eso se retiró.
 
 Estos resultados explican por qué cada ejercicio tiene una orientación definida. La zancada se hace de perfil porque sus errores principales, como la profundidad y la inclinación del tronco, se ven mejor de lado. El experimento también mostró que una tolerancia de orientación igual para todas las reglas, de 30°, no es la más adecuada, y queda pendiente ajustarla por regla.
 
