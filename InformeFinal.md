@@ -6,8 +6,6 @@
 
 **Tutores:** Ph.D. Margarita Gamarra · Augusto Salazar Silva
 
-<!-- **Nota para el equipo.** Esta versión describe la rama `main` (21-nov-2026, código igual a `feature/mac-flujo`) y las mediciones del Mac Studio M2 Ultra (16 al 20-nov-2026). Ya no quedan recuadros para completar: lo que no se midió está dicho en el texto. El cuestionario de usabilidad (cinco participantes, 20-nov-2026) está en la sección 13.3.3. Los recuadros **[REVISAR]** que quedan necesitan una decisión o un dato del equipo antes de entregar. -->
-
 ## Resumen / Abstract
 
 Muchas personas hacen ejercicio por su cuenta, siguiendo videos o rutinas aprendidas, sin nadie que observe si lo están haciendo bien. Los videos no ven a quien los sigue, las aplicaciones de conteo dicen cuántas repeticiones se hicieron pero no cómo, y los productos que sí analizan la técnica suelen requerir hardware propio, pertenecen al área clínica o no explican dónde procesan la imagen.
@@ -16,7 +14,7 @@ ESTELA es una aplicación de escritorio que usa una sola cámara para observar a
 
 Para lograrlo, ESTELA identifica puntos del cuerpo en cada imagen, calcula ángulos y distancias, cuenta las repeticiones y compara cada repetición con una ejecución de referencia. Un motor de reglas decide si hay un error que vale la pena comunicar o si es mejor no hablar, por ejemplo cuando la cámara no ve bien la parte del cuerpo que habría que corregir. Después, una frase redactada de antemano se convierte en voz con un sintetizador local. La información de cada ejercicio vive en archivos de configuración, lo que permitió cambiar la marcha por la zancada sin modificar el núcleo del sistema. La versión final añade perfiles locales con historial de sesiones, que guardan solo datos de actividad y nunca imágenes ni medidas del cuerpo.
 
-En el equipo final, un Mac Studio con M2 Ultra, la aplicación aprovecha la capacidad adicional para tres funciones que siguen sin decidir qué error ocurrió: un modelo de lenguaje local que redacta las correcciones con otras palabras, una «entrenadora» que resume cada ejercicio al terminar la rutina y órdenes de voz («Estela, pausa») reconocidas en el propio equipo. Todas pasan por un validador y, si fallan o tardan, la aplicación vuelve a las plantillas.
+En el equipo final, un Mac Studio con M2 Ultra, la aplicación aprovecha la capacidad adicional para tres funciones que siguen sin decidir qué error ocurrió: un modelo de lenguaje local que redacta las correcciones con otras palabras, una «entrenadora» que resume la rutina al terminarla y responde «¿cómo voy?» y órdenes de voz («Estela, pausa») reconocidas en el propio equipo. Todas pasan por un validador y, si fallan o tardan, la aplicación vuelve a las plantillas.
 
 El proyecto se desarrolló de forma iterativa, registrando las decisiones de diseño y resolviendo las dudas técnicas con experimentos definidos antes de medir. En un banco de casos sintéticos, el motor no nombró nunca una parte del cuerpo distinta de la detectada y no corrigió ejecuciones correctas. En el Mac Studio, con videos públicos, y con los cuatro ejercicios, la estimación de pose tardó 21,3 ms en el percentil 95, el sistema sostuvo la tasa de imágenes del video sin descartar ninguna y la voz empezó entre 0,07 y 0,10 s después de detectar el error con plantillas, y 0,39 s con el modelo de lenguaje encendido, frente a 3,93 s antes de corregir la cola de voz. Ejecutar al mismo tiempo la pose, el modelo de lenguaje, la voz y el reconocimiento de órdenes no cambió el tiempo de la pose. En una evaluación de usabilidad con cinco participantes, la versión final obtuvo una puntuación SUS media de 91,0 sobre 100, cuatro de las cinco personas consideraron adecuada la cantidad de indicaciones y las órdenes de voz no ejecutaron ninguna acción que no se hubiera pedido; el principal problema fue la información que solo aparece en pantalla, como el contador. El comportamiento del motor se verificó con el banco sintético, con videos y con la revisión de una especialista; la comparación repetición por repetición con anotaciones de personas reales quedó definida en un protocolo propio (V-01) y constituye la siguiente etapa de validación.
 
@@ -970,7 +968,7 @@ La primera usa un estimador de pose y una voz simulados, que reproducen secuenci
 
 La tercera reproduce videos a través de la aplicación con MediaPipe real. En octubre se usaron 21 videos públicos en un portátil y en noviembre, 23 videos públicos de los cuatro ejercicios en el Mac Studio. Estos videos permiten medir tiempos y estabilidad, pero no la exactitud, porque no tienen anotados los errores. La cuarta revisa las pantallas de la interfaz con un backend simulado, en tema claro y oscuro.
 
-En el Mac se añadieron dos pruebas de integración. La primera ejecuta cada video dos veces: una solo con la pose y otra con el modelo de lenguaje, la entrenadora, Piper y Whisper funcionando al mismo tiempo, para comprobar que estas funciones no retrasan el análisis de la cámara (RNF-12). La segunda arranca la aplicación sin opciones y con Ollama apagado, para comprobar que en ese caso vuelve a las plantillas. La caída de la GPU al procesador no se pudo provocar con un fallo real. Se comprobó con una prueba que simula el fallo al crear el estimador: la aplicación pasa a *full* en el procesador y lo anota en el registro, aunque la ventana no lo avisa.
+En el Mac se añadieron dos pruebas de integración. La primera ejecuta cada video dos veces: una solo con la pose y otra con el modelo de lenguaje, Piper y Whisper funcionando al mismo tiempo (en la primera versión de la prueba, también la entrenadora), para comprobar que estas funciones no retrasan el análisis de la cámara (RNF-12). La segunda arranca la aplicación sin opciones y con Ollama apagado, para comprobar que en ese caso vuelve a las plantillas. La caída de la GPU al procesador no se pudo provocar con un fallo real. Se comprobó con una prueba que simula el fallo al crear el estimador: la aplicación pasa a *full* en el procesador y lo anota en el registro, aunque la ventana no lo avisa.
 
 Durante estas pruebas también se comprobó la respuesta del sistema ante fallos. Cuando la cámara está ocupada, la interfaz muestra el motivo; cuando la voz no está disponible, la aplicación usa la del sistema operativo o el texto en pantalla; y cuando falta la referencia de un ejercicio, solo se aplican las reglas que no dependen de ella. Ante una articulación tapada, el motor no corrige y registra el motivo. Por último, si el archivo de perfiles está dañado, la aplicación inicia sin perfiles en lugar de detenerse.
 
@@ -1079,6 +1077,8 @@ En cuanto a la **cantidad de indicaciones**, cuatro participantes la consideraro
 | ESTELA hizo algo que yo no le pedí (por ejemplo, pausó sola). | 1 | 1 | 1 |
 | Supe cuándo ESTELA me estaba escuchando. | 5 | 4 | 5 |
 | Los resúmenes al terminar cada ejercicio me fueron útiles. | 5 | 4 | 5 |
+
+En la versión evaluada, la entrenadora resumía cada ejercicio al terminarlo. En la versión final, ese resumen quedó como opción (`--entrenadora-entre si`) y, por defecto, la entrenadora da el resumen al terminar la rutina y responde «¿cómo voy?» (sección 11.2).
 
 Ningún participante percibió que ESTELA hiciera algo que no se le pidió, que era la prioridad del diseño del reconocedor: es preferible pedir que se repita una orden antes que ejecutar una que nadie dio (sección 13.4.11). Uno de los tres sí tuvo que repetir órdenes, lo que es coherente con esa prioridad. Dos participantes prefirieron controlar la sesión con la voz y uno no tuvo preferencia. Esta es la primera evidencia del reconocimiento con personas y un micrófono real, aunque tres participantes no permiten calcular tasas de reconocimiento.
 
@@ -1285,8 +1285,6 @@ Los portátiles muestran por qué el Mac es el equipo final. En el portátil con
 
 En la primera versión de esta prueba, diez de 7 694 imágenes superaron los 33 ms (máximo de 314 ms), todas por la llamada al modelo de lenguaje dentro del ciclo de cada imagen. Ese diseño se cambió (sección 10.1.2.3) y la medición se repitió con los mismos cuatro videos: con todo encendido, 4 de 7 694 imágenes superaron los 33 ms (máximo de 196 ms), y 1 cuando Whisper reconoce cada 0,3 s, como hace la aplicación. El modelo de lenguaje ya no causa ninguna: redacta en su propio hilo, con 260 ms de mediana por frase. Con la pose sola también hay 3 imágenes por encima de 33 ms. La más lenta, de unos 280 ms, se debe a la renovación del detector de la GPU, que se hace cada 1 800 imágenes para liberar memoria y espera a un momento sin evaluación, con un tope de 3 600 imágenes; si en dos minutos seguidos no hay ningún aviso, una imagen tarda unos 280 ms. Las demás pasan de 33 ms por poco (entre 33,5 y 40,4 ms). Los dos videos de zancada no tuvieron ninguna.
 
-Los archivos de resultados de la memoria y de «todas las funciones a la vez» están en el Mac y no en el repositorio; los de la medición con los 23 videos, con y sin modelo de lenguaje, están en `backend/feedback_testing/resultados/MAC-*`. Todas las cifras de esta sección se comprobaron contra esos archivos el 22 de noviembre (`RESULTADOS-MAC-INFORME-FINAL.md`), salvo la memoria después de la corrección (0,6–2,1 GB), que solo consta en el registro de cambios.
-
 ### 14.4 Modelo de lenguaje y órdenes de voz en el Mac
 
 Estas mediciones se hicieron en el Mac Studio y responden a dos preguntas: si el modelo de lenguaje cabe en el tiempo de respuesta y cuánto inventa, y qué reconocedor entiende las órdenes sin inventarlas.
@@ -1309,21 +1307,13 @@ En las órdenes de voz se eligió whisper.cpp *small* aunque reconoce menos órd
 
 Estas cifras tienen dos límites. Las tasas de reconocimiento de las órdenes se midieron con audio generado por síntesis de voz; con personas y un micrófono real solo hay el uso de la evaluación de usabilidad (sección 13.3.3), que no permite calcular tasas. La calidad de las frases del modelo de lenguaje no ha sido juzgada por personas: el validador comprueba el lado, la parte del cuerpo y el vocabulario, pero no si la frase se entiende. El tiempo entre la detección y la voz con el modelo de lenguaje encendido sí se midió de punta a punta: 0,39 s (p95, sección 14.3).
 
-Las cifras de esta sección se comprobaron el 20 de noviembre contra los archivos de resultados del Mac (`RESULTADOS-MAC-INFORME-FINAL.md`). Dos cambiaron levemente: la mediana del 70B como entrenadora es de 3,26 s, y el p95 de whisper.cpp es de 69 ms según el registro del Mac y de 71 ms según el archivo de la evaluación.
-
 Quedaron dos mediciones sin hacer. La hoja para comparar a ciegas los resúmenes de la entrenadora con Qwen3 14B y con Llama 3.3 70B se preparó, pero no se calificó; además, desde que la entrenadora dejó de hablar entre ejercicios, solo 7 de sus 20 situaciones corresponden a lo que hace la aplicación. Y con micrófono real las órdenes de voz se evaluaron en uso, en la evaluación de usabilidad, donde no ejecutaron ninguna acción que no se hubiera pedido; medir sus tasas de reconocimiento con varias personas queda como trabajo futuro (sección 15).
 
 ### 14.5 Reconocimiento del ejercicio
 
 El reconocedor de ejercicio responde a una situación que apareció en las pruebas del equipo: si la persona hacía un ejercicio distinto del que indicaba la rutina, el sistema no contaba repeticiones ni decía nada, y la persona no sabía por qué. El reconocedor compara el movimiento, mediante DTW, con referencias de los cuatro ejercicios y, si durante 3 s el movimiento se parece más a otro ejercicio que al elegido, da el aviso «Ese movimiento no es el de ahora. Toca…». Es un aviso de operación: no evalúa la técnica y no pasa por el motor de decisión.
 
-**Cómo se midió.** Cada clip de video se reprodujo cuatro veces, una con cada ejercicio como «elegido». Si el ejercicio del clip coincide con el elegido, el sistema debe callar; si no coincide, debe avisar. Con esa definición, el reconocedor se puede evaluar como un clasificador de dos clases:
-
-- una **falsa alarma** es un aviso cuando la persona sí hace el ejercicio elegido;
-- un **aviso omitido** es un caso en que la persona hace otro ejercicio y el sistema no avisa;
-- la **precisión** es la proporción de avisos que eran correctos;
-- el **recobrado** es la proporción de cambios de ejercicio que el sistema avisó;
-- la **especificidad** es la proporción de casos correctos en los que el sistema calló.
+**Cómo se midió.** Cada clip de video se reprodujo cuatro veces, una con cada ejercicio como «elegido». Si el ejercicio del clip coincide con el elegido, el sistema debe callar; si no coincide, debe avisar. Así, el reconocedor se evalúa como un clasificador de dos clases, con las métricas de la sección 13.4.9.
 
 **Resultados con grabaciones propias.** La medición más representativa usó 21 grabaciones de integrantes del equipo, guardadas fuera del repositorio, cortadas en 30 clips de un solo ejercicio: 13 de abducción, 7 de *jumping jacks*, 9 de zancada y 1 de plancha. Ninguno de estos clips se usó como referencia del reconocedor. Los resultados son los siguientes.
 
@@ -1346,24 +1336,15 @@ El reconocedor de ejercicio responde a una situación que apareció en las prueb
 
 Todos los errores ocurrieron con la zancada. Las tres falsas alarmas corresponden a clips de una misma persona que hacía una zancada dinámica (dar el paso atrás y volver) en lugar de la estática, y 8 de los 9 avisos omitidos ocurrieron cuando el ejercicio elegido era la abducción. La causa es que, en las medidas que usa el reconocedor, la zancada se parece a la abducción, porque en ambos ejercicios una pierna se separa de la otra. En cambio, la abducción, los *jumping jacks* y la plancha se distinguieron sin errores con personas que no estaban en las referencias.
 
-**Resultados con videos públicos.** Antes de tener grabaciones propias, el reconocedor se evaluó con 15 videos públicos de los ejercicios de entonces, que incluían la marcha. Dio 1 falsa alarma en 12 casos correctos (8 %) y avisó en 29 de 36 cambios de ejercicio (81 %). Integrado en la sesión completa, con otros 12 videos, no dio ninguna falsa alarma en 8 casos correctos y avisó en 4 de 5 cambios entre ejercicios que se hacen en la misma orientación.
+**Resultados con videos públicos.** Con 15 videos públicos de los ejercicios de entonces, que incluían la marcha, el reconocedor dio 1 falsa alarma en 12 casos correctos (8 %) y avisó en 29 de 36 cambios de ejercicio (81 %).
 
 **Lectura de estos resultados.** El reconocedor funciona bien con tres de los cuatro ejercicios, pero no cumple el criterio que se fijó antes de medir: como máximo 5 % de falsas alarmas. Con 3 falsas alarmas en 30 casos, la tasa medida es del 10 %, y el intervalo de confianza llega al 26 %. Además, en las pruebas del equipo el aviso saltaba ante variaciones normales del ejercicio correcto. Por estas dos razones quedó **desactivado por defecto**: la persona puede encenderlo desde un botón de la sesión. Estas cifras tienen tres límites: los umbrales se ajustaron con videos públicos y no se recalibraron con las grabaciones propias, solo hay un clip de plancha y los clips se cortaron a mano, con un margen de un segundo. Por último, los cuatro casos de cada clip no son independientes entre sí, de modo que los intervalos son orientativos.
 
 ### 14.6 Qué aporta el Mac Studio
 
-Esta sección reúne en un solo lugar lo que el Mac Studio M2 Ultra aportó al proyecto. Las cifras ya aparecen en las secciones 14.3 y 14.4; aquí se ordenan para responder una pregunta concreta: qué se pudo hacer en el Mac que no se podía hacer en los portátiles del equipo, y qué problemas aparecieron y se resolvieron al llevar la aplicación a ese equipo.
+Esta sección responde qué se pudo hacer en el Mac Studio M2 Ultra que no se podía hacer en los portátiles del equipo, y qué problemas aparecieron y se resolvieron al llevar la aplicación a ese equipo. Las cifras están en las secciones 14.3 y 14.4.
 
-**El mismo trabajo, en distintos equipos.** La primera tabla compara el Mac con los portátiles en las etapas que se midieron en ambos.
-
-| Medida | Portátil | Mac Studio | Qué significa |
-| --- | --- | --- | --- |
-| Pose *lite*, p95 | 20,1 ms (Linux) · 46,3 ms (Windows) | 8,9 ms (CPU) | En el portátil con Windows ni el modelo más ligero cumple los 33 ms. |
-| Pose *full*, p95 | 35,0 ms (Linux) · 57,1 ms (Windows) | 14,5 ms (CPU) | En el Mac el modelo intermedio cumple con margen. |
-| Pose *heavy*, p95 | 87,1 ms (Linux) | 59,5 ms (CPU) · 4,8–6,3 ms (GPU) | Solo la tarjeta gráfica del Mac permite usar el modelo más preciso a tiempo. |
-| Capacidad con *full* | 30 imágenes/s (Linux) · 21 (Windows) | 69 imágenes/s | El Mac tiene margen para otras tareas sin perder imágenes. |
-| Modelo de lenguaje para las correcciones | No se midió | 294 ms (p95) dentro de la sesión, Qwen3 4B; voz a 0,39 s (p95) de la detección | En el Mac cabe en el tiempo límite de 400 ms. En los portátiles no se probó junto con la pose. |
-| Pose con todas las funciones encendidas | No se midió | 14,4 ms (p95), frente a 14,3 ms con la pose sola | En el Mac, el modelo de lenguaje, la voz y Whisper no le quitan tiempo a la pose. |
+**Frente a los portátiles.** En el procesador del Mac, *lite* y *full* tardan 8,9 y 14,5 ms (p95), frente a 20,1 y 35,0 ms en el portátil con Linux y 46,3 y 57,1 ms en el de Windows, y solo la tarjeta gráfica del Mac permite usar *heavy*, el modelo más preciso, a tiempo. Ese margen es el que permite sumar el modelo de lenguaje y el reconocimiento de órdenes sin que la pose cambie: 14,3 ms (p95) sola y 14,4 ms con todo encendido. En los portátiles, el modelo de lenguaje no se probó junto con la pose.
 
 **Antes y después de los ajustes hechos en el Mac.** La segunda tabla muestra los problemas que se encontraron al medir en el Mac y cómo quedaron. En cada fila, el antes y el después se midieron en el mismo equipo.
 
@@ -1379,14 +1360,7 @@ Esta sección reúne en un solo lugar lo que el Mac Studio M2 Ultra aportó al p
 
 La primera y la última fila no dependen del Mac: son correcciones de diseño que mejoran cualquier equipo. Se incluyen porque el Mac es donde se midió su efecto final. Las demás filas sí son propias del Mac: aparecieron al usar su tarjeta gráfica y al ejecutar modelos de lenguaje.
 
-**Funciones que solo se encienden en el Mac.** Con esa capacidad, la aplicación activa por defecto cuatro funciones en el Mac, cada una con un respaldo si falla:
-
-| Función | Respaldo si no está disponible |
-| --- | --- |
-| Pose *heavy* en la tarjeta gráfica | *full* en el procesador |
-| Correcciones redactadas por Qwen3 4B, con validador | Plantillas |
-| Entrenadora con Qwen3 14B (resumen final y «¿cómo voy?») | Texto fijo o sin entrenadora |
-| Órdenes de voz con «Estela» y whisper.cpp | Botones y teclado |
+**Funciones que solo se encienden en el Mac.** Con esa capacidad, la aplicación activa por defecto en el Mac cuatro funciones, cada una con un respaldo si falla: *heavy* en la tarjeta gráfica (respaldo: *full* en el procesador), las correcciones redactadas por Qwen3 4B con validador (plantillas), la entrenadora con Qwen3 14B, que da el resumen final y responde «¿cómo voy?» (texto fijo o sin entrenadora), y las órdenes de voz con «Estela» y whisper.cpp (botones y teclado).
 
 Ninguna de las cuatro cambia quién decide qué error ocurrió: esa decisión sigue en el motor de reglas, igual que en un portátil. Lo que aporta el Mac es una mejor percepción, con el modelo más preciso de pose, y una comunicación más rica, con frases variadas, resúmenes y control por voz. Todo sigue ejecutándose en el equipo y sin conexión a internet.
 
