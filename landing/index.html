@@ -165,6 +165,11 @@ a { color: inherit; }
 @keyframes onda { 50% { height: 100%; } }
 .demo-pie { margin-top: 0.9rem; font-size: 0.82rem; color: var(--sutil); text-align: center; }
 
+/* -- visor de la demo ---------------------------------------------------- */
+.visor { position: relative; aspect-ratio: 16 / 9; border-radius: 1.75rem; overflow: hidden; border: 1px solid var(--borde); background: #0b0a12; box-shadow: 0 40px 100px -30px rgba(0,0,0,.8), 0 0 0 1px rgba(255,255,255,.03) inset; }
+.visor video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; background: #0b0a12; }
+.visor-yt { display: flex; width: fit-content; min-height: 2.5rem; padding: 0 1.1rem; font-size: 0.9rem; margin: 0 0 0.9rem auto; }
+
 /* -- el punto ciego ------------------------------------------------------ */
 .ciego { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 1.25fr); gap: 1rem; align-items: stretch; }
 @media (max-width: 980px) { .ciego { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -340,7 +345,7 @@ a { color: inherit; }
       <a class="solo-ancho" href="#ejercicios">Ejercicios</a>
       <a class="solo-ancho" href="#privacidad">Privacidad</a>
       <a class="solo-ancho" href="#nosotras">Nosotras</a>
-      <a class="boton boton-estrella" href="#ejercicios">Entrena con Estela</a>
+      <a class="boton boton-estrella" href="#demo">Entrena con Estela</a>
     </nav>
   </div>
 </header>
@@ -567,6 +572,20 @@ a { color: inherit; }
     </div>
   </section>
 
+  <section class="seccion" id="demo" style="padding-top:0">
+    <div class="contenedor">
+      <div class="seccion-cabeza">
+        <span class="etiqueta">La demo</span>
+        <h2>Mírala en acción.</h2>
+        <p>Una sesión real: Estela observa, decide y corrige en voz alta, todo en el equipo.</p>
+      </div>
+      <a class="boton boton-fantasma visor-yt" href="https://www.youtube.com/watch?v=MGvIow_HVAU" target="_blank" rel="noopener">Verlo en YouTube</a>
+      <div class="visor">
+        <video id="visor" controls playsinline preload="metadata" aria-label="Video de demostración de ESTELA"><source src="assets/demo.mp4" type="video/mp4"></video>
+      </div>
+    </div>
+  </section>
+
   <section class="seccion" id="nosotras" style="padding-top:0">
     <div class="contenedor nosotras">
       <div class="historia">
@@ -594,7 +613,7 @@ a { color: inherit; }
       <img src="assets/logo.png" alt="">
       <h2>Entrenar bien empieza por <em>moverse bien.</em></h2>
       <p>Cuatro ejercicios, una cámara y una estrella que te acompaña de principio a fin.</p>
-      <a class="boton boton-estrella" href="#inicio">
+      <a class="boton boton-estrella" href="#demo">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 1.5l2.6 7.9 7.9 2.6-7.9 2.6L12 22.5l-2.6-7.9L1.5 12l7.9-2.6z"/></svg>
         Vuelve a ver la demo
       </a>
@@ -610,6 +629,13 @@ a { color: inherit; }
 </footer>
 </div>
 
+<script>
+/* visor: los botones que llevan a #demo también inician el video */
+(() => {
+  const v = document.getElementById('visor');
+  document.querySelectorAll('a[href="#demo"]').forEach(a => a.addEventListener('click', () => v.play().catch(() => {})));
+})();
+</script>
 <script>
 (() => {
   const quieto = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
