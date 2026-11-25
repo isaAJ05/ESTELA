@@ -1,0 +1,76 @@
+/* Base: tokens, reset, tipografía, contenedor y utilidades compartidas.
+   Cielo nocturno vivo de fondo; cada sección es un tramo de la "estela"
+   que une la cámara con la voz. Una sola identidad oscura, la de la app. */
+:root {
+  color-scheme: dark;
+  --noche: #0e0d16;
+  --superficie: #171522;
+  --elevada: #211d30;
+  --borde: #302b40;
+  --texto: #f7f4ff;
+  --suave: #b7b0c9;
+  --sutil: #918aa5;
+  --violeta: #806bff;
+  --lila: #a99dff;
+  --amarillo: #ffc94d;
+  --ambar: #f4a340;
+  --exito: #70d6a1;
+  --morado: #360568;
+  --sobre-amarillo: #1b1306;
+
+  --f-display: 'Bricolage Grotesque', 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --f-texto: 'Manrope', -apple-system, 'Segoe UI', system-ui, sans-serif;
+  --f-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, Consolas, monospace;
+
+  --ancho: 72rem;
+  --radio: 1.375rem;
+}
+*, *::before, *::after { box-sizing: border-box; }
+body { margin: 0; }
+img { max-width: 100%; }
+/* el menú es fijo: al saltar a una sección se deja su altura libre arriba */
+html { scroll-behavior: smooth; scroll-padding-top: calc(env(safe-area-inset-top, 0px) + 5.5rem); }
+body {
+  background: var(--noche);
+  color: var(--texto);
+  font-family: var(--f-texto);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-area-inset-top, 0px); z-index: 10; background: var(--noche); }
+h1, h2, h3 { margin: 0; font-family: var(--f-display); font-weight: 700; line-height: 1.02; letter-spacing: -0.035em; text-wrap: balance; }
+p { margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 3px solid var(--lila); outline-offset: 3px; border-radius: 6px; }
+
+#cielo { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 0; }
+.capa { position: relative; z-index: 1; }
+
+.contenedor {
+  width: 100%; max-width: calc(var(--ancho) + 2 * 16px); margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+@media (min-width: 720px) { .contenedor { padding-left: max(32px, env(safe-area-inset-left, 0px)); padding-right: max(32px, env(safe-area-inset-right, 0px)); max-width: calc(var(--ancho) + 64px); } }
+
+/* -- cabecera de sección ------------------------------------------------- */
+.etiqueta { font-family: var(--f-mono); font-size: 0.75rem; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--lila); }
+.seccion { padding-block: clamp(2.5rem, 6vw, 4.5rem); }
+.seccion.pegada { padding-top: 0; }
+.seccion-cabeza { display: grid; gap: 1rem; max-width: 44rem; margin-bottom: clamp(2.5rem, 5vw, 4rem); }
+.seccion-cabeza h2 { font-size: clamp(2.2rem, 5vw, 3.6rem); }
+.seccion-cabeza p { color: var(--suave); font-size: 1.125rem; max-width: 38rem; }
+.nota { margin-top: 1rem; font-size: 0.85rem; color: var(--sutil); max-width: 50rem; }
+
+/* entrada suave desde un estado visible */
+.entra { animation: entrar .9s cubic-bezier(.2,.8,.2,1) both; }
+.entra.d1 { animation-delay: .08s; } .entra.d2 { animation-delay: .18s; } .entra.d3 { animation-delay: .3s; } .entra.d4 { animation-delay: .42s; }
+@keyframes entrar { from { transform: translateY(14px); opacity: .001; } }
+@keyframes flotar { 0%,100% { transform: translateY(0) rotate(-4deg); } 50% { transform: translateY(-12px) rotate(3deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+}
