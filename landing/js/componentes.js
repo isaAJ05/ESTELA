@@ -26,7 +26,7 @@
     ],
 
     novedades: [
-      { titulo: 'Tu perfil y tu historial', texto: 'Guarda tus sesiones para que veas cómo avanzas. Solo anota tu actividad, nunca imágenes ni medidas de tu cuerpo, y lo puedes borrar cuando quieras.' },
+      { titulo: 'Tu perfil y tu historial', texto: 'Guarda tus sesiones y tus rutinas con nombre para que veas cómo avanzas. Solo anota tu actividad, nunca imágenes ni medidas de tu cuerpo, y lo puedes borrar cuando quieras.' },
       { titulo: 'Háblale: «Estela, pausa»', texto: 'Pausa, sigue o cambia de ejercicio con la voz, sin acercarte al teclado. Si no entiende, te pide repetir antes que hacer algo que no pediste.', etiqueta: 'equipo completo' },
       { titulo: 'Una entrenadora que te resume', texto: 'Al terminar la rutina te cuenta cómo te fue, y puedes preguntarle «¿cómo voy?» en cualquier momento.', etiqueta: 'equipo completo' },
       { titulo: 'Frases con más variedad', texto: 'Una inteligencia artificial local dice las correcciones con otras palabras para no sonar repetitiva. Si falla o tarda, Estela usa sus frases de siempre.', etiqueta: 'equipo completo' }
